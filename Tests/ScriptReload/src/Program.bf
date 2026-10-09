@@ -8,11 +8,13 @@ namespace ReloadTests;
 class ReloadLinks : Component { public Component target; }
 class Program
 {
+#if BF_PLATFORM_LINUX
     [CLink] static extern void* signal(int32 number,void* handler);
     [CLink] static extern int32 backtrace(void** buffer,int32 size);
     [CLink] static extern void backtrace_symbols_fd(void** buffer,int32 size,int32 fd);
     [CLink] static extern void _exit(int32 code);
     static void Fault(int32 code) { void*[40] stack=default; let count=backtrace(&stack[0],40); backtrace_symbols_fd(&stack[0],count,2); _exit(99); }
+#endif
 
     static FieldRef Field(Component component,StringView name)
     {
@@ -22,7 +24,9 @@ class Program
     }
     public static int Main(String[] args)
     {
+#if BF_PLATFORM_LINUX
         delegate void(int32) fault=scope => Fault; if(fault.GetFuncPtr() case .Ok(let ptr)) signal(11,ptr);
+#endif
         if(args.Count!=1) return 2;
         let folder=args[0];
         let scene=scope Scene(); let player=scene.CreateGameObject("Player");
@@ -33,6 +37,7 @@ class Program
         Input.[Friend]sKeys[(int)KeyCode.Space]=true;
         scene.StartPlay(); scene.Update();
         if(probe.Total!=3 || particles.Enabled || ReloadProbe.calls!=1) return 1;
+        if(!ScriptReload.WriteHostInfo(scope $"{folder}/baseline.host")) { Console.WriteLine("FAIL: no room for script libraries"); return 1; }
         File.WriteAllText(scope $"{folder}/ready","ready").IgnoreError();
         let loader=scope ScriptReload(); let error=scope String();
         for(int generation=1;generation<=6;generation++)

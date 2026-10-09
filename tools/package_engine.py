@@ -99,7 +99,6 @@ def main():
             f'Start {"Tessera.exe" if windows else "./Tessera"}.\n'
             f'For editing/building projects: {prerequisites}\n'
             'Engine/editor source and native archives are required to compile project scripts.\n'
-            'Windows script changes require Full Rebuild & Restart.\n'
             + ('Packaged from an existing executable; no rebuild was performed.\n' if args.skip_build else ''))
         if output.exists():
             shutil.rmtree(output)

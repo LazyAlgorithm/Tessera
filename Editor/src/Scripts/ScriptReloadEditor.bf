@@ -19,15 +19,26 @@ extension EditorApp
 
     void InitializeScriptReload()
     {
-#if BF_PLATFORM_LINUX
+#if (BF_PLATFORM_LINUX || BF_PLATFORM_WINDOWS) && BF_64_BIT
         let project=Project.Current;
         let session=scope $"{project.Path}/.tessera-reload/session-{DateTime.UtcNow.Ticks}";
         mReloadBaseline.Set(scope $"{session}.json"); mReloadManifest.Set(scope $"{session}.manifest");
+        // On Windows the script library is linked for an exact place beside this program: say where that is.
+        Directory.CreateDirectory(scope $"{project.Path}/.tessera-reload").IgnoreError();
+        if(!ScriptReload.WriteHostInfo(scope $"{session}.host"))
+        { Log.Warning("No address space near the program for script libraries. Full rebuild remains available."); return; }
         let command=scope String(Terminal.Python)..Append(' ');
         Terminal.Quote(scope $"{project.EngineRoot}/tools/reload_scripts.py",command);
         command.Append(' '); Terminal.Quote(project.Path,command);
         command.Append(" --snapshot --baseline "); Terminal.Quote(mReloadBaseline,command);
+        Directory.CreateDirectory(scope $"{project.Path}/build").IgnoreError();
+        command.Append(" > "); Terminal.Quote(scope $"{project.Path}/build/script-reload.log",command); command.Append(" 2>&1");
         mReloadReady=Terminal.Run(command)==0;
+        if(!mReloadReady)
+        {
+            let why=scope String(); File.ReadAllText(scope $"{project.Path}/build/script-reload.log",why).IgnoreError();
+            why.Trim(); if(!why.IsEmpty) Log.Warning(why);
+        }
         if(mReloadReady) Log.Info("Automatic script library reload enabled, including new scripts and supported field changes.");
         else Log.Warning("Could not initialize script library reload. Full rebuild remains available.");
         mScriptMonitor.Poll(Assets.ProjectPath);

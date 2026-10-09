@@ -8,8 +8,44 @@ import time
 import sys
 import contextlib
 
+import os
+import re
+
 root = Path(__file__).resolve().parent
-builder = root.parents[1] / 'tools' / 'reload_scripts.py'
+engine = root.parents[1]
+builder = engine / 'tools' / 'reload_scripts.py'
+# --windows: the same test against a Windows host. On Linux that host and its compiler run under Wine.
+windows = '--windows' in sys.argv or os.name == 'nt'
+wine = windows and os.name != 'nt'
+toolchain = Path(os.environ.get('TESSERA_WIN', Path.home() / '.local/share/tessera-win'))
+wine_environment = dict(os.environ, WINEPREFIX=str(toolchain / 'wine'), WINEDEBUG='-all', WINEDLLOVERRIDES='mscoree,mshtml=')
+platform = ['--platform', 'windows'] if windows else []
+
+
+def windows_project(project):
+    """Gives the copied project what a Windows build needs: the engine's Windows libraries, and a link map."""
+    def place(path):
+        return ('Z:' if wine else '') + str(path).replace('\\', '/')
+    launcher = (engine / 'Launcher/BeefProj.toml').read_text()
+    flags = re.search(r'\[Configs\.Debug\.Win64\][^\[]*?OtherLinkFlags = "([^"]*)"', launcher).group(1)
+    flags = flags.replace('$(WorkspaceDir)', place(engine))
+    with open(project / 'BeefProj.toml', 'a') as file:
+        file.write(f'\n[Configs.Debug.Win64]\nCLibType = "Static"\nOtherLinkFlags = "{flags} /MAP"\n')
+    (project / 'BeefSpace.toml').write_text('FileVersion = 1\nProjects = {ReloadTests = {Path = "."}, Tessera = {Path = "' + place(engine / 'Engine')
+                                           + '"}}\n[Workspace]\nStartupProject = "ReloadTests"\n\n[Configs.Debug.Win64]\nToolset = "LLVM"\n')
+
+
+def compile_host(project):
+    if not windows:
+        subprocess.run(['BeefBuild', f'-workspace={project}', '-config=Debug', '-verbosity=minimal'], check=True)
+        return [str(project / 'build/Debug_Linux64/ReloadTests/ReloadTests'), str(project)], None
+    windows_project(project)
+    if wine:
+        subprocess.run(['wine', str(toolchain / 'beef/bin/BeefBuild.exe'), '-workspace=Z:' + str(project).replace('/', '\\'), '-config=Debug', '-platform=Win64', '-verbosity=minimal'],
+                       check=True, env=wine_environment, stderr=subprocess.DEVNULL)
+        return ['wine', str(project / 'build/Debug_Win64/ReloadTests/ReloadTests.exe'), 'Z:' + str(project).replace('/', '\\')], wine_environment
+    subprocess.run([os.environ.get('BEEFBUILD', 'BeefBuild'), f'-workspace={project}', '-config=Debug', '-platform=Win64', '-verbosity=minimal'], check=True)
+    return [str(project / 'build/Debug_Win64/ReloadTests/ReloadTests.exe'), str(project)], None
 
 
 def wait_for(path, process):
@@ -28,16 +64,16 @@ with (contextlib.nullcontext(tempfile.mkdtemp(prefix='tessera-live-reload-test-'
     shutil.copytree(root / 'src', project / 'src')
     for name in ('BeefProj.toml', 'BeefSpace.toml'):
         shutil.copy2(root / name, project / name)
-    subprocess.run(['BeefBuild', f'-workspace={project}', '-config=Debug', '-verbosity=minimal'], check=True)
+    command, environment = compile_host(project)
     baseline = project / 'baseline.json'
-    subprocess.run([sys.executable, str(builder), str(project), '--snapshot', '--baseline', str(baseline)], check=True)
-    host = subprocess.Popen([str(project / 'build/Debug_Linux64/ReloadTests/ReloadTests'), str(project)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    subprocess.run([sys.executable, str(builder), str(project), *platform, '--snapshot', '--baseline', str(baseline)], check=True)
+    host = subprocess.Popen(command, env=environment, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     try:
         wait_for(project / 'ready', host)
         probe = project / 'src/ReloadProbe.bf'
         original = probe.read_text()
         probe.write_text(original.replace('mTotal += amount;', 'mTotal += ;'))
-        failed = subprocess.run([sys.executable, str(builder), str(project), '--baseline', str(baseline), '--manifest', str(project / 'failed.manifest')], capture_output=True, text=True)
+        failed = subprocess.run([sys.executable, str(builder), str(project), *platform, '--baseline', str(baseline), '--manifest', str(project / 'failed.manifest')], capture_output=True, text=True)
         assert failed.returncode != 0 and not (project / 'failed.manifest').exists()
         assert host.poll() is None
         print('PASS: compile error leaves host alive and no new module published', flush=True)
@@ -57,9 +93,9 @@ with (contextlib.nullcontext(tempfile.mkdtemp(prefix='tessera-live-reload-test-'
                 latest = latest.replace('[HideInInspector] public int32 addedField=42;', '')
             probe.write_text(latest)
             manifest = project / f'generation-{generation}.manifest'
-            subprocess.run([sys.executable, str(builder), str(project), '--baseline', str(baseline), '--manifest', str(manifest)], check=True)
+            subprocess.run([sys.executable, str(builder), str(project), *platform, '--baseline', str(baseline), '--manifest', str(manifest)], check=True)
             wait_for(project / f'applied-{generation}', host)
-            subprocess.run([sys.executable, str(builder), str(project), '--commit', '--baseline', str(baseline), '--manifest', str(manifest)], check=True)
+            subprocess.run([sys.executable, str(builder), str(project), *platform, '--commit', '--baseline', str(baseline), '--manifest', str(manifest)], check=True)
         output, _ = host.communicate(timeout=20)
         print(output, end='')
         assert host.returncode == 0

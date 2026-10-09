@@ -5,8 +5,8 @@ using System.Reflection;
 
 namespace Tessera;
 
-/// Linux development code reload. Compatible method edits preserve the live scene and fields.
-/// Retain loaded generations: old delegates may still reference their code.
+/// Development code reload (Linux and Windows, 64-bit debug builds). Compatible method edits preserve the live
+/// scene and fields. Retain loaded generations: old delegates may still reference their code.
 class ScriptReload
 {
 #if BF_PLATFORM_LINUX
@@ -22,6 +22,17 @@ class ScriptReload
     struct ClassPatch { public TypeInstance original; public TypeInstance replacement; public int size; }
     struct ProtectedPage { public uint address; public int32 protection; }
     struct StatePatch { public void* original; public void* replacement; public int size; }
+    /// A script library that has been brought into the process, and what is needed from it and from the host.
+    struct LoadedModule
+    {
+        public void* handle;
+        public Type* table;
+        public int32* count;
+        /// Type.GetType(TypeId) and Type.GetType_(int) in the host.
+        public void* getType, getTypeById;
+        public uint functionTable;
+        public uint32 functionCount;
+    }
 
     public bool Inspect(StringView path, String error)
     {
@@ -111,6 +122,32 @@ class ScriptReload
         return true;
     }
 
+    static void RestorePages(List<ProtectedPage> pages)
+    {
+        for(let page in pages) mprotect((void*)page.address,(uint)getpagesize(),page.protection);
+    }
+
+    static bool OpenModule(String manifest, String path, out LoadedModule module, HashSet<void*> scriptClasses, String error)
+    {
+        module=default;
+        let handle=dlopen(path.CStr(),258); if(handle==null) { error.Set(StringView(dlerror())); return false; }
+        module.handle=handle;
+        module.table=(Type*)dlsym(handle,"_ZN2bf6System4Type6sTypesE");
+        module.count=(int32*)dlsym(handle,"_ZN2bf6System4Type10sTypeCountE");
+        module.getType=dlsym(null,"_ZN2bf6System4Type7GetTypeENS0_10Reflection6TypeIdE");
+        module.getTypeById=dlsym(null,"_ZN2bf6System4Type8GetType_Ei");
+        List<StringView> tokens=scope .(); List<String> storage=scope .();
+        defer { for(let value in storage) delete value; }
+        for(let line in manifest.Split('\n'))
+        {
+            tokens.Clear(); SceneSerializer.Tokenize(line,tokens,storage);
+            if(tokens.Count==3 && tokens[0]=="class") scriptClasses.Add(dlsym(handle,scope String(tokens[1]).CStr()));
+        }
+        return true;
+    }
+    static void CloseModule(LoadedModule module) { dlclose(module.handle); }
+    static void KeepModule(LoadedModule module) { }
+
     static bool ValidateClass(TypeInstance a, TypeInstance b, String error)
     {
         if(a.[Friend]mFieldDataCount!=b.[Friend]mFieldDataCount || a.[Friend]mMethodDataCount!=b.[Friend]mMethodDataCount)
@@ -139,10 +176,10 @@ class ScriptReload
     /// Call only at a main-thread frame boundary, before any scene callbacks.
     public bool Apply(StringView manifestPath, String error, Scene scene = null)
     {
-#if BF_PLATFORM_LINUX
         let text=scope String();
         if(File.ReadAllText(manifestPath,text) case .Err) { error.Set("Script library manifest is missing."); return false; }
         if (text.Contains("mode structural")) return ApplyStructural(text,error,scene ?? Scene.Active);
+#if BF_PLATFORM_LINUX
         let path=scope String();
         List<StringView> tokens=scope .(); List<String> storage=scope .();
         defer { for(let s in storage) delete s; }
@@ -209,7 +246,7 @@ class ScriptReload
         }
         mModules.Add(module); mCurrentModule=module; applied=true; return true;
 #else
-        error.Set("Script reload supports Linux debug builds."); return false;
+        error.Set("This script library was not built for structural reload."); return false;
 #endif
     }
 }

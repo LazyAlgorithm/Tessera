@@ -46,7 +46,7 @@ The folder holds the launcher, the engine and editor source, the Windows native 
 
 Differences from the Linux editor:
 
-- Scripts are not reloaded while the editor runs. Use **File > Full Rebuild & Restart** after changing them.
+- Scripts are reloaded while the editor runs, as on Linux: save a script and it is compiled and swapped in with the scene, field values and Play state kept. See [Automatic script library reload](script-hot-reload) for what it covers and how it works on Windows. A project made with an earlier version needs **File > Full Rebuild & Restart** once, so that it is linked with the map of its symbols that reload uses.
 - File > Build... builds Windows games only; Linux games and the editor packages are built on Linux.
 - Steam needs `steam_api64.dll` from the Steamworks SDK beside the game (see `docs/steam.md`).
 
@@ -64,6 +64,5 @@ Differences from the Linux editor:
 ## Not done
 
 - **Direct3D.** Only Vulkan shaders are shipped. Direct3D bytecode needs Microsoft's shader compiler; compile with bgfx's `shaderc` on Windows into `Engine/assets/shaders/dx11` and remove the Vulkan default in `native/tessera_native.cpp` to use it.
-- **Script reload on Windows**, which loads a rebuilt shared library on Linux.
 - **The test fixtures** have Linux link settings only.
 - **A real Windows machine.** File dialogs, audio output and the microphone, gamepads, high-DPI scaling and Steam there are untried.

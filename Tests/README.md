@@ -26,6 +26,7 @@ The script reload integration test uses the real compiler and keeps one host pro
 
 ```sh
 python3 Tests/ScriptReload/run.py
+python3 Tests/ScriptReload/run.py --windows   # the same against a Windows host (under Wine when run on Linux)
 ```
 
 It covers compile failure, method edits, a new script, added/retyped/removed fields, inspector attribute changes, references, static state, Play and physics preservation, and full-width integer/double/vector values. `--keep` preserves its temporary workspace for debugging.

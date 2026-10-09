@@ -35,8 +35,8 @@ extension ScriptReload
     struct RangeBackup { public TypeInstance type; public int32 id; public int32 count; }
     public struct TypeUpdate { public Type original; public Type replacement; public String kind; public bool script; }
 
-#if BF_PLATFORM_LINUX && BF_64_BIT
-    bool InstallTypeLookup(String error)
+#if (BF_PLATFORM_LINUX || BF_PLATFORM_WINDOWS) && BF_64_BIT
+    bool InstallTypeLookup(void* first, void* second, String error)
     {
         if (sTypeHooks) return true;
         if(ReflectedTypes.Count==0) { error.Set("No resident reflection data."); return false; }
@@ -44,11 +44,12 @@ extension ScriptReload
         void* target=null;
         if (callback.GetFuncPtr() case .Ok(let ptr)) target=ptr;
         if (target==null) { error.Set("Cannot resolve reflection routing callback."); return false; }
-        let maps=scope String(); File.ReadAllText("/proc/self/maps",maps).IgnoreError();
+        let maps=scope String();
+#if BF_PLATFORM_LINUX
+        File.ReadAllText("/proc/self/maps",maps).IgnoreError();
+#endif
         List<ProtectedPage> pages=scope .();
-        defer { for (let page in pages) mprotect((void*)page.address,(uint)getpagesize(),page.protection); }
-        void* first=dlsym(null,"_ZN2bf6System4Type7GetTypeENS0_10Reflection6TypeIdE");
-        void* second=dlsym(null,"_ZN2bf6System4Type8GetType_Ei");
+        defer { RestorePages(pages); }
         if(first==null || second==null) { error.Set("Missing reflection exports; rebuild with -rdynamic."); return false; }
         if(!MakeWritable(first,12,maps,pages,error) || !MakeWritable(second,12,maps,pages,error)) return false;
         // x86-64 tail jump; no stack frame or calling convention changes.
@@ -153,8 +154,7 @@ extension ScriptReload
 
     bool ApplyStructural(String text,String error,Scene scene)
     {
-#if BF_PLATFORM_LINUX && BF_64_BIT
-        if(!InstallTypeLookup(error)) return false;
+#if (BF_PLATFORM_LINUX || BF_PLATFORM_WINDOWS) && BF_64_BIT
         let path=scope String();
         List<StringView> tokens=scope .(); List<String> storage=scope .();
         defer { for(let value in storage) delete value; }
@@ -163,10 +163,15 @@ extension ScriptReload
             tokens.Clear(); SceneSerializer.Tokenize(line,tokens,storage);
             if(tokens.Count==2 && tokens[0]=="module") path.Set(tokens[1]);
         }
-        let module=dlopen(path.CStr(),258); if(module==null) { error.Set(StringView(dlerror())); return false; }
-        bool committed=false; defer { if(!committed) dlclose(module); }
-        let table=(Type*)dlsym(module,"_ZN2bf6System4Type6sTypesE");
-        let countPtr=(int32*)dlsym(module,"_ZN2bf6System4Type10sTypeCountE");
+        // Candidate types are told apart by the names the resident ones go by, so those must exist first.
+        if(ReflectedTypes.Count==0) { error.Set("No resident reflection data."); return false; }
+        HashSet<void*> scriptClasses=scope .();
+        LoadedModule module;
+        if(!OpenModule(text,path,out module,scriptClasses,error)) return false;
+        bool committed=false; defer { if(!committed) CloseModule(module); }
+        if(!InstallTypeLookup(module.getType,module.getTypeById,error)) return false;
+        let table=module.table;
+        let countPtr=module.count;
         if(table==null || countPtr==null || *countPtr<=0 || *countPtr>1000000) { error.Set("Invalid script type table."); return false; }
         let count=*countPtr;
         List<String> residentNames=scope .(); List<String> names=scope .(); List<String> kinds=scope .();
@@ -181,9 +186,12 @@ extension ScriptReload
             }
             residentNames.Add(name);
         }
-        let maps=scope String(); File.ReadAllText("/proc/self/maps",maps).IgnoreError();
+        let maps=scope String();
+#if BF_PLATFORM_LINUX
+        File.ReadAllText("/proc/self/maps",maps).IgnoreError();
+#endif
         List<ProtectedPage> pages=scope .();
-        defer { for(let page in pages) mprotect((void*)page.address,(uint)getpagesize(),page.protection); }
+        defer { RestorePages(pages); }
         // Bootstrap metadata-class casts while composing names in the candidate's universe.
         List<RangeBackup> backups=scope .();
         for(int i<count)
@@ -220,12 +228,6 @@ extension ScriptReload
         for(let saved in backups) { saved.type.[Friend]mInheritanceId=saved.id; saved.type.[Friend]mInheritanceCount=saved.count; }
         List<int32> ids=scope .(); ids.Count=count;
         List<TypeUpdate> updates=scope .(); List<Type> added=scope .();
-        HashSet<void*> scriptClasses=scope .();
-        for(let line in text.Split('\n'))
-        {
-            tokens.Clear(); SceneSerializer.Tokenize(line,tokens,storage);
-            if(tokens.Count==3 && tokens[0]=="class") scriptClasses.Add(dlsym(module,scope String(tokens[1]).CStr()));
-        }
         for(int i<count)
         {
             if(i==0) { ids[i]=0; continue; }
@@ -256,6 +258,8 @@ extension ScriptReload
         if(scene!=null) migration.Capture(scene,updates);
         // Attribute blobs/interface maps occupy the candidate's RELRO/data pages.
         // Only mapped readable data pages from this module are made writable.
+        // (On Windows the library's data was put in place writable to begin with.)
+#if BF_PLATFORM_LINUX
         for(let line in maps.Split('\n'))
         {
             if(!line.Contains(path) || !line.Contains(" r--p ")) continue;
@@ -264,6 +268,7 @@ extension ScriptReload
                 if(uint64.Parse(line.Substring(dash+1,space-dash-1),.HexNumber) case .Ok(let upper))
                     if(!MakeWritable((void*)(uint)lower,(int)(upper-lower),maps,pages,error)) return false;
         }
+#endif
         sLookup=table; sLookupCount=count;
         HashSet<void*> attributes=scope .();
         for(int i<count) if(table[i]!=null) RemapType(table[i],kinds[i],ids,attributes);
@@ -295,11 +300,11 @@ extension ScriptReload
         // Newly assigned IDs may have gaps for types without emitted reflection.
         for(int i<count) if(table[i]!=null && ids[i]>=residentNames.Count) sCanonicalTypes[ids[i]]=table[i];
         ComponentRegistry.Refresh();
-        committed=true; mModules.Add(module); mCurrentModule=module;
+        committed=true; KeepModule(module); mModules.Add(module.handle); mCurrentModule=module.handle;
         if(scene!=null) migration.Restore(scene);
         return true;
 #else
-        error.Set("Structural script reload currently requires Linux x86-64."); return false;
+        error.Set("Script reload needs a 64-bit Linux or Windows debug build."); return false;
 #endif
     }
 }

@@ -272,7 +272,7 @@ Developed and tested on Linux x64 with Vulkan. Windows x64 builds (games and the
 - Materials have no environment maps (metals mirror the sky and ground colours), and shadows ignore a shader's vertex movement and cutouts; see `docs/materials.md`.
 - Skinned models are deformed on the CPU, which suits low-poly characters but not crowds of detailed ones; morph targets are not supported.
 - Graphs cannot use lists, delegates or generic methods, graph variables cannot hold object references, and UI documents have no scrolling, text wrapping or animations (a canvas can draw anything they lack).
-- Automatic script reload works in Linux x64 Debug editors only, and engine changes need Full Rebuild & Restart. Every component class needs `[Component]`.
+- Automatic script reload works in Linux and Windows x64 Debug editors, and engine changes need Full Rebuild & Restart. Every component class needs `[Component]`.
 - Undo covers objects, components, fields and scene settings, but not terrain sculpting or voxel carving.
 - Voxel terrain has no level of detail, and smoothing can leave hairline seams at chunk borders.
 - Network: a client does not predict physics objects it does not own (they move when the server says so), and there is no encryption or NAT traversal of the engine's own (the Steam transport provides both).

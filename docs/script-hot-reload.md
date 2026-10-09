@@ -1,6 +1,6 @@
 # Automatic script library reload
 
-Linux x86-64 Debug editors watch project `.bf` files, including additions, removals and graph-generated scripts. Saving in the Scripts tab also queues a reload. Changes debounce before the compiler builds a versioned game library on a worker thread. Engine/editor implementations and their state remain in the host. Beef still compiles changed code and metadata; no manual full-project rebuild is required for supported game-script edits.
+Linux and Windows x86-64 Debug editors watch project `.bf` files, including additions, removals and graph-generated scripts. Saving in the Scripts tab also queues a reload. Changes debounce before the compiler builds a versioned game library on a worker thread. Engine/editor implementations and their state remain in the host. Beef still compiles changed code and metadata; no manual full-project rebuild is required for supported game-script edits.
 
 At a frame boundary, the editor loads the library, maps its type metadata onto stable resident identities, refreshes the component registry, replaces project component instances and restores compatible fields/references. The editor window, scene objects, physics world and Play state remain alive. The activation scene is passed explicitly, including in Edit mode. Activated symbols are recorded so newly added types work through later generations.
 
@@ -22,8 +22,23 @@ Adding/removing HideInInspector refreshes visibility during automatic library re
 
 Engine/editor/native code, project build configuration and resident dependency changes still require Full Rebuild & Restart. After installing changes to the reload engine itself, restart once to load that engine implementation; subsequent supported script edits reload in place.
 
-This implementation targets Linux x86-64 Debug and depends on the Beef/native toolchain's reflection ABI and exported host symbols. Existing static fields share host storage; incompatible static layout changes require a full rebuild. Unsupported private containers, arbitrary object graphs, coroutines/tasks, native delegates and custom registration lifecycles do not have general state migration. Old modules and retired components remain allocated for the development session so outstanding old pointers do not refer to unloaded memory. References outside the supported component field set are not automatically retargeted.
+This implementation targets Linux and Windows x86-64 Debug and depends on the Beef/native toolchain's reflection ABI and on being able to link new code against the running program (see below for how each system does that). Existing static fields share host storage; incompatible static layout changes require a full rebuild. Unsupported private containers, arbitrary object graphs, coroutines/tasks, native delegates and custom registration lifecycles do not have general state migration. Old modules and retired components remain allocated for the development session so outstanding old pointers do not refer to unloaded memory. References outside the supported component field set are not automatically retargeted.
 
 Compile failures retain the previous running version. Metadata/layout validation rejects incompatible resident changes. Deleted scripts disappear from Add Component on folder refresh; existing instances of deleted types are retained until removed rather than silently discarding scene data.
 
 Validation: the compiler integration fixture reloads six generations in one host process. It covers compile failure, method changes, added scripts, added/removed/retyped fields, ShowInInspector with Range, adding/removing HideInInspector on an existing field, field values, component references, static state, input, Play state and the same physics world.
+
+## How the library reaches the running program
+
+The new code has to call into the engine that is already running, and use its data, rather than bring a second copy.
+
+**Linux.** The editor is linked with `-rdynamic`, which makes every symbol in it visible to libraries loaded later. The script library is an ordinary shared library in which everything the editor already has is left undefined, so the system's loader binds it to the editor.
+
+**Windows.** A Windows program shares nothing with a library unless each symbol is exported, and an export table has no room for a whole engine. So Windows' own loader is not used. The debug editor is linked with `/MAP`, which writes down where everything in it is. When it starts, the editor reserves a stretch of address space just below itself and notes where (`.tessera-reload/session-*.host`). `tools/reload_scripts.py` then links the script library with Beef's own linker (`lld-link`, in `bin/llvm/bin` beside BeefBuild) at an exact address in that space, against a stand-in object that places every symbol of the editor, and of the libraries loaded before, at its real address. Every reference to the engine is resolved by the linker like any other, and the editor copies the library's sections into place itself. Libraries fill the reserved space from the top down; each is a megabyte or two, and the space is some hundreds of megabytes.
+
+What that means in practice on Windows:
+
+- A project must have been built with `/MAP` in its Debug link flags. The editor writes that into `BeefProj.toml` for its own projects; one made with an earlier version needs **File > Full Rebuild & Restart** once.
+- Scripts with `[ThreadStatic]` fields cannot be reloaded (thread-local storage needs Windows' own loader), and neither can a change that needs a function from a system or native library the editor was not already linked with. Both are reported, and need a full rebuild.
+- Reloaded code has no debugger symbols until the next full rebuild.
+- The integration test is the same six-generation fixture, run against a Windows host: `python3 Tests/ScriptReload/run.py --windows` (on Linux it runs that host under Wine). It has been run under Wine; the editor itself reloading on a Windows machine has not yet been tried.
