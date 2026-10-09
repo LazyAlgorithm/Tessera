@@ -43,6 +43,10 @@ terrain.SetGenerator(new (x, y, z) => {
 
 `terrain.ModifySphere(point, radius, amount)` digs (negative) or builds (positive), and `terrain.Brush(...)` gives the other brushes. In a network session both are shared automatically; see [Networking](networking).
 
+## Keeping sculpting somewhere of your own
+
+`terrain.SaveEdits(path)` and `LoadEdits(path)` write and read the sculpted chunks as a file. `SaveEdits(List<uint8>)` and `LoadEdits(Span<uint8>)` do the same with bytes, for a game that keeps its terrain inside something else (a map file it sends to other players, say); call `Regenerate()` after loading into a terrain that already exists. Caves and overhangs are kept, since it is the voxels themselves that are stored.
+
 ## Limits
 
 - No level of detail, and smoothing can leave hairline seams at chunk borders.

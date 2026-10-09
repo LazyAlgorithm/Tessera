@@ -326,7 +326,7 @@ class RenderView
 			// everything solid, blended, and (being glass-like) does not cast a shadow.
 			let itemMaterial = renderer.ActiveMaterial;
 			let transparent = itemMaterial != null ? (itemMaterial.IsTransparent || (itemMaterial.blend == .Opaque && renderer.color.a * itemMaterial.color.a < 0.999f)) : renderer.color.a < 0.999f;
-			if (frustum.Intersects(bounds))
+			if (!renderer.shadowOnly && frustum.Intersects(bounds))
 			{
 				if (transparent)
 					mTransparentItems.Add(item);

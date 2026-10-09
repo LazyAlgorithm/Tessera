@@ -367,6 +367,19 @@ class VoxelTerrain : Component
 	public bool SaveEdits(StringView path)
 	{
 		List<uint8> data = scope .();
+		SaveEdits(data);
+		if (System.IO.File.WriteAll(path, data) case .Err)
+		{
+			Log.Error(scope $"Could not write terrain edits to {path}");
+			return false;
+		}
+		return true;
+	}
+
+	/// The same as bytes, for a game that keeps its terrain somewhere of its own (inside a map file, say).
+	/// Returns how many chunks were written.
+	public int32 SaveEdits(List<uint8> data)
+	{
 		void Put<T>(T value) where T : struct
 		{
 			var v = value;
@@ -415,13 +428,8 @@ class VoxelTerrain : Component
 				if (!mChunks.TryGetValue(entry.key, let live) || !live.edited)
 					PutChunk(entry.key, entry.value.density, entry.value.paint);
 			}
+			return count;
 		}
-		if (System.IO.File.WriteAll(path, data) case .Err)
-		{
-			Log.Error(scope $"Could not write terrain edits to {path}");
-			return false;
-		}
-		return true;
 	}
 
 	/// Reads edited chunks from a file. Returns true when anything was loaded.
@@ -430,12 +438,22 @@ class VoxelTerrain : Component
 		List<uint8> data = scope .();
 		if (AssetPack.ReadAll(path, data) case .Err)
 			return false;
-		var reader = NetReader(data.Ptr, data.Count);
-		if (reader.Read<uint32>() != 0x584f5654 || reader.Read<int32>() != 1 || reader.Read<int32>() != Samples)
+		if (!LoadEdits(Span<uint8>(data.Ptr, data.Count)))
 		{
-			Log.Warning(scope $"{path} is not a compatible terrain edit file.");
+			if (data.Count < 16 || *(uint32*)data.Ptr != 0x584f5654)
+				Log.Warning(scope $"{path} is not a compatible terrain edit file.");
 			return false;
 		}
+		return true;
+	}
+
+	/// Takes edited chunks from bytes that SaveEdits wrote. Call Regenerate afterwards for a terrain that is
+	/// already there. Returns true when anything was loaded.
+	public bool LoadEdits(Span<uint8> data)
+	{
+		var reader = NetReader(data.Ptr, data.Length);
+		if (reader.Read<uint32>() != 0x584f5654 || reader.Read<int32>() != 1 || reader.Read<int32>() != Samples)
+			return false;
 		let count = reader.Read<int32>();
 		int offset = 16;
 		using (mMonitor.Enter())
@@ -445,7 +463,7 @@ class VoxelTerrain : Component
 			mSaved.Clear();
 			for (int i < count)
 			{
-				if (offset + 13 + SampleCount > data.Count)
+				if (offset + 13 + SampleCount > data.Length)
 					break;
 				Int3 coord = .(0, 0, 0);
 				Internal.MemCpy(&coord, data.Ptr + offset, 12);
@@ -455,16 +473,18 @@ class VoxelTerrain : Component
 				saved.density = new int8[SampleCount];
 				Internal.MemCpy(saved.density.Ptr, data.Ptr + offset, SampleCount);
 				offset += SampleCount;
-				if (hasPaint && offset + SampleCount <= data.Count)
+				if (hasPaint && offset + SampleCount <= data.Length)
 				{
 					saved.paint = new uint8[SampleCount];
 					Internal.MemCpy(saved.paint.Ptr, data.Ptr + offset, SampleCount);
 					offset += SampleCount;
 				}
+				if (mSaved.TryGetValue(coord, let old))
+					delete old;
 				mSaved[coord] = saved;
 			}
+			return mSaved.Count > 0;
 		}
-		return mSaved.Count > 0;
 	}
 
 	/// Throws away every chunk (including edits) and generates the terrain again.

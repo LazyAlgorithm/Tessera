@@ -343,6 +343,10 @@ class NetworkManager
 	// How many ticks of controls the client aims to have waiting on the server when all is calm.
 	const float cCalmDepth = 1.5f;
 	/// Client: how many ticks of controls the server has waiting (smoothed), and how many this machine aims for.
+	/// The server's tick as near as this machine knows it: exact on the server, estimated from snapshots on a
+	/// client. Anything worked out from it alone (the swell on some water, a day and night cycle) comes out the
+	/// same on every machine without being sent.
+	public double ServerTick => IsServer || !mClockSet ? (double)mTick : (double)mTick + mServerOffset;
 	public float InputsWaiting => mDepth;
 	public float InputsWanted => mTargetDepth;
 

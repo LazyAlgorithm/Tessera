@@ -24,6 +24,9 @@ class MeshRenderer : Component
 	public bool flatShading = true;
 	public bool unlit = false;
 	public bool castShadows = true;
+	/// Casts its shadow without being drawn itself. For what the camera must not see but the sun still should:
+	/// the head and arms of a first-person player's own body, say.
+	public bool shadowOnly = false;
 	/// Optional albedo texture path relative to the project.
 	public String texture = new .() ~ delete _;
 	/// A material (.tmat) made in the editor. With one set, it decides how the surface looks and the fields above
