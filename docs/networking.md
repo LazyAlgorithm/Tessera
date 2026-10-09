@@ -1,0 +1,152 @@
+# Networking
+
+Multiplayer is there when you want it and costs nothing when you do not: a game with no Network Session in its scene runs exactly as before, and nothing below needs to be set up or switched off.
+
+Add a **Network Session** component (Add Component > Networking) to an object in the scene and the scene is multiplayer. The server runs the game from the controls each player sends, and tells everyone the result. Each player's own character responds at once on their machine and is corrected if the server disagrees.
+
+## What is shared without any code
+
+| What | How it behaves in a session |
+|---|---|
+| Physics bodies, character controllers, AI characters | Scene objects that move on their own get a Network Identity when the session starts, and their motion is shared. Turn **Auto Replicate** off on the session to choose by hand. |
+| Navigation Agents and behaviour trees | Think on the server only. Clients see the movement. |
+| Voxel terrain (`Brush`, `ModifySphere`) | Applied on every machine in the server's order. Chunks that are not loaded on a machine receive the strokes they missed when they stream in. |
+| Voxel objects (`Carve`) | Carved on every machine. Pieces that break off are the same objects everywhere and can be carved in turn. |
+| Character controller shape (`SetBox`, `SetCapsule`) | Decided by the server, shown everywhere. A player changing their own character sees it at once. |
+| Animation (`Play` on an Animator or Skinned Mesh Renderer) | A clip started on the server, or by the player who controls the object, plays for everyone. |
+| Sound (`Play`, `Stop`, `PlayOneShot` on an Audio Source) | The same rule as animation: from the server or the object's owner, everyone hears it. |
+| Voice chat (`VoiceChat.Enabled`) | Players talk to each other; the server decides who hears whom (team only, proximity). See [Voice chat](voice-chat). |
+| Animator Controller parameters and states (`SetFloat`, `SetTrigger`, ...) | From the server or the object's owner, every machine has the same values and is in the same state. See [Animator](animator). |
+| Materials (`SetMaterial`, `SetMaterialFloat`, `SetMaterialColor` on a Mesh Renderer) | From the server or the object's owner, every machine draws the object the same way; late joiners get the current state. See [Materials](materials). |
+| Network events (`SendNetworkEvent("name", value)`) | Runs `OnNetworkEvent` on that component on every machine. The server may send for any object, a client for one it owns. |
+| Visual scripting graphs | Everything above applies to graphs as it does to code. **On Tick** makes a graph a Network Script. |
+| `Prefab.Instantiate` | A prefab whose root has a Network Identity, created on the server, appears on every machine. On a client the call returns null, because the server's copy is the one that arrives. Prefabs without an identity stay local, which is right for effects. |
+| `Scene.Destroy` | Destroying a shared object on the server removes it everywhere. A client cannot destroy one. |
+| Fields marked `[Sync]`, and graph variables ticked **Networked** | The server's value is copied to every client when it changes. |
+
+A player who joins late receives all of it: the terrain and voxel edits so far, objects created and destroyed, current shapes, clips and synced values.
+
+On a client, calls that the server must decide (`Brush`, `Carve`) are sent to the server and take effect a moment later, when the server passes them back.
+
+## Writing a player: NetworkScript
+
+Derive from `NetworkScript` and write what happens in one tick. The engine reads the controls, sends them, runs your code on the server and on the player's own machine, and corrects the player's machine when the two disagree.
+
+```beef
+[Component]
+class Hover : NetworkScript
+{
+    public float speed = 5;
+    [Sync] public int32 score;
+
+    public override void OnTick(TickInput input, float deltaTime)
+    {
+        Transform.Position += input.MoveDirection * speed * deltaTime;
+        if (input.Pressed(.Jump))
+            Transform.Position += .(0, 1, 0);
+        if (IsServer && input.Pressed(.Use))
+            score++;
+    }
+}
+```
+
+`TickInput` gives `Move` (WASD or arrows), `MoveDirection` (Move turned to face where the player looks), `Yaw`, `Pitch`, and buttons: `Held`, `Pressed` and `Released` for `.Jump` (Space), `.Sprint` (Shift), `.Crouch` (Ctrl), `.Fire` (left mouse), `.Use` (E), `.Reload` (R), `.Ability1` (Q), `.Ability2` (F) and `.Custom1` to `.Custom8`. Override `ReadInput` to fill the custom ones.
+
+Three rules keep prediction working:
+
+- Take controls only from the `TickInput`, never from `Input`. `OnTick` also runs on the server for another player's controls, and runs again after a correction.
+- Move the object through its Transform, Rigidbody or Character Controller. Those are what get corrected. Other fields are not rewound; mark the ones clients need with `[Sync]` and change them on the server.
+- `OnTick` can run more than once for the same tick on the player's machine. Do one-off things (sounds, spawning) inside `if (IsServer)` or `if (!IsReplaying)`.
+
+With no session the same script runs every tick with the local controls. Put the script on the player prefab named in the session's **Player Prefab**; one is spawned for each player, at the scene's Spawn Points (see the spawn points page). **Team Count** on the session shares players out among teams.
+
+`CharacterMotor` is a ready-made player built the same way on a Character Controller. `NetworkBehaviour` is the lower-level base class if you want to fill the input yourself.
+
+## How it stays smooth
+
+None of this needs setting up; it is what the session does with every object that has a Network Identity.
+
+- **Your own objects are predicted.** They move on your machine the tick you press a key. The server sends back where it had them for that tick, and only if that differs from what your machine predicted does it go back and run the ticks since again. The difference is then eased away on screen rather than shown as a jump.
+- **Everything else is shown a moment in the past.** Other players, AI and physics objects cannot be predicted, because your machine does not have their controls. They are drawn about two snapshots behind the newest news (a tenth of a second at the usual rate), moving evenly from one thing the server said to the next, so they glide however unevenly the news arrives. If a snapshot is lost they carry on as they were going for a few ticks. `InterpolationTicks` on `Scene.Network` changes how far behind; less is more up to date and less forgiving of a poor connection.
+- **The client's clock follows the server.** A client runs its ticks a fraction faster or slower (never more than 5%) so that the server always has a tick or two of its controls in hand. That absorbs an uneven connection without adding more delay than the connection needs, and it adapts: a rough connection gets a deeper cushion, a clean one a thin one.
+- **Between ticks, drawing is smoothed.** Mesh Renderers on an object another machine controls are drawn gliding from one tick to the next. For a camera or anything else you place yourself, `NetworkIdentity.VisualPosition` is where the object is drawn this frame.
+
+### Shots and lag compensation
+
+A player aims at what they see, and what they see of everyone else is the past: the time their controls take to reach the server, plus the moment's delay above. Left alone, the server would judge a shot against where the target is now, and shots at anyone moving would miss.
+
+So when the server runs a player's tick, it knows what moment that player was looking at. Wrap the ray cast in the pair below and, for its length, every other networked object is back where that player saw it:
+
+```beef
+public override void OnTick(TickInput input, float deltaTime)
+{
+    if (IsServer && input.Pressed(.Fire))
+    {
+        let rewound = BeginLagCompensation();
+        RaycastHit hit;
+        let struck = Scene.Physics.Raycast(Transform.Position, input.LookRotation * Vector3.Forward, 100, out hit);
+        if (rewound)
+            EndLagCompensation();
+        if (struck)
+            hit.gameObject.GetComponent<Health>()?.Hurt(25);   // after ending: everything is back in its place
+    }
+}
+```
+
+It returns false and does nothing where it does not apply: with no session, for the host's own player and for the server's own objects, who see things as they are. It never looks back further than `MaxRewindTicks` (24 ticks, 0.4 seconds).
+
+### What is sent
+
+As little as will do the job:
+
+- **Controls**, client to server, every tick: 9 bytes for a tick, 1 byte for a tick the same as the one before, with the two ticks before repeated in each packet so that a lost packet costs nothing. About 1 to 2 kB a second.
+- **Snapshots**, server to each client, 20 a second by default (`Snapshot Interval` on the session): only the objects that have changed since the last one, at 12 to 15 bytes each (position to 2 mm, rotation to a fraction of a degree), and the client's own objects in full when they change. An object at rest costs nothing. Everything is repeated once every two seconds in case the last word on something was lost.
+- **`[Sync]` values and events**, reliably, only when they change.
+
+A still scene costs about 0.3 kB a second per client; a five-player firefight a few kB. The editor's status bar and `--netstats` show the real figures for your game.
+
+## Shared values
+
+```beef
+[Component]
+class Health : Component
+{
+    [Sync] public int32 health = 100;
+    [Sync] public String title = new .("Rookie") ~ delete _;
+}
+```
+
+`[Sync]` works on numbers, bool, enums, vectors, colours and String, on any component of an object with a Network Identity. The server's value wins: change it on the server. In a graph, tick **Networked** on a variable in the Variables panel.
+
+## Game events
+
+For anything else, send a message. See the chat example in the networking tutorial: `NetworkManager.RegisterMessage`, then `SendToServer`, `SendToAll` or `SendToClient`. Message ids from 240 up are kept for the engine.
+
+## Running a session
+
+| Option | Meaning |
+|---|---|
+| `--host` | Server and player in one. |
+| `--server` | Dedicated server with no window. |
+| `--connect <address>` | Join a server: an IP address, or the host's Steam ID with the Steam transport. |
+| `--port <n>` | Use a different port (Direct transport). |
+| `--lag <ms>`, `--jitter <ms>`, `--loss <percent>` | Simulate a bad connection for testing: a delay on everything this machine sends, up to that much more at random per packet, and a share of packets lost. Use the same values on both machines. |
+| `--netstats` | Print a line of figures every second: bytes sent and received, corrections, how many ticks of controls the server has waiting. |
+
+The session's **Transport** chooses how machines reach each other: **Direct** (UDP to an address and port) or **Steam** (see the Steam page).
+
+## Limits
+
+- Objects created at run time by code, other than through a prefab with a Network Identity, exist only on the machine that created them.
+- A client's `Brush` and `Carve` wait for the server, so digging has one round trip of delay on clients.
+- Other players are seen about a tenth of a second in the past, plus the connection's delay. That is what makes them move evenly; lag compensation (above) is what makes shots at them land.
+- A client does not predict physics objects it does not own: a crate a player pushes moves when the server says so, a moment after the push.
+- `[Sync]` goes one way, from the server. Values are sent when they change, at the snapshot rate.
+- Particles and UI are local, and so is `Audio.PlayOneShot` (sounds with no Audio Source). Trigger them from a message or a synced value when everyone should see or hear them.
+- Animation on an object nobody owns is shared only when the server starts it.
+
+CPU tests run a host, a client and a late joiner in one process over real UDP and check each row of the table above except animation, that a client is not corrected when others move, that others move evenly, the packing, lag compensation and a lossy, uneven connection, plus a session over the Steam transport when Steam is running.
+
+## Deciding who may play
+
+The server can send a client away: `Scene.Network.Kick(clientId)`. Their objects go as if they had left, and on their machine the session reports that it is no longer connected. Use it for private matches (check who joined in `OnClientJoined`, or when they send their name) and for removing a player. To tell them why, send your own message a moment before: what is sent in the same instant may not arrive.

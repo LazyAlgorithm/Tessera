@@ -1,0 +1,210 @@
+# Materials, shaders and compute
+
+How a surface looks is a **material**. What draws it is a **shader**: the engine's standard one, or one you write. A **compute shader** runs your code on the graphics card for every pixel of a texture.
+
+A Mesh Renderer with no material works as it always did, from its own Color, Metallic, Roughness and Texture fields. Nothing existing changes.
+
+## Materials
+
+**Project > + > Material** makes a `.tmat` file. Set it as the **Material** of a Mesh Renderer. It works on skinned models too, since they draw through a Mesh Renderer.
+
+A material's settings are in the **Inspector**, in two places:
+
+- click the `.tmat` file in the Project panel, and the Inspector shows the material;
+- select an object, and the material its Mesh Renderer uses is shown under the object's components.
+
+Every object naming the same material shares it: edit the material and they all change, live, in the editor and while playing. Changes are saved as you make them.
+
+In the Project panel a material is shown as a ball drawn with it, so you can tell them apart at a glance.
+
+| Setting | Meaning |
+|---|---|
+| Shader | Standard, or a `.tshader` file from the project. |
+| Color, Texture | The base colour and the image it is multiplied by. |
+| Metallic, Roughness | 0 to 1 each. A smooth metal mirrors the sky and ground colours. |
+| Emissive, Emissive Intensity | Light the surface gives off by itself. |
+| Flat Shading | The faceted low-poly look. Off for smooth surfaces and anything with a normal map. |
+| Unlit | Ignore lighting: the colour as it is. |
+| Double Sided | Draw both faces: leaves, cloth, flags. |
+| Tiling, Offset | How many times the textures repeat across the mesh, and where they start. |
+| Blend | Opaque; **Cutout** (holes where alpha is below Cutoff: fences, foliage); **Transparent** (blended, casts no shadow). |
+
+The renderer's own **Color** still tints the object on top of its material, so a hundred crates can share one material and differ in tint.
+
+### PBR maps
+
+The standard shader is a metallic-roughness PBR shader. Four optional maps add detail:
+
+| Map | What it holds |
+|---|---|
+| Normal Map | Bumps and grooves without more triangles: an ordinary tangent-space normal map. Normal Strength scales it. |
+| Metallic-Roughness | Roughness in green, metallic in blue (the glTF layout). Multiplied by the two sliders, so set them to 1 to use the map as it is. |
+| Occlusion | Darkened creases, in red. The same image as the metallic-roughness map can be used, as glTF packs them. |
+| Emissive Map | Which parts glow. Multiplied by Emissive and its intensity. |
+
+Meshes need no tangents: the shader works them out per pixel. `Materials/brass.tmat` in new projects is a worked example (hammered brass).
+
+### From scripts
+
+```beef
+let renderer = GetComponent<MeshRenderer>();
+renderer.SetMaterial("Materials/brass.tmat");          // use another material
+
+// Change this object only: it gets its own copy the first time.
+renderer.SetMaterialColor("color", .(1, 0, 0, 1));
+renderer.SetMaterialFloat("roughness", 0.2f);
+renderer.SetMaterialFloat("speed", 4);                  // a custom shader's property
+
+// Change the shared material: every object using it changes.
+let shared = renderer.SharedMaterial;
+shared.emissiveIntensity = 3;
+shared.Changed();                                       // after setting plain fields
+shared.SetColor("glow", .(0, 1, 0.5f, 1));              // shader properties need no Changed()
+```
+
+`renderer.Material` is this object's own copy (made on first use), `renderer.SharedMaterial` the shared one. `Material.Load(path)`, `Clone()` and `Save(fullPath)` are there for tools.
+
+## Writing a shader
+
+**Project > + > Shader** makes a `.tshader` file and opens it in the code editor. Saving compiles it; objects using it change at once, and mistakes are listed in the Console.
+
+A shader file says what the surface looks like. It does not do lighting: the engine puts your code into its own lit shader, so sun, shadows, point and spot lights, fog and the PBR maps all still apply.
+
+```glsl
+property float speed = 2
+property color glow = 1 0.5 0.2 1
+property texture detail
+
+surface {
+    float pulse = 0.5 + 0.5 * sin(time * speed - worldPosition.y * 6.0);
+    albedo *= texture2D(detail, uv * 4.0).rgb;
+    emissive += glow.rgb * pulse;
+}
+
+vertex {
+    position += normal * sin(time * speed + position.y * 6.0) * 0.02;
+}
+```
+
+**Properties** appear in the Inspector of every material using the shader, and are set from scripts by name. Types are `float`, `color`, `vector` (four numbers) and `texture`, each with an optional default. A shader may declare up to eight values and two textures.
+
+**`surface { }`** runs for every pixel.
+
+| Read | |
+|---|---|
+| `uv` | Texture coordinates, after the material's tiling and offset. |
+| `worldPosition`, `worldNormal` | Where the pixel is, and which way the surface faces. |
+| `vertexColor` | The mesh's vertex colour times the object's tint. |
+| `time` | Seconds, running in the editor as well as in play. |
+| `texture2D(mainTexture, uv)` | The material's texture. Your own texture properties are sampled the same way. |
+
+| Change | Starts as |
+|---|---|
+| `albedo` | Texture times colour, already converted to linear. |
+| `alpha` | Texture alpha times colour alpha. |
+| `metallic`, `roughness` | The material's sliders. |
+| `emissive` | The material's emissive colour times intensity. |
+
+**`vertex { }`** is optional and runs for every point of the mesh: change `position` (in the mesh's own space); read `normal`, `uv` and `time`.
+
+The code inside the blocks is GLSL as bgfx writes it: use `vec3_splat(1.0)` for a vector of one value and `mul(matrix, vector)` for matrix products.
+
+Compiled programs are written to `Shaders/Compiled/` in the project, for Vulkan, OpenGL, OpenGL ES and Metal. They are assets like any other and ship with the game, which never compiles shaders itself. The editor recompiles any shader whose source is newer when it starts and before Build Game.
+
+## Shader graphs
+
+**Project > + > Shader Graph** makes a shader without writing code. It opens in the Graph tab, with shader nodes in the add-node menu, and starts with a small working graph.
+
+- **Surface Output** is where the graph ends: Albedo, Alpha, Metallic, Roughness, Emissive and Vertex Offset. Whatever you leave unconnected keeps the value the material gives, so a graph that only connects Emissive adds a glow to an otherwise ordinary material.
+- **Shader Input:** Time, UV, World Position, World Normal, Vertex Color, and what the material itself provides (Material Albedo, Material Alpha).
+- **Shader Properties:** Number Property, Color Property and Texture Property become settings in the Inspector of every material that uses the shader, under the name you give them. Material Texture samples the material's own texture.
+- **Shader Math, Shader Vectors, Shader UV:** arithmetic, blend, clamp, step, dot, length, splitting and combining, tiling and scrolling.
+- **Shader Effects:** Pulse, Bands, Rim (Fresnel), Noise and Checker.
+
+Numbers, vectors and colours plug into each other: a number fills every part of a vector, and a colour into a number pin gives its first channel.
+
+**Save** writes the graph, generates a `.tshader` file beside it and compiles it. Pick it as a material's **Shader** like any other. The generated file is hidden in the Project panel, as a script graph's code is; it is the same format a hand-written shader uses, so a graph can be outgrown: copy the generated file and carry on in code.
+
+Colours given to Albedo and Emissive are taken as you see them in the colour picker (the graph converts them for lighting). The two "vertex only" inputs, Object Position and Object Normal, are for Vertex Offset.
+
+## Compute shaders
+
+**Project > + > Compute Shader** makes a `.tcompute` file. Its code runs on the graphics card once for every pixel of a texture, each step: fast enough for ripples, fire, cellular automata or noise that a script could never do per pixel.
+
+```glsl
+property float speed = 1
+property color ink = 0.2 0.6 1 1
+
+compute {
+    // Fade what was there, and draw a ring that grows from the middle.
+    float ring = abs(distance(uv, vec2(0.5, 0.5)) - fract(time * speed * 0.2) * 0.7);
+    result = result * 0.96 + ink * smoothstep(0.02, 0.0, ring);
+    result.a = 1.0;
+}
+```
+
+| Read | |
+|---|---|
+| `uv` | This pixel's place in the texture, 0 to 1. |
+| `pixel`, `size` | The same in whole pixels, and the texture's size. |
+| `time` | Seconds. |
+| `previous(uv)` | The texture as it was before this step, anywhere in it. This is what makes simulations possible. |
+
+Write `result`, which starts as this pixel's previous value. Add the line `precision high` to keep values as 16-bit floats instead of 8-bit colours, for simulations that need numbers outside 0 to 1.
+
+**Without a script:** add a **Compute Effect** component to an object with a Mesh Renderer, and pick the file. It runs the shader every frame and shows the result as the object's texture. Fields: Width, Height, Steps Per Frame, Every Frame.
+
+**From a script:**
+
+```beef
+let effect = GetComponent<ComputeEffect>();
+effect.SetFloat("speed", 3);
+effect.SetColor("ink", .(1, 0.3f, 0.1f, 1));
+effect.everyFrame = false;
+effect.Step();                         // run it once, when you choose
+
+// Or without the component:
+let shader = ShaderAsset.Load("Shaders/ripple.tcompute");
+let texture = new ComputeTexture(512, 512);
+if (Compute.Supported)
+    Compute.Run(shader, texture);
+renderer.TextureOverride = texture.Texture;
+```
+
+`Compute.Supported` is false on a dedicated server and on graphics cards without compute shaders; `Run` and `Step` then do nothing and return false.
+
+## Multiplayer
+
+`SetMaterial` and `SetMaterialValue` (with `SetMaterialFloat` and `SetMaterialColor`) are shared like animation: called on the server, or by the player who owns the object, every machine follows, and players who join later get the current state. Editing a shared material from a script, and compute effects, are local to each machine: they are visual, and run from the same inputs everywhere.
+
+## Visual scripting
+
+All of it has nodes, generated from the engine source: **Engine > Render > Mesh Renderer** (Set Material, Set Material Float, Set Material Color), **Material**, **Compute Effect** (Set Float, Step) and the rest.
+
+## Limits
+
+- **Shader graphs** have no preview on each node, no custom-code node and no sub-graphs; a node used in two places is computed twice.
+- **No environment maps.** Reflections use the scene's sky and ground colours, not an image of the surroundings, so a mirror-smooth metal shows a gradient, not the world.
+- **Shadows ignore the vertex block and cutouts.** An object moved by its shader's `vertex` code casts the shadow of its unmoved shape, and a Cutout material casts a solid one.
+- **Eight values and two textures** per custom shader, and it cannot replace the lighting itself.
+- **Transparent** objects are sorted by their centres, so large overlapping ones can draw in the wrong order.
+- **Compute shaders write one texture.** There are no compute buffers, and reading a compute texture back into a script is not supported.
+- Voxel terrain, voxel objects and particles use their own colours, not materials.
+- Direct3D is not compiled for (see [Building for Windows](windows)).
+
+## Tests
+
+`BeefBuild -workspace=Tests/Material -config=Debug -run` (33 checks): a shader graph turned into a shader file and compiled, every shader graph node compiled as shader code, saving and loading materials and their PBR maps, shared and per-object materials, reading shader files and reporting mistakes by line, the generated shader source, and real compiles of a surface shader for all four backends and a compute shader, including a broken one. The Network fixture checks materials across machines and for a late joiner. Drawing itself was checked by eye in the editor: a PBR material with a normal map, a custom surface shader and a compute effect.
+
+## Glowing in a model's own colours
+
+A Mesh Renderer's **Emissive** colour and **Emissive Intensity** make the whole object glow in one colour. Tick **Emissive From Color** and the glow is multiplied by the surface's own colour instead (its vertex colours and texture): the bright parts of a model glow in their own colour and the dark parts stay dark. Set Emissive to white to keep the colours as they are. A model with a lit blade and a steel handle, say, needs no second mesh and no emissive map:
+
+```beef
+let renderer = GetComponent<MeshRenderer>();
+renderer.emissive = .White;
+renderer.emissiveFromColor = true;
+renderer.emissiveIntensity = 2;
+```
+
+Custom shaders get it too: `emissive` arrives already multiplied.

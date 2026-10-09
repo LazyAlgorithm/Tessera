@@ -1,0 +1,69 @@
+# Building for Windows
+
+Tessera is developed on Linux, and builds Windows games, and a Windows copy of the editor, from there. No Windows machine is needed to build.
+
+**How far it has been tested.** The Windows builds are made on Linux and run there under Wine: a packaged game starts, draws with Vulkan, plays a match and joins a server running the Linux build; the launcher and editor start, open a project, show its interface documents and play it. None of it has been run on a real Windows machine yet, so expect to find things on the first try there.
+
+## Setting up, once
+
+```sh
+tools/windows/setup.sh --accept-license
+```
+
+This downloads about 3 GB into `~/.local/share/tessera-win` (or `$TESSERA_WIN`) and builds the engine's native libraries for Windows into `build/native-win`:
+
+- Microsoft's C runtime and Windows SDK libraries, fetched with the `xwin` tool. They are Microsoft's, under the Microsoft Visual Studio Build Tools licence; `--accept-license` says you accept it. They are linked into what you build and are never copied into a package.
+- The Windows release of the Beef compiler, which is run under Wine.
+- The LLVM linker, if the system has none.
+
+It needs `wine`, `clang` (with `clang-cl`), `llvm`, `cmake`, `ninja`, `curl` and `7z` installed. It is safe to run again; after changing anything in `native/` run it again to rebuild the Windows libraries.
+
+## Building a game for Windows
+
+**File > Build...** in the editor: choose **Game**, **Windows** and a folder. Or:
+
+```sh
+python3 tools/build_player.py /path/to/project --platform windows --output /path/to/folder
+```
+
+The folder gets `<Name>.exe`, the game's assets, the Vulkan shaders and the licences: copy it to a Windows machine and run the `.exe`. Nothing has to be installed there (the C runtime is linked in); the machine needs a graphics driver with Vulkan, which every current NVIDIA, AMD and Intel driver has. `--console` keeps a console window for log output, which a dedicated server wants. See `docs/standalone-player.md` for what the folder holds.
+
+A Windows and a Linux build of the same game play together: the physics library is built for identical results on both.
+
+## The editor on Windows
+
+**File > Build...**, **Editor**, **Windows**, or:
+
+```sh
+tools/package_engine.sh --platform windows --folder /path/to/Tessera-Windows
+```
+
+The folder holds the launcher, the engine and editor source, the Windows native libraries and the tools. On the Windows machine start `Tessera.bat`. Every project compiles its own scripts together with the engine, so that machine needs:
+
+- the Beef toolchain from beeflang.org, with `BeefBuild` on the PATH;
+- Microsoft C++ Build Tools (Beef's installer says where to get them; they are free);
+- Python 3.11 or later, as `python` on the PATH, for File > Build....
+
+Differences from the Linux editor:
+
+- Scripts are not reloaded while the editor runs. Use **File > Full Rebuild & Restart** after changing them.
+- File > Build... builds Windows games only; Linux games and the editor packages are built on Linux.
+- Steam needs `steam_api64.dll` from the Steamworks SDK beside the game (see `docs/steam.md`).
+
+## How it works
+
+| Part | On Linux | For Windows |
+|---|---|---|
+| Native libraries (bgfx, SDL, Jolt, ENet, miniaudio, Opus, Dear ImGui) | `build/native/*.a`, built by `build.sh` | `build/native-win/*.lib`, cross-compiled with clang-cl and `tools/windows/toolchain.cmake`, against the static C runtime |
+| Beef code | `BeefBuild` | the Windows `BeefBuild.exe` under Wine with its LLVM toolset (Beef on Linux refuses Windows targets) |
+| Link settings | `[Configs.*.Linux64]` | `[Configs.*.Win64]`, written beside them by the editor for every project |
+| Graphics | Vulkan, OpenGL as fallback | Vulkan. bgfx would choose Direct3D, so the engine asks for Vulkan on Windows |
+| Shader compiler for project shaders | `shaderc` | `shaderc.exe`, cross-compiled with the libraries |
+| Running commands | `sh` | `cmd`; see `Editor/src/Project/Terminal.bf` |
+
+## Not done
+
+- **Direct3D.** Only Vulkan shaders are shipped. Direct3D bytecode needs Microsoft's shader compiler; compile with bgfx's `shaderc` on Windows into `Engine/assets/shaders/dx11` and remove the Vulkan default in `native/tessera_native.cpp` to use it.
+- **Script reload on Windows**, which loads a rebuilt shared library on Linux.
+- **The test fixtures** have Linux link settings only.
+- **A real Windows machine.** File dialogs, audio output and the microphone, gamepads, high-DPI scaling and Steam there are untried.

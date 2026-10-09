@@ -1,0 +1,126 @@
+# Input: actions and controllers
+
+Three layers, each usable alone:
+
+- **`Input`** reads the keyboard and mouse directly: `Input.GetKey(.Space)`, `Input.MouseDelta`.
+- **`Gamepad`** reads controllers directly: `Gamepad.GetButtonDown(.South)`, `Gamepad.LeftStick`.
+- **`InputActions`** is the one to build a game on. The game asks for what the player *means* ("Jump", "Move"), and a list kept in the project says which keys, mouse buttons and controller buttons mean it. The same code then works from the keyboard and mouse and from any controller, and the controls are changed without touching code.
+
+## Input actions
+
+```beef
+if (InputActions.Pressed("Jump"))
+    Jump();
+let move = InputActions.Vector("Move");       // x right, y forward; no longer than 1
+let look = InputActions.Delta("Look");        // how far to turn this frame
+yaw += look.x * sensitivity;
+pitch -= look.y * sensitivity;
+```
+
+| Call | Gives |
+|---|---|
+| `Pressed(name)`, `Held(name)`, `Released(name)` | A button: just went down, is down, just came up. A trigger counts as down past half way. |
+| `Value(name)` | How far: 0 to 1 for a button (a trigger gives everything in between), -1 to 1 for an axis. |
+| `Vector(name)` | A direction from keys, sticks and the d-pad: x right, y up or forward, length at most 1. |
+| `Delta(name)` | How far to move or turn this frame: mouse movement as it comes, plus sticks and keys times their binding's Scale and the time the frame took. For looking around. |
+| `FromGamepad(name)` | Whether the action is being worked from a controller right now. |
+| `Describe(name, text)` | What to press for it on the device in the player's hands: "E", or "B" (or "Circle"). For on-screen prompts. |
+| `SetMapEnabled(map, on)` | Switches a whole map of actions on or off. |
+
+Directions use one convention everywhere: x is right and y is up or forward, also for mouse movement. An action that does not exist is simply never pressed.
+
+`Input.UsingGamepad` says whether the last thing the player touched was a controller; use it to show the right prompts or to help a controller's aim.
+
+### The Input Actions window
+
+**Window > Input Actions** edits the project's actions; double-clicking `Input.tinput` in the Project window opens it too.
+
+- **Maps** (left) are groups of actions switched on and off together: "Player", "Vehicle", "Menu".
+- **Actions** (middle) each give a **Button**, an **Axis** (one number) or a **Direction** (two).
+- **Bindings** (right) are the ways of working the chosen action. An action can have any number: a key *and* a controller button, WASD *and* the arrow keys *and* a stick. **Listen** takes the next key, mouse button or controller button you press. **Scale** multiplies what a binding gives; for `Delta` it is how fast a stick or keys turn. **Invert** flips it. The window shows what the action is reading as you try it.
+
+**Save** writes `Input.tinput` in the asset folder. A game that is running picks the change up at once. The file ships with the game (inside its asset pack).
+
+A project with no `Input.tinput` has the engine's **standard actions**, and they stay available by name in a project that does not define them:
+
+| Action | Keyboard and mouse | Controller |
+|---|---|---|
+| Move | W A S D, arrow keys | Left stick |
+| Look | Mouse | Right stick |
+| Jump | Space | South (A / Cross) |
+| Sprint | Left Shift | Left stick click |
+| Crouch | Left Ctrl | East (B / Circle) |
+| Fire | Left mouse | Right trigger |
+| Use | E | North (Y / Triangle) |
+| Reload | R | West (X / Square) |
+| Ability1, Ability2 | Q, F | Left and right shoulder |
+| Talk (voice chat's push to talk) | V | D-pad down |
+| Submit, Cancel | Enter, Esc | South, East |
+
+`NetworkScript` and `CharacterMotor` read these for their built-in controls, so a networked player works with a controller with no code. **Start From The Standard Actions** in the window copies them into the project to change.
+
+### Letting players change the controls
+
+```beef
+InputBinding binding;
+if (InputActions.Capture(out binding))                 // true on the frame a key or button goes down
+    InputActions.SetBinding("Jump", 0, binding);       // replace Jump's first binding
+
+let text = scope String();
+InputActions.ToText(text);                             // save this with the player's settings...
+InputActions.LoadText(text);                           // ...and load it when the game starts
+```
+
+`Capture` works while `Input.Enabled` is false, so a menu can use it.
+
+### The file
+
+`Input.tinput` is plain text, one line each:
+
+```
+map Player
+action Move vector
+bind keys W S A D
+bind stick left
+action Look vector
+bind mousedelta
+bind stick right scale 1400
+action Jump button
+bind key Space
+bind pad South
+action Throttle axis
+bind keyaxis S W
+bind padaxis RightTrigger
+```
+
+Bindings: `key <Key>`, `mouse <0|1|2>`, `wheel <up|down>`, `mousedelta`, `pad <Button>`, `padaxis <Axis>`, `stick <left|right>`, `dpad`, `keyaxis <minus> <plus>`, `keys <up> <down> <left> <right>`; then optionally `scale <number>` and `invert`.
+
+## Controllers
+
+Any controller SDL knows works with no set-up: Xbox, PlayStation (DualShock 4 and DualSense, by cable or Bluetooth), Switch Pro, Steam Deck and most others. They are noticed when plugged in and when pulled out. Up to four at once; every call takes the controller's number as a last argument, 0 being the first.
+
+Buttons are named by where they sit, so the same code works for every make: **South** is A on an Xbox pad, Cross on a PlayStation pad and B on a Nintendo one.
+
+| | |
+|---|---|
+| `Gamepad.IsConnected()`, `Gamepad.Count`, `Gamepad.Name()` | Whether there is one, how many, and what it calls itself. |
+| `GetButton`, `GetButtonDown`, `GetButtonUp` | A button. `LeftTrigger` and `RightTrigger` count as buttons past half way. |
+| `LeftStick`, `RightStick` | x right, y up, length at most 1, with the dead zone (`StickDeadZone`) taken out. |
+| `LeftTrigger`, `RightTrigger` | 0 to 1. |
+| `Dpad` | The d-pad as a direction. |
+| `Rumble(low, high, seconds)` | Shakes it: the heavy and the light motor, 0 to 1. `RumbleEnabled = false` silences every call, for a player's setting. |
+| `Kind()` | Xbox, PlayStation, Nintendo or Generic. `ButtonName(button, kind, text)` gives what is printed on the button: "A", "Cross", "R2". |
+
+### Menus
+
+UI documents work with a controller by themselves: the d-pad or left stick moves a highlight between buttons, toggles and sliders, the South button presses, and left and right move a slider. The highlight appears when the player touches the controller and goes when they touch the mouse. The highlight starts on the top-left control, or on the one marked `autofocus` in the markup (`<button autofocus="1" ...>`). Set `UIDocumentData.ControllerNavigation = false` to steer menus yourself.
+
+## Visual scripting
+
+Everything above is in the graph editor's node list as it is in code: search for "InputActions", "Gamepad" or "Input". `InputActions > Pressed` with "Jump" typed in, wired to a branch, is the usual start.
+
+## Testing without the hardware
+
+`Gamepad.Simulate()` makes a pretend controller, and `SimulateButton`, `SimulateStick` and `SimulateAxis` say what it is doing; `Input.SimulateKey`, `SimulateMouseButton` and `SimulateMouseDelta` do the same for keyboard and mouse. In a running game set `Input.SimulateOnly = true` first, so that whoever is at the machine does not disturb the run. With no application running (a test), wrap each pretend frame in `Input.SimulateStep()` and `Input.SimulateEnd()`. `Tests/InputActions` is written this way.
+
+Controllers have been checked this way and through SDL's own mapping; say so if a particular pad misbehaves.

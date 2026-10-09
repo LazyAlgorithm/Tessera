@@ -1,0 +1,124 @@
+using System;
+using Tessera;
+
+namespace ScrapYard;
+
+/// Title screen: play alone, host a game for others, or join one by address.
+/// From the command line: --host, --connect <address> or --server skip the menu.
+[Component]
+class MainMenu : Component
+{
+	public int32 port = 7777;
+
+	/// True while the menu is up; gameplay scripts wait for it.
+	public static bool Active = true;
+
+	String mAddress = new .("127.0.0.1") ~ delete _;
+	String mMessage = new .() ~ delete _;
+
+	public override void Start()
+	{
+		Active = true;
+		if (NetworkSession.PortOverride > 0)
+			port = NetworkSession.PortOverride;
+		if (!NetworkSession.AddressOverride.IsEmpty)
+			mAddress.Set(NetworkSession.AddressOverride);
+		switch (NetworkSession.ModeOverride)
+		{
+		case .Server, .Host, .Client: Begin(NetworkSession.ModeOverride);
+		default:
+		}
+	}
+
+	public override void OnDestroy()
+	{
+		Active = true;
+	}
+
+	void Begin(NetworkMode mode)
+	{
+		mMessage.Clear();
+		if (mode == .Offline)
+		{
+			let spawn = Scene.Find("SpawnPoint");
+			let player = GameSetup.CreatePlayer(Scene);
+			player.Transform.Position = spawn != null ? spawn.Transform.Position : Vector3(0, 2, 0);
+			SpawnStarterCar();
+			Active = false;
+			return;
+		}
+		let network = new NetworkManager(Scene);
+		network.PlayerPrefab.Set("Player");
+		network.BotInput = NetworkSession.BotOverride;
+		delete Scene.Network;
+		Scene.Network = network;
+		let ok = mode == .Client ? network.StartClient(mAddress, (uint16)port) : network.StartServer((uint16)port, mode == .Host);
+		if (!ok)
+		{
+			mMessage.Set(mode == .Client ? "Could not connect to that address." : "Could not open the port. Is another game already hosting?");
+			Scene.Network = null;
+			delete network;
+			return;
+		}
+		if (network.IsServer)
+		{
+			network.OnClientJoined = new (clientId) => GameNet.SendWorld(clientId);
+			SpawnStarterCar();
+		}
+		Active = false;
+	}
+
+	/// A small buggy to drive straight away: metal frame, wooden deck, four wheels, a seat and a thruster.
+	void SpawnStarterCar()
+	{
+		let marker = Scene.Find("StarterCarSpawn");
+		let car = GameNet.SpawnCreation(marker != null ? marker.Transform.Position : Vector3(2, 1.0f, 2), 0);
+		if (car == null)
+			return;
+		// Deck is 6 x 10 cells (1.5 m x 2.5 m).
+		for (int32 x = 0; x < 6; x++)
+		{
+			for (int32 z = 0; z < 10; z++)
+			{
+				let edge = x == 0 || x == 5 || z == 0 || z == 9;
+				GameNet.AddPart(car, .(x, 0, z), edge ? .Metal : .Wood);
+			}
+		}
+		GameNet.AddPart(car, .(-1, 0, 1), .Wheel);
+		GameNet.AddPart(car, .(6, 0, 1), .Wheel);
+		GameNet.AddPart(car, .(-1, 0, 8), .Wheel);
+		GameNet.AddPart(car, .(6, 0, 8), .Wheel);
+		GameNet.AddPart(car, .(2, 1, 4), .Seat);
+		GameNet.AddPart(car, .(2, 1, 0), .Thruster);
+		// A glass windscreen in front of the seat.
+		for (int32 x = 1; x < 5; x++)
+			for (int32 y = 1; y < 3; y++)
+				GameNet.AddPart(car, .(x, y, 8), .Glass);
+	}
+
+	public override void OnGUI()
+	{
+		if (!Active)
+			return;
+		let width = 360.0f;
+		let x = GUI.Width * 0.5f - width * 0.5f;
+		let y = GUI.Height * 0.5f - 170;
+		GUI.Box(0, 0, GUI.Width, GUI.Height, .(0.05f, 0.07f, 0.10f, 0.72f));
+		GUI.Box(x - 24, y - 24, width + 48, 348, .(0.10f, 0.12f, 0.15f, 0.95f));
+		GUI.Label(x, y, "SCRAP YARD", .(1.0f, 0.80f, 0.35f, 1));
+		GUI.Label(x, y + 20, "Build vehicles from blocks, wheels and thrusters.");
+
+		if (GUI.Button(x, y + 60, width, 40, "Play Offline"))
+			Begin(.Offline);
+		if (GUI.Button(x, y + 110, width, 40, "Host Game"))
+			Begin(.Host);
+		GUI.Label(x, y + 168, "Join a game at address:");
+		GUI.TextField(x, y + 190, width - 110, mAddress);
+		if (GUI.Button(x + width - 100, y + 186, 100, 30, "Join"))
+			Begin(.Client);
+		GUI.Label(x, y + 232, scope $"Port {port}. Friends on your network join with your address.");
+		if (!mMessage.IsEmpty)
+			GUI.Label(x, y + 262, mMessage, .(1.0f, 0.5f, 0.45f, 1));
+		GUI.Label(x, y + 292, "Esc quits a built game.", .(1, 1, 1, 0.55f));
+	}
+}

@@ -1,0 +1,29 @@
+# Automatic script library reload
+
+Linux x86-64 Debug editors watch project `.bf` files, including additions, removals and graph-generated scripts. Saving in the Scripts tab also queues a reload. Changes debounce before the compiler builds a versioned game library on a worker thread. Engine/editor implementations and their state remain in the host. Beef still compiles changed code and metadata; no manual full-project rebuild is required for supported game-script edits.
+
+At a frame boundary, the editor loads the library, maps its type metadata onto stable resident identities, refreshes the component registry, replaces project component instances and restores compatible fields/references. The editor window, scene objects, physics world and Play state remain alive. The activation scene is passed explicitly, including in Edit mode. Activated symbols are recorded so newly added types work through later generations.
+
+Supported changes include method edits, new component scripts, adding/removing/retyping supported instance fields, and inspector attributes. Same-name/type fields retain their values; newly added or retyped fields use their new initializers. Supported private runtime fields are also preserved unless marked NonSerialized. Awake/Start state is preserved and those callbacks are not repeated; OnValidate runs after restoring values. Constructors and field initializers run for replacement instances.
+
+## Inspector attributes
+
+```beef
+[ShowInInspector] private float speed = 3;
+[HideInInspector] public int32 internalCounter;
+[ShowInInspector, Range(0, 10)] private float volume = 1;
+```
+
+ShowInInspector exposes and saves supported non-public fields. HideInInspector hides public fields while keeping them serialized. NonSerialized excludes fields from saving/reload migration. Ordinary private fields remain hidden. The shared inspector/scene/reload field set includes float/double; signed and unsigned 8/16/32/64-bit and platform int/uint; bool; char8/16/32; String; Vector2/3/4; Int3; Quaternion; Color; Matrix4; integer-backed enums and scene/component references. Enums use reflected names when available and a numeric field otherwise. Integer storage retains its actual width, and double serialization preserves precision. Arrays, collections and arbitrary structs do not yet have general inspector drawers. The code editor highlights ShowInInspector and HideInInspector and includes them in identifier autocomplete. SerializeField and DontShowInInspector are not defined.
+
+Adding/removing HideInInspector refreshes visibility during automatic library reload. It needs fresh compiled metadata, but does not require a manual rebuild or restart.
+
+## Boundaries
+
+Engine/editor/native code, project build configuration and resident dependency changes still require Full Rebuild & Restart. After installing changes to the reload engine itself, restart once to load that engine implementation; subsequent supported script edits reload in place.
+
+This implementation targets Linux x86-64 Debug and depends on the Beef/native toolchain's reflection ABI and exported host symbols. Existing static fields share host storage; incompatible static layout changes require a full rebuild. Unsupported private containers, arbitrary object graphs, coroutines/tasks, native delegates and custom registration lifecycles do not have general state migration. Old modules and retired components remain allocated for the development session so outstanding old pointers do not refer to unloaded memory. References outside the supported component field set are not automatically retargeted.
+
+Compile failures retain the previous running version. Metadata/layout validation rejects incompatible resident changes. Deleted scripts disappear from Add Component on folder refresh; existing instances of deleted types are retained until removed rather than silently discarding scene data.
+
+Validation: the compiler integration fixture reloads six generations in one host process. It covers compile failure, method changes, added scripts, added/removed/retyped fields, ShowInInspector with Range, adding/removing HideInInspector on an existing field, field values, component references, static state, input, Play state and the same physics world.

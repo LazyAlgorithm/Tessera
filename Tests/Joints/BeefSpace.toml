@@ -1,0 +1,4 @@
+FileVersion = 1
+Projects = {JointTests = {Path = "."}, Tessera = {Path = "../../Engine"}, TesseraEditor = {Path = "../../Editor"}}
+[Workspace]
+StartupProject = "JointTests"
