@@ -64,3 +64,46 @@ Inspect `SceneSerializer`, `GameObject` IDs and editor mutation sites to establi
 ### First transport milestone
 
 Two desktop editors on separate networks exchange invitations out of band, establish an authenticated encrypted direct channel without router changes where NAT traversal permits, and transfer a read-only session handshake. Keep scene mutations disabled until protocol validation and operation identity are complete.
+
+## Updated product requirement: project-centric offline-first collaboration
+
+Collaboration belongs to a **persistent project**, not an ephemeral host session. Every authorized member keeps a complete local project copy and may edit offline. A coordinator is elected only to sequence connected edits; it is not the project owner.
+
+### Project identity and authorization
+
+- Generate a persistent project UUID and a creator public-key identity at project creation. Member identities use independent signing keys, not display names or editable Git author fields.
+- Maintain a signed membership/role manifest with monotonically increasing membership epochs. Only the creator key can add/remove members, change roles, or transfer ownership (explicit signed transfer).
+- Creator-only permissions must be enforced cryptographically by peers and during merge. Git repository permissions and a read-only editor panel alone do not enforce ownership on independently hosted copies. An offline revoked member may retain their existing copy; future secrecy requires key rotation and has unavoidable limitations.
+- Store creator-signed governance events in an append-only history. Peers verify signatures and hashes before accepting them. Preserve authorship of every operation with an author signature and causal metadata.
+
+### Replication and offline merge
+
+- Each member persists local operations and assets, a last-known shared checkpoint, and causal frontier. Local editing never requires the coordinator.
+- On reconnect, exchange manifests and missing content hashes, authenticate peers, reconcile causal histories, merge non-conflicting operations and show unresolved semantic conflicts to users. Do not silently choose a winner for destructive conflicting changes.
+- Text documents use a tested CRDT with stable character identifiers. Scene structure uses typed operations and validation; binary assets use versioned content hashes and explicit conflict choices.
+- Retain enough operation history for rejoining long-offline members; garbage collection and compaction require safe checkpoints and retention policy.
+
+### Coordinator migration and partitions
+
+- A coordinator sequences connected operations and periodically replicates its committed log. On coordinator loss, peers pause **shared commits** while retaining local edit capability.
+- A replacement is elected only with an agreed membership epoch and quorum of eligible reachable peers. Without quorum, operate offline and reconcile later; never present a partition as fully synchronized.
+- Rejoining old coordinators must catch up before they can coordinate. Handle simultaneous coordinator loss, stale revisions, and conflicting governance epochs.
+- No central service means peers must exchange rendezvous/invitation information out of band and may be unable to connect through some NAT/firewall configurations.
+
+### Contribution attribution and Git
+
+- Record signed per-operation author, affected entity/component/document, operation category, causal parent(s), and accepted/reverted state. Aggregate per-member activity by file, scene, component, and time period.
+- Clearly distinguish **activity metrics** (operations/lines/objects) from actual impact or quality; deduplicate retries, exclude remote replays, and count reversions appropriately.
+- Generate Git commits/snapshots from validated shared checkpoints, with commit metadata and optional per-author summaries. Do not rely on Git author strings as trusted provenance.
+- The creator has exclusive authority to change membership and ownership metadata; **everyone may view** contribution history. Project creators cannot prevent a local Git clone holder from editing their own history, but peers can reject unsigned/invalid governance history.
+
+### Proposed milestone order
+
+1. Persistent project/member identities, signed manifest, and local operation journal.
+2. Deterministic scene operation model and local undo isolation.
+3. Peer reconciliation and explicit conflict review using two local project copies (no networking yet).
+4. P2P authenticated transport, live presence, and synchronization.
+5. Coordinator election/failover, partitions and recovery.
+6. Collaborative text editing, asset exchange, contribution dashboard, and Git snapshots.
+
+**Status:** design only; no implementation or runtime validation claimed.
