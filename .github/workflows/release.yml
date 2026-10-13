@@ -1,0 +1,136 @@
+# Builds the Tessera editor for Linux and Windows with tools/package_engine.py (the same packages the editor's
+# File > Build makes with Build: Editor), zips each, and puts them on a GitHub release.
+#
+# When it runs:
+#   - a version tag is pushed (git tag v0.5 && git push origin v0.5): a release named after the tag;
+#   - a push to the `release` branch: a pre-release named after the date and commit;
+#   - by hand, from the Actions tab (Run workflow): the same, or the zips only as downloadable artifacts.
+#
+# Everything is built on one Linux machine: Windows through tools/windows/setup.sh (the Windows Beef compiler under
+# Wine, and Microsoft's C runtime and Windows SDK libraries fetched by xwin under the Visual Studio Build Tools
+# licence). Ubuntu 22.04 keeps the Linux build to glibc 2.35, so it runs on most current distributions.
+name: Engine release
+
+on:
+  push:
+    tags: ['v*']
+    branches: [release]
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Make a pre-release (otherwise the zips are only attached to the run)
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+env:
+  # Beef's compiler for Linux, built from source (its Windows compiler is downloaded by setup.sh).
+  BEEF_COMMIT: b62833e327d6b08f3566b31102c57646de6916b0
+  LLVM_VERSION: '22'
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 180
+    defaults:
+      run:
+        # A failing step repeats the end of its output on the run's page (.github/scripts/step.sh).
+        shell: bash tessera/.github/scripts/step.sh {0}
+    steps:
+      - name: Get Tessera
+        uses: actions/checkout@v4
+        with:
+          path: tessera
+
+      # The build scripts need Python 3.11 or later (tomllib); Ubuntu 22.04 has 3.10.
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install build tools
+        run: |
+          sudo dpkg --add-architecture i386
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ninja-build cmake zip p7zip-full xz-utils curl \
+            libx11-dev libxext-dev libxi-dev libxfixes-dev libxcursor-dev libxrandr-dev libxss-dev libxrender-dev \
+            libgl-dev libegl-dev libasound2-dev libpulse-dev libwayland-dev libxkbcommon-dev \
+            libffi-dev zlib1g-dev libzstd-dev libxml2-dev libedit-dev wine64 wine
+          wget -q https://apt.llvm.org/llvm.sh
+          sudo bash llvm.sh "$LLVM_VERSION"
+          sudo apt-get install -y "llvm-$LLVM_VERSION-dev" "clang-$LLVM_VERSION" "lld-$LLVM_VERSION" "libclang-rt-$LLVM_VERSION-dev"
+          # Plain names for what the build scripts call (clang-cl, lld-link, llvm-lib and the rest for Windows).
+          for tool in clang clang++ clang-cl lld-link llvm-lib llvm-rc llvm-mt llvm-ar llvm-config wasm-ld; do
+            sudo ln -sf "/usr/lib/llvm-$LLVM_VERSION/bin/$tool" "/usr/local/bin/$tool"
+          done
+
+      - name: Cache the Beef compiler
+        id: beef-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/beef
+          key: beef-${{ env.BEEF_COMMIT }}-llvm${{ env.LLVM_VERSION }}-jammy
+
+      - name: Build the Beef compiler
+        if: steps.beef-cache.outputs.cache-hit != 'true'
+        run: |
+          git clone https://github.com/beefytech/Beef ~/beef
+          git -C ~/beef checkout "$BEEF_COMMIT"
+          cd ~/beef/bin && ./build.sh
+
+      - name: Cache the Windows toolchain
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/tessera-win
+          key: tessera-win-v1
+
+      - name: Linux
+        run: |
+          echo "BEEFBUILD=$HOME/beef/IDE/dist/BeefBuild" >> "$GITHUB_ENV"
+          export BEEFBUILD="$HOME/beef/IDE/dist/BeefBuild"
+          cd tessera
+          python3 tools/patch_textedit.py
+          cmake -S native -B build/native -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build/native -j "$(nproc)"
+          python3 tools/package_engine.py --platform linux --folder ../out/Tessera-Linux
+
+      - name: Windows
+        run: |
+          cd tessera
+          tools/windows/setup.sh --accept-license
+          python3 tools/package_engine.py --platform windows --folder ../out/Tessera-Windows
+
+      - name: Zip
+        run: |
+          cd out
+          for build in Tessera-Linux Tessera-Windows; do
+            zip -qr9 "$build.zip" "$build"
+          done
+          ls -la *.zip
+
+      - name: Keep the zips with this run
+        uses: actions/upload-artifact@v4
+        with:
+          name: tessera-builds
+          path: out/*.zip
+
+      - name: Release
+        if: github.event_name == 'push' || inputs.publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          short="$(git -C tessera rev-parse --short HEAD)"
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            tag="${GITHUB_REF_NAME}"; title="Tessera ${GITHUB_REF_NAME}"; pre=""
+          else
+            tag="build-$(date -u +%Y%m%d)-$short"; title="Tessera build $(date -u +%Y-%m-%d) ($short)"; pre="--prerelease"
+          fi
+          notes="Built from Tessera $short ($GITHUB_REF_NAME).
+
+          - **Tessera-Windows.zip**: unzip and run Tessera.exe. Building projects needs the Beef toolchain, the Microsoft C++ Build Tools and Python 3.11+.
+          - **Tessera-Linux.zip**: unzip and run ./Tessera. Building projects needs BeefBuild and Python 3.11+ on the PATH.
+
+          See tessera-package.txt in each for details."
+          gh release create "$tag" out/*.zip --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "$title" --notes "$notes" $pre

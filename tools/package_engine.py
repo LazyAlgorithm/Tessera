@@ -89,7 +89,8 @@ def main():
         if windows:
             for dll in launcher.parent.glob('*.dll'):
                 shutil.copy2(dll, stage / dll.name)
-        keep = {'spirv'} if windows else {'spirv', 'glsl'}
+        # webgl: the editor's File > Build can make web builds (after tools/web/setup.sh).
+        keep = {'spirv', 'webgl'} if windows else {'spirv', 'glsl', 'webgl'}
         for backend in (stage / 'Engine/assets/shaders').iterdir():
             if backend.is_dir() and backend.name not in keep:
                 shutil.rmtree(backend)
