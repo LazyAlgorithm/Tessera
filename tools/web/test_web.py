@@ -43,8 +43,11 @@ class Run:
     def __init__(self, page, name, shots):
         self.page, self.name, self.shots = page, name, shots
         self.log, self.errors, self.failures = [], [], []
-        page.on('console', lambda message: self.log.append(f'[{message.type}] {message.text}'))
-        page.on('pageerror', lambda error: self.errors.append(str(error)))
+        self.watch()
+
+    def watch(self):
+        self.page.on('console', lambda message: self.log.append(f'[{message.type}] {message.text}'))
+        self.page.on('pageerror', lambda error: self.errors.append(str(error)))
 
     def shot(self, stage):
         if self.shots:
@@ -105,13 +108,17 @@ def difference(a, b):
 
 
 def desktop(browser, url, shots, match):
-    print('Desktop (1280x720, mouse and keyboard)')
-    context = browser.new_context(viewport={'width': 1280, 'height': 720})
+    print('Desktop (960x540, mouse and keyboard)')
+    context = browser.new_context(viewport={'width': 960, 'height': 540})
     run = Run(context.new_page(), 'desktop', shots)
     start_game(run, url, 'menu')
     colours = canvas_has_picture(run.page)
     run.check(colours > 12, f'the menu is drawn ({colours} colours on screen)')
     if match:
+        # A new page: leaving one where a game runs can take longer than the browser waits.
+        run.page.close()
+        run.page = context.new_page()
+        run.watch()
         start_game(run, url + '?' + match, 'match')
         colours = canvas_has_picture(run.page)
         run.check(colours > 12, f'a match is drawn ({colours} colours on screen)')
@@ -135,6 +142,9 @@ def phone(browser, playwright, url, shots, match):
     colours = canvas_has_picture(page)
     run.check(colours > 12, f'the menu is drawn ({colours} colours on screen)')
     if match:
+        page.close()
+        page = run.page = context.new_page()
+        run.watch()
         start_game(run, url + '?' + match, 'match')
         width, height = page.viewport_size['width'], page.viewport_size['height']
         # Push the move stick forward and hold it: the view should move on.
