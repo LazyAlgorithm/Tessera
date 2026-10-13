@@ -62,7 +62,13 @@ Work agreed and queued, in order (see *How to use this page* above for what "don
 - [ ] E10 post-processing: ambient occlusion, depth of field, motion blur, colour grading
 - [ ] E9 async scene and asset loading
 - [ ] E4 animation layers and blend trees
-- [ ] E5 inverse kinematics
+- [ ] E5 inverse kinematics, built in: two-bone limbs (arms, legs) with a pole target, look-at for heads and spines,
+  foot placement on uneven ground, hands on a held weapon; an IK component edited in the Inspector with handles in
+  the Scene view; works with the Animator (after the clip, per layer weight) and over the network (targets that
+  matter for others synced, the rest worked out on each machine)
+- [ ] E5b animation retargeting: play clips made for one rig on another (a shared humanoid bone map, matched by
+  name with an editor to fix the matches, bone lengths and rest poses allowed to differ, root motion scaled to the
+  target's size); the Animator plays any retargeted clip, and networking already sends clip and state, not bones
 - [ ] E11 decals
 - [ ] E12 dialogue and subtitles
 - [ ] E13 sequencer (cutscenes)
