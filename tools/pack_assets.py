@@ -42,10 +42,12 @@ def _scramble(data, seed, salt):
     return (int.from_bytes(data, 'little') ^ int.from_bytes(stream, 'little')).to_bytes(len(data), 'little')
 
 
-def write_pack(path, files, compress=True):
+def write_pack(path, files, compress=True, name=None):
     """files: (name inside the pack, path of the file on disk) pairs. Names use forward slashes.
-    compress=False stores every file at its full size (still scrambled and checksummed)."""
-    seed = int.from_bytes(os.urandom(4), 'little')
+    compress=False stores every file at its full size (still scrambled and checksummed).
+    name (the game's name) fixes the scrambling, so that a file that has not changed comes out the same in every
+    build: a store such as Steam then sends players only what did change. Without it each build is scrambled anew."""
+    seed = zlib.crc32(('tessera-pack:' + name).encode('utf-8')) if name else int.from_bytes(os.urandom(4), 'little')
     index = bytearray()
     with open(path, 'wb') as out:
         out.write(b'\0' * 32)

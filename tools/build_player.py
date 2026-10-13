@@ -235,7 +235,7 @@ def main():
             if not args.loose and settings.get('packAssets', '1') != '0':
                 packed = [(file.relative_to(staging).as_posix(), str(file)) for folder in ('Assets', 'Engine') for file in (staging / folder).rglob('*') if file.is_file()]
                 packed.append(('game.tessera', str(staging / 'game.tessera')))
-                pack_assets.write_pack(staging / 'game.tpak', packed, compress=not args.no_compress and (web or settings.get('packCompress', '1') != '0'))
+                pack_assets.write_pack(staging / 'game.tpak', packed, compress=not args.no_compress and (web or settings.get('packCompress', '1') != '0'), name=name)
                 shutil.rmtree(staging / 'Assets')
                 shutil.rmtree(staging / 'Engine')
                 (staging / 'game.tessera').unlink()
