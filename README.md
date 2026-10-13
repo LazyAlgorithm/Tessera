@@ -57,7 +57,7 @@ Script edits reload automatically while the editor runs (see the script reload p
 
 ### Terrain tools
 
-GameObject > Voxel Terrain adds a flat, fixed-size terrain (128 m square by default; set Size X and Size Z). Select it and pick Raise, Lower, Smooth, Flatten or Paint in the Inspector, then drag in the Scene view. Set Mode to Endless for generated terrain without end, or give it your own generator; see `docs/terrain.md`. Sculpted and painted chunks are written to a `.voxels` file next to the scene when you save.
+GameObject > Voxel Terrain adds one flat 128 m tile. Pick **Tiles** under Terrain Tools in the Inspector to add tiles beside it (or apart from it), move and remove them; pick Raise, Lower, Smooth, Flatten or Paint and drag in the Scene view to sculpt across tiles as one surface. Undo covers both. A game supplies its own generator classes to shape ground or bake into chosen tiles; Endless mode generates around the camera without end. Sculpting is saved one file per tile in a folder beside the scene. See `docs/terrain.md`.
 
 ## Writing components
 
@@ -85,7 +85,7 @@ Supported field types: `float`, `int32`, `bool`, `Vector2`, `Vector3`, `Quaterni
 
 - **Rendering** (bgfx): forward HDR pipeline with 4x MSAA, a sun with four shadow cascades, up to 16 point and spot lights, metallic/roughness shading, per-triangle flat shading for the low-poly look, procedural sky, fog, bloom (a glow around bright and emissive things; set Bloom and Bloom Threshold in the scene's lighting settings, or `Scene.Environment.bloom` from code; off by default), tonemapping, see-through objects (give a Mesh Renderer a color alpha below 1), automatic instancing of identical mesh/material pairs, frustum culling, glTF/GLB models and textures.
 - **Materials, shaders and compute**: materials (`.tmat`) shared between objects and edited live in the Inspector; shader graphs for making shaders without code; a metallic-roughness PBR shader with normal, metallic-roughness, occlusion and emissive maps; your own surface shaders (`.tshader`) that keep the engine's lighting, shadows and fog; and compute shaders (`.tcompute`) that run per pixel on the graphics card, usable with no script through the Compute Effect component. See `docs/materials.md`.
-- **Voxels**: `VoxelTerrain` streams 32-cell chunks around the camera, generated and meshed on worker threads with marching cubes (or blocky cubes), editable at runtime with `Brush` / `ModifySphere`. `VoxelObject` is a destructible marching-cubes object: `Carve` it and disconnected pieces break off as physics bodies.
+- **Voxels**: `VoxelTerrain` is a grid of hand-placed tiles (or endless, streamed around the camera and each player) of 32-cell chunks with level of detail, generated and meshed on worker threads with marching cubes (or blocky cubes), editable at runtime with `Brush` / `ModifySphere`. `VoxelObject` is a destructible marching-cubes object: `Carve` it and disconnected pieces break off as physics bodies.
 - **Physics** (Jolt, deterministic build): `Rigidbody`, box/sphere/capsule/convex/mesh colliders, raycasts and shape casts, and a `CharacterController` (capsule or rounded box) that walks up steps and slopes; see `docs/character-controller.md`.
 - **AI**: baked navigation for walking and flying agents (`docs/navigation.md`) and behaviour trees with patrol, chase, detection and blackboard nodes (`docs/behavior-trees.md`).
 - **Scenes at run time**: `SceneManager.LoadAdditive` adds another scene file to the one that is playing (levels kept in their own scenes, each editable by itself), `Unload` takes it out, and `SceneManager.Load` changes scene. See `docs/scenes.md`.
@@ -230,7 +230,7 @@ Each type has its own file, or shares one with the small types that only it uses
 | AI | Navigation data, baker, surface and agent; behaviour tree data, nodes and runner |
 | Net | NetworkManager, identities, serialization, session, transports, automatic sync, tick scripts, character motor |
 | UI | UI documents and elements, immediate-mode GUI |
-| Voxel | Voxel terrain (fixed or endless) and voxel objects |
+| Voxel | Voxel terrain (tiles or endless), terrain generators and voxel objects |
 | Scripting | Script hot reload, graph node attributes |
 | Assets | Asset cache and path resolution |
 | Platform | Bindings: bgfx, SDL3, Dear ImGui, Jolt, ENet, Steam; achievements; Workshop |
@@ -275,8 +275,7 @@ Developed and tested on Linux x64 with Vulkan. Windows x64 builds (games and the
 - Skinned models are deformed on the CPU, which suits low-poly characters but not crowds of detailed ones; morph targets are not supported.
 - Graphs cannot use lists, delegates or generic methods, graph variables cannot hold object references, and UI documents have no scrolling, text wrapping or animations (a canvas can draw anything they lack).
 - Automatic script reload works in Linux and Windows x64 Debug editors, and engine changes need Full Rebuild & Restart. Every component class needs `[Component]`.
-- Undo covers objects, components, fields and scene settings, but not terrain sculpting or voxel carving.
-- Voxel terrain has no level of detail, and smoothing can leave hairline seams at chunk borders.
+- Undo covers objects, components, fields, scene settings, terrain tiles and sculpting, but not voxel carving.
 - Network: a client does not predict physics objects it does not own (they move when the server says so), and there is no encryption or NAT traversal of the engine's own (the Steam transport provides both).
 - Joints are ball joints with an optional swing limit; there are no hinges, sliders, springs or motors, and a hard knock can push a limb a little past its limit. Vehicle wheels are simulated with suspension rays.
 - Script completion works out a variable's type from its declaration or assignment on one line; it does not follow chains (`a.b.`) or infer from method return types.

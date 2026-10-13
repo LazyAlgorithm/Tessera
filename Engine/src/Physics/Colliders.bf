@@ -143,11 +143,20 @@ class CapsuleCollider : Collider
 [Component]
 class MeshCollider : Collider
 {
+	/// A mesh to collide with in place of the renderer's: a terrain gives its full-detail ground here while it draws
+	/// fewer triangles far away. Not kept with the scene. Call Refresh after changing it.
+	public Mesh CollisionMesh { get; set; }
+
 	public override ShapeDesc GetShape()
 	{
 		ShapeDesc desc = default;
 		desc.kind = .Mesh;
 		desc.meshScale = WorldScale;
+		if (CollisionMesh != null)
+		{
+			desc.mesh = CollisionMesh;
+			return desc;
+		}
 		let renderer = GetComponent<MeshRenderer>();
 		if (renderer != null)
 			desc.mesh = renderer.ActiveMesh;

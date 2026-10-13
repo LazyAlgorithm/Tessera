@@ -4,15 +4,24 @@ using Tessera;
 
 namespace Tessera.Editor;
 
-/// Undo and redo for scene edits. Each step is a saved copy of the scene; applying one only
-/// rebuilds the objects that differ, so untouched objects (and streamed terrain) stay as they are.
-/// Terrain sculpting and voxel carving are not part of the history.
+/// One step of undo history: the scene as text on the other side of the step, or terrain sculpting before and after.
+class UndoStep
+{
+	public String scene ~ delete _;
+	public uint32 terrainObject;
+	public VoxelTerrain.EditRecord terrain ~ delete _;
+}
+
+/// Undo and redo for scene edits. Each scene step is a saved copy of the scene; applying one only rebuilds the
+/// objects that differ, so untouched objects (and streamed terrain) stay as they are. Terrain sculpting and painting
+/// are steps of their own, holding just the chunks a stroke changed; adding, moving and removing terrain tiles are
+/// scene steps that the terrain takes in place.
 extension EditorApp
 {
 	const int cMaxUndo = 64;
 
-	List<String> mUndoStack = new .() ~ DeleteContainerAndItems!(_);
-	List<String> mRedoStack = new .() ~ DeleteContainerAndItems!(_);
+	List<UndoStep> mUndoStack = new .() ~ DeleteContainerAndItems!(_);
+	List<UndoStep> mRedoStack = new .() ~ DeleteContainerAndItems!(_);
 	String mBaseline = new .() ~ delete _;
 	bool mUndoPending;
 
@@ -28,12 +37,50 @@ extension EditorApp
 		mUndoPending = false;
 	}
 
+	void PushUndo(UndoStep step)
+	{
+		mUndoStack.Add(step);
+		if (mUndoStack.Count > cMaxUndo)
+		{
+			delete mUndoStack[0];
+			mUndoStack.RemoveAt(0);
+		}
+		ClearAndDeleteItems!(mRedoStack);
+	}
+
+	/// Records sculpting (from VoxelTerrain.EndEditRecord) as an undo step, after any scene change before it.
+	void PushTerrainUndo(VoxelTerrain terrain, VoxelTerrain.EditRecord record)
+	{
+		if (record == null)
+			return;
+		if (mPlay != .Edit)
+		{
+			delete record;
+			return;
+		}
+		if (mUndoPending)
+		{
+			// Scene changes made before the stroke come first.
+			mUndoPending = false;
+			CommitSceneStep();
+		}
+		let step = new UndoStep();
+		step.terrainObject = terrain.GameObject.Id;
+		step.terrain = record;
+		PushUndo(step);
+	}
+
 	/// Records a step once the user lets go, so a whole drag or text edit is one entry.
 	void CommitUndoWhenIdle()
 	{
 		if (!mUndoPending || mPlay != .Edit || ImGui.IsAnyItemActive() || ImGui.IsMouseDown(0))
 			return;
 		mUndoPending = false;
+		CommitSceneStep();
+	}
+
+	void CommitSceneStep()
+	{
 		let current = new String();
 		SceneSerializer.Save(mScene, current);
 		if (current == mBaseline)
@@ -41,27 +88,35 @@ extension EditorApp
 			delete current;
 			return;
 		}
-		mUndoStack.Add(new String(mBaseline));
-		if (mUndoStack.Count > cMaxUndo)
-		{
-			delete mUndoStack[0];
-			mUndoStack.RemoveAt(0);
-		}
-		ClearAndDeleteItems!(mRedoStack);
+		let step = new UndoStep();
+		step.scene = new String(mBaseline);
+		PushUndo(step);
 		mBaseline.Set(current);
 		delete current;
 	}
+
+	VoxelTerrain TerrainOfStep(UndoStep step) => mScene.FindById(step.terrainObject)?.GetComponent<VoxelTerrain>();
 
 	void Undo()
 	{
 		CommitUndoWhenIdle();
 		if (!CanUndo)
 			return;
-		let target = mUndoStack.PopBack();
-		mRedoStack.Add(new String(mBaseline));
-		ApplySnapshot(mBaseline, target);
-		mBaseline.Set(target);
-		delete target;
+		let step = mUndoStack.PopBack();
+		if (step.terrain != null)
+		{
+			TerrainOfStep(step)?.ApplyEditRecord(step.terrain, true);
+			mRedoStack.Add(step);
+		}
+		else
+		{
+			let target = step.scene;
+			step.scene = new String(mBaseline);
+			mRedoStack.Add(step);
+			ApplySnapshot(mBaseline, target);
+			mBaseline.Set(target);
+			delete target;
+		}
 		mDirty = true;
 	}
 
@@ -69,11 +124,21 @@ extension EditorApp
 	{
 		if (!CanRedo)
 			return;
-		let target = mRedoStack.PopBack();
-		mUndoStack.Add(new String(mBaseline));
-		ApplySnapshot(mBaseline, target);
-		mBaseline.Set(target);
-		delete target;
+		let step = mRedoStack.PopBack();
+		if (step.terrain != null)
+		{
+			TerrainOfStep(step)?.ApplyEditRecord(step.terrain, false);
+			mUndoStack.Add(step);
+		}
+		else
+		{
+			let target = step.scene;
+			step.scene = new String(mBaseline);
+			mUndoStack.Add(step);
+			ApplySnapshot(mBaseline, target);
+			mBaseline.Set(target);
+			delete target;
+		}
 		mDirty = true;
 	}
 
@@ -132,7 +197,12 @@ extension EditorApp
 		{
 			afterIds.Add(block.id);
 			if (!beforeById.TryGetValue(block.id, let old) || old != block.text)
+			{
+				// A terrain whose tiles are all that changed takes them in place, keeping what it has loaded.
+				if (old.Ptr != null && TilesOnlyChange(block.id, old, block.text))
+					continue;
 				rebuild.Add(block.id);
+			}
 		}
 		bool grew = true;
 		while (grew)
@@ -145,13 +215,21 @@ extension EditorApp
 			}
 		}
 
+		// Terrains made again keep the sculpting that is not saved yet.
+		Dictionary<uint32, Object> keptEdits = scope .();
+		defer { for (let entry in keptEdits) delete entry.value; }
 		for (let block in before)
 		{
 			if (afterIds.Contains(block.id) && !rebuild.Contains(block.id))
 				continue;
 			let existing = mScene.FindById(block.id);
 			if (existing != null)
+			{
+				let terrain = existing.GetComponent<VoxelTerrain>();
+				if (terrain != null)
+					keptEdits[block.id] = terrain.TakeEdits();
 				mScene.DestroyImmediate(existing);
+			}
 		}
 		let text = scope String();
 		for (let block in after)
@@ -161,9 +239,55 @@ extension EditorApp
 		}
 		if (!text.IsEmpty)
 			SceneSerializer.LoadObjects(mScene, text);
+		List<uint32> given = scope .();
+		for (let entry in keptEdits)
+		{
+			let terrain = mScene.FindById(entry.key)?.GetComponent<VoxelTerrain>();
+			if (terrain != null)
+			{
+				terrain.GiveEdits(entry.value);
+				given.Add(entry.key);
+			}
+		}
+		for (let id in given)
+			keptEdits.Remove(id);
 		SceneSerializer.LoadEnvironment(mScene, to);
 		if (mSelectedId != 0 && mScene.FindById(mSelectedId) == null)
 			mSelectedId = 0;
+	}
+
+	/// True, and the change made, when the only lines of an object that differ are a terrain's tiles.
+	bool TilesOnlyChange(uint32 id, StringView before, StringView after)
+	{
+		bool Tiles(StringView line) => line.StartsWith("field tiles ") || line.StartsWith("field nextTileId ");
+		let a = scope String(), b = scope String();
+		for (let line in before.Split('\n'))
+			if (!Tiles(line))
+				a..Append(line).Append('\n');
+		for (let line in after.Split('\n'))
+			if (!Tiles(line))
+				b..Append(line).Append('\n');
+		if (a != b)
+			return false;
+		let terrain = mScene.FindById(id)?.GetComponent<VoxelTerrain>();
+		if (terrain == null)
+			return false;
+		for (var line in after.Split('\n'))
+		{
+			line.Trim();
+			if (line.StartsWith("field tiles "))
+			{
+				var value = line.Substring(12);
+				value.Trim();
+				if (value.StartsWith('"') && value.EndsWith('"') && value.Length >= 2)
+					value = value.Substring(1, value.Length - 2);
+				terrain.tiles.Set(value);
+			}
+			else if (line.StartsWith("field nextTileId "))
+				terrain.nextTileId = SceneSerializer.ParseInt(line.Substring(17));
+		}
+		terrain.OnValidate();
+		return true;
 	}
 
 	void SaveSelectedAsPrefab()

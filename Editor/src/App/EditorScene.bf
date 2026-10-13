@@ -185,6 +185,27 @@ extension EditorApp
 			center = selected.Transform.Position + navigation.size * 0.5f;
 			radius = Math.Max(navigation.size.Length * 0.5f, 0.5f);
 		}
+		// A terrain is framed by its tiles, from above.
+		let terrain = selected.GetComponent<VoxelTerrain>();
+		if (terrain != null && terrain.mode == .Fixed && terrain.TileCount > 0)
+		{
+			List<TerrainTile> tiles = scope .();
+			terrain.GetTiles(tiles);
+			let w = terrain.TileWorldSize;
+			var low = Vector3(float.MaxValue, 0, float.MaxValue);
+			var high = Vector3(float.MinValue, 0, float.MinValue);
+			for (let tile in tiles)
+			{
+				low = .(Math.Min(low.x, tile.x * w), terrain.flatHeight, Math.Min(low.z, tile.z * w));
+				high = .(Math.Max(high.x, (tile.x + 1) * w), terrain.flatHeight, Math.Max(high.z, (tile.z + 1) * w));
+			}
+			center = selected.Transform.TransformPoint((low + high) * 0.5f);
+			radius = (high - low).Length * 0.5f;
+			mCamPitch = Math.Max(mCamPitch, 40);
+			let look = Quaternion.Euler(mCamPitch, mCamYaw, 0) * Vector3.Forward;
+			mCamPosition = center - look * (radius * 1.6f + 1.0f);
+			return;
+		}
 		let forward = Quaternion.Euler(mCamPitch, mCamYaw, 0) * Vector3.Forward;
 		mCamPosition = center - forward * (radius * 2.8f + 1.0f);
 	}

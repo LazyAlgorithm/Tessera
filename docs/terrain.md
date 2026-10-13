@@ -1,59 +1,97 @@
 # Terrain
 
-**GameObject > Voxel Terrain** adds a terrain. It is a **fixed area that starts flat**, like a new terrain in Unity: shape it with the terrain tools in the Inspector (raise, lower, smooth, flatten, paint), and what you make is saved with the scene.
+**GameObject > Voxel Terrain** adds a terrain: one flat square **tile**, 128 m across, ready to shape. Add more tiles beside it (or apart from it) with the **Tiles** tool, sculpt and paint across them as one surface, and save. It is made of voxels, so caves, overhangs and digging at run time all work.
 
-## The area
+## Tiles
+
+Every terrain is one grid of square tiles, all the same size. Select the terrain and pick **Tiles** under Terrain Tools in the Inspector; the Scene view then shows the grid:
+
+| In the Scene view | Does |
+|---|---|
+| Click a **+** | Adds a flat tile beside the others |
+| Ctrl+click an empty place | Adds a tile apart from the others (tiles may be spaced out on the grid) |
+| Click a tile | Selects it |
+| Shift+click an empty place | Moves the selected tile there, with its sculpting |
+
+With a tile selected, the Inspector moves it one place at a time, removes it (leaving a hole), or applies a generator to it (below). Undo and redo cover adding, moving and removing tiles, and every sculpting or painting stroke. Pressing **F** frames all the tiles.
+
+Where tiles meet, the ground simply carries on: brushes, smoothing and paint work across the edge, and the two sides match sample for sample. The ground ends, as a sheer side, only at the outer edge of the tiles and around holes.
 
 | Field | Default | Meaning |
 |---|---|---|
-| Mode | Fixed | Fixed: a set area. Endless: generated around the camera for ever. |
-| Size X, Size Z | 4, 4 | Fixed mode: chunks along each axis. A chunk is 32 voxels, so 4 x 4 at voxel size 1 is 128 m square. Up to 64. |
-| Flat Height | 0 | Fixed mode: the height the ground starts at, above the object. |
+| Tile Size | 4 | Chunks along each side of a tile. A chunk is 32 voxels, so 4 at voxel size 1 is 128 m. Choose it before sculpting. |
+| Flat Height | 0 | The height new ground starts at, above the object. |
 | Min Chunk Y, Max Chunk Y | -1, 2 | How far down and up the terrain reaches, in chunks: with the defaults, 32 m below the object to 96 m above. |
 | Voxel Size | 1 | Metres per voxel. Smaller is finer and costs more. |
+| Stream Tiles | off | Load only the tiles within View Distance of the camera (and of each player, on a server). Off: all of them, all the time. |
+| Lod Distance | 4 | Level of detail, below. |
 
-The area starts at the object's position and extends along +X and +Z; the menu item centres it on the origin. A selected terrain shows its box. The whole area is always loaded, wherever the camera is, and there is no ground beyond its edge.
+In code: `AddTile(x, z)`, `RemoveTile(id)`, `MoveTile(id, x, z)`, `GetTiles(list)`, `TileAt(x, z)`. A tile keeps its id wherever it goes; its sculpting is filed under it.
 
-Changing the size, height or mode in the Inspector rebuilds the terrain; sculpting already done is kept where it still fits.
+## Saving
+
+Saving the scene writes the sculpting to a folder beside it (`Scenes/<scene>_<object>.terrain`), one file per tile that has any, and removes the files of tiles that are gone. Only tiles with sculpting have files, so a large flat terrain costs nothing. In a build, a scene's own pack carries its terrain folder.
+
+Scenes from before tiles open as tiles: their rectangle (the old `sizeX` and `sizeZ`) becomes tiles as large as fit it exactly, and their single `.voxels` file moves into the per-tile folder on the next save.
+
+## Generators
+
+What ground looks like before anyone sculpts it is the game's own business. Write a generator class:
+
+```beef
+[TerrainGenerator]
+class Islands : TerrainGenerator
+{
+    public override float Density(float x, float y, float z)
+    {
+        // More than zero is solid, less is air; the surface is where it crosses zero.
+        let hill = Noise.Fbm(x * 0.01f, 0, z * 0.01f, 7, 4) * 30;
+        return hill - y;
+    }
+
+    // Optional: painted layers (1 grass, 2 rock, 3 sand, 4 snow, 5 dirt, 0 automatic).
+    public override bool Paints => true;
+    public override uint8 Paint(float x, float y, float z) => y < 1 ? 3 : 0;
+}
+```
+
+Then either:
+
+- **Generator** (Terrain Tools, or the `generator` field): every chunk nobody has sculpted comes from it, in all tiles, as long as the game runs. Sculpting on top is kept as usual.
+- **Apply Generator** (Tiles tool, with a tile selected): bakes the generator into that one tile, as if it had been sculpted that way. The edge it shares with other tiles takes the new ground too, so there is no gap. Undo takes it back.
+
+Coordinates are metres in the terrain's own space. `Density` and `Paint` run on worker threads, several at once: read only data that does not change while the terrain is generating, and copy what you need in `Begin(terrain)`, which runs on the main thread first. `terrain.SetGenerator((x, y, z) => ...)` does the same with a function from code, and `terrain.ApplyGenerator(generator, tileId)` is the bake.
+
+Tessera's own noise is the sample `NoiseTerrainGenerator`; nothing uses it unless you choose it, except an Endless terrain with no generator of its own.
 
 ## Endless terrain
 
-Set **Mode** to **Endless** for a world generated from noise around the camera: `seed`, `terrainHeight`, `terrainScale`, `caveAmount` and `viewDistance` shape it. This is what the open-world sample scene uses. Scenes saved before terrains had a mode keep their endless terrain.
+Set **Mode** to **Endless** for ground generated around the camera without end, by the terrain's generator (the sample noise if it has none: `seed`, `terrainHeight`, `terrainScale` and `caveAmount` shape it). This is what the open-world sample scene uses. Scenes saved before terrains had a mode keep their endless terrain.
 
-## Your own generator
+## Streaming and level of detail
 
-How a world is generated differs from game to game, so the shape can be replaced:
+Endless terrains, and tiled ones with **Stream Tiles**, keep the chunks within **View Distance** (in chunks) of the camera. A game can give more places to keep loaded: a server fills `VoxelTerrain.Viewers` with each player's position every frame, so everyone has ground under them.
 
-```beef
-let terrain = GetComponent<VoxelTerrain>();
-// More than zero is solid, less is air; the surface is where it crosses zero.
-terrain.SetGenerator(new (x, y, z) => {
-    let hill = Math.Sin(x * 0.05f) * Math.Cos(z * 0.05f) * 12;
-    return hill - y;
-});
-```
-
-- It works in both modes. Fixed mode still ends the ground at the edge of the area.
-- Coordinates are in the terrain's own space, in metres.
-- It runs on worker threads, several at once: read only data that does not change while the terrain is generating.
-- `SetGenerator(null)` goes back to the built-in ground. Setting a generator rebuilds the terrain.
-- The generator is code, so it is not saved in the scene: set it in `Awake` or `Start` each run. Sculpting on top of it is saved as usual.
+Chunks further than **Lod Distance** chunks from the camera are drawn with half the detail, beyond twice that a quarter, beyond four times an eighth. Each chunk has a skirt along its sides so chunks of different detail meet without gaps. Collision always uses the full detail, so physics far from the camera is as exact as near it. 0 turns it off. Smooth style only.
 
 ## Editing at run time
 
-`terrain.ModifySphere(point, radius, amount)` digs (negative) or builds (positive), and `terrain.Brush(...)` gives the other brushes. In a network session both are shared automatically; see [Networking](networking).
+`terrain.ModifySphere(point, radius, amount)` digs (negative) or builds (positive), and `terrain.Brush(...)` gives the other brushes. In a network session both are shared automatically; see [Networking](networking). `terrain.Raycast(ray, distance, out point)` and `DensityAt(point, out density)` read the ground without physics.
 
 ## Keeping sculpting somewhere of your own
 
-`terrain.SaveEdits(path)` and `LoadEdits(path)` write and read the sculpted chunks as a file. `SaveEdits(List<uint8>)` and `LoadEdits(Span<uint8>)` do the same with bytes, for a game that keeps its terrain inside something else (a map file it sends to other players, say); call `Regenerate()` after loading into a terrain that already exists. Caves and overhangs are kept, since it is the voxels themselves that are stored.
+`terrain.SaveEdits(List<uint8>)` and `LoadEdits(Span<uint8>)` write and read all the sculpting as bytes, by where each chunk is, for a game that keeps its terrain inside something else (a map file it sends to other players, say); call `Regenerate()` after loading into a terrain that already exists. `SaveEdits(path)` and `LoadEdits(path)` do the same with a file.
+
+## Undo from code
+
+`BeginEditRecord()` and `EndEditRecord()` around any sculpting return what changed, and `ApplyEditRecord(record, undo)` puts it back or forward. The editor uses these for its undo.
 
 ## Limits
 
-- No level of detail, and smoothing can leave hairline seams at chunk borders.
-- A fixed terrain is rectangular and loads all of itself: 64 x 64 chunks is the most it allows, and far less is sensible.
-- The edge of a fixed terrain is a sheer side, not a skirt.
-- Undo does not cover sculpting.
+- The edge of the tiles is a sheer side, not a skirt.
+- Moving a sculpted tile next to other sculpted ground can leave a step along the edge where their shapes differ; smooth over it.
+- Tile Size and Voxel Size are best chosen before sculpting.
 
 ## Tests
 
-`BeefBuild -workspace=Tests/Terrain -config=Debug -run` (14 checks): the fixed default and its size, flat start, no ground beyond the edge, raising and digging, resizing, custom generators in both modes, endless mode following the camera, and scenes old and new keeping their mode.
+`BeefBuild -workspace=Tests/Terrain -config=Debug -run` (42 checks): a new terrain is one flat tile; tiles added on every side line up and the ground runs across them; raising, smoothing, painting, flattening and digging across tile edges leave both copies of every shared sample equal and the meshes meeting vertex for vertex; undo and redo of strokes; moving and removing tiles (holes) and undoing that; a file per tile, saved and loaded; generators by class, by function and applied to one tile; streaming tiles around several viewers; level of detail with full-detail collision; the bytes API; Endless mode; and scenes from before tiles and before modes.

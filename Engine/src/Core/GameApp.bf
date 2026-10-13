@@ -71,6 +71,16 @@ class GameApp : Application
 			VoxelTerrain.ViewerPosition = camera.Transform.Position;
 		else if (mScene.Network != null && mScene.Network.Identities.Count > 0)
 			VoxelTerrain.ViewerPosition = mScene.Network.Identities.Back.Transform.Position;
+		// A server keeps the terrain loaded, and detailed, around every player as well.
+		VoxelTerrain.Viewers.Clear();
+		if (mScene.Network != null && mScene.Network.IsServer)
+		{
+			for (let identity in mScene.Network.Identities)
+			{
+				if (identity.ownerId > 0 && VoxelTerrain.Viewers.Count < 64)
+					VoxelTerrain.Viewers.Add(identity.Transform.Position);
+			}
+		}
 		mScene.Update();
 #if !BF_PLATFORM_WASM
 		// (A web page is closed with the browser; there, Escape only gives the mouse back.)

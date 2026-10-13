@@ -1,6 +1,6 @@
-# Terrain system redesign proposal (discussion only)
+# Terrain system redesign proposal
 
-Status: **Design proposal — not implemented.** Do not modify engine code without explicit approval.
+Status: **Implemented** (approved; see [Terrain](terrain.md)). Choices made: one tile size for the whole grid; one grid per terrain, with tiles allowed to be spaced apart; a removed tile leaves a hole; chunks have level of detail.
 
 ## Goals
 
@@ -41,4 +41,4 @@ At the time of discussion, `VoxelTerrain` already defaulted to `TerrainMode.Fixe
 - Existing scenes and optional endless worlds remain compatible or have an explicit migration path.
 - Automated tests cover tile placement, edge continuity, brush overlap, persistence, and backward compatibility.
 
-This document records design intent only. No code implementation is authorized by this document.
+This document records the design intent the implementation follows.

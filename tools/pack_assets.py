@@ -90,6 +90,9 @@ def _references(text, base, assets):
         for candidate in (token, (base + '/' + token) if base else token):
             if candidate in assets:
                 found.add(candidate)
+            elif candidate.endswith('.terrain'):
+                # A terrain's sculpting folder: every tile's file in it.
+                found.update(path for path in assets if path.startswith(candidate + '/'))
     return found
 
 
