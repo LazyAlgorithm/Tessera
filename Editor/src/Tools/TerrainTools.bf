@@ -19,6 +19,19 @@ extension EditorApp
 
 	void DrawTerrainTools(VoxelTerrain terrain)
 	{
+		// Tiles are independent fixed terrains. Snap new tiles to the selected tile's grid.
+		if (terrain.mode == .Fixed)
+		{
+			ImGui.SeparatorText("Adjacent Tiles");
+			if (ImGui.Button("+X")) AddAdjacentTerrain(terrain, 1, 0);
+			ImGui.SameLine();
+			if (ImGui.Button("-X")) AddAdjacentTerrain(terrain, -1, 0);
+			ImGui.SameLine();
+			if (ImGui.Button("+Z")) AddAdjacentTerrain(terrain, 0, 1);
+			ImGui.SameLine();
+			if (ImGui.Button("-Z")) AddAdjacentTerrain(terrain, 0, -1);
+			ImGui.TextDisabled("Tiles share size, voxel scale, and materials.");
+		}
 		ImGui.Spacing();
 		ImGui.SeparatorText("Terrain Tools");
 		let width = (ImGui.GetContentRegionAvail().x - 4 * 6) / 5;
@@ -67,6 +80,43 @@ extension EditorApp
 			terrain.Regenerate();
 		ImGui.SameLine();
 		ImGui.TextDisabled(terrain.editsFile.IsEmpty ? "Edits are saved with the scene" : terrain.editsFile.CStr());
+	}
+
+	/// Create a matching terrain tile on an exact shared grid edge.
+	void AddAdjacentTerrain(VoxelTerrain source, int32 dx, int32 dz)
+	{
+		let size = source.AreaSize;
+		let offset = Vector3(dx * size.x, 0, dz * size.y);
+		let target = source.Transform.Position + offset;
+		for (let existing in mScene.Components)
+		{
+			let other = existing as VoxelTerrain;
+			if (other == null || other == source || other.mode != .Fixed)
+				continue;
+			if ((other.Transform.Position - target).Length < 0.01f)
+			{
+				Log.Warning("A terrain tile already occupies that location.");
+				return;
+			}
+		}
+		let tile = mScene.CreateGameObject("Terrain Tile");
+		tile.Transform.Position = target;
+		let terrain = tile.AddComponent<VoxelTerrain>();
+		terrain.mode = .Fixed;
+		terrain.sizeX = source.sizeX;
+		terrain.sizeZ = source.sizeZ;
+		terrain.voxelSize = source.voxelSize;
+		terrain.flatHeight = source.flatHeight;
+		terrain.minChunkY = source.minChunkY;
+		terrain.maxChunkY = source.maxChunkY;
+		terrain.style = source.style;
+		terrain.grassColor = source.grassColor;
+		terrain.rockColor = source.rockColor;
+		terrain.sandColor = source.sandColor;
+		terrain.snowColor = source.snowColor;
+		terrain.dirtColor = source.dirtColor;
+		mSelectedId = tile.Id;
+		MarkDirty();
 	}
 
 	void DrawVoxelObjectTools(VoxelObject voxels)
@@ -131,6 +181,17 @@ extension EditorApp
 				mBrushStroke = true;
 				let amount = mode == .Paint ? 1.0f : mBrushStrength * Math.Min(Time.UnscaledDeltaTime, 0.05f) * 6.0f;
 				terrain.Brush(point, mBrushSize, amount, mode, mPaintLayer, mFlattenHeight);
+				// A brush crossing a shared edge also edits the adjacent tile.
+				for (let component in mScene.Components)
+				{
+					let neighbor = component as VoxelTerrain;
+					if (neighbor == null || neighbor == terrain || neighbor.mode != .Fixed)
+						continue;
+					let local = neighbor.Transform.InverseTransformPoint(point);
+					let area = neighbor.AreaSize;
+					if (local.x >= -mBrushSize && local.z >= -mBrushSize && local.x <= area.x + mBrushSize && local.z <= area.y + mBrushSize)
+						neighbor.Brush(point, mBrushSize, amount, mode, mPaintLayer, mFlattenHeight);
+				}
 				MarkDirty();
 			}
 			else
