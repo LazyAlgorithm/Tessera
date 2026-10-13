@@ -77,7 +77,7 @@ def main():
         for name in ('BeefSpace.toml', 'icon.png', 'THIRD_PARTY_LICENSES.txt'):
             shutil.copy2(root / name, stage / name)
         (stage / 'tools').mkdir()
-        for name in ('build_player.py', 'pack_assets.py', 'reload_scripts.py', 'package_engine.py'):
+        for name in ('build_player.py', 'pack_assets.py', 'reload_scripts.py', 'package_engine.py', 'toolchain.txt'):
             shutil.copy2(root / 'tools' / name, stage / 'tools' / name)
         for relative in [*archives, shaderc]:
             destination = stage / relative

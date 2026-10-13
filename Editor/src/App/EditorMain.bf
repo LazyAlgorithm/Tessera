@@ -10,6 +10,8 @@ static class EditorMain
 {
 	public static int Run(String[] args)
 	{
+		// The compiler and Python that Tessera installed for itself, if it did (Toolchain).
+		Toolchain.Apply();
 		bool editor = false;
 		bool server = false;
 		String projectPath = scope .();

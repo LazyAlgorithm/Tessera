@@ -244,6 +244,7 @@ static class ImGui
 	[CLink] static extern void igTextWrapped(char8* fmt, ...);
 	[CLink] static extern bool igButton(char8* label, Vec2 size);
 	[CLink] static extern bool igSmallButton(char8* label);
+	[CLink] static extern double igGetTime();
 	[CLink] static extern bool igInvisibleButton(char8* id, Vec2 size, int32 flags);
 	[CLink] static extern void igSameLine(float offset, float spacing);
 	[CLink] static extern void igSeparator();
@@ -414,6 +415,8 @@ static class ImGui
 	public static void SetClipboardText(char8* text) => igSetClipboardText(text);
 	public static bool Button(char8* label, Vec2 size = .(0, 0)) => igButton(label, size);
 	public static bool SmallButton(char8* label) => igSmallButton(label);
+	/// Seconds since ImGui started.
+	public static double GetTime() => igGetTime();
 	public static bool InvisibleButton(char8* id, Vec2 size) => igInvisibleButton(id, size, 0);
 	public static void SameLine(float offset = 0, float spacing = -1) => igSameLine(offset, spacing);
 	public static void Separator() => igSeparator();

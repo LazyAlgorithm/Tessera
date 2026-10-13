@@ -1,0 +1,167 @@
+# Builds the tools the Tessera launcher installs for people who do not have them (Editor/src/Project/Toolchain.bf)
+# and puts them on the release named in tools/toolchain.txt:
+#   beef-linux-x64.tar.gz      Beef's compiler for Linux, built from source, with the shared libraries it needs
+#   beef-windows-x64.zip       Beef's Windows release
+#   python-linux-x64.tar.gz    a self-contained Python (python-build-standalone)
+#   python-windows-x64.zip
+#   xwin-windows-x64.zip       xwin, which fetches Microsoft's libraries once the user accepts their licence
+# Runs by hand, or when tools/toolchain.txt changes on main. A release that already exists is left as it is.
+name: Toolchain
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [tools/toolchain.txt, .github/workflows/toolchain.yml]
+
+permissions:
+  contents: write
+
+env:
+  LLVM_VERSION: '22'
+
+jobs:
+  versions:
+    runs-on: ubuntu-22.04
+    outputs:
+      release: ${{ steps.read.outputs.release }}
+      beef: ${{ steps.read.outputs.beef }}
+      python: ${{ steps.read.outputs.python }}
+      xwin: ${{ steps.read.outputs.xwin }}
+      exists: ${{ steps.read.outputs.exists }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: read
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for key in release beef python xwin; do
+            echo "$key=$(sed -n "s/^$key = //p" tools/toolchain.txt)" >> "$GITHUB_OUTPUT"
+          done
+          release="$(sed -n 's/^release = //p' tools/toolchain.txt)"
+          if gh release view "$release" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then echo "exists=true" >> "$GITHUB_OUTPUT"; else echo "exists=false" >> "$GITHUB_OUTPUT"; fi
+
+  linux:
+    needs: versions
+    if: needs.versions.outputs.exists != 'true'
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ninja-build cmake libffi-dev zlib1g-dev libzstd-dev libxml2-dev libedit-dev
+          wget -q https://apt.llvm.org/llvm.sh
+          sudo bash llvm.sh "$LLVM_VERSION"
+          sudo apt-get install -y "llvm-$LLVM_VERSION-dev" "clang-$LLVM_VERSION" "lld-$LLVM_VERSION"
+          for tool in clang clang++ llvm-ar llvm-config; do
+            sudo ln -sf "/usr/lib/llvm-$LLVM_VERSION/bin/$tool" "/usr/local/bin/$tool"
+          done
+
+      - name: Cache the Beef compiler
+        id: beef-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/beef
+          key: beef-${{ needs.versions.outputs.beef }}-llvm${{ env.LLVM_VERSION }}-jammy
+
+      - name: Build the Beef compiler
+        if: steps.beef-cache.outputs.cache-hit != 'true'
+        run: |
+          git clone https://github.com/beefytech/Beef ~/beef
+          git -C ~/beef checkout "${{ needs.versions.outputs.beef }}"
+          cd ~/beef/bin && ./build.sh
+
+      - name: Keep the Beef compiler
+        if: steps.beef-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/beef
+          key: beef-${{ needs.versions.outputs.beef }}-llvm${{ env.LLVM_VERSION }}-jammy
+
+      - name: Package Beef
+        run: |
+          stage="$PWD/stage/beef"
+          mkdir -p "$stage/IDE" "$stage/BeefLibs"
+          cp -r ~/beef/BeefLibs/corlib "$stage/BeefLibs/"
+          dist=~/beef/IDE/dist
+          # The compiler and what it links programs with; not the IDE's files, the debug builds or LTO caches.
+          tar -C ~/beef/IDE --exclude='dist/ltocache' --exclude='dist/gdb' --exclude='dist/images' --exclude='dist/fonts' \
+            --exclude='dist/shaders' --exclude='*.dll' --exclude='*.bat' --exclude='*_d' --exclude='*_d.a' --exclude='*_boot*' \
+            --exclude='*.build.txt' -cf - dist | tar -C "$stage/IDE" -xf -
+          # Every shared library it loads except the C library itself, so it runs on other distributions too.
+          mkdir -p "$stage/IDE/dist/shared"
+          ldd "$dist/BeefBuild" | awk '/=> \// { print $3 }' | grep -vE '/(libc|libm|libpthread|libdl|librt|ld-linux[^/]*)\.so' | while read -r lib; do
+            cp -L "$lib" "$stage/IDE/dist/shared/"
+          done
+          du -sh "$stage"
+          cat > "$stage/IDE/dist/BeefBuild.sh" <<'WRAP'
+          #!/bin/sh
+          here="$(dirname "$(readlink -f "$0")")"
+          LD_LIBRARY_PATH="$here/shared:$here${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" exec "$here/BeefBuild" "$@"
+          WRAP
+          sed -i 's/^          //' "$stage/IDE/dist/BeefBuild.sh"
+          chmod +x "$stage/IDE/dist/BeefBuild.sh"
+          "$stage/IDE/dist/BeefBuild.sh" -version || true
+          tar -C stage -czf beef-linux-x64.tar.gz beef
+          ls -la beef-linux-x64.tar.gz
+
+      - name: Python and xwin
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${{ needs.versions.outputs.python }}"
+          names="$(gh release view --repo astral-sh/python-build-standalone --json assets --jq '.assets[].name')"
+          pick() { echo "$names" | grep -E "^cpython-${version//./\\.}\.[0-9]+\+[0-9]+-$1-install_only\.tar\.gz$" | sort -V | tail -1; }
+          linux="$(pick x86_64-unknown-linux-gnu)"; windows="$(pick x86_64-pc-windows-msvc)"
+          echo "Python: $linux, $windows"
+          gh release download --repo astral-sh/python-build-standalone --pattern "$linux" --pattern "$windows"
+          mv "$linux" python-linux-x64.tar.gz
+          mkdir pywin && tar -C pywin -xzf "$windows" && (cd pywin && zip -qr9 ../python-windows-x64.zip python)
+          xwin="${{ needs.versions.outputs.xwin }}"
+          gh release download "$xwin" --repo Jake-Shadle/xwin --pattern "xwin-$xwin-x86_64-pc-windows-msvc.tar.gz"
+          mkdir xw && tar -C xw -xzf "xwin-$xwin-x86_64-pc-windows-msvc.tar.gz" && cp xw/*/xwin.exe . && zip -q9 xwin-windows-x64.zip xwin.exe
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-tools
+          path: |
+            beef-linux-x64.tar.gz
+            python-linux-x64.tar.gz
+            python-windows-x64.zip
+            xwin-windows-x64.zip
+
+  windows:
+    needs: versions
+    if: needs.versions.outputs.exists != 'true'
+    runs-on: windows-2022
+    steps:
+      - name: Package Beef
+        shell: bash
+        run: |
+          curl -sL -o BeefSetup.exe http://nightly.beeflang.org/BeefSetup.exe
+          mkdir -p stage/beef && (cd stage/beef && 7z x -y ../../BeefSetup.exe > /dev/null)
+          printf 'Version = 1\nUnversionedLibDirs = ["../BeefLibs"]\n' > stage/beef/bin/BeefConfig.toml
+          ls stage/beef stage/beef/bin | head -40
+          (cd stage && 7z a -tzip -mx=9 ../beef-windows-x64.zip beef > /dev/null)
+          ls -la beef-windows-x64.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-tools
+          path: beef-windows-x64.zip
+
+  release:
+    needs: [versions, linux, windows]
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          release="${{ needs.versions.outputs.release }}"
+          gh release create "$release" out/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease \
+            --title "Build tools ($release)" \
+            --notes "What the Tessera launcher installs when they are missing: Beef ${{ needs.versions.outputs.beef }}, Python ${{ needs.versions.outputs.python }}, xwin ${{ needs.versions.outputs.xwin }}. Not for downloading by hand."

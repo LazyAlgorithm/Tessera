@@ -1,0 +1,10 @@
+# The build tools Tessera sets up for itself when they are missing (the launcher's Set Up Tools).
+# .github/workflows/toolchain.yml builds and publishes them on the GitHub release named by `release`; change
+# `release` whenever anything here changes, so old engines keep finding what they were made with.
+release = toolchain-1
+# Beef's compiler, built from this commit for Linux (Windows uses Beef's own Windows release of that time).
+beef = b62833e327d6b08f3566b31102c57646de6916b0
+# Python for the build scripts.
+python = 3.12
+# Fetches Microsoft's C runtime and Windows SDK libraries on Windows, when Visual Studio's C++ tools are not installed.
+xwin = 0.10.0
