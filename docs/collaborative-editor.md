@@ -48,3 +48,19 @@ Presence (`selection`, `cursor`, `camera`, `displayName`, `color`) is ephemeral,
 ## Immediate next engineering task
 
 Inspect `SceneSerializer`, `GameObject` IDs and editor mutation sites to establish persistent GUIDs and a single mutation hook. Do not wire network replication directly into `MarkDirty`: it signals unspecific changes and cannot identify the edit or its author.
+
+## Connectivity requirement: no manual port forwarding, no dedicated session server
+
+**Preferred mode: direct peer-to-peer.** One editor instance acts as the session authority; every participant retains a local project copy. Do not require inbound router configuration or a permanently hosted Tessera collaboration server.
+
+- Use ICE-style connectivity checks and UDP NAT hole punching where possible. A STUN service can discover public-facing addresses; STUN is infrastructure, not a project-hosting server.
+- Provide an out-of-band, copy/paste invitation exchange (offer/answer or candidate exchange) so Tessera does not require its own signaling service. Both peers may need to exchange messages more than once during negotiation.
+- Encrypt and authenticate the peer channel; invitation material must be short-lived and bound to a session key. Require explicit host approval for joining and project sharing.
+- Discover LAN peers automatically as a convenience, but never expose an unauthenticated editing endpoint.
+- Detect and clearly report NAT/firewall combinations that prohibit direct connections. **No-port-forwarding plus no relay cannot guarantee connectivity across all networks.** A future opt-in TURN/relay mode can improve reachability, but would use a server.
+- Reconnection must use durable operation IDs and host-authoritative revision checkpoints, independent of the transport.
+- Do not assume the existing gameplay networking implements ICE, STUN, NAT punching, or authenticated editor transport; inspect before selecting dependencies.
+
+### First transport milestone
+
+Two desktop editors on separate networks exchange invitations out of band, establish an authenticated encrypted direct channel without router changes where NAT traversal permits, and transfer a read-only session handshake. Keep scene mutations disabled until protocol validation and operation identity are complete.
