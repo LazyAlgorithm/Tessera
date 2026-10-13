@@ -749,6 +749,7 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
       <h4>World</h4>
       <a href="#manual" data-sec="manual-render">Rendering and materials</a>
       <a href="#manual" data-sec="manual-viewmodel">First-person viewmodel</a>
+      <a href="#manual" data-sec="manual-skinned-materials">Materials on skinned meshes</a>
       <a href="#manual" data-sec="manual-audio">Audio and voice</a>
       <a href="#manual" data-sec="manual-ui">Interfaces</a>
       <a href="#manual" data-sec="manual-responsive">Phones and tablets</a>
@@ -871,6 +872,10 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
           <tr><td>Recoil Back, Pitch, Recovery</td><td>What <code>Kick(amount)</code> does</td></tr>
         </tbody>
       </table></div>
+
+      <h2 id="manual-skinned-materials">Materials on skinned meshes</h2>
+      <p><em>On the <code>dev</code> branch; in <code>main</code> with the next release.</em> A rigged model with several materials (skin, cloth, armour) or any textures is drawn in parts, one per material in the file, each with the material saved there: base colour, normal, metallic-roughness, occlusion and emissive textures (inside a <code>.glb</code>, as <code>data:</code> addresses or as files beside the model), metallic, roughness, alpha mode and double sides. A model with one plain material is drawn as before, with its Mesh Renderer's settings.</p>
+      <p>The Inspector lists the parts under the <strong>Skinned Mesh Renderer</strong> by the file's material names; type a <code>.tmat</code> beside one to use it instead. A Material on the Mesh Renderer covers every part without one of its own, and the renderer's Color tints them all. From code, <code>skinned.SetPartMaterial(index, "Materials/armour.tmat")</code>, which is sent to every machine in a network session; <code>PartCount</code> and <code>PartName(i)</code> list the parts. The textures are named after the model (<code>Models/hero.glb#image2</code>), so your own materials can use them too.</p>
 
       <h2 id="manual-audio">Audio and voice</h2>
       <p>miniaudio is built in. Put an <code>AudioSource</code> on anything that makes sound and an <code>AudioListener</code> on the ears. Stereo panning or HRTF for headphones, distance rolloff, Doppler, occlusion behind colliders, reverb zones and six mixer groups. WAV, OGG, MP3 and FLAC.</p>
