@@ -37,6 +37,13 @@ static class SceneManager
 	{
 		if (scene == null)
 			return null;
+		// Its pack has not downloaded yet (only in a browser): check AssetPack.SceneReady first.
+		if (!AssetPack.SceneReady(path))
+		{
+			AssetPack.Request(path);
+			Log.Error(scope $"Scene not downloaded yet: {path}");
+			return null;
+		}
 		let full = scope String();
 		Assets.ResolvePath(path, full);
 		let text = scope String();
@@ -82,6 +89,12 @@ static class SceneManager
 	{
 		if (sPending.IsEmpty || scene == null)
 			return false;
+		// A scene whose pack is still downloading (in a browser) is switched to once it has arrived.
+		if (!AssetPack.SceneReady(sPending))
+		{
+			AssetPack.Request(sPending);
+			return false;
+		}
 		let path = scope String(sPending);
 		sPending.Clear();
 		let full = scope String();

@@ -47,8 +47,11 @@ def write_web_page(engine, project, name, staging):
     """The page that loads and runs a web player: index.html, its install manifest and icon."""
     shell = engine / 'tools' / 'web' / 'shell'
     pack = 'game.tpak' if (staging / 'game.tpak').is_file() else ''
+    # Scene packs download after the game has started, smallest first; the game asks for one it needs sooner.
+    later = sorted((file for file in staging.glob('*.tpak') if file.name != 'game.tpak'), key=lambda file: file.stat().st_size)
+    later_list = json.dumps([file.name for file in later])
     for file in ('index.html', 'manifest.webmanifest'):
-        text = (shell / file).read_text().replace('{{NAME}}', name).replace('{{SCRIPT}}', name + '.js').replace('{{PACK}}', pack)
+        text = (shell / file).read_text().replace('{{NAME}}', name).replace('{{SCRIPT}}', name + '.js').replace('{{PACK}}', pack).replace('{{LATER_PACKS}}', later_list)
         (staging / file).write_text(text)
     # Multiplayer between browsers (WebRTC); see the file for how players find each other.
     shutil.copy2(shell / 'tessera-net.js', staging / 'tessera-net.js')
@@ -71,6 +74,7 @@ def main():
     parser.add_argument('--fullscreen', action='store_true', help='The game starts fullscreen, whatever the project says')
     parser.add_argument('--windowed', action='store_true', help='The game starts in a window, whatever the project says')
     parser.add_argument('--no-compress', action='store_true', help='Pack the assets without compressing them')
+    parser.add_argument('--single-pack', action='store_true', help='Put every asset in game.tpak, with no pack per scene')
     parser.add_argument('--loose', action='store_true', help='Leave the assets as loose files instead of packing them into game.tpak')
     parser.add_argument('--console', action='store_true', help='Windows: keep a console window for log output (a dedicated server wants one)')
     parser.add_argument('--bootstrap', help='Static registration method, e.g. Sandbox.GameSetup.Register')
@@ -235,7 +239,30 @@ def main():
             if not args.loose and settings.get('packAssets', '1') != '0':
                 packed = [(file.relative_to(staging).as_posix(), str(file)) for folder in ('Assets', 'Engine') for file in (staging / folder).rglob('*') if file.is_file()]
                 packed.append(('game.tessera', str(staging / 'game.tessera')))
-                pack_assets.write_pack(staging / 'game.tpak', packed, compress=not args.no_compress and (web or settings.get('packCompress', '1') != '0'), name=name)
+                compress = not args.no_compress and (web or settings.get('packCompress', '1') != '0')
+                # A scene's own files (what only that scene uses) go into a pack of its own, so that changing one
+                # map rewrites one small file, and a browser can start before every map has arrived. packs.txt in
+                # game.tpak lists them; the engine mounts them all at start, or as they download on the web.
+                extra = []
+                if not args.single_pack and settings.get('packSplit', '1') != '0':
+                    assets = {file.relative_to(staging / 'Assets').as_posix(): str(file) for file in (staging / 'Assets').rglob('*') if file.is_file()}
+                    code = [file.read_text(errors='replace') for file in (project / 'src').rglob('*') if file.is_file() and file.suffix in ('.bf', '.tgraph')]
+                    patterns = [pattern.strip() for pattern in settings.get('packShared', '').split(';')]
+                    scene_packs, served = pack_assets.plan_split(assets, code, scene, patterns)
+                    inside = set()
+                    for pack_name, members in sorted(scene_packs.items()):
+                        pack_assets.write_pack(staging / pack_name, [('Assets/' + member, assets[member]) for member in members], compress=compress, name=name)
+                        inside.update('Assets/' + member for member in members)
+                        extra.append((pack_name, served[pack_name], (staging / pack_name).stat().st_size))
+                    packed = [entry for entry in packed if entry[0] not in inside]
+                    if extra:
+                        manifest = staging / 'packs.txt'
+                        manifest.write_text(''.join(f'{pack_name}\t{served_scene}\t{size}\n' for pack_name, served_scene, size in extra))
+                        packed.append(('packs.txt', str(manifest)))
+                pack_assets.write_pack(staging / 'game.tpak', packed, compress=compress, name=name)
+                if extra:
+                    (staging / 'packs.txt').unlink()
+                    print(f'Packs: game.tpak and {len(extra)} for scenes (' + ', '.join(entry[0] for entry in extra) + ')')
                 shutil.rmtree(staging / 'Assets')
                 shutil.rmtree(staging / 'Engine')
                 (staging / 'game.tessera').unlink()

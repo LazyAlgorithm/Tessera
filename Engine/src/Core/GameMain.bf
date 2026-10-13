@@ -12,8 +12,9 @@ static class GameMain
         if (basePath != null) root.Set(StringView(basePath));
         for (int i = 0; i + 1 < args.Count; i++)
             if (args[i] == "--game") root.Set(args[i + 1]);
-        // A packed game: its assets, the engine's shaders and its manifest are in game.tpak, as if beside it.
-        AssetPack.Mount(scope $"{root}/game.tpak", root);
+        // A packed game: its assets, the engine's shaders and its manifest are in game.tpak, as if beside it, with
+        // each scene's own files in a pack of their own when the build split them.
+        AssetPack.MountGame(root);
         let manifest = scope String();
         if (AssetPack.ReadAllText(scope $"{root}/game.tessera", manifest) case .Err)
         { Console.WriteLine("Missing game.tessera (or game.tpak). Use --game <package folder>."); return 1; }

@@ -8,7 +8,9 @@ The format is described at the top of native/tessera_pack.c, which reads it. Fil
 them smaller and then scrambled, so they cannot be opened or edited with ordinary tools, and each carries a checksum
 so that a changed file is refused. It is not encryption."""
 import argparse
+import fnmatch
 import os
+import re
 import struct
 import sys
 import zlib
@@ -68,6 +70,88 @@ def write_pack(path, files, compress=True, name=None):
         out.seek(0)
         out.write(MAGIC + struct.pack('<IIQII', 1, len(files), index_offset, len(index), seed))
     return len(files)
+
+
+# Text formats whose contents may name other assets.
+_TEXT = {'.tscene', '.tprefab', '.tmat', '.tui', '.tcss', '.tcontroller', '.tanim', '.tshader', '.tcompute', '.tinput',
+         '.tbt', '.gltf', '.json', '.txt', '.tessera'}
+_PATHLIKE = re.compile(r'[A-Za-z0-9_./\\-]+\.[A-Za-z0-9]+')
+# A scene's own pack is only worth its own file above this size; smaller ones stay in the shared pack.
+SPLIT_MINIMUM = 64 * 1024
+
+
+def _references(text, base, assets):
+    """The assets a text file names: as an asset path, or relative to the file's own folder."""
+    found = set()
+    for token in _PATHLIKE.findall(text):
+        token = token.replace('\\', '/').lstrip('./')
+        if token.startswith('Assets/'):
+            token = token[7:]
+        for candidate in (token, (base + '/' + token) if base else token):
+            if candidate in assets:
+                found.add(candidate)
+    return found
+
+
+def plan_split(assets, code_texts, start_scene, shared_patterns=()):
+    """Shares a game's assets out among packs: one per scene for what only that scene uses, and the shared pack
+    (game.tpak) for everything else.
+
+    assets: {asset-relative path: file path}. code_texts: the game's script sources, whose string literals name
+    assets they load. start_scene: the asset-relative scene the game opens with. shared_patterns: wildcards
+    (Models/prop_*.glb) for files the scripts load by a name they put together, which reading cannot find: those
+    always go into the shared pack.
+
+    A file goes into a scene's pack only when that scene is the one thing that reaches it: not the start scene,
+    not another scene, not the scripts, and not a file that something else reaches. What a scene names comes from
+    reading it (and the prefabs, materials and documents it names, and so on), plus files beside it with the same
+    name, such as a terrain's .voxels file. Returns {pack file name: [asset paths]} for the scene packs and
+    {pack file name: scene path}; whatever is in neither belongs in the shared pack."""
+    def reach(roots):
+        seen, todo = set(), list(roots)
+        while todo:
+            path = todo.pop()
+            if path in seen or path not in assets:
+                continue
+            seen.add(path)
+            stem, _ = os.path.splitext(path)
+            for other in assets:
+                if other != path and os.path.splitext(other)[0] == stem:
+                    todo.append(other)
+            if os.path.splitext(path)[1].lower() in _TEXT:
+                try:
+                    with open(assets[path], 'r', encoding='utf-8') as handle:
+                        text = handle.read()
+                except (UnicodeDecodeError, OSError):
+                    continue
+                todo.extend(_references(text, os.path.dirname(path), assets))
+        return seen
+
+    scenes = sorted(path for path in assets if path.endswith('.tscene'))
+    shared_roots = set()
+    # A scene named in the scripts is a map to load, not something every scene needs.
+    for text in code_texts:
+        shared_roots |= {path for path in _references(text, '', assets) if not path.endswith('.tscene')}
+    shared_roots.add(start_scene)
+    shared_roots |= {path for path in assets for pattern in shared_patterns if pattern and fnmatch.fnmatchcase(path, pattern)}
+    shared = reach(shared_roots)
+    users = {}
+    for scene in scenes:
+        if scene in shared:
+            continue
+        for path in reach([scene]):
+            users.setdefault(path, set()).add(scene)
+    packs, served = {}, {}
+    for scene in scenes:
+        own = sorted(path for path, by in users.items() if by == {scene} and path not in shared)
+        if scene not in own or sum(os.path.getsize(assets[path]) for path in own) < SPLIT_MINIMUM:
+            continue
+        name = 'scene-' + re.sub(r'[^a-z0-9]+', '-', os.path.splitext(os.path.basename(scene))[0].lower()).strip('-') + '.tpak'
+        if name in packs:
+            name = 'scene-' + re.sub(r'[^a-z0-9]+', '-', os.path.splitext(scene)[0].lower()).strip('-') + '.tpak'
+        packs[name] = own
+        served[name] = scene
+    return packs, served
 
 
 def read_index(handle):

@@ -83,6 +83,11 @@ EM_JS(char*, tn_web_prompt, (const char* title, const char* current), {
 	return value === null ? 0 : stringToNewUTF8(value);
 });
 
+// A scene pack the game needs now: the page downloads it before the others still waiting (index.html).
+EM_JS(void, tn_web_request_pack, (const char* name), {
+	if (Module.tesseraRequestPack) Module.tesseraRequestPack(UTF8ToString(name));
+});
+
 void tn_web_free(void* ptr)
 {
 	free(ptr);

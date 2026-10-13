@@ -171,6 +171,17 @@ extension EditorApp
 						project.Save();
 					ImGui.SameLine();
 					ImGui.TextDisabled(project.PackCompress ? "Smaller to send; files are unpacked as they load" : "Full size; nothing to unpack when loading");
+					if (ImGui.Checkbox("A pack for each scene", ref project.PackSplit))
+						project.Save();
+					ImGui.SameLine();
+					ImGui.TextDisabled(project.PackSplit ? "What only one scene uses goes in its own pack: updates stay small" : "Everything in game.tpak");
+					if (project.PackSplit)
+					{
+						ImGui.SetNextItemWidth(-1);
+						if (ImGui.InputText("##packshared", project.PackShared, 0, "Always shared, e.g. Models/prop_*.glb; Audio/*"))
+							project.Save();
+						ImGui.TextDisabled("Files your scripts load by a name they build: a build cannot find those by reading.");
+					}
 				}
 			}
 			let ready = mBuildTarget == .Linux || (mBuildTarget == .Windows ? WindowsBuildReady() : WebBuildReady());

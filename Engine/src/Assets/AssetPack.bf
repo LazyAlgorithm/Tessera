@@ -17,8 +17,29 @@ namespace Tessera;
 ///
 /// A pack keeps assets from being opened or edited with ordinary tools, and a file that was changed anyway fails
 /// its checksum and does not load. It is not encryption.
+///
+/// A build can split the assets: game.tpak holds everything shared, and each scene's own files (what only that
+/// scene uses) go into a pack of their own, listed in packs.txt inside game.tpak. Changing one map then rewrites one
+/// small file, which is all an update has to send. MountGame mounts them all; reading a file does not care which
+/// pack holds it. In a browser the scene packs download after the game has started: SceneReady says whether a
+/// scene's pack has arrived, and Request asks for it next. SceneManager.Load waits for it by itself.
 static class AssetPack
 {
+	class Deferred
+	{
+		public String file = new .() ~ delete _;
+		public String scene = new .() ~ delete _;
+		public int64 size;
+		public bool mounted;
+	}
+
+	static List<Deferred> sDeferred = new .() ~ DeleteContainerAndItems!(_);
+	static String sRoot = new .() ~ delete _;
+	static int sWaiting;
+#if BF_PLATFORM_WASM
+	[CLink] static extern void tn_web_request_pack(char8* name);
+#endif
+
 	[CLink] static extern int32 tn_pack_mount(char8* file, char8* root);
 	[CLink] static extern void tn_pack_unmount_all();
 	[CLink] static extern int32 tn_pack_exists(char8* path);
@@ -39,7 +60,101 @@ static class AssetPack
 		return tn_pack_mount(scope String(packFile).CStr(), scope String(root).CStr()) >= 0;
 	}
 
-	public static void UnmountAll() => tn_pack_unmount_all();
+	public static void UnmountAll()
+	{
+		tn_pack_unmount_all();
+		ClearAndDeleteItems!(sDeferred);
+		sWaiting = 0;
+	}
+
+	/// Mounts a built game's packs from its folder: game.tpak, and the scene packs packs.txt lists. A pack that is
+	/// not there yet (in a browser, still downloading) is mounted by Poll when it arrives.
+	public static void MountGame(StringView root)
+	{
+		sRoot.Set(root);
+		if (!Mount(scope $"{root}/game.tpak", root))
+			return;
+		let list = scope String();
+		if (ReadAllText(scope $"{root}/packs.txt", list) case .Err)
+			return;
+		for (let line in list.Split('\n'))
+		{
+			var parts = line.Split('\t');
+			let file = parts.GetNext();
+			let scene = parts.GetNext();
+			let size = parts.GetNext();
+			if (file case .Err || scene case .Err)
+				continue;
+			let entry = new Deferred();
+			entry.file.Set(file.Value);
+			entry.scene.Set(scene.Value);
+			if (size case .Ok(let text))
+			{
+				if (int64.Parse(text) case .Ok(let number))
+					entry.size = number;
+			}
+			sDeferred.Add(entry);
+			sWaiting++;
+		}
+		Poll();
+	}
+
+	/// Mounts scene packs that have arrived since the last call. The game calls this once a frame; it costs nothing
+	/// once every pack is in.
+	public static void Poll()
+	{
+		if (sWaiting == 0)
+			return;
+		for (let entry in sDeferred)
+		{
+			if (entry.mounted)
+				continue;
+			let path = scope $"{sRoot}/{entry.file}";
+			if (!File.Exists(path))
+				continue;
+			entry.mounted = true;
+			sWaiting--;
+			if (!Mount(path, sRoot))
+				Log.Error(scope $"The asset pack {entry.file} is damaged.");
+		}
+	}
+
+	/// How many scene packs have not arrived yet: 0 except in a browser that is still downloading them.
+	public static int Waiting => sWaiting;
+
+	static Deferred PackOf(StringView scene)
+	{
+		var wanted = StringView(scene);
+		if (wanted.StartsWith("Assets/"))
+			wanted = wanted.Substring(7);
+		for (let entry in sDeferred)
+		{
+			if (entry.scene == wanted)
+				return entry;
+		}
+		return null;
+	}
+
+	/// Whether everything a scene needs is here. False only in a browser while that scene's pack downloads.
+	public static bool SceneReady(StringView scene)
+	{
+		if (sWaiting == 0)
+			return true;
+		Poll();
+		let entry = PackOf(scene);
+		return entry == null || entry.mounted;
+	}
+
+	/// Asks for a scene's pack before the others still waiting to download. Does nothing where it is already here.
+	public static void Request(StringView scene)
+	{
+		let entry = PackOf(scene);
+		if (entry == null || entry.mounted)
+			return;
+#if BF_PLATFORM_WASM
+		tn_web_request_pack(entry.file.CStr());
+#endif
+	}
 
 	/// Whether a full path names a file in a pack.
 	public static bool Contains(StringView path) => tn_pack_count() > 0 && tn_pack_exists(scope String(path).CStr()) != 0;

@@ -62,6 +62,8 @@ class GameApp : Application
 
 	protected override void OnUpdate()
 	{
+		// Scene packs that finished downloading (in a browser) join the others.
+		AssetPack.Poll();
 		SceneManager.ApplyPending(mScene);
 		let camera = FindCamera();
 		if (camera != null)
