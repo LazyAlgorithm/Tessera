@@ -26,6 +26,25 @@ camera.viewmodelFieldOfView = 60;
 weapon.Layer = camera.viewmodelLayer;   // for each part of the arms and weapon
 ```
 
+## Moving it: Viewmodel Pose
+
+Add a **Viewmodel Pose** to the object that holds the arms and weapon (the child of the camera). It moves that object every frame:
+
+- **Hip and aim poses.** The weapon rests at the hip pose and, while `aiming` is true, comes up to the aim pose: by default in the middle of the screen with the sights on the crosshair. **Aim Speed** sets how quickly (the whole way in 1 / Aim Speed seconds). `AimBlend` (0 to 1, eased) lets the game narrow its field of view or show a scope in step.
+- **Walk bob.** Worked out from how fast the camera moves over the ground: **Bob** is the side-to-side and up-and-down at **Bob Full Speed**, once each **Bob Stride** metres.
+- **Sway.** The weapon lags a little behind when the view turns: **Sway** degrees for each 100 degrees a second, up to **Sway Limit**.
+- **Aim Steadiness** takes that much of the bob and sway away while aiming.
+- **Recoil.** `Kick(amount)` pushes the weapon back (**Recoil Back**) and tips the muzzle up (**Recoil Pitch**); it settles by itself (**Recoil Recovery**).
+
+The only code a game needs:
+
+```beef
+pose.aiming = InputActions.Held("Aim");
+if (fired) pose.Kick(1);
+```
+
+**In the editor**, **Preview** (0 to 1) shows the pose part way from hip to aim while not playing. To set a pose, move the object until the weapon looks right in the Game view and press **Use current place as Hip** or **Use current place as Aim** under the component.
+
 ## How it is drawn
 
 After the world's solid and see-through objects, the depth buffer is cleared and the viewmodel layer's objects are drawn with the camera's position and direction but the viewmodel's projection (`CameraData.viewmodelProjection`): solid parts first, then see-through parts back to front. Nothing in the world can hide them, and they are lit, fogged and shadowed like everything else, with bloom and tonemapping applied to the whole picture afterwards. They are not frustum-culled (they are a few objects at the eye). `RenderView.DrawsAsViewmodel(camera, gameObject)` says whether an object goes into the pass.
@@ -34,7 +53,7 @@ Each camera's render now uses eleven bgfx views from its `ViewBase` (shadows 0 t
 
 ## Networking
 
-Nothing to share: the viewmodel is drawn only by each player's own camera, on their own machine. Other players see that player's full body and weapon, which are networked as usual. A typical player prefab keeps the world body (shown to others, `MeshRenderer.shadowOnly` for its owner) and the viewmodel (made or shown only for the local player) apart.
+Nothing to share: the viewmodel is drawn, and its pose worked out, only on each player's own machine. Other players see that player's full body and weapon, which are networked as usual. A typical player prefab keeps the world body (shown to others, `MeshRenderer.shadowOnly` for its owner) and the viewmodel (made or shown only for the local player) apart.
 
 ## Notes
 

@@ -62,8 +62,10 @@ Work agreed and queued, in order (see *How to use this page* above for what "don
   images; the engine makes runtime textures for them under paths like `Models/hero.glb#image2` and a runtime
   Material per glTF material; a skinned model keeps one part per material, drawn as separate render items each with
   its own material (the model's own by default, or a `.tmat` per part set in the Inspector).
-- [ ] E6b viewmodel pose: a component with hip and aim poses (aiming brings the weapon to the middle of the
-  screen), blend speed, walk bob and sway, set in the Inspector
+- [x] E6b viewmodel pose (2026-10-13, `dev`): the Viewmodel Pose component (hip and aim poses, aim speed, walk bob
+  and sway from the camera's movement, steadier when aiming, recoil with `Kick`), Preview slider and "Use current
+  place as Hip / Aim" buttons in the Inspector, `docs/viewmodel.md`, `Tests/Viewmodel`. Networking: none needed.
+  Website: Manual > First-person viewmodel.
 - [ ] E10 post-processing: ambient occlusion, depth of field, motion blur, colour grading
 - [ ] E9 async scene and asset loading
 - [ ] E4 animation layers and blend trees

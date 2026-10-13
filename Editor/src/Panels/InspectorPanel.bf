@@ -239,6 +239,7 @@ extension EditorApp
 				}
 				if(component is NavigationSurface) DrawNavigationTools((NavigationSurface)component);
 				if(component is AudioSource) DrawAudioTools((AudioSource)component);
+				if (component is ViewmodelPose) DrawViewmodelPoseTools((ViewmodelPose)component);
 				if (component is VoxelTerrain)
 					DrawTerrainTools((VoxelTerrain)component);
 				else if (component is VoxelObject)
