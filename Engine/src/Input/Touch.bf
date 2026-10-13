@@ -435,7 +435,8 @@ static class TouchControls
 				ImGui.DrawCircle(.(center.x, center.y), reach, faint, thickness);
 				let knob = center + Vector2(control.vector.x, -control.vector.y) * reach;
 				ImGui.DrawCircleFilled(.(knob.x, knob.y), reach * 0.42f, control.finger != null ? pressed : faint);
-			case .Look, .Swipe:
+			case .Look:
+			case .Swipe:
 			}
 		}
 	}
