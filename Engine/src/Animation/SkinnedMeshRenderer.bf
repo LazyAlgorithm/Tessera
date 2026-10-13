@@ -5,7 +5,12 @@ namespace Tessera;
 
 /// Draws a rigged model and plays its animation clips, bending the mesh with its skeleton.
 /// Export from Blender as glTF 2.0 (.glb) with the armature, mesh and animations included.
-/// The material settings (color, roughness, texture) come from the MeshRenderer on the same object.
+///
+/// Materials: a model with several materials, or any textures, is drawn in parts, one per material, each with the
+/// material saved in the file (its textures included) unless the part is given a .tmat of its own (the Inspector
+/// lists the parts; SetPartMaterial from code). A material on the Mesh Renderer covers every part that has none of
+/// its own. A model with one plain material is one mesh drawn with the Mesh Renderer's settings, as before.
+/// See docs/skinned-materials.md.
 [Component]
 class SkinnedMeshRenderer : Component
 {
@@ -15,10 +20,17 @@ class SkinnedMeshRenderer : Component
 	public String clip = new .() ~ delete _;
 	public float speed = 1.0f;
 	public bool loop = true;
+	/// The parts' own materials, "Part=Materials/skin.tmat;Other=..." (the Inspector edits it as a list).
+	[HideInInspector]
+	public String materials = new .() ~ delete _;
 
 	SkinnedModel mModel;
 	String mLoadedPath = new .() ~ delete _;
 	Mesh mMesh ~ delete _;
+	// One per part of a model with materials of its own (SkinnedModel.Parts), sharing mMesh's vertices.
+	List<MeshRenderer.Part> mParts = new .() ~ { for (let part in _) delete part.mesh; DeleteContainerAndItems!(_); };
+	String mResolvedMaterials = new .() ~ delete _;
+	int32 mResolvedRendererMaterial = -1;
 	SkinnedModel.Clip mCurrent;
 	SkinnedModel.Clip mPrevious;
 	float mTime;
@@ -41,6 +53,73 @@ class SkinnedMeshRenderer : Component
 		let renderer = GetComponent<MeshRenderer>();
 		if (renderer != null && renderer.RuntimeMesh == mMesh)
 			renderer.RuntimeMesh = null;
+		if (renderer != null && renderer.RuntimeParts == mParts)
+			renderer.RuntimeParts = null;
+	}
+
+	/// The model's parts (one per material) when it is drawn in parts, else none: their names are the model's
+	/// material names.
+	public int PartCount => (mModel != null && mModel.HasOwnMaterials) ? mModel.Parts.Count : 0;
+	public StringView PartName(int index) => (index >= 0 && index < PartCount) ? (StringView)mModel.Parts[index].name : "";
+
+	/// The .tmat a part is drawn with instead of the model's own material, or empty.
+	public void GetPartMaterial(StringView part, String path)
+	{
+		path.Clear();
+		for (var entry in materials.Split(';'))
+		{
+			let equals = entry.IndexOf('=');
+			if (equals > 0 && entry.Substring(0, equals) == part)
+			{
+				path.Append(entry.Substring(equals + 1));
+				return;
+			}
+		}
+	}
+
+	/// Gives a part a .tmat of its own (empty: back to the model's own material). In a network session, on the server
+	/// or on the owner's machine, every machine follows.
+	public void SetPartMaterial(int index, StringView path)
+	{
+		let part = PartName(index);
+		if (part.IsEmpty || path.Contains(';') || path.Contains('='))
+			return;
+		let current = scope String();
+		GetPartMaterial(part, current);
+		if (current == path)
+			return;
+		let rebuilt = scope String();
+		for (var entry in materials.Split(';'))
+		{
+			let equals = entry.IndexOf('=');
+			if (entry.IsEmpty || (equals > 0 && entry.Substring(0, equals) == part))
+				continue;
+			rebuilt.AppendF("{}{}", rebuilt.IsEmpty ? "" : ";", entry);
+		}
+		if (!path.IsEmpty)
+			rebuilt.AppendF("{}{}={}", rebuilt.IsEmpty ? "" : ";", part, path);
+		materials.Set(rebuilt);
+		let renderer = GetComponent<MeshRenderer>();
+		if (renderer != null)
+			NetworkSync.MaterialChanged(renderer, 2, path, .(index, 0, 0, 0));
+	}
+
+	/// Which material each part draws with: its own .tmat, else the Mesh Renderer's material, else the model's.
+	void ResolvePartMaterials(MeshRenderer renderer)
+	{
+		let rendererMaterial = renderer.ActiveMaterial;
+		let rendererKey = rendererMaterial != null ? (int32)(int)Internal.UnsafeCastToPtr(rendererMaterial) ^ rendererMaterial.Revision : 0;
+		if (mResolvedMaterials == materials && mResolvedRendererMaterial == rendererKey)
+			return;
+		mResolvedMaterials.Set(materials);
+		mResolvedRendererMaterial = rendererKey;
+		let path = scope String();
+		for (int i < mParts.Count)
+		{
+			GetPartMaterial(mModel.Parts[i].name, path);
+			let own = path.IsEmpty ? null : Material.Load(path);
+			mParts[i].material = own ?? rendererMaterial ?? mModel.Parts[i].material;
+		}
 	}
 
 	void Reload()
@@ -77,6 +156,24 @@ class SkinnedMeshRenderer : Component
 		}
 		mMesh.Indices.AddRange(mModel.Indices);
 		mMesh.UploadDynamic();
+		// A model with materials of its own is drawn in parts, sharing the vertices.
+		for (let part in mParts)
+			delete part.mesh;
+		ClearAndDeleteItems!(mParts);
+		if (mModel.HasOwnMaterials)
+		{
+			for (let source in mModel.Parts)
+			{
+				let part = new MeshRenderer.Part();
+				part.mesh = new Mesh();
+				part.mesh.VertexSource = mMesh;
+				part.mesh.Indices.AddRange(source.indices);
+				part.mesh.UploadIndices();
+				part.material = source.material;
+				mParts.Add(part);
+			}
+		}
+		mResolvedMaterials.Set("\n");
 		mAttachPending = true;
 		if (!clip.IsEmpty)
 			Play(clip, 0);
@@ -164,6 +261,13 @@ class SkinnedMeshRenderer : Component
 			if (renderer == null)
 				renderer = GameObject.AddComponent<MeshRenderer>();
 			renderer.RuntimeMesh = mMesh;
+			renderer.RuntimeParts = mParts.Count > 0 ? mParts : null;
+		}
+		if (mParts.Count > 0)
+		{
+			let renderer = GetComponent<MeshRenderer>();
+			if (renderer != null)
+				ResolvePartMaterials(renderer);
 		}
 		let step = Time.DeltaTime * speed;
 		mTime += step;
@@ -204,5 +308,7 @@ class SkinnedMeshRenderer : Component
 		}
 		mMesh.Bounds = bounds;
 		mMesh.UpdateDynamic();
+		for (let part in mParts)
+			part.mesh.Bounds = bounds;
 	}
 }

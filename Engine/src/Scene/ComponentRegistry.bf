@@ -36,6 +36,8 @@ struct FieldRef
 	public bool hasRange;
 	public float rangeMin;
 	public float rangeMax;
+	/// Marked [Layer]: an integer that is one of the project's layers, or -1 for none.
+	public bool isLayer;
 }
 
 /// Component type registry and field reflection shared by the scene serializer and the Inspector.
@@ -200,6 +202,7 @@ static class ComponentRegistry
 				fieldRef.ptr = basePtr + field.MemberOffset;
 				fieldRef.hidden = field.GetCustomAttribute<HideInInspectorAttribute>() case .Ok;
 				fieldRef.sync = field.GetCustomAttribute<SyncAttribute>() case .Ok;
+				fieldRef.isLayer = field.GetCustomAttribute<LayerAttribute>() case .Ok;
 				if (field.GetCustomAttribute<RangeAttribute>() case .Ok(let range))
 				{
 					fieldRef.hasRange = true;

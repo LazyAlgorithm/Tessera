@@ -217,6 +217,24 @@ static class Assets
 		return mesh;
 	}
 
+	/// Makes a texture from RGBA pixels (4 bytes a pixel) under a name of its own, such as an image found inside a
+	/// model ("Models/hero.glb#image2"), so that GetTexture, and every Material naming it, finds it. Does nothing if
+	/// a texture of that name is already there. Returns it.
+	public static bgfx.TextureHandle AddTexture(StringView path, uint8* pixels, int32 width, int32 height)
+	{
+		if (sTextures.TryGetValueAlt(path, let cached))
+		{
+			bgfx.TextureHandle handle;
+			handle.idx = cached;
+			return handle;
+		}
+		if (pixels == null || width <= 0 || height <= 0 || !Gfx.Initialized)
+			return Gfx.WhiteTexture;
+		let texture = bgfx.create_texture_2d((uint16)width, (uint16)height, false, 1, .RGBA8, 0, bgfx.copy(pixels, (uint32)(width * height * 4)), 0);
+		sTextures[new String(path)] = texture.idx;
+		return texture;
+	}
+
 	public static bgfx.TextureHandle GetTexture(StringView path)
 	{
 		if (path.IsEmpty)

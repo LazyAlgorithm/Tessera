@@ -37,6 +37,24 @@ class SkinnedModel
 	public List<float> Weights = new .() ~ delete _;       // 4 per vertex
 	public List<uint32> Indices = new .() ~ delete _;
 
+	/// One part of the model for each of its materials (a character's skin, cloth and armour): its triangles, as
+	/// indices into the vertex lists above, and the material the file gives it.
+	public class Part
+	{
+		/// The material's name in the file, or "Part 2" when it has none.
+		public String name = new .() ~ delete _;
+		public List<uint32> indices = new .() ~ delete _;
+		/// Which of the file's materials it is (-1: the primitives that had none).
+		public int32 fileMaterial;
+		/// Made from the file: colour factor (in the vertex colours, so white here), metallic and roughness, and
+		/// the base colour, normal, metallic-roughness, occlusion and emissive textures, alpha mode and double sides.
+		public Material material ~ delete _;
+	}
+	public List<Part> Parts = new .() ~ DeleteContainerAndItems!(_);
+	/// True when the parts are drawn with materials of their own: the file has more than one material, or any
+	/// textures. Otherwise the model is one mesh drawn with its Mesh Renderer's settings, as before.
+	public bool HasOwnMaterials;
+
 	static Dictionary<String, SkinnedModel> sCache = new .() ~ DeleteDictionaryAndKeysAndValues!(_);
 
 	public Clip FindClip(StringView name)
@@ -95,11 +113,65 @@ class SkinnedModel
 			Internal.MemCpy(clip.data.Ptr, source.data, count * sizeof(float));
 			model.Clips.Add(clip);
 		}
+		// The file's images become textures named after it: "Models/hero.glb#image2".
+		let imageNames = scope List<String>();
+		defer { for (let name in imageNames) delete name; }
+		for (int32 i < Native.tn_gltf_image_count(scene))
+		{
+			int32 width = 0, height = 0;
+			let pixels = Native.tn_gltf_get_image(scene, i, &width, &height);
+			let name = new String()..AppendF("{}#image{}", path, i);
+			imageNames.Add(name);
+			if (pixels != null)
+				Assets.AddTexture(name, pixels, width, height);
+		}
+		void Image(String into, int32 index)
+		{
+			into.Clear();
+			if (index >= 0 && index < imageNames.Count)
+				into.Set(imageNames[index]);
+		}
+		bool anyTexture = false;
 		for (uint32 p < Native.tn_gltf_prim_count(scene))
 		{
 			let prim = Native.tn_gltf_get_prim(scene, p);
 			if (prim.joints == null)
 				continue;
+			// The part for this primitive's material, made the first time it comes up.
+			Part part = null;
+			for (let existing in model.Parts)
+			{
+				if (existing.fileMaterial == prim.material)
+					part = existing;
+			}
+			if (part == null)
+			{
+				part = new Part();
+				part.fileMaterial = prim.material;
+				part.name.Append(&prim.materialName);
+				if (part.name.IsEmpty)
+					part.name.AppendF("Part {}", model.Parts.Count + 1);
+				let material = part.material = new Material();
+				material.flatShading = false;
+				material.metallic = prim.metallic;
+				material.roughness = prim.roughness;
+				material.emissive = Color(prim.emissive[0], prim.emissive[1], prim.emissive[2], 1);
+				material.emissiveIntensity = (prim.emissive[0] + prim.emissive[1] + prim.emissive[2]) > 0 ? 1 : 0;
+				Image(material.texture, prim.baseColorImage);
+				Image(material.normalMap, prim.normalImage);
+				material.normalStrength = prim.normalScale;
+				Image(material.metallicRoughnessMap, prim.metalRoughImage);
+				Image(material.occlusionMap, prim.occlusionImage);
+				material.occlusionStrength = prim.occlusionStrength;
+				Image(material.emissiveMap, prim.emissiveImage);
+				if (!material.emissiveMap.IsEmpty)
+					material.emissiveIntensity = 1;
+				material.blend = prim.alphaMode == 1 ? .Cutout : (prim.alphaMode == 2 ? .Transparent : .Opaque);
+				material.cutoff = prim.alphaCutoff;
+				material.doubleSided = prim.doubleSided != 0;
+				anyTexture |= !material.texture.IsEmpty || !material.normalMap.IsEmpty || !material.metallicRoughnessMap.IsEmpty || !material.occlusionMap.IsEmpty || !material.emissiveMap.IsEmpty;
+				model.Parts.Add(part);
+			}
 			let baseVertex = (uint32)model.Positions.Count;
 			let baseColor = Color(prim.baseColor[0], prim.baseColor[1], prim.baseColor[2], prim.baseColor[3]);
 			for (uint32 v < prim.vertexCount)
@@ -131,8 +203,12 @@ class SkinnedModel
 				model.Indices.Add(baseVertex + prim.indices[i]);
 				model.Indices.Add(baseVertex + prim.indices[i + 2]);
 				model.Indices.Add(baseVertex + prim.indices[i + 1]);
+				part.indices.Add(baseVertex + prim.indices[i]);
+				part.indices.Add(baseVertex + prim.indices[i + 2]);
+				part.indices.Add(baseVertex + prim.indices[i + 1]);
 			}
 		}
+		model.HasOwnMaterials = model.Parts.Count > 1 || anyTexture;
 		if (model.Positions.Count == 0)
 		{
 			delete model;

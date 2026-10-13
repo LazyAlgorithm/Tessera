@@ -56,7 +56,27 @@ typedef struct tn_gltf_prim
 	char name[64];
 	uint16_t* joints; // 4 per vertex, null unless the primitive is skinned
 	float* weights;   // 4 per vertex
+	// The primitive's whole material (added after the fields above, which older readers rely on).
+	int32_t material;           // index of the file's material, -1 for none
+	char materialName[64];
+	int32_t baseColorImage;     // indices into the file's decoded images (tn_gltf_get_image), -1 for none
+	int32_t metalRoughImage;
+	int32_t normalImage;
+	int32_t occlusionImage;
+	int32_t emissiveImage;
+	float normalScale;
+	float occlusionStrength;
+	int32_t alphaMode;          // 0 opaque, 1 cut out (mask), 2 blended
+	float alphaCutoff;
+	int32_t doubleSided;
 } tn_gltf_prim;
+
+typedef struct tn_gltf_image
+{
+	unsigned char* pixels;      // RGBA, 4 bytes a pixel; null when it could not be read
+	int32_t width;
+	int32_t height;
+} tn_gltf_image;
 
 typedef struct tn_gltf_joint
 {
@@ -83,6 +103,8 @@ typedef struct tn_gltf_scene
 	int32_t jointCount;
 	tn_gltf_anim* anims;
 	int32_t animCount;
+	tn_gltf_image* images;
+	int32_t imageCount;
 } tn_gltf_scene;
 
 static void tn_identity(float* m)
@@ -255,6 +277,75 @@ static void pack_or_file_release(const struct cgltf_memory_options* memory, cons
 	free(data);
 }
 
+// Every image the file has, decoded to RGBA: from the binary chunk (a .glb), a data: address, or a file beside the model.
+static void tn_load_images(tn_gltf_scene* scene, const cgltf_data* data, const cgltf_options* options, const char* modelPath)
+{
+	scene->imageCount = (int32_t)data->images_count;
+	scene->images = (tn_gltf_image*)calloc(data->images_count > 0 ? data->images_count : 1, sizeof(tn_gltf_image));
+	for (cgltf_size i = 0; i < data->images_count; i++)
+	{
+		const cgltf_image* image = &data->images[i];
+		const unsigned char* bytes = NULL;
+		size_t size = 0;
+		void* owned = NULL;
+		if (image->buffer_view != NULL && image->buffer_view->buffer->data != NULL)
+		{
+			bytes = (const unsigned char*)image->buffer_view->buffer->data + image->buffer_view->offset;
+			size = image->buffer_view->size;
+		}
+		else if (image->uri != NULL && strncmp(image->uri, "data:", 5) == 0)
+		{
+			const char* comma = strchr(image->uri, ',');
+			if (comma != NULL && comma - image->uri >= 7 && strncmp(comma - 7, ";base64", 7) == 0)
+			{
+				size_t length = strlen(comma + 1);
+				while (length > 0 && comma[length] == '=') length--;   // padding carries no bytes
+				size_t decoded = length * 3 / 4;
+				if (cgltf_load_buffer_base64(options, decoded, comma + 1, &owned) == cgltf_result_success)
+				{
+					bytes = (const unsigned char*)owned;
+					size = decoded;
+				}
+			}
+		}
+		else if (image->uri != NULL)
+		{
+			// A file named relative to the model.
+			char path[1024];
+			const char* slash = strrchr(modelPath, '/');
+			const char* backslash = strrchr(modelPath, '\\');
+			if (backslash != NULL && (slash == NULL || backslash > slash)) slash = backslash;
+			size_t folder = slash != NULL ? (size_t)(slash - modelPath + 1) : 0;
+			if (folder + strlen(image->uri) < sizeof(path))
+			{
+				memcpy(path, modelPath, folder);
+				strcpy(path + folder, image->uri);
+				cgltf_decode_uri(path + folder);
+				cgltf_size length = 0;
+				if (pack_or_file_read(NULL, NULL, path, &length, &owned) == cgltf_result_success)
+				{
+					bytes = (const unsigned char*)owned;
+					size = (size_t)length;
+				}
+			}
+		}
+		if (bytes != NULL && size > 0)
+		{
+			int width = 0, height = 0, channels = 0;
+			scene->images[i].pixels = stbi_load_from_memory(bytes, (int)size, &width, &height, &channels, 4);
+			scene->images[i].width = width;
+			scene->images[i].height = height;
+		}
+		free(owned);
+	}
+}
+
+static int32_t tn_image_index(const cgltf_data* data, const cgltf_texture_view* view)
+{
+	if (view == NULL || view->texture == NULL || view->texture->image == NULL) return -1;
+	return (int32_t)(view->texture->image - data->images);
+}
+
 tn_gltf_scene* tn_gltf_load(const char* path)
 {
 	cgltf_options options;
@@ -342,15 +433,33 @@ tn_gltf_scene* tn_gltf_load(const char* path)
 			dst->baseColor[0] = dst->baseColor[1] = dst->baseColor[2] = dst->baseColor[3] = 1.0f;
 			dst->metallic = 0.0f;
 			dst->roughness = 1.0f;
+			dst->material = -1;
+			dst->baseColorImage = dst->metalRoughImage = dst->normalImage = dst->occlusionImage = dst->emissiveImage = -1;
+			dst->normalScale = 1.0f;
+			dst->occlusionStrength = 1.0f;
+			dst->alphaCutoff = 0.5f;
 			if (src->material != NULL)
 			{
-				if (src->material->has_pbr_metallic_roughness)
+				const cgltf_material* material = src->material;
+				dst->material = (int32_t)(material - data->materials);
+				if (material->name != NULL) strncpy(dst->materialName, material->name, sizeof(dst->materialName) - 1);
+				if (material->has_pbr_metallic_roughness)
 				{
-					memcpy(dst->baseColor, src->material->pbr_metallic_roughness.base_color_factor, sizeof(float) * 4);
-					dst->metallic = src->material->pbr_metallic_roughness.metallic_factor;
-					dst->roughness = src->material->pbr_metallic_roughness.roughness_factor;
+					memcpy(dst->baseColor, material->pbr_metallic_roughness.base_color_factor, sizeof(float) * 4);
+					dst->metallic = material->pbr_metallic_roughness.metallic_factor;
+					dst->roughness = material->pbr_metallic_roughness.roughness_factor;
+					dst->baseColorImage = tn_image_index(data, &material->pbr_metallic_roughness.base_color_texture);
+					dst->metalRoughImage = tn_image_index(data, &material->pbr_metallic_roughness.metallic_roughness_texture);
 				}
-				memcpy(dst->emissive, src->material->emissive_factor, sizeof(float) * 3);
+				memcpy(dst->emissive, material->emissive_factor, sizeof(float) * 3);
+				dst->normalImage = tn_image_index(data, &material->normal_texture);
+				if (dst->normalImage >= 0 && material->normal_texture.scale > 0) dst->normalScale = material->normal_texture.scale;
+				dst->occlusionImage = tn_image_index(data, &material->occlusion_texture);
+				if (dst->occlusionImage >= 0) dst->occlusionStrength = material->occlusion_texture.scale;
+				dst->emissiveImage = tn_image_index(data, &material->emissive_texture);
+				dst->alphaMode = material->alpha_mode == cgltf_alpha_mode_mask ? 1 : (material->alpha_mode == cgltf_alpha_mode_blend ? 2 : 0);
+				dst->alphaCutoff = material->alpha_cutoff;
+				dst->doubleSided = material->double_sided ? 1 : 0;
 			}
 
 			// A skinned mesh is placed by its bones; the node's own transform does not apply.
@@ -362,8 +471,18 @@ tn_gltf_scene* tn_gltf_load(const char* path)
 	}
 
 	tn_load_skin(scene, data);
+	tn_load_images(scene, data, &options, path);
 	cgltf_free(data);
 	return scene;
+}
+
+int32_t tn_gltf_image_count(const tn_gltf_scene* scene) { return scene != NULL ? scene->imageCount : 0; }
+const unsigned char* tn_gltf_get_image(const tn_gltf_scene* scene, int32_t index, int32_t* width, int32_t* height)
+{
+	if (scene == NULL || index < 0 || index >= scene->imageCount) { *width = *height = 0; return NULL; }
+	*width = scene->images[index].width;
+	*height = scene->images[index].height;
+	return scene->images[index].pixels;
 }
 
 int32_t tn_gltf_joint_count(const tn_gltf_scene* scene) { return scene != NULL ? scene->jointCount : 0; }
@@ -395,6 +514,8 @@ void tn_gltf_free(tn_gltf_scene* scene)
 		free(scene->prims[i].weights);
 	}
 	for (int32_t i = 0; i < scene->animCount; i++) free(scene->anims[i].data);
+	for (int32_t i = 0; i < scene->imageCount; i++) stbi_image_free(scene->images[i].pixels);
+	free(scene->images);
 	free(scene->anims);
 	free(scene->joints);
 	free(scene->prims);

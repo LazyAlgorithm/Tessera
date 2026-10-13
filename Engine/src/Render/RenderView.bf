@@ -107,8 +107,9 @@ static class RenderResources
 /// Renders a scene from one viewpoint into a texture (editor panels) or the backbuffer (players).
 ///
 /// Pipeline: four shadow cascades for the sun, an HDR multisampled forward pass with sky,
-/// instanced opaque geometry and debug lines, bloom (when the scene asks for any), then a tonemapping resolve.
-/// Each RenderView uses ten consecutive bgfx view ids starting at ViewBase.
+/// instanced opaque geometry and debug lines, see-through geometry, the viewmodel (a first-person camera's arms and
+/// weapon, over everything: Camera.viewmodelLayer), bloom (when the scene asks for any), then a tonemapping resolve.
+/// Each RenderView uses eleven consecutive bgfx view ids starting at ViewBase.
 class RenderView
 {
 	struct RenderItem
@@ -116,6 +117,8 @@ class RenderView
 		public uint64 key;
 		public Mesh mesh;
 		public MeshRenderer renderer;
+		/// The material this item is drawn with: a part's own (MeshRenderer.RuntimeParts) or the renderer's.
+		public Material material;
 		public Matrix4 world;
 		public Vector3 center;
 		public float radius;
@@ -166,6 +169,9 @@ class RenderView
 	List<RenderItem> mItems = new .() ~ delete _;
 	List<RenderItem> mShadowItems = new .() ~ delete _;
 	List<RenderItem> mTransparentItems = new .() ~ delete _;
+	// The viewmodel's (Camera.viewmodelLayer): solid, and see-through.
+	List<RenderItem> mViewmodelItems = new .() ~ delete _;
+	List<RenderItem> mViewmodelTransparent = new .() ~ delete _;
 
 	// Frame constants, re-sent with every draw because bgfx orders uniform updates by sorted draw.
 	Vector4 mCamPos, mSunDir, mSunColor, mAmbientSky, mAmbientGround, mFogColor, mLightCount, mCascadeSplits, mShadowParams;
@@ -330,42 +336,59 @@ class RenderView
 		mItems.Clear();
 		mShadowItems.Clear();
 		mTransparentItems.Clear();
+		mViewmodelItems.Clear();
+		mViewmodelTransparent.Clear();
 		let shadowRange = env.shadowDistance + 60.0f;
 		for (let renderer in scene.Renderers)
 		{
 			// Outside the scene's world state: not drawn and casts no shadow.
 			if (!renderer.IsActiveAndEnabled || !renderer.GameObject.InActiveWorld)
 				continue;
-			let mesh = renderer.ActiveMesh;
-			if (mesh == null || !mesh.HasGpuData)
-				continue;
-			RenderItem item;
-			item.mesh = mesh;
-			item.renderer = renderer;
-			item.world = renderer.Transform.LocalToWorld;
-			item.world.m[12] += renderer.VisualOffset.x;
-			item.world.m[13] += renderer.VisualOffset.y;
-			item.world.m[14] += renderer.VisualOffset.z;
-			let bounds = mesh.Bounds.Transformed(item.world);
-			item.center = bounds.Center;
-			item.radius = bounds.Extents.Length;
-			item.key = MakeKey(renderer, mesh);
-			// A color alpha below 1, or a Transparent material, makes the object see-through: it is drawn after
-			// everything solid, blended, and (being glass-like) does not cast a shadow.
-			let itemMaterial = renderer.ActiveMaterial;
-			let transparent = itemMaterial != null ? (itemMaterial.IsTransparent || (itemMaterial.blend == .Opaque && renderer.color.a * itemMaterial.color.a < 0.999f)) : renderer.color.a < 0.999f;
-			if (!renderer.shadowOnly && frustum.Intersects(bounds))
+			// A renderer with parts draws each with its own material; otherwise its one mesh (a "part" of its own).
+			let parts = renderer.RuntimeParts;
+			let partCount = (parts != null && parts.Count > 0) ? parts.Count : 1;
+			for (int partIndex < partCount)
 			{
-				if (transparent)
-					mTransparentItems.Add(item);
-				else
-					mItems.Add(item);
+				let mesh = parts != null && parts.Count > 0 ? parts[partIndex].mesh : renderer.ActiveMesh;
+				if (mesh == null || !mesh.HasGpuData)
+					continue;
+				RenderItem item;
+				item.mesh = mesh;
+				item.renderer = renderer;
+				item.material = (parts != null && parts.Count > 0 && parts[partIndex].material != null) ? parts[partIndex].material : renderer.ActiveMaterial;
+				item.world = renderer.Transform.LocalToWorld;
+				item.world.m[12] += renderer.VisualOffset.x;
+				item.world.m[13] += renderer.VisualOffset.y;
+				item.world.m[14] += renderer.VisualOffset.z;
+				let bounds = mesh.Bounds.Transformed(item.world);
+				item.center = bounds.Center;
+				item.radius = bounds.Extents.Length;
+				item.key = MakeKey(renderer, mesh, item.material);
+				// A color alpha below 1, or a Transparent material, makes the object see-through: it is drawn after
+				// everything solid, blended, and (being glass-like) does not cast a shadow.
+				let itemMaterial = item.material;
+				let transparent = itemMaterial != null ? (itemMaterial.IsTransparent || (itemMaterial.blend == .Opaque && renderer.color.a * itemMaterial.color.a < 0.999f)) : renderer.color.a < 0.999f;
+				// The viewmodel: drawn in a pass of its own after the world (no culling: it is a few things at the eye).
+				let viewmodel = DrawsAsViewmodel(camera, renderer.GameObject);
+				if (viewmodel)
+				{
+					if (!renderer.shadowOnly)
+						(transparent ? mViewmodelTransparent : mViewmodelItems).Add(item);
+				}
+				else if (!renderer.shadowOnly && frustum.Intersects(bounds))
+				{
+					if (transparent)
+						mTransparentItems.Add(item);
+					else
+						mItems.Add(item);
+				}
+				if (!transparent && castShadows && renderer.castShadows && (!viewmodel || camera.viewmodelCastsShadows) && (item.center - camera.position).Length - item.radius < shadowRange)
+					mShadowItems.Add(item);
 			}
-			if (!transparent && castShadows && renderer.castShadows && (item.center - camera.position).Length - item.radius < shadowRange)
-				mShadowItems.Add(item);
 		}
-		VisibleRenderers = (int32)mItems.Count;
+		VisibleRenderers = (int32)(mItems.Count + mViewmodelItems.Count);
 		mItems.Sort(scope (a, b) => a.key <=> b.key);
+		mViewmodelItems.Sort(scope (a, b) => a.key <=> b.key);
 		mShadowItems.Sort(scope (a, b) => a.key <=> b.key);
 
 		// ---- shadow cascades ----
@@ -404,7 +427,7 @@ class RenderView
 		bgfx.touch(sceneView);
 
 		SubmitSky(sceneView, env);
-		SubmitMeshes(sceneView);
+		SubmitMeshes(sceneView, mItems);
 		SubmitParticles(sceneView, scene, frustum);
 		SubmitLines(sceneView, DebugDraw.Lines);
 		if (DrawGizmos)
@@ -429,6 +452,27 @@ class RenderView
 				SubmitBatch(transparentView, mTransparentItems, i, 1, false, true);
 		}
 
+		// ---- the viewmodel: over everything, with its own field of view and near clip ----
+		if (mViewmodelItems.Count + mViewmodelTransparent.Count > 0)
+		{
+			let viewmodelView = (uint16)(ViewBase + 6);
+			var viewmodelProjection = camera.viewmodelProjection;
+			bgfx.set_view_name(viewmodelView, "Viewmodel", 9);
+			bgfx.set_view_frame_buffer(viewmodelView, mSceneFb);
+			bgfx.set_view_rect(viewmodelView, 0, 0, (uint16)mWidth, (uint16)mHeight, 0, 1);
+			// Depth only: the world stays in the picture, and nothing in it can hide the viewmodel.
+			bgfx.set_view_clear(viewmodelView, 0x0002, 0, 1.0f, 0);
+			bgfx.set_view_transform(viewmodelView, &viewMatrix, &viewmodelProjection);
+			// Solid first, then see-through parts back to front, in that order.
+			bgfx.set_view_mode(viewmodelView, .Sequential);
+			bgfx.touch(viewmodelView);
+			SubmitMeshes(viewmodelView, mViewmodelItems);
+			let eye = camera.position;
+			mViewmodelTransparent.Sort(scope (a, b) => (b.center - eye).LengthSquared <=> (a.center - eye).LengthSquared);
+			for (int i < mViewmodelTransparent.Count)
+				SubmitBatch(viewmodelView, mViewmodelTransparent, i, 1, false, true);
+		}
+
 		// ---- bloom: keep what is bright at a quarter size, blur it across and down ----
 		let bloom = Math.Max(env.bloom, 0);
 		if (bloom > 0.001f)
@@ -445,13 +489,13 @@ class RenderView
 				SubmitFullscreen(view, program, Gfx.StateWriteRGB | Gfx.StateWriteA);
 			}
 			let threshold = Math.Max(env.bloomThreshold, 0);
-			Pass((uint16)(ViewBase + 6), "Bloom bright", mBloomFb[0], mSceneColor, RenderResources.BloomDownProgram, .(threshold, Math.Max(threshold * 0.5f, 0.05f), 1.0f / mWidth, 1.0f / mHeight));
-			Pass((uint16)(ViewBase + 7), "Bloom across", mBloomFb[1], mBloomColor[0], RenderResources.BloomBlurProgram, .(0, 0, 1.0f / mBloomWidth, 0));
-			Pass((uint16)(ViewBase + 8), "Bloom down", mBloomFb[0], mBloomColor[1], RenderResources.BloomBlurProgram, .(0, 0, 0, 1.0f / mBloomHeight));
+			Pass((uint16)(ViewBase + 7), "Bloom bright", mBloomFb[0], mSceneColor, RenderResources.BloomDownProgram, .(threshold, Math.Max(threshold * 0.5f, 0.05f), 1.0f / mWidth, 1.0f / mHeight));
+			Pass((uint16)(ViewBase + 8), "Bloom across", mBloomFb[1], mBloomColor[0], RenderResources.BloomBlurProgram, .(0, 0, 1.0f / mBloomWidth, 0));
+			Pass((uint16)(ViewBase + 9), "Bloom down", mBloomFb[0], mBloomColor[1], RenderResources.BloomBlurProgram, .(0, 0, 0, 1.0f / mBloomHeight));
 		}
 
 		// ---- tonemap resolve ----
-		let postView = (uint16)(ViewBase + 9);
+		let postView = (uint16)(ViewBase + 10);
 		bgfx.set_view_name(postView, "Tonemap", 7);
 		bgfx.set_view_frame_buffer(postView, mOutputFb);
 		bgfx.set_view_rect(postView, 0, 0, (uint16)mOutWidth, (uint16)mOutHeight, 0, 1);
@@ -464,11 +508,14 @@ class RenderView
 		SubmitFullscreen(postView, RenderResources.TonemapProgram, Gfx.StateWriteRGB | Gfx.StateWriteA);
 	}
 
-	static uint64 MakeKey(MeshRenderer renderer, Mesh mesh)
+	/// Whether an object is drawn in the viewmodel pass for this camera (Camera.viewmodelLayer) rather than with the world.
+	public static bool DrawsAsViewmodel(CameraData camera, GameObject gameObject) => camera.hasViewmodel && gameObject != null && gameObject.Layer == camera.viewmodelLayer;
+
+	static uint64 MakeKey(MeshRenderer renderer, Mesh mesh, Material material)
 	{
 		uint64 key = (uint64)(int)Internal.UnsafeCastToPtr(mesh);
 		// With a material, the material is what draws differ by.
-		let shared = renderer.ActiveMaterial;
+		let shared = material;
 		key = key * 1099511628211 ^ (uint64)renderer.TextureOverride.idx;
 		if (shared != null)
 		{
@@ -624,15 +671,15 @@ class RenderView
 		}
 	}
 
-	void SubmitMeshes(uint16 view)
+	void SubmitMeshes(uint16 view, List<RenderItem> items)
 	{
 		int start = 0;
-		while (start < mItems.Count)
+		while (start < items.Count)
 		{
 			int end = start + 1;
-			while (end < mItems.Count && mItems[end].key == mItems[start].key)
+			while (end < items.Count && items[end].key == items[start].key)
 				end++;
-			SubmitBatch(view, mItems, start, end - start, false);
+			SubmitBatch(view, items, start, end - start, false);
 			start = end;
 		}
 	}
@@ -652,7 +699,7 @@ class RenderView
 			let item = items[start + i];
 			data[i].world = item.world;
 			data[i].color = item.renderer.color;
-			let tint = item.renderer.ActiveMaterial;
+			let tint = item.material;
 			if (tint != null)
 				data[i].color = .(data[i].color.r * tint.color.r, data[i].color.g * tint.color.g, data[i].color.b * tint.color.b, data[i].color.a * tint.color.a);
 		}
@@ -675,8 +722,8 @@ class RenderView
 
 		let renderer = first.renderer;
 		SetFrameUniforms();
-		// A material, when the renderer has one, replaces the renderer's own surface settings.
-		let shared = renderer.ActiveMaterial;
+		// A material, when the renderer (or this part) has one, replaces the renderer's own surface settings.
+		let shared = first.material;
 		Vector4 material = .(renderer.metallic, renderer.roughness, renderer.flatShading ? 1 : 0, renderer.unlit ? 1 : 0);
 		var emissive = Linear(renderer.emissive, renderer.emissiveIntensity);
 		Vector4 uvTransform = .(1, 1, 0, 0);

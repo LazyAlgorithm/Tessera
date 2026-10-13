@@ -135,6 +135,19 @@ static class Native
 		public char8[64] name;
 		public uint16* joints;
 		public float* weights;
+		// The primitive's whole material (native/tessera_assets.c).
+		public int32 material;
+		public char8[64] materialName;
+		public int32 baseColorImage;
+		public int32 metalRoughImage;
+		public int32 normalImage;
+		public int32 occlusionImage;
+		public int32 emissiveImage;
+		public float normalScale;
+		public float occlusionStrength;
+		public int32 alphaMode;
+		public float alphaCutoff;
+		public int32 doubleSided;
 	}
 
 	[CRepr]
@@ -165,4 +178,6 @@ static class Native
 	[CLink] public static extern uint32 tn_gltf_prim_count(void* scene);
 	[CLink] public static extern GltfPrim* tn_gltf_get_prim(void* scene, uint32 index);
 	[CLink] public static extern void tn_gltf_free(void* scene);
+	[CLink] public static extern int32 tn_gltf_image_count(void* scene);
+	[CLink] public static extern uint8* tn_gltf_get_image(void* scene, int32 index, int32* width, int32* height);
 }
