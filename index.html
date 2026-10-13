@@ -859,6 +859,18 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
         <li>On the <strong>Camera</strong>, pick <strong>Viewmodel Layer</strong>, and set <strong>Viewmodel Field Of View</strong>, <strong>Viewmodel Near Clip</strong> and, if you want the gun's shadow on the world, <strong>Viewmodel Casts Shadows</strong>.</li>
       </ol>
       <p>With the camera selected the Scene view shows the viewmodel's view in amber, next to the camera's own; place the arms and weapon inside it. The viewmodel is lit, fogged and shadowed like the world. It needs no networking: only each player's own camera draws it, and everyone else sees that player's full body as usual. From code: <code>camera.viewmodelLayer = ProjectConfig.LayerNamed("Viewmodel")</code>. Any component can show an integer as a choice of layers with <code>[Layer]</code>.</p>
+      <p>A <strong>Viewmodel Pose</strong> on the arms-and-weapon object moves it: from a hip pose to an aim pose in the middle of the screen while <code>aiming</code> is set, a walk bob and a sway when the view turns (both worked out from the camera's movement, and steadier while aiming), and recoil with <code>Kick()</code>. In the Inspector, <strong>Preview</strong> blends hip to aim while editing, and <strong>Use current place as Hip</strong> / <strong>Aim</strong> take the object's place as a pose.</p>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Field</th><th>Does</th></tr></thead>
+        <tbody>
+          <tr><td>Hip / Aim Position and Rotation</td><td>The two poses, under the camera</td></tr>
+          <tr><td>Aim Speed</td><td>Raised in 1 / Aim Speed seconds; <code>AimBlend</code> follows it</td></tr>
+          <tr><td>Bob, Bob Full Speed, Bob Stride</td><td>Walk bob from the camera's speed over the ground</td></tr>
+          <tr><td>Sway, Sway Limit</td><td>Lag behind the view when it turns</td></tr>
+          <tr><td>Aim Steadiness</td><td>How much bob and sway aiming takes away</td></tr>
+          <tr><td>Recoil Back, Pitch, Recovery</td><td>What <code>Kick(amount)</code> does</td></tr>
+        </tbody>
+      </table></div>
 
       <h2 id="manual-audio">Audio and voice</h2>
       <p>miniaudio is built in. Put an <code>AudioSource</code> on anything that makes sound and an <code>AudioListener</code> on the ears. Stereo panning or HRTF for headphones, distance rolloff, Doppler, occlusion behind colliders, reverb zones and six mixer groups. WAV, OGG, MP3 and FLAC.</p>
