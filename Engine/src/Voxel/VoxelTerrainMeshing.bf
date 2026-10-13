@@ -315,10 +315,10 @@ extension VoxelTerrain
 			{
 				let ia = indices[t * 3 + e];
 				let ib = indices[t * 3 + (e + 1) % 3];
-				if ((Faces(vertices[ia].position) & Faces(vertices[ib].position)) == 0)
+				if ((Faces(vertices[(int)ia].position) & Faces(vertices[(int)ib].position)) == 0)
 					continue;
-				var a = vertices[ia];
-				var b = vertices[ib];
+				var a = vertices[(int)ia];
+				var b = vertices[(int)ib];
 				a.position -= a.normal * depth;
 				b.position -= b.normal * depth;
 				let a2 = (uint32)vertices.Count;
