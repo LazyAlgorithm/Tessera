@@ -173,6 +173,8 @@ class Program
 			Check(Math.Abs(crate.Transform.Position.y - 1) < 0.1f && scene.Physics.Raycast(.(0, 10, 0), .Down, 50, out hit) && !scene.Physics.Raycast(.(20, 10, 0), .Down, 50, out hit),
 				"in the first world state its objects collide and the other state's are not there");
 			Check(!scene.Physics.Raycast(.(40, 10, 0), .Down, 50, out hit), "an object whose parent is left out of a state is left out with it");
+			Check(!child.InActiveWorld && child.EffectiveWorldStates == ~(1u << material) && child.InWorldState(material) && floor.InActiveWorld && !bridge.InActiveWorld,
+				"an object's effective world states are its own less its parents' (what drawing, sound and picking go by)");
 			int32 changes = 0;
 			scene.WorldStateChanged.Add(new [&] (from, to) => { changes++; });
 			scene.WorldState = echo;
@@ -181,6 +183,45 @@ class Program
 				scope $"one switch: the first state's floor is gone (the crate on it falls), the second state's objects are there ({crate.Transform.Position.y:0.0})");
 			Check(scene.SetWorldState("Material") && scene.WorldState == material && scene.Physics.Raycast(.(0, 10, 0), .Down, 50, out hit) && !scene.SetWorldState("Nowhere"), "switching back by name");
 			scene.StopPlay();
+		}
+
+		// ---- world states: what is walked on ----
+		{
+			let scene = scope Scene(); Scene.Active = scene;
+			let material = ProjectConfig.WorldStateNamed("Material"), echo = ProjectConfig.WorldStateNamed("Echo");
+			GameObject Ground(StringView name, Vector3 position, int32 leftOutOf)
+			{
+				let go = scene.CreateGameObject(name);
+				go.Transform.Position = position;
+				go.AddComponent<BoxCollider>().size = .(10, 1, 10);
+				go.SetInWorldState(leftOutOf, false);
+				return go;
+			}
+			// Side by side: x -5 to 5 in the material world, 5 to 15 in the echo world.
+			Ground("Material ground", .(0, 0, 0), echo);
+			Ground("Echo ground", .(10, 0, 0), material);
+			NavigationSurface Surface(StringView name, int32 leftOutOf)
+			{
+				let go = scene.CreateGameObject(name);
+				go.Transform.Position = .(-6, -1, -6);
+				if (leftOutOf >= 0)
+					go.SetInWorldState(leftOutOf, false);
+				let surface = go.AddComponent<NavigationSurface>();
+				surface.size = .(22, 6, 12);
+				surface.cellSize = 0.5f;
+				return surface;
+			}
+			let materialSurface = Surface("Material surface", echo);
+			let echoSurface = Surface("Echo surface", material);
+			let path = scope List<Vector3>();
+			Check(materialSurface.BakeWorlds == 1u << material && materialSurface.Bake() && materialSurface.Data.FindPath(.(-3, 0.5f, 0), .(3, 0.5f, 0), path)
+				&& !materialSurface.Data.FindPath(.(-3, 0.5f, 0), .(13, 0.5f, 0), path), "a surface in one world state walks only on that state's ground");
+			Check(echoSurface.Bake() && echoSurface.Data.FindPath(.(7, 0.5f, 0), .(13, 0.5f, 0), path) && !echoSurface.Data.FindPath(.(13, 0.5f, 0), .(-3, 0.5f, 0), path),
+				"and the other state's surface only on its own");
+			let shared = Surface("Shared surface", -1);
+			scene.WorldState = echo;
+			Check(shared.BakeWorlds == 1u << echo && shared.Bake() && shared.Data.FindPath(.(7, 0.5f, 0), .(13, 0.5f, 0), path) && !shared.Data.FindPath(.(-3, 0.5f, 0), .(3, 0.5f, 0), path),
+				"a surface in every state bakes the state the scene is in");
 		}
 
 		ProjectConfig.Reset();

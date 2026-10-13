@@ -56,6 +56,10 @@ struct ShapeDesc
 /// state gives the same result, which is what client-side prediction relies on.
 class PhysicsWorld
 {
+	/// Whether bodies of objects outside the scene's world state are left out (true for a scene's own world). A
+	/// world made to bake navigation for a chosen state turns it off and picks its objects itself.
+	public bool FollowsWorldStates = true;
+
 	class Entry
 	{
 		public uint32 bodyId;
@@ -336,7 +340,7 @@ class PhysicsWorld
 			Jolt.tn_physics_set_debris(bodyId, true);
 		}
 		// An object outside the active world state is kept out of the simulation until that state is active.
-		if (!transform.GameObject.InActiveWorld)
+		if (FollowsWorldStates && !transform.GameObject.InActiveWorld)
 		{
 			Jolt.JPH_BodyInterface_RemoveBody(mBodyInterface, bodyId);
 			entry.outOfWorld = true;
@@ -443,6 +447,8 @@ class PhysicsWorld
 	/// inside it (Scene.WorldState calls this). A character's own body stays: the character decides where it goes.
 	public void ApplyWorldState(Scene scene)
 	{
+		if (!FollowsWorldStates)
+			return;
 		if (mBodyInterface == null)
 			return;
 		for (let entry in mEntries)

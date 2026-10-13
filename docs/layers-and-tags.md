@@ -38,7 +38,20 @@ Scene.WorldState = ProjectConfig.WorldStateNamed("Echo");   // or Scene.SetWorld
 Scene.WorldStateChanged.Add(new (from, to) => { ... });
 ```
 
-Objects outside the active state do not collide and are not seen by queries; the switch happens in one call, in the same frame.
+Everything switches in that one call, in the same frame. An object outside the active state:
+
+- **is not drawn** and casts no shadow, and its lights and particles are off;
+- **is not heard**: its Audio Sources carry on playing silently, so they are in time when the state comes back;
+- **does not collide** and is not seen by ray, shape and overlap queries;
+- **is not walked on.** A Navigation Surface bakes the ground of one state. Give each state a surface of its own and
+  put that surface's object in only that state; a surface in every state bakes whichever state the scene is in when
+  it bakes. Agents with no surface set use the one in the active state, and find their way again when it changes.
+
+`GameObject.InActiveWorld` says whether an object is in the active state, and `EffectiveWorldStates` which states it
+is really in (its own, less any its parents are left out of).
+
+In the editor, the toolbar's world state menu (shown once the project has more than one) picks the state the Scene and
+Game views show, in edit mode and while playing. Hidden objects cannot be clicked in the Scene view.
 
 ## Saving
 
@@ -46,4 +59,4 @@ Scenes and prefabs keep each object's layer (`layer 3`), tags (`tags "Enemy" "Co
 
 ## Tests
 
-`BeefBuild -workspace=Tests/Layers -config=Debug -run`: collision between layers and changing a layer while playing, masks on rays, shape casts and overlaps, finding by tag, saving, and switching world states (including a parent leaving its children out).
+`BeefBuild -workspace=Tests/Layers -config=Debug -run`: collision between layers and changing a layer while playing, masks on rays, shape casts and overlaps, finding by tag, saving, and switching world states (including a parent leaving its children out), and a navigation surface for each state.

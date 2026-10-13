@@ -228,6 +228,9 @@ class AudioSource : Component
 		else
 			parameters.reverbSend = Mathf.Clamp01(reverbSend);
 		parameters.lowpassHz = cutoff;
+		// Outside the scene's world state it keeps its place but is not heard.
+		if (!GameObject.InActiveWorld)
+			level = 0;
 		parameters.volume = Math.Max(level, 0);
 		Audio.tn_audio_source_set(mSource, &parameters);
 		if (mLoadedSpatial)

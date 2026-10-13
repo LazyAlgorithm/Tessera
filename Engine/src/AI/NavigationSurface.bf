@@ -21,12 +21,25 @@ class NavigationSurface : Component
         if(!candidate.Load(path,error)) {delete candidate;Log.Warning(error);return false;}
         delete mData;mData=candidate;return true;
     }
+    /// The world state this surface is for: the one its object is in when that is only one (give each world state a
+    /// surface of its own that way), otherwise the scene's active state. Only objects in it are walked on.
+    public uint32 BakeWorlds
+    {
+        get
+        {
+            // Only the states the project has count (an object is in all 32 bits' worth by default).
+            let count=ProjectConfig.WorldStates.Count;
+            let mask=GameObject.EffectiveWorldStates & (count>=32 ? uint32.MaxValue : (1u<<(uint32)count)-1);
+            if(mask!=0 && (mask & (mask-1))==0) return mask;
+            return 1u<<Scene.WorldState;
+        }
+    }
     public bool Bake()
     {
         let candidate=new NavigationData();let error=scope String();
         if(!candidate.Configure(Transform.Position,size,cellSize,flying,chunkSize,error)) {delete candidate;Log.Warning(error);return false;}
         candidate.agentRadius=agentRadius;candidate.agentHeight=agentHeight;candidate.maxStep=maxStep;candidate.maxSlope=maxSlope;
-        if(!NavigationBaker.Bake(candidate,Scene,size.y,error,includeRenderMeshes)) {delete candidate;Log.Warning(error);return false;}
+        if(!NavigationBaker.Bake(candidate,Scene,size.y,error,includeRenderMeshes,BakeWorlds)) {delete candidate;Log.Warning(error);return false;}
         delete mData;mData=candidate;return true;
     }
     public bool SaveData()
@@ -38,7 +51,7 @@ class NavigationSurface : Component
     {
         if(mData==null) return Bake();let world=scope PhysicsWorld();let error=scope String();
         if(!changed.IsValid) {Log.Warning("Invalid navigation rebuild bounds.");return false;}
-        NavigationBaker.BuildGeometry(Scene,world,includeRenderMeshes,true,NavigationBaker.QueryBounds(mData,size.y,changed));
+        NavigationBaker.BuildGeometry(Scene,world,includeRenderMeshes,true,NavigationBaker.QueryBounds(mData,size.y,changed),BakeWorlds);
         let ok=NavigationBaker.Rebuild(mData,world,size.y,changed,error);if(!ok) Log.Warning(error);return ok;
     }
     /// Selected: the bake volume as a box, walkable floor as a see-through blue overlay with its edges outlined, and for a

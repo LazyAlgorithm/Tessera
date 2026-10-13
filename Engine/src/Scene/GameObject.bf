@@ -66,25 +66,25 @@ class GameObject
 		WorldStates = member ? (mWorldStates | (1u << state)) : (mWorldStates & ~(1u << state));
 	}
 
-	/// True when the object, and every object above it, is part of the scene's active world state: a parent left
-	/// out of a state takes its children out with it.
-	public bool InActiveWorld
+	/// The world states the object is really in: its own, less any that an object above it is left out of.
+	public uint32 EffectiveWorldStates
 	{
 		get
 		{
-			if (mScene == null)
-				return true;
-			let bit = 1u << mScene.WorldState;
-			var transform = Transform;
-			while (transform != null)
+			var mask = mWorldStates;
+			var transform = Transform?.Parent;
+			while (transform != null && mask != 0)
 			{
-				if ((transform.GameObject.mWorldStates & bit) == 0)
-					return false;
+				mask &= transform.GameObject.mWorldStates;
 				transform = transform.Parent;
 			}
-			return true;
+			return mask;
 		}
 	}
+
+	/// True when the object, and every object above it, is part of the scene's active world state: a parent left
+	/// out of a state takes its children out with it.
+	public bool InActiveWorld => mScene == null || (EffectiveWorldStates & (1u << mScene.WorldState)) != 0;
 
 	// ---- tags ----
 

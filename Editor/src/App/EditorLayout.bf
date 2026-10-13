@@ -303,6 +303,25 @@ extension EditorApp
 		ImGui.SameLine(0, 16);
 		if (ImGui.Button(mGizmoLocal ? "Local" : "Global", .(64, 0))) mGizmoLocal = !mGizmoLocal;
 
+		// Which world state the Scene and Game views show (and, while playing, the game is in).
+		if (ProjectConfig.WorldStates.Count > 1)
+		{
+			ImGui.SameLine(0, 16);
+			let current = Math.Clamp(mScene.WorldState, 0, (int32)ProjectConfig.WorldStates.Count - 1);
+			ImGui.SetNextItemWidth(150);
+			if (ImGui.BeginCombo("##worldstate", scope String(ProjectConfig.WorldStates[current]).CStr()))
+			{
+				for (int32 i < (int32)ProjectConfig.WorldStates.Count)
+				{
+					if (ImGui.Selectable(ProjectConfig.WorldStates[i].CStr(), i == current))
+						mScene.WorldState = i;
+				}
+				ImGui.EndCombo();
+			}
+			if (ImGui.IsItemHovered())
+				ImGui.SetTooltip("World state shown. Objects outside it are hidden, silent and do not collide, as in the game. Set what each object is in at the top of the Inspector.");
+		}
+
 		// Play controls sit in the middle like Unity's.
 		let buttonWidth = 64.0f;
 		ImGui.SameLine(viewport.workSize.x * 0.5f - buttonWidth * 1.5f - 6);

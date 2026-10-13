@@ -281,7 +281,7 @@ class RenderView
 		int lightCount = 0;
 		for (let light in scene.Lights)
 		{
-			if (!light.IsActiveAndEnabled)
+			if (!light.IsActiveAndEnabled || !light.GameObject.InActiveWorld)
 				continue;
 			if (light.type == .Directional)
 			{
@@ -332,7 +332,8 @@ class RenderView
 		let shadowRange = env.shadowDistance + 60.0f;
 		for (let renderer in scene.Renderers)
 		{
-			if (!renderer.IsActiveAndEnabled)
+			// Outside the scene's world state: not drawn and casts no shadow.
+			if (!renderer.IsActiveAndEnabled || !renderer.GameObject.InActiveWorld)
 				continue;
 			let mesh = renderer.ActiveMesh;
 			if (mesh == null || !mesh.HasGpuData)
@@ -745,7 +746,7 @@ class RenderView
 		let stride = (uint16)sizeof(InstanceData);
 		for (let system in scene.Particles)
 		{
-			if (!system.IsActiveAndEnabled || system.AliveCount == 0)
+			if (!system.IsActiveAndEnabled || system.AliveCount == 0 || !system.GameObject.InActiveWorld)
 				continue;
 			let mesh = Assets.GetMesh(system.mesh);
 			if (mesh == null || !mesh.HasGpuData || !frustum.Intersects(system.WorldBounds))

@@ -5,7 +5,6 @@ README feature list, an editor UI, and compatibility with existing scene and pro
 
 ## Shatterline engine features (general-purpose first)
 
-- E2 world states: finish rendering, audio and navigation membership, and a Scene view toggle
 - E6 first-person viewmodel layer
 - E7 materials on skinned meshes
 - E10 post-processing: ambient occlusion, depth of field, motion blur, colour grading

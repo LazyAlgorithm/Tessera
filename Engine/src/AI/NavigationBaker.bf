@@ -15,7 +15,7 @@ static class NavigationBaker
         return true;
     }
     /// A private query world avoids entering play mode or invoking gameplay scripts.
-    public static void BuildGeometry(Scene scene,PhysicsWorld world,bool includeRenderMeshes=true)=>BuildGeometry(scene,world,includeRenderMeshes,false,default);
+    public static void BuildGeometry(Scene scene,PhysicsWorld world,bool includeRenderMeshes=true,uint32 worlds=uint32.MaxValue)=>BuildGeometry(scene,world,includeRenderMeshes,false,default,worlds);
     static bool Overlaps(Bounds a,Bounds b)=>a.min.x<=b.max.x && a.max.x>=b.min.x && a.min.y<=b.max.y && a.max.y>=b.min.y && a.min.z<=b.max.z && a.max.z>=b.min.z;
     /// False only when the shape certainly lies outside the region; shapes that cannot be bounded cheaply are kept.
     static bool MayTouch(Transform transform,ShapeDesc desc,Bounds region)
@@ -33,28 +33,31 @@ static class NavigationBaker
         let p=transform.Position;return Overlaps(.(p-.(reach,reach,reach),p+.(reach,reach,reach)),region);
     }
     /// With limit set, only geometry that can reach the region is copied, so a small rebuild does not rebuild every mesh shape.
-    public static void BuildGeometry(Scene scene,PhysicsWorld world,bool includeRenderMeshes,bool limit,Bounds region)
+    /// worlds: only objects in one of these world states (bits, as GameObject.WorldStates) are walked on or in the way.
+    public static void BuildGeometry(Scene scene,PhysicsWorld world,bool includeRenderMeshes,bool limit,Bounds region,uint32 worlds=uint32.MaxValue)
     {
+        // The objects are chosen here by worlds, not by the state the scene happens to be in.
+        world.FollowsWorldStates=false;
         for(let component in scene.Components)
             if(let collider=component as Collider)
             {
-                if(!collider.IsActiveAndEnabled || !IsStaticGeometry(collider.GameObject)) continue;
+                if(!collider.IsActiveAndEnabled || !IsStaticGeometry(collider.GameObject) || (collider.GameObject.EffectiveWorldStates & worlds)==0) continue;
                 let shape=collider.GetShape();if(limit && !MayTouch(collider.Transform,shape,region)) continue;
                 world.CreateBody(collider.Transform,shape,null);
             }
         if(includeRenderMeshes)
             for(let renderer in scene.Renderers)
             {
-                if(!renderer.IsActiveAndEnabled || renderer.GetComponent<Collider>()!=null || !IsStaticGeometry(renderer.GameObject)) continue;
+                if(!renderer.IsActiveAndEnabled || renderer.GetComponent<Collider>()!=null || !IsStaticGeometry(renderer.GameObject) || (renderer.GameObject.EffectiveWorldStates & worlds)==0) continue;
                 let mesh=renderer.ActiveMesh;if(mesh==null || mesh.Indices.Count==0 || (limit && !Overlaps(renderer.WorldBounds,region))) continue;
                 Vector3 position,scale;Quaternion rotation;renderer.Transform.LocalToWorld.Decompose(out position,out rotation,out scale);
                 ShapeDesc desc=default;desc.kind=.Mesh;desc.mesh=mesh;desc.meshScale=Vector3.Abs(scale);
                 world.CreateBody(renderer.Transform,desc,null);
             }
     }
-    public static bool Bake(NavigationData data,Scene scene,float verticalSize,String error,bool renderMeshes=true)
+    public static bool Bake(NavigationData data,Scene scene,float verticalSize,String error,bool renderMeshes=true,uint32 worlds=uint32.MaxValue)
     {
-        let world=scope PhysicsWorld();BuildGeometry(scene,world,renderMeshes);
+        let world=scope PhysicsWorld();BuildGeometry(scene,world,renderMeshes,worlds);
         return Rebuild(data,world,verticalSize,.(data.origin,data.origin+.(data.width*data.cellSize,verticalSize,data.depth*data.cellSize)),error);
     }
     /// Cell range of the chunks that intersect dirty bounds.

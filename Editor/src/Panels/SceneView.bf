@@ -145,7 +145,8 @@ extension EditorApp
 		float bestDistance = float.MaxValue;
 		for (let renderer in mScene.Renderers)
 		{
-			if (!renderer.IsActiveAndEnabled)
+			// Hidden by the world state shown: not clickable either.
+			if (!renderer.IsActiveAndEnabled || !renderer.GameObject.InActiveWorld)
 				continue;
 			let mesh = renderer.ActiveMesh;
 			if (mesh == null)

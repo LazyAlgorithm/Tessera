@@ -6,6 +6,7 @@ namespace Tessera;
 class NavigationAgent : AIMovementDriver
 {
     public NavigationSurface surface;
+    bool mFoundSurface;
     public float snapDistance=2;
     public Vector3 baseOffset; // Offset from object origin to agent feet (walking) or center (flying).
     /// Shortest time between two path searches. A search runs only when the destination or the navigation data changed,
@@ -36,7 +37,11 @@ class NavigationAgent : AIMovementDriver
     {
         if(NetworkSync.IsClientOf(Scene)) return;
         mSpeed=Math.Max(speed,0);mStop=Math.Max(stoppingDistance,0.05f);
-        if(surface==null) for(let component in Scene.Components) if(let candidate=component as NavigationSurface) if(candidate.IsActiveAndEnabled) {surface=candidate;break;}
+        // With no surface set, the one in the scene's world state (looked for again when the world state changes).
+        if(surface==null || (mFoundSurface && !surface.GameObject.InActiveWorld))
+        {
+            for(let component in Scene.Components) if(let candidate=component as NavigationSurface) if(candidate.IsActiveAndEnabled && candidate.GameObject.InActiveWorld) {if(candidate!=surface) mDirty=true;surface=candidate;mFoundSurface=true;break;}
+        }
         if(!mRequested || (point-mDestination).LengthSquared>0.01f) mDirty=true;
         mDestination=point;mRequested=true;
         if(mDirty && (mTimer<=0 || mPath.Count==0)) Repath();
