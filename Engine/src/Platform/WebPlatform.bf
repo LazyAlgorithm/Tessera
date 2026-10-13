@@ -21,6 +21,7 @@ static class WebPlatform
 	[CLink] static extern void tn_web_persist();
 	[CLink] static extern void tn_web_loading_done();
 	[CLink] static extern void tn_web_free(void* ptr);
+	[CLink] static extern char8* tn_web_prompt(char8* title, char8* current);
 
 	static Application sApp;
 
@@ -79,6 +80,17 @@ static class WebPlatform
 		return true;
 	}
 
+	/// Asks for a line of text in the browser's own box, which brings up a phone's keyboard. False when cancelled.
+	public static bool PromptText(StringView title, String text)
+	{
+		let value = tn_web_prompt(scope String(title).CStr(), scope String(text).CStr());
+		if (value == null)
+			return false;
+		text.Set(StringView(value));
+		tn_web_free(value);
+		return true;
+	}
+
 	/// Sets (or, with an empty value, removes) a value in the address's #fragment without reloading the page.
 	public static void SetUrlParam(StringView name, StringView value) => tn_web_set_url_param(scope String(name).CStr(), scope String(value).CStr());
 
@@ -95,6 +107,7 @@ static class WebPlatform
 	public static void ShareText(StringView title, StringView text) => CopyText(text);
 	public static void GetPageUrl(String outUrl) { }
 	public static bool GetUrlParam(StringView name, String outValue) => false;
+	public static bool PromptText(StringView title, String text) => false;
 	public static void SetUrlParam(StringView name, StringView value) { }
 	public static void Persist() { }
 #endif

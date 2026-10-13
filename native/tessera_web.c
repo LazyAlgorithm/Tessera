@@ -76,6 +76,13 @@ EM_JS(void, tn_web_loading_done, (void), {
 	if (typeof Module.tesseraReady === "function") Module.tesseraReady();
 });
 
+// A box for typing, from the browser: a phone shows its own keyboard for it (and offers Paste), which it does not
+// for the game's canvas. Returns the text (free with tn_web_free), or null when the player cancelled.
+EM_JS(char*, tn_web_prompt, (const char* title, const char* current), {
+	const value = window.prompt(UTF8ToString(title), UTF8ToString(current));
+	return value === null ? 0 : stringToNewUTF8(value);
+});
+
 void tn_web_free(void* ptr)
 {
 	free(ptr);

@@ -25,6 +25,8 @@ class UIDocumentData
 		public String selector = new .() ~ delete _;
 		public UIProps props = new .() ~ delete _;
 		public int specificity;
+		/// Place in the stylesheet: of two rules equally specific, the later one wins, as in CSS.
+		public int order;
 	}
 
 	public UIElement root ~ delete _;
@@ -288,11 +290,13 @@ class UIDocumentData
 				rule.selector.Set(selector);
 				rule.specificity = selector.StartsWith('#') ? 100 : (selector.StartsWith('.') ? 10 : 1);
 				rule.props.ParseDeclarations(text.Substring(open + 1, close - open - 1));
+				rule.order = mRules.Count;
 				mRules.Add(rule);
 			}
 			i = close + 1;
 		}
-		mRules.Sort(scope (a, b) => a.specificity <=> b.specificity);
+		// (List.Sort is not stable, so source order is part of the key.)
+		mRules.Sort(scope (a, b) => (a.specificity != b.specificity) ? (a.specificity <=> b.specificity) : (a.order <=> b.order));
 	}
 
 	static bool Matches(Rule rule, UIElement element)
@@ -378,7 +382,12 @@ class UIDocumentData
 		if (IsTextTag(element.tag) && !element.text.IsEmpty)
 		{
 			ImGui.PushFontSize(element.Number("font-size", 16));
-			let size = ImGui.CalcTextSize(element.text.CStr());
+			// white-space: normal breaks the text into lines to fit its width (its own, or what there is).
+			let wraps = element.computed.Get("white-space") == "normal";
+			let wrapWidth = (element.computed.Has("width") ? element.Number("width") : availableWidth) - padding.x - padding.z;
+			// Measured a little narrower than it is drawn: glyphs do not grow exactly in proportion with the scale, and a
+			// line that only just fit here must not break into one more line on screen than was made room for.
+			let size = wraps ? ImGui.CalcTextSizeWrapped(element.text.CStr(), wrapWidth * 0.96f) : ImGui.CalcTextSize(element.text.CStr());
 			ImGui.PopFont();
 			content = .(size.x, size.y);
 		}
@@ -766,6 +775,16 @@ class UIDocumentData
 			ImGui.BeginDisabled(!interactive);
 			if (ImGui.InputText("##input", value) && binder != null && !bind.IsEmpty)
 				binder.WriteBinding(bind, value);
+			// A phone's keyboard does not come up for the game's canvas: in a browser on a touch screen, a tap on the
+			// box asks in the browser's own box instead (prompt="..." is its question), where Paste works too.
+			if (WebPlatform.IsWeb && Input.UsingTouch && interactive && !mFocusMode && over && ImGui.IsMouseReleased(0))
+			{
+				if (ImGui.IsItemActive())
+					ImGui.ClearActiveID();
+				let title = element.attributes.Get("prompt");
+				if (WebPlatform.PromptText(title.IsEmpty ? "Type here" : title, value) && binder != null && !bind.IsEmpty)
+					binder.WriteBinding(bind, value);
+			}
 			if (ImGui.IsItemHovered() || ImGui.IsItemActive())
 				GUI.MouseOverControl = true;
 			ImGui.EndDisabled();
@@ -797,7 +816,10 @@ class UIDocumentData
 					tx = max.x - padding.z - size.x;
 				if (element.tag == "button")
 					ty = min.y + (element.height * scale - size.y) * 0.5f;
-				ImGui.DrawText(.(tx, ty), color, shown.CStr());
+				if (element.computed.Get("white-space") == "normal")
+					ImGui.DrawTextWrapped(.(min.x + padding.x, ty), color, shown.CStr(), element.width * scale - padding.x - padding.z);
+				else
+					ImGui.DrawText(.(tx, ty), color, shown.CStr());
 				ImGui.PopFont();
 			}
 		}

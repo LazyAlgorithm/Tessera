@@ -28,8 +28,33 @@ class UIDocument : Component
 	public float UserScale { get => mUserScale; set => mUserScale = value; }
 	float mUserScale = 1;
 
+	/// A version of every document for a kind of screen, used where one exists: with Variant "phone",
+	/// UI/lobby.tui is read from UI/phone/lobby.tui (and its stylesheet from UI/phone/lobby.tcss) if that file is
+	/// there, and from UI/lobby.tui if not. A game sets it, for instance on a phone held sideways, whose few hundred
+	/// points of height make pages laid out for a 1080-line screen too small to read. Empty: no variants.
+	public static String Variant = new .() ~ delete _;
+	/// The referenceHeight a document read from its Variant is laid out for (0: the component's own). A phone
+	/// version laid out for a 600-line screen is drawn nearly twice as big as one laid out for 1080.
+	public static float VariantReferenceHeight = 0;
+	static int32 sVariantVersion;
+
+	/// Changes Variant; documents read themselves again from the right files.
+	public static void SetVariant(StringView variant, float referenceHeight)
+	{
+		if (Variant == variant && VariantReferenceHeight == referenceHeight)
+			return;
+		Variant.Set(variant);
+		VariantReferenceHeight = referenceHeight;
+		sVariantVersion++;
+	}
+
 	UIDocumentData mData ~ delete _;
 	String mLoaded = new .() ~ delete _;
+	int32 mLoadedVersion = -1;
+	bool mFromVariant;
+
+	/// True when the document was read from its Variant's file.
+	public bool FromVariant => mFromVariant;
 
 	public UIDocumentData Data => mData;
 	/// The button or toggle under the pointer when the document was last drawn, or null.
@@ -42,12 +67,28 @@ class UIDocument : Component
 	public void Reload()
 	{
 		mLoaded.Set(document);
+		mLoadedVersion = sVariantVersion;
+		mFromVariant = false;
 		delete mData;
 		mData = null;
 		if (document.IsEmpty)
 			return;
 		let path = scope String();
 		Assets.ResolvePath(document, path);
+		if (!Variant.IsEmpty)
+		{
+			// UI/lobby.tui -> UI/phone/lobby.tui
+			let slash = Math.Max(path.LastIndexOf('/'), path.LastIndexOf('\\'));
+			let variantPath = scope String();
+			variantPath.Append(path, 0, slash + 1);
+			variantPath.AppendF("{}/", Variant);
+			variantPath.Append(path, slash + 1);
+			if (AssetPack.Exists(variantPath))
+			{
+				path.Set(variantPath);
+				mFromVariant = true;
+			}
+		}
 		let data = new UIDocumentData();
 		if (!data.Load(path))
 		{
@@ -76,11 +117,12 @@ class UIDocument : Component
 
 	public override void OnGUI()
 	{
-		if (mLoaded != document)
+		if (mLoaded != document || mLoadedVersion != sVariantVersion)
 			Reload();
 		if (mData == null)
 			return;
-		let scale = (referenceHeight > 0 ? Math.Max(GUI.Height / referenceHeight, 0.1f) : 1.0f) * Math.Clamp(mUserScale, 0.25f, 4.0f);
+		let reference = (mFromVariant && VariantReferenceHeight > 0 && referenceHeight > 0) ? VariantReferenceHeight : referenceHeight;
+		let scale = (reference > 0 ? Math.Max(GUI.Height / reference, 0.1f) : 1.0f) * Math.Clamp(mUserScale, 0.25f, 4.0f);
 		mData.scale = scale;
 		mData.Layout(GUI.Width / scale, GUI.Height / scale);
 		mData.Draw(GUI.Origin, this, true);

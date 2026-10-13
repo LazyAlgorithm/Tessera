@@ -308,6 +308,8 @@ static class ImGui
 	[CLink] static extern bool igIsItemActive();
 	[CLink] static extern bool igIsItemToggledOpen();
 	[CLink] static extern bool igIsItemDeactivatedAfterEdit();
+	[CLink] static extern bool igIsItemActivated();
+	[CLink] static extern void igClearActiveID();
 	[CLink] static extern bool igIsAnyItemActive();
 	[CLink] static extern bool igIsMouseDown_Nil(int32 button);
 	[CLink] static extern bool igIsMouseClicked_Bool(int32 button, bool repeat_);
@@ -514,6 +516,10 @@ static class ImGui
 	public static bool IsItemActive() => igIsItemActive();
 	public static bool IsItemToggledOpen() => igIsItemToggledOpen();
 	public static bool IsItemDeactivatedAfterEdit() => igIsItemDeactivatedAfterEdit();
+	/// The last item was clicked or focused this frame.
+	public static bool IsItemActivated() => igIsItemActivated();
+	/// Lets go of whatever control has the keyboard.
+	public static void ClearActiveID() => igClearActiveID();
 	public static bool IsAnyItemActive() => igIsAnyItemActive();
 	public static bool IsMouseDown(int32 button) => igIsMouseDown_Nil(button);
 	public static bool IsMouseClicked(int32 button) => igIsMouseClicked_Bool(button, false);
@@ -571,6 +577,13 @@ static class ImGui
 	public static float GetFrameHeight() => igGetFrameHeight();
 	public static float GetTextLineHeight() => igGetTextLineHeight();
 	public static Vec2 CalcTextSize(char8* text) => igCalcTextSize(text, null, false, -1);
+	/// The size of text broken into lines no wider than wrapWidth.
+	public static Vec2 CalcTextSizeWrapped(char8* text, float wrapWidth) => igCalcTextSize(text, null, false, Math.Max(wrapWidth, 1));
+	[CLink] static extern void* igGetFont();
+	[CLink] static extern float igGetFontSize();
+	[CLink] static extern void ImDrawList_AddText_FontPtr(void* list, void* font, float fontSize, Vec2 pos, uint32 color, char8* text, char8* textEnd, float wrapWidth, Vec4* clip);
+	/// Text broken into lines no wider than wrapWidth, in the current font and size.
+	public static void DrawTextWrapped(Vec2 pos, Color color, char8* text, float wrapWidth) => ImDrawList_AddText_FontPtr(igGetWindowDrawList(), igGetFont(), igGetFontSize(), pos, color.ToABGR(), text, null, Math.Max(wrapWidth, 1), null);
 	public static void SetKeyboardFocusHere(int32 offset = 0) => igSetKeyboardFocusHere(offset);
 	public static void SetItemDefaultFocus() => igSetItemDefaultFocus();
 	public static bool BeginDragDropSource(int32 flags = 0) => igBeginDragDropSource(flags);
