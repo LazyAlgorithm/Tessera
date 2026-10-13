@@ -741,14 +741,17 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
       <h4>Basics</h4>
       <a href="#manual" data-sec="manual-components">Components and scenes</a>
       <a href="#manual" data-sec="manual-input">Input actions</a>
+      <a href="#manual" data-sec="manual-touch">Touch screens</a>
       <a href="#manual" data-sec="manual-character">Character controller</a>
       <h4>Multiplayer</h4>
       <a href="#manual" data-sec="manual-net">Networking</a>
       <a href="#manual" data-sec="manual-net-test">Testing on one machine</a>
       <h4>World</h4>
       <a href="#manual" data-sec="manual-render">Rendering and materials</a>
+      <a href="#manual" data-sec="manual-viewmodel">First-person viewmodel</a>
       <a href="#manual" data-sec="manual-audio">Audio and voice</a>
       <a href="#manual" data-sec="manual-ui">Interfaces</a>
+      <a href="#manual" data-sec="manual-responsive">Phones and tablets</a>
       <h4>Release</h4>
       <a href="#manual" data-sec="manual-shipping">Shipping</a>
       <a href="#manual" data-sec="manual-cli">Command line</a>
@@ -786,6 +789,19 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
         </tbody>
       </table></div>
       <p>These standard actions exist in every project, and <code>NetworkScript</code> reads them, so a networked player works with a controller with no code. <code>InputActions.Describe("Use", text)</code> gives the right prompt for the device in the player's hands.</p>
+
+      <h2 id="manual-touch">Touch screens</h2>
+      <p>On a phone or tablet the game draws its own on-screen controls, made once with <code>TouchControls</code> and bound in <code>Input.tinput</code> like any other control (<code>bind touch Fire</code>), so the game reads them as it reads keys or a controller.</p>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Call</th><th>Makes</th></tr></thead>
+        <tbody>
+          <tr><td><code>AddStick(name, area, anchor, offset, radius)</code></td><td>A thumbstick that appears where the thumb lands in <code>area</code>. Set <code>hideWhenIdle</code> and it is drawn only while used.</td></tr>
+          <tr><td><code>AddLook(name, area)</code></td><td>An area to drag across to turn the view, like the mouse.</td></tr>
+          <tr><td><code>AddButton(name, label, anchor, offset, radius, dragLooks)</code></td><td>A round button; with <code>dragLooks</code>, dragging on it also turns the view, so one thumb fires and aims.</td></tr>
+          <tr><td><code>AddSwipe(name, source, direction)</code></td><td>A quick flick across another control, down for one frame as the finger lifts. A slow drag is never a flick, and the view is held still while a stroke could still become one.</td></tr>
+        </tbody>
+      </table></div>
+      <p>Places are an anchor on the screen plus an offset in <em>screen units</em>, the screen's short side, so one layout keeps its shape on any phone and either way up; move controls for portrait by changing <code>offset</code>. Each control has <code>visible</code>, <code>dimmed</code> (faded but in place, so a layout never shifts under the thumb), <code>lit</code> (a switch that is on) and <code>label</code>. <code>TouchControls.Scale</code> sizes everything and <code>EdgeMargin</code> keeps it in from the edges. Ringfall's controls are a worked example: a hidden-until-used stick on the left, and every action in an arc around FIRE on the right.</p>
 
       <h2 id="manual-character">Character controller</h2>
       <p><code>CharacterController</code> sweeps a capsule or rounded box through the world. It walks up steps, stands on slopes up to a limit, rides moving platforms and pushes dynamic bodies. Call it once per tick:</p>
@@ -835,6 +851,15 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
         <li>Models: glTF and GLB, with skinned characters and Animator Controllers (<code>.tcontroller</code>) for state machines.</li>
       </ul>
 
+      <h2 id="manual-viewmodel">First-person viewmodel</h2>
+      <p><em>On the <code>dev</code> branch; in <code>main</code> with the next release.</em> A first-person player's arms and weapon are drawn in a pass of their own, after the world and over it, with their own field of view and a near clip at the eye: a gun never pokes into a wall it is held against, and keeps its shape however wide the world's field of view.</p>
+      <ol>
+        <li>In <strong>Project Settings</strong>, name a layer <code>Viewmodel</code> and untick it against every layer in the collision table.</li>
+        <li>Make the arms and weapon children of the camera's object and put each part on that layer (the Layer menu at the top of the Inspector).</li>
+        <li>On the <strong>Camera</strong>, pick <strong>Viewmodel Layer</strong>, and set <strong>Viewmodel Field Of View</strong>, <strong>Viewmodel Near Clip</strong> and, if you want the gun's shadow on the world, <strong>Viewmodel Casts Shadows</strong>.</li>
+      </ol>
+      <p>With the camera selected the Scene view shows the viewmodel's view in amber, next to the camera's own; place the arms and weapon inside it. The viewmodel is lit, fogged and shadowed like the world. It needs no networking: only each player's own camera draws it, and everyone else sees that player's full body as usual. From code: <code>camera.viewmodelLayer = ProjectConfig.LayerNamed("Viewmodel")</code>. Any component can show an integer as a choice of layers with <code>[Layer]</code>.</p>
+
       <h2 id="manual-audio">Audio and voice</h2>
       <p>miniaudio is built in. Put an <code>AudioSource</code> on anything that makes sound and an <code>AudioListener</code> on the ears. Stereo panning or HRTF for headphones, distance rolloff, Doppler, occlusion behind colliders, reverb zones and six mixer groups. WAV, OGG, MP3 and FLAC.</p>
       <p>Voice chat uses Opus and is off until you turn it on with <code>VoiceChat.Enabled</code>. The server decides who hears whom, for team-only or proximity voice. Push to talk works from any input action.</p>
@@ -845,6 +870,15 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
         <li><strong>GUI</strong> from <code>OnGUI</code>: <code>GUI.Label</code>, <code>Button</code>, <code>Bar</code>, <code>Box</code>, <code>Toggle</code>, <code>Slider</code>. Quick, for HUDs and debugging.</li>
         <li><strong>UI documents</strong>: <code>.tui</code> markup with a <code>.tcss</code> stylesheet, laid out with flexbox and absolute positioning, edited in the UI tab, worked with a mouse, a controller's d-pad or a touch screen. See <a href="#menu">A main menu</a>.</li>
       </ul>
+
+      <h2 id="manual-responsive">Phones and tablets</h2>
+      <p>One interface can serve a desktop, a phone held sideways and a phone held upright:</p>
+      <ul>
+        <li><strong>Design sizes.</strong> A UI Document's Reference Height (and Width) give the size it is designed for; it is scaled to fit whichever of the two is tighter, never stretched. <code>UIDocument.SetVariant("phone", height, width)</code> reads every document from a <code>phone/</code> folder beside it where one exists, designed for that size; a game can give different sizes for portrait and landscape.</li>
+        <li><strong>@media rules.</strong> A stylesheet can rearrange a document for its shape: <code>@media (orientation: portrait) { #left { right: 24; width: auto } }</code>, also <code>min-/max-width</code>, <code>min-/max-height</code> and <code>min-/max-aspect-ratio</code>, in the document's own units, tested on every layout so a turned phone rearranges at once. Give the parts that move an id or class: a <code>style=""</code> attribute wins over the stylesheet.</li>
+        <li><strong>Web builds</strong> size the game to the browser's viewport inside the screen's safe areas, follow it when the phone turns (in fullscreen too), and draw the 3D scene at a resolution phones can keep up with while the interface stays sharp.</li>
+      </ul>
+      <p>Add <code>?arg=--ui-debug</code> to a Ringfall web address to see the size, pixel ratio, orientation and scale the game is working with.</p>
 
       <h2 id="manual-shipping">Shipping</h2>
       <div class="tbl-wrap"><table>
