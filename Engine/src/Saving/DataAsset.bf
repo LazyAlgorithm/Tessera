@@ -132,7 +132,13 @@ abstract class DataAsset
 			if (!TypeNameIn(text, typeName))
 				continue;
 			let relative = scope String();
-			Assets.MakeRelative(file, relative);
+			let single = scope String(root);
+			while (single.Contains("//"))
+				single.Replace("//", "/");
+			if (file.StartsWith(single) && file.Length > single.Length && file[single.Length] == '/')
+				relative.Append(file.Substring(single.Length + 1));
+			else
+				Assets.MakeRelative(file, relative);
 			sFileOfType[new String(relative)] = new String(typeName);
 		}
 	}

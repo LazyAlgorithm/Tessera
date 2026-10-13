@@ -211,6 +211,9 @@ static class AssetPack
 	{
 		let prefix = scope String(folder);
 		prefix.Replace('\\', '/');
+		// Packed paths are kept with single slashes ("/" + "/Assets" is a root of "/" on the web).
+		while (prefix.Contains("//"))
+			prefix.Replace("//", "/");
 		while (prefix.EndsWith('/'))
 			prefix.RemoveFromEnd(1);
 		prefix.Append('/');
