@@ -1,12 +1,12 @@
 # Responsive mobile UI — test checklist
 
-Changes on this branch are intentionally **not deployed**. Ringfall's web deployment tracks Ringfall main and Tessera main, not this feature branch.
+Ringfall's `dev` branch builds against Tessera `dev` and deploys to the `/dev/` preview (`https://lazyalgorithm.github.io/ringfall-web/dev/`); production tracks the `main` branches. Add `?arg=--ui-debug` to the address for the size and scale readout. The design and its implementation status are in `responsive-ui-design.md`.
 
 ## Engine behavior
 - UI coordinates use SDL logical window points; physical framebuffer pixels remain for the 3D renderer.
 - `GUI.LogicalWidth`, `GUI.LogicalHeight`, `GUI.PixelRatio`, `GUI.IsPortrait`, `GUI.IsLandscape`, and `GUI.AspectRatio` expose the distinction.
 - `UIDocument.referenceWidth` complements `referenceHeight`. When both are specified, uniform scaling uses the smaller fit factor. Existing height-only documents retain their original behavior.
-- Ringfall's existing phone variant already requests a 1000×600 reference viewport in main.
+- Ringfall's phone variant is designed for 600×1100 in landscape and 560×990 in portrait (`GameUi`); each screen rearranges for portrait in `@media` blocks.
 - The web shell uses CSS safe-area insets on all four sides to avoid display cutouts and home indicators. SDL follows the resulting canvas box, and window resizing/reorientation should update layout.
 - RenderView already renders 3D at independently configurable resolution before drawing UI; this branch does not alter it.
 
@@ -19,6 +19,5 @@ Changes on this branch are intentionally **not deployed**. Ringfall's web deploy
 6. Check the browser build and static shell generation. Confirm build artifacts, no errors, and deployment remains unchanged.
 
 ## Known limitations
-- The shell's safe-area approach depends on SDL tracking the canvas CSS size correctly. Verify on real devices.
-- Fixed-width phone menu content may still require separate portrait-oriented .tcss layouts. Width-fit scaling prevents overflow but can make controls too small in portrait.
-- No automated mobile browser/device test was run from this environment.
+- The canvas must have an explicit CSS width and height: with `auto` and four insets a canvas keeps its pixel size and SDL falls back to a 1600×900 window (the October 2026 bug).
+- Emulated phones (Chromium, iPhone sizes, both orientations) have been checked screen by screen; real iOS and Android devices, notches and home indicators still need a pass.

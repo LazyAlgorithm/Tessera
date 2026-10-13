@@ -133,8 +133,9 @@ class RenderView
 	/// How much of the output's resolution the 3D scene is drawn at: below 1 it is drawn smaller and stretched to
 	/// fit, which costs much less on a phone's many pixels. The interface is drawn afterwards at full resolution.
 	public static float RenderScale = 1;
-	/// The most lines the 3D scene is drawn at, however tall the window (0: no limit). Phones have very sharp
-	/// screens and modest graphics chips: the scene is drawn at this and stretched, the interface stays sharp.
+	/// The most pixels the 3D scene is drawn at across the window's short side (its height held sideways, its width
+	/// held upright), however sharp the screen (0: no limit). Phones have very sharp screens and modest graphics
+	/// chips: the scene is drawn at this and scaled up, the interface stays sharp. The same either way up.
 	public static int32 MaxSceneHeight = 0;
 	/// Multisampled edges on the scene. Off saves a lot on phones.
 	public static bool Antialias = true;
@@ -218,7 +219,7 @@ class RenderView
 		let outHeight = Math.Max(height, 8);
 		var scale = Math.Clamp(RenderScale, 0.25f, 1.0f);
 		if (MaxSceneHeight > 0)
-			scale = Math.Max(Math.Min(scale, (float)MaxSceneHeight / outHeight), 0.25f);
+			scale = Math.Max(Math.Min(scale, (float)MaxSceneHeight / Math.Min(outWidth, outHeight)), 0.25f);
 		if (outWidth == mOutWidth && outHeight == mOutHeight && scale == mBuiltScale && Antialias == mBuiltAntialias && mSceneFb.Valid)
 			return;
 		ReleaseTargets();

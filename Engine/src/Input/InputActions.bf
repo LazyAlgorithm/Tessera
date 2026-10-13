@@ -661,7 +661,7 @@ static class InputActions
 						let moved = control.delta;
 						action.delta += Vector2(moved.x, binding.invert ? moved.y : -moved.y) * binding.scale;
 						amount = moved.LengthSquared > 0 ? 0.001f : 0;
-					case .Button:
+					case .Button, .Swipe:
 						if (control.value > Math.Abs(action.value))
 							action.value = control.value;
 						amount = control.value;
