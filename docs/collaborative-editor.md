@@ -121,3 +121,15 @@ Collaboration belongs to a **persistent project**, not an ephemeral host session
 - Handle stale collaboration branches, base-branch updates, conflicting Git commits, failed pushes, and offline peers before finalizing checkpoints. Ensure user approval for destructive history rewriting.
 
 Status: product and technical specification only; no working branch-sync implementation yet.
+
+## Two optional collaboration modes on the same persistent project
+
+**Default: asynchronous Git-style collaboration.** On project open, check upstream and collaboration-branch refs when online. Show incoming changes and offer a safe pull/rebase/merge after preserving uncommitted work; never overwrite local edits. Developers can work offline, commit locally, and push to their fork or authorized collaboration branch when ready. Provide status, changed-file diff, commit message, pull/push, conflict review, and pending PR. This requires no live peer or elected coordinator.
+
+**Opt-in: live P2P editing.** A user explicitly enables live editing for the same project/workstream. Peers exchange authenticated, operation-based edits, presence and cursors. Every accepted operation is journaled locally. Live mode can be stopped without discarding work; Git checkpoints are created from reconciled state, not separately replayed as duplicate changes.
+
+**Transitions:** Switching modes must flush durable local journals and reconcile outstanding operations before creating shared Git commits. While peers are offline or partitioned, local edits continue; avoid claiming they are synchronized. When live mode is off, no continuous P2P connection is required. The owner alone approves merges into protected main, independent of mode.
+
+**UI:** Project Collaboration panel shows branch, identity, local changes, remote updates, conflicts, Pull, Commit, Push, Review PR, and an optional Live Editing toggle. Opening a project must not silently push or merge; explicit consent is required for publishing changes.
+
+Status: specified only; UI and synchronization code remain unimplemented.
