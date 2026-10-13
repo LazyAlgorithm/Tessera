@@ -505,6 +505,10 @@ class UIDocumentData
 
 	Vector2 Measure(UIElement element, float availableWidth, float availableHeight)
 	{
+		// An element with a width of its own (pixels, or a percentage of the room it has) lays its contents out in
+		// that, not in all the room around it, so text in it wraps where it will be drawn.
+		float ownWidth;
+		let contentWidth = element.Length("width", availableWidth, out ownWidth) ? ownWidth : availableWidth;
 		let padding = element.Edges("padding");
 		Vector2 content = .(0, 0);
 		if (IsTextTag(element.tag) && !element.text.IsEmpty)
@@ -512,7 +516,7 @@ class UIDocumentData
 			ImGui.PushFontSize(element.Number("font-size", 16));
 			// white-space: normal breaks the text into lines to fit its width (its own, or what there is).
 			let wraps = element.computed.Get("white-space") == "normal";
-			let wrapWidth = (element.computed.Has("width") ? element.Number("width") : availableWidth) - padding.x - padding.z;
+			let wrapWidth = contentWidth - padding.x - padding.z;
 			// Measured a little narrower than it is drawn: glyphs do not grow exactly in proportion with the scale, and a
 			// line that only just fit here must not break into one more line on screen than was made room for.
 			let size = wraps ? ImGui.CalcTextSizeWrapped(element.text.CStr(), wrapWidth * 0.96f) : ImGui.CalcTextSize(element.text.CStr());
@@ -533,9 +537,20 @@ class UIDocumentData
 		{
 			if (child.computed.Get("display") == "none" || !child.visible)
 				continue;
-			let size = Measure(child, availableWidth - padding.x - padding.z, availableHeight - padding.y - padding.w);
+			var childWidth = contentWidth - padding.x - padding.z;
 			if (child.computed.Get("position") == "absolute")
+			{
+				// Placed against this element's edges, not inside its padding (Arrange); pinned to both sides, as wide
+				// as what lies between them.
+				float left, right;
+				if (child.Length("left", contentWidth, out left) && child.Length("right", contentWidth, out right))
+					childWidth = Math.Max(contentWidth - left - right, 0);
+				else
+					childWidth = contentWidth;
+				Measure(child, childWidth, availableHeight);
 				continue;
+			}
+			let size = Measure(child, childWidth, availableHeight - padding.y - padding.w);
 			let margin = child.Edges("margin");
 			let outer = Vector2(size.x + margin.x + margin.z, size.y + margin.y + margin.w);
 			main += row ? outer.x : outer.y;
