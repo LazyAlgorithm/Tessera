@@ -140,6 +140,17 @@ class MeshRenderer : Component
 		set { mRuntimeMesh = value; }
 	}
 
+	/// One of several meshes a renderer draws, each with a material of its own (null: the renderer's own).
+	public class Part
+	{
+		public Mesh mesh;
+		public Tessera.Material material;
+	}
+	/// Set from code (a Skinned Mesh Renderer whose model has several materials): drawn in place of the renderer's
+	/// mesh, each part with its own material. The renderer's color still tints all of them. Null or empty: the
+	/// renderer draws its one mesh as usual.
+	public List<Part> RuntimeParts;
+
 	public Mesh ActiveMesh
 	{
 		get

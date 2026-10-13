@@ -57,11 +57,12 @@ Work agreed and queued, in order (see *How to use this page* above for what "don
   Casts Shadows (Inspector, `[Layer]` drop-down), its own render pass over the world, an amber gizmo frustum,
   `docs/viewmodel.md`, `Tests/Viewmodel`. Networking: none needed (local camera only). Ringfall uses it.
   Website: Manual > First-person viewmodel.
-- [~] E7 materials on skinned meshes. Plan: the glTF loader reports each primitive's whole material (base colour,
-  metallic-roughness, normal, occlusion and emissive textures, alpha mode, double-sided, name) and decodes embedded
-  images; the engine makes runtime textures for them under paths like `Models/hero.glb#image2` and a runtime
-  Material per glTF material; a skinned model keeps one part per material, drawn as separate render items each with
-  its own material (the model's own by default, or a `.tmat` per part set in the Inspector).
+- [x] E7 materials on skinned meshes (2026-10-13, `dev`): the glTF loader reads each material whole and decodes
+  its images (in a .glb, data: addresses, files beside it); a rigged model with several materials or textures is
+  drawn in parts sharing one skinned vertex buffer (`Mesh.VertexSource`, `MeshRenderer.RuntimeParts`), each with
+  the file's material or a `.tmat` per part (Inspector list, `SetPartMaterial`, networked). `docs/skinned-materials.md`,
+  `Tests/SkinnedMaterials` (with a model generator). Website: Manual > Materials on skinned meshes.
+  Not yet: static (unrigged) models still take one material from their Mesh Renderer; the same parts would do it.
 - [x] E6b viewmodel pose (2026-10-13, `dev`): the Viewmodel Pose component (hip and aim poses, aim speed, walk bob
   and sway from the camera's movement, steadier when aiming, recoil with `Kick`), Preview slider and "Use current
   place as Hip / Aim" buttons in the Inspector, `docs/viewmodel.md`, `Tests/Viewmodel`. Networking: none needed.

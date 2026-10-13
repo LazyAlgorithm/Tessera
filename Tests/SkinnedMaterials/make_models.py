@@ -52,7 +52,7 @@ def build(name, image_style):
     ibm = accessor("<16f", [(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1), (1,0,0,0, 0,1,0,0, 0,0,1,0, 0,-1,0,1)], "MAT4", 5126)
 
     images = []
-    for i, data in enumerate([RED, FLAT_NORMAL, GREEN]):
+    for i, data in enumerate([] if image_style == "none" else [RED, FLAT_NORMAL, GREEN]):
         if image_style == "embedded":
             images.append({"bufferView": add(data), "mimeType": "image/png"})
         elif image_style == "datauri":
@@ -70,14 +70,13 @@ def build(name, image_style):
         "skins": [{"joints": [0, 1], "inverseBindMatrices": ibm}],
         "meshes": [{"primitives": [
             {"attributes": {"POSITION": pos, "NORMAL": nor, "TEXCOORD_0": uv, "JOINTS_0": jnt, "WEIGHTS_0": wgt}, "indices": idx[0], "material": 0},
-            {"attributes": {"POSITION": pos, "NORMAL": nor, "TEXCOORD_0": uv, "JOINTS_0": jnt, "WEIGHTS_0": wgt}, "indices": idx[1], "material": 1}]}],
-        "materials": [
+            {"attributes": {"POSITION": pos, "NORMAL": nor, "TEXCOORD_0": uv, "JOINTS_0": jnt, "WEIGHTS_0": wgt}, "indices": idx[1], "material": 0 if image_style == "none" else 1}]}],
+        "materials": [{"name": "Plain", "pbrMetallicRoughness": {"baseColorFactor": [0.5, 0.5, 0.5, 1]}}] if image_style == "none" else [
             {"name": "Skin", "pbrMetallicRoughness": {"baseColorFactor": [1, 0.9, 0.8, 1], "baseColorTexture": {"index": 0}, "metallicFactor": 0.1, "roughnessFactor": 0.7},
              "normalTexture": {"index": 1, "scale": 0.5}},
             {"name": "Armour", "pbrMetallicRoughness": {"metallicFactor": 0.9, "roughnessFactor": 0.3, "baseColorTexture": {"index": 2}},
              "emissiveFactor": [0.2, 0, 0], "alphaMode": "MASK", "alphaCutoff": 0.4, "doubleSided": True}],
-        "textures": [{"source": 0}, {"source": 1}, {"source": 2}],
-        "images": images,
+        **({} if image_style == "none" else {"textures": [{"source": 0}, {"source": 1}, {"source": 2}], "images": images}),
         "accessors": accessors, "bufferViews": views, "buffers": [{"byteLength": len(blob)}],
         "animations": [{"name": "Wave", "channels": [{"sampler": 0, "target": {"node": 1, "path": "rotation"}}],
                         "samplers": [{"input": accessor("<f", [(0,), (1,)], "SCALAR", 5126, {"min": [0], "max": [1]}), "output": accessor("<4f", [(0, 0, 0, 1), (0, 0, 0.383, 0.924)], "VEC4", 5126)}]}],
@@ -93,4 +92,5 @@ os.makedirs(HERE, exist_ok=True)
 build("embedded", "embedded")
 build("datauri", "datauri")
 build("beside", "file")
+build("plain", "none")
 print("Wrote", sorted(os.listdir(HERE)))

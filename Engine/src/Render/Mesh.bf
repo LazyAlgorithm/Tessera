@@ -18,9 +18,29 @@ class Mesh
 	int32 mUploadedVertexCount;
 	bgfx.DynamicVertexBufferHandle mDynamicBuffer = .() { idx = uint16.MaxValue };
 
+	/// Another mesh whose vertices this one draws, with indices of its own: one part of a model that has several
+	/// materials (a skinned character's skin, cloth and armour), sharing the vertices the model updates each frame.
+	/// Give it its Indices and call UploadIndices; keep its Bounds in step with the source's.
+	public Mesh VertexSource;
+
 	/// True for meshes whose vertices are rewritten every frame (skinned characters).
-	public bool IsDynamic => mDynamicBuffer.Valid;
-	public bgfx.DynamicVertexBufferHandle DynamicBuffer => mDynamicBuffer;
+	public bool IsDynamic => VertexSource != null ? VertexSource.IsDynamic : mDynamicBuffer.Valid;
+	public bgfx.DynamicVertexBufferHandle DynamicBuffer => VertexSource != null ? VertexSource.DynamicBuffer : mDynamicBuffer;
+
+	/// For a part (VertexSource): sends its own indices to the GPU.
+	public void UploadIndices()
+	{
+		if (mIndexBuffer.Valid && Gfx.Initialized)
+			bgfx.destroy_index_buffer(mIndexBuffer);
+		mIndexBuffer.idx = uint16.MaxValue;
+		mUploadedIndexCount = 0;
+		if (VertexSource != null)
+			Bounds = VertexSource.Bounds;
+		if (Indices.Count == 0 || !Gfx.Initialized)
+			return;
+		mIndexBuffer = bgfx.create_index_buffer(bgfx.copy(Indices.Ptr, (uint32)(Indices.Count * 4)), 0x1000);
+		mUploadedIndexCount = (int32)Indices.Count;
+	}
 
 	/// Creates GPU buffers that UpdateDynamic can refill. The vertex count must stay the same afterwards.
 	public void UploadDynamic()
@@ -48,11 +68,11 @@ class Mesh
 		ReleaseGpu();
 	}
 
-	public bool HasGpuData => (mVertexBuffer.Valid || mDynamicBuffer.Valid) && mIndexBuffer.Valid;
-	public bgfx.VertexBufferHandle VertexBuffer => mVertexBuffer;
+	public bool HasGpuData => (VertexSource != null ? (VertexSource.mVertexBuffer.Valid || VertexSource.mDynamicBuffer.Valid) : (mVertexBuffer.Valid || mDynamicBuffer.Valid)) && mIndexBuffer.Valid;
+	public bgfx.VertexBufferHandle VertexBuffer => VertexSource != null ? VertexSource.VertexBuffer : mVertexBuffer;
 	public bgfx.IndexBufferHandle IndexBuffer => mIndexBuffer;
 	public int32 IndexCount => mUploadedIndexCount;
-	public int32 VertexCount => mUploadedVertexCount;
+	public int32 VertexCount => VertexSource != null ? VertexSource.VertexCount : mUploadedVertexCount;
 
 	public void Clear()
 	{

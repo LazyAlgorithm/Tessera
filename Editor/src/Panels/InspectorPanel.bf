@@ -251,6 +251,7 @@ extension EditorApp
 					if (skinned.Model != null)
 					{
 						ImGui.TextDisabled(scope String()..AppendF("{} bones, {} clips", skinned.Model.Joints.Count, skinned.Model.Clips.Count).CStr());
+						DrawSkinnedParts(skinned);
 						for (let animation in skinned.Model.Clips)
 						{
 							if (ImGui.Selectable(animation.name.CStr(), skinned.CurrentClip == animation.name))

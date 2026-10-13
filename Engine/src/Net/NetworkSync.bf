@@ -430,7 +430,9 @@ static class NetworkSync
 		let name = scope String();
 		reader.ReadString(name);
 		let value = reader.Read<Vector4>();
-		if (!reader.Ok || renderer == null || kind > 1 || name.Length > 200 || !value.x.IsFinite || !value.y.IsFinite || !value.z.IsFinite || !value.w.IsFinite)
+		// kind 0: the renderer's material; 1: one of its material's values; 2: a skinned model's part's material
+		// (value.x is the part).
+		if (!reader.Ok || renderer == null || kind > 2 || name.Length > 200 || !value.x.IsFinite || !value.y.IsFinite || !value.z.IsFinite || !value.w.IsFinite)
 			return;
 		if (network.IsServer)
 		{
@@ -448,8 +450,10 @@ static class NetworkSync
 		sApplying = true;
 		if (kind == 0)
 			renderer.SetMaterial(name);
-		else
+		else if (kind == 1)
 			renderer.SetMaterialValue(name, value);
+		else
+			renderer.GameObject.GetComponent<SkinnedMeshRenderer>()?.SetPartMaterial((int)value.x, name);
 		sApplying = wasApplying;
 	}
 

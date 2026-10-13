@@ -117,6 +117,8 @@ class RenderView
 		public uint64 key;
 		public Mesh mesh;
 		public MeshRenderer renderer;
+		/// The material this item is drawn with: a part's own (MeshRenderer.RuntimeParts) or the renderer's.
+		public Material material;
 		public Matrix4 world;
 		public Vector3 center;
 		public float radius;
@@ -342,40 +344,47 @@ class RenderView
 			// Outside the scene's world state: not drawn and casts no shadow.
 			if (!renderer.IsActiveAndEnabled || !renderer.GameObject.InActiveWorld)
 				continue;
-			let mesh = renderer.ActiveMesh;
-			if (mesh == null || !mesh.HasGpuData)
-				continue;
-			RenderItem item;
-			item.mesh = mesh;
-			item.renderer = renderer;
-			item.world = renderer.Transform.LocalToWorld;
-			item.world.m[12] += renderer.VisualOffset.x;
-			item.world.m[13] += renderer.VisualOffset.y;
-			item.world.m[14] += renderer.VisualOffset.z;
-			let bounds = mesh.Bounds.Transformed(item.world);
-			item.center = bounds.Center;
-			item.radius = bounds.Extents.Length;
-			item.key = MakeKey(renderer, mesh);
-			// A color alpha below 1, or a Transparent material, makes the object see-through: it is drawn after
-			// everything solid, blended, and (being glass-like) does not cast a shadow.
-			let itemMaterial = renderer.ActiveMaterial;
-			let transparent = itemMaterial != null ? (itemMaterial.IsTransparent || (itemMaterial.blend == .Opaque && renderer.color.a * itemMaterial.color.a < 0.999f)) : renderer.color.a < 0.999f;
-			// The viewmodel: drawn in a pass of its own after the world (no culling: it is a few things at the eye).
-			let viewmodel = DrawsAsViewmodel(camera, renderer.GameObject);
-			if (viewmodel)
+			// A renderer with parts draws each with its own material; otherwise its one mesh (a "part" of its own).
+			let parts = renderer.RuntimeParts;
+			let partCount = (parts != null && parts.Count > 0) ? parts.Count : 1;
+			for (int partIndex < partCount)
 			{
-				if (!renderer.shadowOnly)
-					(transparent ? mViewmodelTransparent : mViewmodelItems).Add(item);
+				let mesh = parts != null && parts.Count > 0 ? parts[partIndex].mesh : renderer.ActiveMesh;
+				if (mesh == null || !mesh.HasGpuData)
+					continue;
+				RenderItem item;
+				item.mesh = mesh;
+				item.renderer = renderer;
+				item.material = (parts != null && parts.Count > 0 && parts[partIndex].material != null) ? parts[partIndex].material : renderer.ActiveMaterial;
+				item.world = renderer.Transform.LocalToWorld;
+				item.world.m[12] += renderer.VisualOffset.x;
+				item.world.m[13] += renderer.VisualOffset.y;
+				item.world.m[14] += renderer.VisualOffset.z;
+				let bounds = mesh.Bounds.Transformed(item.world);
+				item.center = bounds.Center;
+				item.radius = bounds.Extents.Length;
+				item.key = MakeKey(renderer, mesh, item.material);
+				// A color alpha below 1, or a Transparent material, makes the object see-through: it is drawn after
+				// everything solid, blended, and (being glass-like) does not cast a shadow.
+				let itemMaterial = item.material;
+				let transparent = itemMaterial != null ? (itemMaterial.IsTransparent || (itemMaterial.blend == .Opaque && renderer.color.a * itemMaterial.color.a < 0.999f)) : renderer.color.a < 0.999f;
+				// The viewmodel: drawn in a pass of its own after the world (no culling: it is a few things at the eye).
+				let viewmodel = DrawsAsViewmodel(camera, renderer.GameObject);
+				if (viewmodel)
+				{
+					if (!renderer.shadowOnly)
+						(transparent ? mViewmodelTransparent : mViewmodelItems).Add(item);
+				}
+				else if (!renderer.shadowOnly && frustum.Intersects(bounds))
+				{
+					if (transparent)
+						mTransparentItems.Add(item);
+					else
+						mItems.Add(item);
+				}
+				if (!transparent && castShadows && renderer.castShadows && (!viewmodel || camera.viewmodelCastsShadows) && (item.center - camera.position).Length - item.radius < shadowRange)
+					mShadowItems.Add(item);
 			}
-			else if (!renderer.shadowOnly && frustum.Intersects(bounds))
-			{
-				if (transparent)
-					mTransparentItems.Add(item);
-				else
-					mItems.Add(item);
-			}
-			if (!transparent && castShadows && renderer.castShadows && (!viewmodel || camera.viewmodelCastsShadows) && (item.center - camera.position).Length - item.radius < shadowRange)
-				mShadowItems.Add(item);
 		}
 		VisibleRenderers = (int32)(mItems.Count + mViewmodelItems.Count);
 		mItems.Sort(scope (a, b) => a.key <=> b.key);
@@ -502,11 +511,11 @@ class RenderView
 	/// Whether an object is drawn in the viewmodel pass for this camera (Camera.viewmodelLayer) rather than with the world.
 	public static bool DrawsAsViewmodel(CameraData camera, GameObject gameObject) => camera.hasViewmodel && gameObject != null && gameObject.Layer == camera.viewmodelLayer;
 
-	static uint64 MakeKey(MeshRenderer renderer, Mesh mesh)
+	static uint64 MakeKey(MeshRenderer renderer, Mesh mesh, Material material)
 	{
 		uint64 key = (uint64)(int)Internal.UnsafeCastToPtr(mesh);
 		// With a material, the material is what draws differ by.
-		let shared = renderer.ActiveMaterial;
+		let shared = material;
 		key = key * 1099511628211 ^ (uint64)renderer.TextureOverride.idx;
 		if (shared != null)
 		{
@@ -690,7 +699,7 @@ class RenderView
 			let item = items[start + i];
 			data[i].world = item.world;
 			data[i].color = item.renderer.color;
-			let tint = item.renderer.ActiveMaterial;
+			let tint = item.material;
 			if (tint != null)
 				data[i].color = .(data[i].color.r * tint.color.r, data[i].color.g * tint.color.g, data[i].color.b * tint.color.b, data[i].color.a * tint.color.a);
 		}
@@ -713,8 +722,8 @@ class RenderView
 
 		let renderer = first.renderer;
 		SetFrameUniforms();
-		// A material, when the renderer has one, replaces the renderer's own surface settings.
-		let shared = renderer.ActiveMaterial;
+		// A material, when the renderer (or this part) has one, replaces the renderer's own surface settings.
+		let shared = first.material;
 		Vector4 material = .(renderer.metallic, renderer.roughness, renderer.flatShading ? 1 : 0, renderer.unlit ? 1 : 0);
 		var emissive = Linear(renderer.emissive, renderer.emissiveIntensity);
 		Vector4 uvTransform = .(1, 1, 0, 0);
