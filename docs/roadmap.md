@@ -13,9 +13,9 @@ it. Every engine feature is only done when it has:
   so either way);
 - a `Tests/` fixture, a line in the README feature list, and compatibility with existing scene and project files.
 
-The website (`website/`, kept on the developer's machine, not in this repository) builds its documentation pages
-from the README and `docs/`; a new page also needs a line in `website/content/manifest.php`, given with each item
-below, and then `website/update.sh`.
+The website is the GitHub Pages site on this repository's `gh-pages` branch (one page, `index.html`). Its **Manual**
+documents each feature in a section of its own (an `h2` with an id, linked from the Manual's sidebar; the site's
+search picks it up). A feature on `dev` but not yet in `main` says so in its section.
 
 ## Done
 
@@ -32,8 +32,7 @@ below, and then `website/update.sh`.
   screen's short side, dimmed buttons, sticks hidden until used, flicks (`AddSwipe`), phone 3D resolution by the
   short side. Ringfall: portrait and landscape layouts for every phone screen and the HUD, buttons-only touch
   controls around FIRE, mantling per input type. Docs: `responsive-ui-design.md`, `input.md` (touch), Ringfall's
-  `mobile-controls-v2.md`. Website line for the new page:
-  `['slug' => 'responsive-ui', 'title' => 'Responsive interfaces', 'category' => 'Engine', 'file' => '../docs/responsive-ui-design.md', 'summary' => 'Interfaces that fit phones and desktops held either way: @media rules, design sizes and the web canvas.'],`
+  `mobile-controls-v2.md`. Website: Manual > Touch screens, Phones and tablets.
 - **Tessera Hub** (github.com/LazyAlgorithm/tessera-hub): installs, updates and starts Ringfall and the engine,
   checks for and installs the tools they need after asking, beta badges and a beta-builds setting, and updates
   itself. Linux and Windows builds are on its Releases page. Tested on Linux: browsing, the tools dialog, installing
@@ -57,8 +56,14 @@ Work agreed and queued, in order (see *How to use this page* above for what "don
 - [x] E6 first-person viewmodel layer (2026-10-13, `dev`): Camera's Viewmodel Layer / Field Of View / Near Clip /
   Casts Shadows (Inspector, `[Layer]` drop-down), its own render pass over the world, an amber gizmo frustum,
   `docs/viewmodel.md`, `Tests/Viewmodel`. Networking: none needed (local camera only). Ringfall uses it.
-  Website line: `['slug' => 'viewmodel', 'title' => 'First-person viewmodel', 'category' => 'Engine', 'file' => '../docs/viewmodel.md', 'summary' => 'A player\'s arms and weapon drawn over the world with their own field of view, never through walls.'],`
-- [ ] E7 materials on skinned meshes
+  Website: Manual > First-person viewmodel.
+- [~] E7 materials on skinned meshes. Plan: the glTF loader reports each primitive's whole material (base colour,
+  metallic-roughness, normal, occlusion and emissive textures, alpha mode, double-sided, name) and decodes embedded
+  images; the engine makes runtime textures for them under paths like `Models/hero.glb#image2` and a runtime
+  Material per glTF material; a skinned model keeps one part per material, drawn as separate render items each with
+  its own material (the model's own by default, or a `.tmat` per part set in the Inspector).
+- [ ] E6b viewmodel pose: a component with hip and aim poses (aiming brings the weapon to the middle of the
+  screen), blend speed, walk bob and sway, set in the Inspector
 - [ ] E10 post-processing: ambient occlusion, depth of field, motion blur, colour grading
 - [ ] E9 async scene and asset loading
 - [ ] E4 animation layers and blend trees
