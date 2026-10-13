@@ -2,7 +2,7 @@
 
 Tessera is developed on Linux, and builds Windows games, and a Windows copy of the editor, from there. No Windows machine is needed to build.
 
-**How far it has been tested.** The Windows builds are made on Linux and run there under Wine: a packaged game starts, draws with Vulkan, plays a match and joins a server running the Linux build; the launcher and editor start, open a project, show its interface documents and play it. None of it has been run on a real Windows machine yet, so expect to find things on the first try there.
+**How far it has been tested.** The Windows builds are made on Linux and run there under Wine: a packaged game starts, draws with Vulkan, plays a match and joins a server running the Linux build; the launcher and editor start, open a project, show its interface documents and play it. A built game has also been run on a Windows machine. The launcher and editor have not been run on one yet, so expect to find things on the first try there.
 
 ## Setting up, once
 

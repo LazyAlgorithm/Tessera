@@ -107,9 +107,7 @@ static class EditorMain
 		let template = scope String();
 		File.ReadAllText(scope $"{project.Path}/.template", template).IgnoreError();
 		template.Trim();
-		if (template == "scrap")
-			SceneTemplates.BuildScrap(scene, project.Name);
-		else if (template == "sample")
+		if (template == "sample")
 			SceneTemplates.BuildSample(scene, project.Name);
 		else
 			SceneTemplates.BuildDefault(scene);

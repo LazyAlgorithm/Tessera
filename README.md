@@ -97,7 +97,7 @@ Supported field types: `float`, `int32`, `bool`, `Vector2`, `Vector3`, `Quaterni
 - **Mouse lock**: `Input.LockCursor = true` keeps the mouse inside the window and hides the pointer while the mouse steers the view; `Input.MouseDelta` goes on reporting movement. Set it false while a menu is open. While it is locked, menus and editor panels are not sent the mouse or the keyboard, so nothing under the hidden pointer is hovered or clicked. It is released when play stops, and `Input.CursorLocked` says whether it has really taken hold.
 - **Game UI**: override `OnGUI` and use `GUI.Label`, `GUI.Button`, `GUI.Bar`, `GUI.Box`, `GUI.Toggle`, `GUI.Slider`.
 - **Prefabs**: right-click an object > Save as Prefab, then drag the `.tprefab` into a scene, double-click it to open it alone for editing (a bar in the Hierarchy has Save, Revert and Back to Scene; the scene waits as you left it; the editor switches to the Scene view, where its own camera flies round the prefab, since a prefab has no camera for the Game view), or call `Prefab.Instantiate(scene, "path.tprefab", position, rotation)`. `NetworkManager.RegisterPrefabFile` spawns one over the network.
-- **Game messages**: `NetworkManager.RegisterMessage` plus `SendToServer` / `SendToAll` / `SendToClient` carry reliable game events (the building sample uses them for placing parts and taking seats); `SetOwner` hands an object to a client.
+- **Game messages**: `NetworkManager.RegisterMessage` plus `SendToServer` / `SendToAll` / `SendToClient` carry reliable game events; `SetOwner` hands an object to a client.
 - **Multiplayer, built in and optional**: with a `NetworkSession` in the scene, physics bodies, character controllers, AI, voxel edits, animation, prefab spawning and `[Sync]` fields are shared with no extra code, over UDP or Steam; without one nothing changes. Write a player by deriving from `NetworkScript` and filling in one tick. See `docs/networking.md`.
 - **Input actions and controllers**: the game asks for "Jump" or "Move" and the project's `Input.tinput` (Window > Input Actions) says which keys, mouse buttons and controller buttons mean it, so one script works from keyboard and mouse and from any controller. Xbox, PlayStation and Switch pads work with no set-up, with rumble and the right button names; UI documents are worked with the d-pad and a button; `NetworkScript` players use a controller with no code. See `docs/input.md`.
 - **Anti-cheat** (optional): on top of networking in which the server moves every player and decides what matters, a Project Settings switch adds watching for invalid controls, speed hacks, message floods, changed game files, debuggers, injected libraries, edited memory (`GuardedInt`) and automated aim, with logging, removal and bans. It runs inside the game, not in the kernel; `docs/anti-cheat.md` says what that means.
@@ -198,7 +198,7 @@ The Project window shows the project's `Assets` folder (on disk: `src/`). Script
 
 Libraries: put a Beef library folder in the project's `Libraries/` folder, or use File > Project Settings to download one from a Git address, reference a folder, or add linker flags for C libraries.
 
-Samples: `Samples/Sandbox` (voxel world, networking) and `Samples/ScrapYard` (block-built vehicles with wheels, thrusters and seats, a main menu, and multiplayer where the server owns every creation; create your own with the launcher's "Vehicle building game" option). `tools/make_scrap_assets.py` regenerates that game's sample models.
+Sample: `Samples/Sandbox` (voxel world, networking).
 
 ## Layout
 
@@ -254,7 +254,7 @@ Each type has its own file, or shares one with the small types that only it uses
 - **The editor, for another machine:** File > Build... with Build set to Editor, or `tools/package_engine.sh --platform linux|windows --folder <folder>`: a folder with the launcher, the engine and editor source, the native libraries and the tools.
 - **The engine:** `tools/package_engine.sh [folder]` packs a built copy (launcher, engine and editor source, prebuilt native libraries, samples, tools, docs) into one archive for another Linux x64 machine. That machine needs the Beef toolchain, because each project compiles its scripts with the engine, and Python 3.11+ for Build Game. A project that names an engine folder which is not there finds the engine again by itself.
 - **Licences:** `tools/make_licenses.py` gathers the licence of every bundled library into `THIRD_PARTY_LICENSES.txt`; `build.sh` runs it, and every packaged game gets a copy.
-- **Windows:** games and the editor are built for Windows from Linux, after a one-time `tools/windows/setup.sh`; see `docs/windows.md`. Checked under Wine, not yet on a Windows machine.
+- **Windows:** games and the editor are built for Windows from Linux, after a one-time `tools/windows/setup.sh`; see `docs/windows.md`. Built games run on Windows machines; the editor has been checked under Wine only.
 
 ### Website
 
@@ -267,7 +267,7 @@ Developed and tested on Linux x64 with Vulkan. Windows x64 builds (games and the
 ## Known limits
 
 - The OpenGL backend crashes at startup on NVIDIA drivers under a Wayland desktop (inside the driver's EGL layer); Vulkan is the working backend on Linux.
-- Windows builds have been run under Wine only, and use Vulkan only (no Direct3D shaders). `docs/windows.md` lists what is not done.
+- The Windows editor has been run under Wine only (built games run on Windows machines), and Windows uses Vulkan only (no Direct3D shaders). `docs/windows.md` lists what is not done.
 - Audio occlusion is a single ray and there are no computed reflections; see `docs/audio.md`.
 - Objects already placed from a prefab are copies: editing the prefab changes what is placed from then on, not what is already in a scene.
 - Materials have no environment maps (metals mirror the sky and ground colours), and shadows ignore a shader's vertex movement and cutouts; see `docs/materials.md`.
@@ -278,6 +278,5 @@ Developed and tested on Linux x64 with Vulkan. Windows x64 builds (games and the
 - Voxel terrain has no level of detail, and smoothing can leave hairline seams at chunk borders.
 - Network: a client does not predict physics objects it does not own (they move when the server says so), and there is no encryption or NAT traversal of the engine's own (the Steam transport provides both).
 - Joints are ball joints with an optional swing limit; there are no hinges, sliders, springs or motors, and a hard knock can push a limb a little past its limit. Vehicle wheels are simulated with suspension rays.
-- In the vehicle building sample, a creation never splits in two when the part joining two halves is removed.
 - Script completion works out a variable's type from its declaration or assignment on one line; it does not follow chains (`a.b.`) or infer from method return types.
 - Built games still link the editor code.
