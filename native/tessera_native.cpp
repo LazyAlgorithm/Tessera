@@ -200,6 +200,12 @@ TN_API void tn_gfx_screenshot(const char* path)
 	bgfx::requestScreenShot(BGFX_INVALID_HANDLE, path);
 }
 
+// Saves RGBA pixels (4 bytes a pixel, rows top to bottom) as a PNG file. True when it was written.
+TN_API bool tn_image_write_png(const char* path, const uint8_t* pixels, int width, int height)
+{
+	return stbi_write_png(path, width, height, 4, pixels, width * 4) != 0;
+}
+
 // ------------------------------------------------------------------------------------------
 // Dear ImGui backend
 // ------------------------------------------------------------------------------------------

@@ -101,6 +101,9 @@ class EditorApp : Application
         InitializeScriptReload();
 		mSceneView = new RenderView(10);
 		mSceneView.DrawGizmos = true;
+		// Depth of field and motion blur get in the way of editing (Scene Settings > Screen Effects can show them).
+		mSceneView.ShowDepthOfField = false;
+		mSceneView.ShowMotionBlur = false;
 		mGameView = new RenderView(30);
 		ProjectConfig.Load();
 		mScene = new Scene();

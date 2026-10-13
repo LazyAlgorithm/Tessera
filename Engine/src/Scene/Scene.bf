@@ -22,6 +22,82 @@ class SceneEnvironment
 	/// only emissive and over-bright things bloom.
 	public float bloomThreshold = 1.0f;
 	public float shadowDistance = 120.0f;
+
+	// ---- Screen effects (docs/post-processing.md). All off by default; colour grading's defaults leave the picture
+	// as it always was. ----
+
+	/// Ambient occlusion: darkens creases, corners and where things meet the ground. 0 is off; 1 is normal; up to 2.
+	public float ambientOcclusion = 0;
+	/// How far around each point, in metres, is looked at for what hides it from the open air.
+	public float occlusionRadius = 0.6f;
+
+	/// Depth of field: blurs what is nearer or further than the focus. 0 is off; 1 is the largest blur, a circle 3% of
+	/// the screen's height across (its radius is DepthOfFieldReach); up to 2.
+	public float depthOfField = 0;
+	/// The distance, in metres from the camera, that is sharp.
+	public float focusDistance = 10;
+	/// How deep the sharp band around the focus is, in metres: sharp within half of it either side, fully blurred a
+	/// whole range beyond that.
+	public float focusRange = 8;
+	/// Focus on whatever is in the middle of the screen instead of Focus Distance.
+	public bool autoFocus;
+
+	/// Camera motion blur: a smear along the way the picture moves when the camera turns or moves. 0 is off; 0.5 is
+	/// like a film camera; 1 is the whole movement of a frame. The viewmodel is never blurred.
+	public float motionBlur = 0;
+
+	/// Colour grading, applied with the tonemapping. Contrast and saturation: 1 leaves the picture alone.
+	public float contrast = 1;
+	public float saturation = 1.05f;
+	/// White balance: above 0 warmer (more orange), below 0 cooler (more blue). -1 to 1.
+	public float temperature = 0;
+	/// Above 0 towards magenta, below 0 towards green. -1 to 1.
+	public float tint = 0;
+	/// Multiplies the light of the whole picture: a coloured filter on the lens.
+	public Color colorFilter = .(1, 1, 1);
+	/// Darkening towards the corners.
+	public float vignette = 0.35f;
+	/// A colour lookup table image (a strip of squares, made with the editor's Make Neutral Lookup Table and
+	/// recoloured in any image editor), or empty for none.
+	public String colorLookup = new .() ~ delete _;
+	/// How much of the lookup table is used: 0 none, 1 all of it.
+	public float colorLookupStrength = 1;
+
+	/// The radius of the depth of field's largest blur as a share of the screen's height, at Depth Of Field 1.
+	public const float DepthOfFieldReach = 0.015f;
+
+	/// Whether the scene needs the depth pass (ambient occlusion, depth of field or motion blur).
+	public bool UsesDepthEffects => ambientOcclusion > 0.001f || depthOfField > 0.001f || motionBlur > 0.001f;
+
+	/// How blurred something at `depth` metres is, 0 (sharp) to 1, with the focus at `focus` metres: the shader's sum.
+	public float BlurAmount(float depth, float focus)
+	{
+		if (depth < 0)
+			return 0;
+		let range = Math.Max(focusRange, 0.01f);
+		return Math.Clamp((Math.Abs(depth - focus) - range * 0.5f) / range, 0.0f, 1.0f);
+	}
+
+	/// Puts every setting back to how a new scene has it.
+	public void Reset()
+	{
+		let fresh = scope SceneEnvironment();
+		CopyFrom(fresh);
+	}
+
+	public void CopyFrom(SceneEnvironment other)
+	{
+		skyZenith = other.skyZenith; skyHorizon = other.skyHorizon; skyGround = other.skyGround;
+		ambientSky = other.ambientSky; ambientGround = other.ambientGround; ambientIntensity = other.ambientIntensity;
+		fogColor = other.fogColor; fogDensity = other.fogDensity; exposure = other.exposure;
+		bloom = other.bloom; bloomThreshold = other.bloomThreshold; shadowDistance = other.shadowDistance;
+		ambientOcclusion = other.ambientOcclusion; occlusionRadius = other.occlusionRadius;
+		depthOfField = other.depthOfField; focusDistance = other.focusDistance; focusRange = other.focusRange; autoFocus = other.autoFocus;
+		motionBlur = other.motionBlur;
+		contrast = other.contrast; saturation = other.saturation; temperature = other.temperature; tint = other.tint;
+		colorFilter = other.colorFilter; vignette = other.vignette;
+		colorLookup.Set(other.colorLookup); colorLookupStrength = other.colorLookupStrength;
+	}
 }
 
 /// A hierarchy of GameObjects plus the per-scene systems (rendering lists, physics).

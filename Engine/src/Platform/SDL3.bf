@@ -116,6 +116,7 @@ static class Native
 
 	[CLink] public static extern uint8* tn_image_load(char8* path, int32* width, int32* height);
 	[CLink] public static extern void tn_image_free(uint8* pixels);
+	[CLink] public static extern bool tn_image_write_png(char8* path, uint8* pixels, int32 width, int32 height);
 
 	[CRepr]
 	public struct GltfPrim
