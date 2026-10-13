@@ -84,12 +84,15 @@ class UIDocument : Component
 		Assets.ResolvePath(document, path);
 		if (!Variant.IsEmpty)
 		{
-			// UI/lobby.tui -> UI/phone/lobby.tui
-			let slash = Math.Max(path.LastIndexOf('/'), path.LastIndexOf('\\'));
+			// Build the variant as an asset-relative path first, then resolve it.
+			// The resolved base path may be a physical project path or a packed asset path.
+			let slash = Math.Max(document.LastIndexOf('/'), document.LastIndexOf('\\'));
+			let variantAsset = scope String();
+			variantAsset.Append(document, 0, slash + 1);
+			variantAsset.AppendF("{}/", Variant);
+			variantAsset.Append(document, slash + 1);
 			let variantPath = scope String();
-			variantPath.Append(path, 0, slash + 1);
-			variantPath.AppendF("{}/", Variant);
-			variantPath.Append(path, slash + 1);
+			Assets.ResolvePath(variantAsset, variantPath);
 			if (AssetPack.Exists(variantPath))
 			{
 				path.Set(variantPath);
