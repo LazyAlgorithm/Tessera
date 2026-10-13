@@ -9,6 +9,8 @@ it. Every engine feature is only done when it has:
 
 - a way to adjust it in the editor (Inspector fields, a window or a tool), wherever that makes sense;
 - a `docs/` page (or a README section), which is what the project website shows;
+- networking, where the feature has anything that must be the same on every machine (and a note in its page saying
+  so either way);
 - a `Tests/` fixture, a line in the README feature list, and compatibility with existing scene and project files.
 
 The website (`website/`, kept on the developer's machine, not in this repository) builds its documentation pages
@@ -52,7 +54,10 @@ Work agreed and queued, in order (see *How to use this page* above for what "don
 
 ## Shatterline engine features (general-purpose first)
 
-- [ ] E6 first-person viewmodel layer
+- [x] E6 first-person viewmodel layer (2026-10-13, `dev`): Camera's Viewmodel Layer / Field Of View / Near Clip /
+  Casts Shadows (Inspector, `[Layer]` drop-down), its own render pass over the world, an amber gizmo frustum,
+  `docs/viewmodel.md`, `Tests/Viewmodel`. Networking: none needed (local camera only). Ringfall uses it.
+  Website line: `['slug' => 'viewmodel', 'title' => 'First-person viewmodel', 'category' => 'Engine', 'file' => '../docs/viewmodel.md', 'summary' => 'A player\'s arms and weapon drawn over the world with their own field of view, never through walls.'],`
 - [ ] E7 materials on skinned meshes
 - [ ] E10 post-processing: ambient occlusion, depth of field, motion blur, colour grading
 - [ ] E9 async scene and asset loading

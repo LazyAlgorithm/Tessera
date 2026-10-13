@@ -432,6 +432,8 @@ extension EditorApp
 				return ImGui.SliderFloat("##v", ref *(float*)field.ptr, field.rangeMin, field.rangeMax);
 			return ImGui.DragFloat("##v", ref *(float*)field.ptr, 0.02f);
 		case .Int:
+			if (field.isLayer && field.type == typeof(int32))
+				return DrawLayerChoice((int32*)field.ptr);
 			return DrawInteger(field);
 		case .Bool:
 			return ImGui.Checkbox("##v", ref *(bool*)field.ptr);

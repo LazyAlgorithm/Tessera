@@ -29,6 +29,11 @@ struct NonSerializedAttribute : Attribute
 {
 }
 
+/// Show an integer field as a choice of the project's layers (Project Settings), by name, with "None" for -1:
+///   [Layer] public int32 viewmodelLayer = -1;
+[AttributeUsage(.Field, .ReflectAttribute)]
+struct LayerAttribute : Attribute {}
+
 /// Show a numeric field as a slider.
 [AttributeUsage(.Field, .ReflectAttribute)]
 struct RangeAttribute : Attribute
