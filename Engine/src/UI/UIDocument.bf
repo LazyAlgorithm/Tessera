@@ -36,15 +36,20 @@ class UIDocument : Component
 	/// The referenceHeight a document read from its Variant is laid out for (0: the component's own). A phone
 	/// version laid out for a 600-line screen is drawn nearly twice as big as one laid out for 1080.
 	public static float VariantReferenceHeight = 0;
+	/// Optional width of a variant's design viewport. When set, the UI uses the smaller of the
+	/// width and height scales, so narrow portrait screens cannot enlarge a landscape menu
+	/// beyond the available horizontal space. Zero preserves the height-only behavior.
+	public static float VariantReferenceWidth = 0;
 	static int32 sVariantVersion;
 
 	/// Changes Variant; documents read themselves again from the right files.
-	public static void SetVariant(StringView variant, float referenceHeight)
+	public static void SetVariant(StringView variant, float referenceHeight, float referenceWidth = 0)
 	{
-		if (Variant == variant && VariantReferenceHeight == referenceHeight)
+		if (Variant == variant && VariantReferenceHeight == referenceHeight && VariantReferenceWidth == referenceWidth)
 			return;
 		Variant.Set(variant);
 		VariantReferenceHeight = referenceHeight;
+		VariantReferenceWidth = referenceWidth;
 		sVariantVersion++;
 	}
 
@@ -122,7 +127,10 @@ class UIDocument : Component
 		if (mData == null)
 			return;
 		let reference = (mFromVariant && VariantReferenceHeight > 0 && referenceHeight > 0) ? VariantReferenceHeight : referenceHeight;
-		let scale = (reference > 0 ? Math.Max(GUI.Height / reference, 0.1f) : 1.0f) * Math.Clamp(mUserScale, 0.25f, 4.0f);
+		var baseScale = reference > 0 ? Math.Max(GUI.Height / reference, 0.1f) : 1.0f;
+		if (mFromVariant && VariantReferenceWidth > 0 && referenceHeight > 0)
+			baseScale = Math.Min(baseScale, Math.Max(GUI.Width / VariantReferenceWidth, 0.1f));
+		let scale = baseScale * Math.Clamp(mUserScale, 0.25f, 4.0f);
 		mData.scale = scale;
 		mData.Layout(GUI.Width / scale, GUI.Height / scale);
 		mData.Draw(GUI.Origin, this, true);
