@@ -109,7 +109,9 @@ enum TouchControlKind
 	/// An area to drag across to turn the view: movement, like the mouse.
 	Look,
 	/// A round button: down while touched.
-	Button
+	Button,
+	/// A directional swipe observed on a look area; never captures a finger itself.
+	Swipe
 }
 
 /// One on-screen control. Its place is an anchor on the screen (0 to 1 each way: (1, 1) is the bottom right) plus an
@@ -131,6 +133,11 @@ class TouchControl
 	public bool visible = true;
 	/// A button drawn filled in, for a switch that is on.
 	public bool lit;
+	/// Swipe source control and direction (-1/0/1 on each axis).
+	public String swipeSource = new .() ~ delete _;
+	public Vector2 swipeDirection;
+	public bool swipeFired;
+	public uint64 swipeFingerId;
 
 	// This frame.
 	public float value, previous;
@@ -258,6 +265,15 @@ static class TouchControls
 		return control;
 	}
 
+	/// A one-shot directional swipe on a look zone. Gestures do not steal pointer ownership.
+	public static TouchControl AddSwipe(StringView name, StringView lookSource, Vector2 direction)
+	{
+		let control = Add(name, .Swipe);
+		control.swipeSource.Set(lookSource);
+		control.swipeDirection = direction;
+		return control;
+	}
+
 	public static void Clear()
 	{
 		ClearAndDeleteItems(sControls);
@@ -347,6 +363,33 @@ static class TouchControls
 				control.finger = null;
 			}
 		}
+		// Resolve swipe gestures after look/stick/button updates. A finger belongs to only one
+		// pointer zone, but several gesture observers can watch its travel without capturing it.
+		for (let control in sControls)
+		{
+			if (control.kind != .Swipe || !control.visible)
+				continue;
+			let source = Find(control.swipeSource);
+			let finger = source != null ? source.finger : null;
+			if (finger == null || !finger.down)
+			{
+				control.swipeFired = false;
+				continue;
+			}
+			if (control.swipeFingerId != finger.id)
+			{
+				control.swipeFingerId = finger.id;
+				control.swipeFired = false;
+			}
+			let travel = finger.position - finger.start;
+			let along = travel.x * control.swipeDirection.x + travel.y * control.swipeDirection.y;
+			let cross = Math.Abs(travel.x * control.swipeDirection.y - travel.y * control.swipeDirection.x);
+			if (!control.swipeFired && along > screen.y * 0.12f && along > cross * 1.8f)
+			{
+				control.value = 1;
+				control.swipeFired = true;
+			}
+		}
 	}
 
 	/// Draws the controls. GameApp calls this inside its full-screen interface window.
@@ -387,7 +430,7 @@ static class TouchControls
 				ImGui.DrawCircle(.(center.x, center.y), reach, faint, thickness);
 				let knob = center + Vector2(control.vector.x, -control.vector.y) * reach;
 				ImGui.DrawCircleFilled(.(knob.x, knob.y), reach * 0.42f, control.finger != null ? pressed : faint);
-			case .Look:
+			case .Look, .Swipe:
 			}
 		}
 	}
