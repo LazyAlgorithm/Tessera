@@ -417,7 +417,12 @@ class PhysicsWorld
 
 	Dictionary<void*, Transform> mCharacterOwners = new .() ~ delete _;
 
-	uint32 CharacterLayer(void* character) => ObjectLayer(LayerMoving, mCharacterOwners.TryGetValue(character, let owner) ? owner : null);
+	uint32 CharacterLayer(void* character)
+	{
+		Transform owner = null;
+		mCharacterOwners.TryGetValue(character, out owner);
+		return ObjectLayer(LayerMoving, owner);
+	}
 
 	/// Moves an object's bodies to its current layer (GameObject.Layer calls this).
 	public void RefreshLayer(GameObject gameObject)

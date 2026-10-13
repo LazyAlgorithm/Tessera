@@ -104,10 +104,10 @@ jobs:
           sed -i 's/^          //' "$stage/IDE/dist/BeefBuild.sh"
           chmod +x "$stage/IDE/dist/BeefBuild.sh"
           # It must compile and link a program on its own.
-          mkdir -p hello/src && printf 'namespace Hello;\nclass Program { public static int Main() { System.Console.WriteLine("hello"); return 0; } }\n' > hello/src/Program.bf
-          (cd hello && "$stage/IDE/dist/BeefBuild.sh" -new > /dev/null 2>&1 || true)
-          printf 'namespace Hello;\nclass Program { public static int Main() { System.Console.WriteLine("hello"); return 0; } }\n' > hello/src/Program.bf
-          (cd hello && env -u LD_LIBRARY_PATH "$stage/IDE/dist/BeefBuild.sh" -run)
+          mkdir -p hello
+          (cd hello && env -u LD_LIBRARY_PATH "$stage/IDE/dist/BeefBuild.sh" -new)
+          printf 'namespace hello;\nclass Program { public static int Main() { System.Console.WriteLine("hello from the bundled Beef"); return 0; } }\n' > hello/src/Program.bf
+          (cd hello && env -u LD_LIBRARY_PATH "$stage/IDE/dist/BeefBuild.sh" -run | tee run.txt) && grep -q "hello from the bundled Beef" hello/run.txt
           tar -C stage -czf beef-linux-x64.tar.gz beef
           ls -la beef-linux-x64.tar.gz
 

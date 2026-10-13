@@ -21,10 +21,8 @@ class LauncherApp : Application
 	String mPendingOpen = new .() ~ delete _;
 	String mEngineRoot = new .() ~ delete _;
 	bool mSample = true;
-	/// The Set Up Tools window: open at start when a tool Tessera needs is missing.
-	bool mSetupOpen;
-	bool mSetupWasInstalling;
-	bool mLicence;
+	/// Tools Tessera needs that were not found, when the launcher started.
+	List<String> mMissingTools = new .() ~ DeleteContainerAndItems!(_);
 	bool mMessageIsError;
 	int32 mOpenCountdown;
 	int32 mSelected = -1;
@@ -49,8 +47,7 @@ class LauncherApp : Application
 			SetWindowIcon(scope $"{mEngineRoot}/icon.png");
 		RecentProjects.Load();
 		Toolchain.Apply();
-		Toolchain.Check();
-		mSetupOpen = Toolchain.AnyMissing && !File.Exists(SkipFile(.. scope .()));
+		Toolchain.FindMissing(mMissingTools);
 		let home = scope String();
 #if BF_PLATFORM_WINDOWS
 		Environment.GetEnvironmentVariable("USERPROFILE", home).IgnoreError();
@@ -84,21 +81,12 @@ class LauncherApp : Application
 		mMessageIsError = error;
 	}
 
-	/// Written when the user closes the Set Up Tools window with tools still missing, so it does not open by itself
-	/// every time (the Tools button still opens it).
-	static void SkipFile(String path)
-	{
-		RecentProjects.GetConfigFolder(path);
-		path.Append("toolchain-skipped");
-	}
-
 	void RequestOpen(StringView path)
 	{
-		if (Toolchain.AnyMissing)
+		if (mMissingTools.Count > 0)
 		{
 			// Compiling would only fail: say what is missing first.
-			mSetupOpen = true;
-			SetMessage("Some tools Tessera needs to compile projects are missing: see Set Up Tools.", true);
+			SetMessage(MissingMessage(.. scope .()), true);
 			return;
 		}
 		mPendingOpen.Set(path);
@@ -148,20 +136,12 @@ class LauncherApp : Application
 		ImGui.Text("TESSERA");
 		ImGui.SameLine();
 		ImGui.TextDisabled("Projects");
-		ImGui.SameLine(ImGui.GetContentRegionAvail().x - 110);
-		if (ImGui.Button(Toolchain.AnyMissing ? "Set Up Tools (!)" : "Set Up Tools", .(130, 0)))
-		{
-			Toolchain.Check();
-			mSetupOpen = true;
-		}
 		ImGui.Separator();
 		ImGui.Spacing();
-		if (mSetupOpen)
+		if (mMissingTools.Count > 0)
 		{
-			DrawSetup();
-			ImGui.End();
-			ImGui.tn_imgui_render(250);
-			return;
+			ImGui.TextColored(.(1.0f, 0.55f, 0.4f, 1), MissingMessage(.. scope .()));
+			ImGui.Spacing();
 		}
 
 		let busy = mOpenCountdown > 0;
@@ -265,105 +245,16 @@ class LauncherApp : Application
 		}
 	}
 
-	/// Lists the tools, found or missing, and installs what is missing once the user says so.
-	void DrawSetup()
+	void MissingMessage(String text)
 	{
-		let installing = Toolchain.Installing;
-		if (mSetupWasInstalling && !installing)
-			Toolchain.Check();
-		mSetupWasInstalling = installing;
-
-		ImGui.Text("Set up the tools Tessera compiles projects with");
-		ImGui.Spacing();
-		let folder = scope String(Toolchain.Folder);
-		ImGui.TextWrapped(scope $"What is missing can be downloaded and set up for you. Tessera's own copies of its tools go in {folder} and are used by Tessera only.");
-#if !BF_PLATFORM_WINDOWS
-		ImGui.TextWrapped("The compiler and development files come from your system's package manager, which asks for your password.");
-#endif
-		ImGui.Spacing();
-		bool needsLicence = false, anyMissing = false;
-		for (let item in Toolchain.Items)
+		text.Append("Missing: ");
+		for (int i < mMissingTools.Count)
 		{
-			ImGui.PushID(item.name.CStr());
-			if (item.found)
-				ImGui.TextColored(.(0.45f, 0.9f, 0.5f, 1), "Found");
-			else
-				ImGui.TextColored(.(1.0f, 0.55f, 0.4f, 1), "Missing");
-			ImGui.SameLine(90);
-			ImGui.Text(item.name);
-			ImGui.Indent(90);
-			ImGui.PushStyleColor(ImGui.Col.Text, .(0.6f, 0.6f, 0.6f, 1));
-			ImGui.TextWrapped(item.detail.CStr());
-			ImGui.PopStyleColor();
-			ImGui.Unindent(90);
-			ImGui.Spacing();
-			needsLicence |= !item.found && item.licence;
-			anyMissing |= !item.found;
-			ImGui.PopID();
+			if (i > 0)
+				text.Append(", ");
+			text.Append(mMissingTools[i]);
 		}
-
-		if (needsLicence)
-		{
-			ImGui.Spacing();
-			ImGui.Checkbox("I accept the Microsoft Visual Studio Build Tools licence for Microsoft's libraries", ref mLicence);
-			ImGui.SameLine();
-			if (ImGui.SmallButton("Read it"))
-				Terminal.Open("https://go.microsoft.com/fwlink/?LinkId=2086102");
-		}
-#if !BF_PLATFORM_WINDOWS
-		let packages = scope String();
-		Toolchain.SystemPackagesCommand(packages);
-		bool systemMissing = false;
-		for (let item in Toolchain.Items)
-			systemMissing |= item.kind == .System && !item.found;
-		if (systemMissing && !packages.IsEmpty && !Toolchain.CanInstallSystemPackages)
-		{
-			ImGui.TextWrapped(scope $"Run this in a terminal, then press Check Again:  sudo {packages}");
-			if (ImGui.SmallButton("Copy command"))
-				ImGui.SetClipboardText(scope $"sudo {packages}".CStr());
-		}
-#endif
-
-		ImGui.Spacing();
-		ImGui.Separator();
-		ImGui.Spacing();
-		if (installing)
-		{
-			let status = scope String();
-			Toolchain.GetStatus(status, ?);
-			ImGui.ProgressBar(-(float)ImGui.GetTime(), .(-1, 0), status.CStr());
-			return;
-		}
-		let status = scope String();
-		bool failed;
-		Toolchain.GetStatus(status, out failed);
-		if (!status.IsEmpty)
-		{
-			if (failed)
-				ImGui.TextColored(.(1.0f, 0.45f, 0.4f, 1), status.CStr());
-			else
-				ImGui.TextColored(.(0.45f, 0.9f, 0.5f, 1), status.CStr());
-			if (failed && ImGui.SmallButton("Open the log"))
-				Terminal.Open(Toolchain.GetLogPath(.. scope .()));
-		}
-		ImGui.BeginDisabled(!anyMissing);
-		if (ImGui.Button("Install What Is Missing", .(220, 32)))
-			Toolchain.Install(mLicence);
-		ImGui.EndDisabled();
-		ImGui.SameLine();
-		if (ImGui.Button("Check Again", .(140, 32)))
-			Toolchain.Check();
-		ImGui.SameLine();
-		if (ImGui.Button(anyMissing ? "Not Now" : "Done", .(140, 32)))
-		{
-			mSetupOpen = false;
-			let skip = scope String();
-			SkipFile(skip);
-			if (anyMissing)
-				File.WriteAllText(skip, "").IgnoreError();
-			else
-				File.Delete(skip).IgnoreError();
-		}
+		text.Append(". Install them with Tessera Hub (or yourself), then start the launcher again.");
 	}
 
 	void CreateFromForm()

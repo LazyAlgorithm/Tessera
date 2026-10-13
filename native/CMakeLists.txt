@@ -113,6 +113,7 @@ add_library(tessera_native STATIC
 	tessera_physics.cpp
 	tessera_audio.c
 	tessera_web.c
+	tessera_http.c
 	$<TARGET_OBJECTS:opus>
 )
 target_compile_features(tessera_native PRIVATE cxx_std_20)
