@@ -21,7 +21,6 @@ class LauncherApp : Application
 	String mPendingOpen = new .() ~ delete _;
 	String mEngineRoot = new .() ~ delete _;
 	bool mSample = true;
-	bool mScrap;
 	bool mMessageIsError;
 	int32 mOpenCountdown;
 	int32 mSelected = -1;
@@ -172,7 +171,6 @@ class LauncherApp : Application
 		ImGui.SetNextItemWidth(-1);
 		ImGui.InputText("##location", mLocation);
 		ImGui.Checkbox("Include sample (voxel world, networked player)", ref mSample);
-		ImGui.Checkbox("Vehicle building game (blocks, wheels, thrusters, seats)", ref mScrap);
 		ImGui.Spacing();
 		if (ImGui.Button("Create Project", .(-1, 32)))
 			CreateFromForm();
@@ -242,7 +240,6 @@ class LauncherApp : Application
 		let folder = scope $"{mLocation}/{mName}";
 		Directory.CreateDirectory(mLocation).IgnoreError();
 		let error = scope String();
-		ProjectGenerator.ScrapTemplate = mScrap;
 		if (!ProjectGenerator.Create(folder, mName, mEngineRoot, mSample, error))
 		{
 			SetMessage(error, true);
@@ -288,8 +285,6 @@ class Program
 		{
 			if (arg == "--sample")
 				sample = true;
-			if (arg == "--scrap")
-				ProjectGenerator.ScrapTemplate = true;
 		}
 		let root = scope String();
 		// No window here, so locate the engine relative to this executable.

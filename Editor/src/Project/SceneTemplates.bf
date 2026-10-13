@@ -54,41 +54,6 @@ static class SceneTemplates
 			Log.Warning(scope $"Template script {typeName} was not found in the project.");
 	}
 
-	/// Flat build yard for the vehicle building game: a player, a build tool and a starter car.
-	public static void BuildScrap(Scene scene, StringView projectName)
-	{
-		scene.Clear();
-		AddSunAndCamera(scene, .(0, 4, -10), .(15, 0, 0));
-		scene.Environment.shadowDistance = 90;
-		AddByName(scene.Find("Main Camera"), projectName, "BuildTool");
-
-		let ground = scene.CreateGameObject("Ground");
-		let groundRenderer = ground.AddComponent<MeshRenderer>();
-		groundRenderer.color = .FromBytes(116, 150, 96);
-		ground.Transform.Position = .(0, -0.5f, 0);
-		ground.Transform.LocalScale = .(400, 1, 400);
-		ground.AddComponent<BoxCollider>();
-
-		let ramp = scene.CreateGameObject("Ramp");
-		let rampRenderer = ramp.AddComponent<MeshRenderer>();
-		rampRenderer.color = .FromBytes(170, 160, 150);
-		ramp.Transform.Position = .(0, 0.6f, 34);
-		ramp.Transform.EulerAngles = .(-12, 0, 0);
-		ramp.Transform.LocalScale = .(8, 0.5f, 14);
-		ramp.AddComponent<BoxCollider>();
-
-		// Players are spawned by the main menu once a session starts (offline, host or join).
-		let playerSpawn = scene.CreateGameObject("SpawnPoint");
-		playerSpawn.Transform.Position = .(-4, 1.5f, -2);
-		playerSpawn.AddComponent<SpawnPoint>();
-
-		let menu = scene.CreateGameObject("Main Menu");
-		AddByName(menu, projectName, "MainMenu");
-
-		let spawn = scene.CreateGameObject("StarterCarSpawn");
-		spawn.Transform.Position = .(2, 0.8f, 2);
-	}
-
 	/// Voxel world with a spawn platform, pushable networked crates and a hosted session.
 	public static void BuildSample(Scene scene, StringView projectName)
 	{

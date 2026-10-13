@@ -35,7 +35,7 @@ with tempfile.TemporaryDirectory(prefix='tessera-pack-test-') as temporary:
     (source / 'Sub' / 'empty.txt').write_bytes(b'')
     (source / 'dot.png').write_bytes(png(4, 2, (255, 128, 0, 255)))
     (source / 'beep.wav').write_bytes(wav(0.25))
-    (source / 'block.glb').write_bytes((engine / 'Editor/templates/scrap/models/block_metal.glb').read_bytes())
+    (source / 'block.glb').write_bytes((engine / 'Editor/templates/common/Models/rigged_sample.glb').read_bytes())
     (work / 'source' / 'game.tessera').write_text('name = Test\n')
     files = [(file.relative_to(work / 'source').as_posix(), str(file)) for file in (work / 'source').rglob('*') if file.is_file()]
     pack = work / 'game.tpak'

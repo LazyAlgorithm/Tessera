@@ -8,8 +8,6 @@ namespace Tessera.Editor;
 /// Creates new projects from built-in templates.
 static class ProjectGenerator
 {
-	/// Set before Create to generate the block-building vehicle game instead of the standard sample.
-	public static bool ScrapTemplate;
 
 	public static bool IsValidName(StringView name)
 	{
@@ -341,29 +339,7 @@ static class ProjectGenerator
 					File.Copy(scope $"{common}/{sub}/{fileName}", scope $"{folder}/src/{sub}/{fileName}").IgnoreError();
 			}
 		}
-		Write(scope $"{folder}/.template", ScrapTemplate ? "scrap" : (sample ? "sample" : "empty"));
-		if (ScrapTemplate)
-		{
-			// The building game's scripts ship with the engine as text with a namespace placeholder.
-			let source = scope $"{engineRoot}/Editor/templates/scrap";
-			for (let entry in Directory.EnumerateFiles(source))
-			{
-				let fileName = scope String();
-				entry.GetFileName(fileName);
-				let text = scope String();
-				if (File.ReadAllText(scope $"{source}/{fileName}", text, true) case .Err)
-					continue;
-				text.Replace("{NAMESPACE}", name);
-				fileName.Replace(".txt", "");
-				Write(scope $"{folder}/src/Scripts/{fileName}", text);
-			}
-			for (let entry in Directory.EnumerateFiles(scope $"{source}/models"))
-			{
-				let fileName = scope String();
-				entry.GetFileName(fileName);
-				File.Copy(scope $"{source}/models/{fileName}", scope $"{folder}/src/Models/{fileName}").IgnoreError();
-			}
-		}
+		Write(scope $"{folder}/.template", sample ? "sample" : "empty");
 		return true;
 	}
 }
