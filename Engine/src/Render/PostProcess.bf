@@ -150,6 +150,48 @@ static class PostProcess
 		return entry.texture;
 	}
 
+	/// Sets scene settings from a list such as "ao=1,radius=0.8,dof=0.6,focus=12,range=6,autofocus=1,motion=0.5,
+	/// contrast=1.1,saturation=0.9,temperature=0.2,tint=0,vignette=0.5,lut=Grading/warm.png,lutstrength=1":
+	/// the `--effects` command line option, for trying a scene with effects without editing it. Unknown names are
+	/// skipped. Returns how many were set.
+	public static int ApplySettings(StringView list, SceneEnvironment env)
+	{
+		int count = 0;
+		for (let entry in list.Split(','))
+		{
+			let equals = entry.IndexOf('=');
+			if (equals <= 0)
+				continue;
+			let name = scope String(entry.Substring(0, equals))..Trim()..ToLower();
+			let text = scope String(entry.Substring(equals + 1))..Trim();
+			float value = 0;
+			if (float.Parse(text) case .Ok(let number))
+				value = number;
+			bool known = true;
+			switch (name)
+			{
+			case "ao": env.ambientOcclusion = value;
+			case "radius": env.occlusionRadius = value;
+			case "dof": env.depthOfField = value;
+			case "focus": env.focusDistance = value;
+			case "range": env.focusRange = value;
+			case "autofocus": env.autoFocus = value != 0;
+			case "motion": env.motionBlur = value;
+			case "contrast": env.contrast = value;
+			case "saturation": env.saturation = value;
+			case "temperature": env.temperature = value;
+			case "tint": env.tint = value;
+			case "vignette": env.vignette = value;
+			case "lut": env.colorLookup.Set(text);
+			case "lutstrength": env.colorLookupStrength = value;
+			default: known = false;
+			}
+			if (known)
+				count++;
+		}
+		return count;
+	}
+
 	/// Forgets loaded lookup tables, so a changed image is read again (the editor calls this when a file changes).
 	public static void ForgetLookups()
 	{

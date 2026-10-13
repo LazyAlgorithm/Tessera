@@ -102,6 +102,11 @@ class Program
 		let flipped = PostProcess.Apply(inverted, 16, .(0.2f, 0.5f, 0.9f));
 		Check(Near(flipped.r, 0.8f, 0.01f) && Near(flipped.g, 0.5f, 0.01f) && Near(flipped.b, 0.1f, 0.01f), "a recoloured table recolours (inverted here)");
 
+		// ---- --effects on the command line ----
+		let tried = scope SceneEnvironment();
+		let set = PostProcess.ApplySettings("ao=1, dof=0.6,focus=12,autofocus=1,motion=0.4,lut=Grading/warm.png,bogus=3", tried);
+		Check(set == 6 && tried.ambientOcclusion == 1 && Near(tried.depthOfField, 0.6f) && tried.focusDistance == 12 && tried.autoFocus && Near(tried.motionBlur, 0.4f) && tried.colorLookup == "Grading/warm.png", "--effects sets the scene's settings and skips unknown names");
+
 		// ---- the player's settings ----
 		Check(ScreenEffects.AmbientOcclusion && ScreenEffects.DepthOfField && ScreenEffects.MotionBlur && ScreenEffects.MotionBlurAmount == 1 && ScreenEffects.Brightness == 1, "the player's settings start with everything on");
 		Gfx.UseMobileQuality();

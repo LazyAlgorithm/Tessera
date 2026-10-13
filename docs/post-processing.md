@@ -69,6 +69,14 @@ env.colorFilter = .(1, 0.6f, 0.6f);
 env.saturation = 0.5f;
 ```
 
+To try effects on a scene without editing it, start the game with `--effects` (on the web, add `?arg=--effects&arg=...` to the address):
+
+```sh
+./MyGame --effects "ao=1,radius=0.8,dof=0.6,autofocus=1,motion=0.5,contrast=1.1,temperature=0.2,lut=Grading/warm.png"
+```
+
+The names are `ao`, `radius`, `dof`, `focus`, `range`, `autofocus`, `motion`, `contrast`, `saturation`, `temperature`, `tint`, `vignette`, `lut` and `lutstrength`. `PostProcess.ApplySettings(list, env)` does the same from code.
+
 ## Players' settings
 
 A game's settings menu usually lets each player turn effects off, tone down motion blur and set the brightness. These are static fields of `ScreenEffects`, and they apply on top of whatever the scene asks for:
