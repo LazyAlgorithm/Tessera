@@ -402,6 +402,21 @@ class NetworkManager
 	}
 
 	/// Registers a prefab file (made with "Save as Prefab" in the editor) under a name.
+	/// Whether a network prefab of that name has been registered.
+	public static bool IsRegistered(StringView name) => mPrefabs.ContainsKeyAlt(name);
+
+	/// Makes one of a registered network prefab on this machine only, as the factory makes it (SaveSystem uses this
+	/// to bring back saved objects when there is no session).
+	public static GameObject CreateRegistered(Scene scene, StringView name)
+	{
+		if (!mPrefabs.TryGetValueAlt(name, let factory))
+			return null;
+		let gameObject = factory(scene);
+		if (gameObject != null)
+			String.NewOrSet!(gameObject.SpawnedFrom, name);
+		return gameObject;
+	}
+
 	public static void RegisterPrefabFile(StringView name, StringView projectRelativePath)
 	{
 		let path = new String(projectRelativePath);
@@ -574,6 +589,7 @@ class NetworkManager
 		}
 		if (gameObject == null)
 			return null;
+		String.NewOrSet!(gameObject.SpawnedFrom, prefab);
 		gameObject.Transform.SetPositionAndRotation(position, rotation);
 		var identity = gameObject.GetComponent<NetworkIdentity>();
 		if (identity == null)

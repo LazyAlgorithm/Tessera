@@ -342,7 +342,7 @@ static class NodeLibrary
 		switch (name)
 		{
 		case "Awake", "Start", "Update", "FixedUpdate", "LateUpdate", "OnEnable", "OnDisable", "OnDestroy", "OnRegister", "OnUnregister", "OnFrame", "OnGUI",
-			"OnBeforeSave", "OnValidate", "OnDrawGizmos", "Simulate", "GatherInput", "OnTick", "ReadInput", "OnNetworkEvent", "ToString", "GetHashCode", "Dispose":
+			"OnBeforeSave", "SaveFields", "OnSaving", "OnLoaded", "OnValidate", "OnDrawGizmos", "Simulate", "GatherInput", "OnTick", "ReadInput", "OnNetworkEvent", "ToString", "GetHashCode", "Dispose":
 			return true;
 		}
 		return false;
@@ -618,7 +618,7 @@ static class NodeLibrary
 	public static bool IsReservedName(StringView name)
 	{
 		for (let reserved in StringView[?]("GameObject", "Transform", "Scene", "IsAwake", "Enabled", "IsActiveAndEnabled", "GetComponent", "Awake", "OnEnable", "Start",
-			"FixedUpdate", "Update", "LateUpdate", "OnDisable", "OnDestroy", "OnRegister", "OnUnregister", "OnFrame", "OnGUI", "OnBeforeSave", "OnValidate", "OnDrawGizmos",
+			"FixedUpdate", "Update", "LateUpdate", "OnDisable", "OnDestroy", "OnRegister", "OnUnregister", "OnFrame", "OnGUI", "OnBeforeSave", "SaveFields", "OnSaving", "OnLoaded", "OnValidate", "OnDrawGizmos",
 			"this", "base", "float", "bool", "int", "String", "Vector3", "true", "false", "null", "var", "let", "if", "else", "for", "while", "return", "class", "public", "delete", "new", "scope"))
 		{
 			if (name == reserved)

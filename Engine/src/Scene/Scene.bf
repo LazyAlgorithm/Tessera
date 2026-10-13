@@ -68,6 +68,8 @@ class Scene
 
 	public ~this()
 	{
+		if (Active == this)
+			Active = null;
 		Network?.Stop();
 		Clear();
 		if (Active == this)
@@ -227,6 +229,11 @@ class Scene
 	{
 		if (mPlaying)
 			return;
+		// A save to load at start that is still on its way holds the scene back (Update asks again).
+		mStartHeld = SaveSystem.HoldStart(this);
+		if (mStartHeld)
+			return;
+		SaveSystem.SceneStarting(this);
 		mPlaying = true;
 		Active = this;
 		Time.Time = 0;
@@ -237,6 +244,7 @@ class Scene
 
 	public void StopPlay()
 	{
+		mStartHeld = false;
 		if (!mPlaying)
 			return;
 		// A game that locked the mouse does not keep it once it has stopped.
@@ -303,9 +311,15 @@ class Scene
 	}
 
 	/// Per-frame update. In edit mode only the destroy queue is processed.
+	bool mStartHeld;
+	/// Waiting for a save before play starts (SaveSystem.LoadAtStart with a storage that answers later).
+	public bool StartHeld => mStartHeld;
+
 	public void Update()
 	{
 		Active = this;
+		if (mStartHeld)
+			StartPlay();
 		for (int i = 0; i < mComponents.Count; i++)
 		{
 			let component = mComponents[i];

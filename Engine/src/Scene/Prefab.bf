@@ -59,6 +59,8 @@ static class Prefab
 		// A prefab is saved wherever its source object stood; callers position the copy.
 		if (root != null && root.Transform.Parent != null)
 			root.Transform.SetParent(null, false);
+		if (root != null)
+			String.NewOrSet!(root.SpawnedFrom, path);
 		return root;
 	}
 

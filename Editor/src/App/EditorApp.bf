@@ -280,6 +280,7 @@ class EditorApp : Application
         PollProjectFolders();
 		// A game changing scene: only while playing, so that the scene being edited is never replaced.
 		if (mPlay == .Playing)
+			SaveSystem.Update();
 			SceneManager.ApplyPending(mScene);
 		let gameCamera = FindGameCamera();
 		VoxelTerrain.ViewerPosition = (mPlay != .Edit && gameCamera != null) ? gameCamera.Transform.Position : mCamPosition;

@@ -38,6 +38,18 @@ extension EditorApp
 					project.Save();
 				if (ImGui.IsItemHovered())
 					ImGui.SetTooltip("Watches network sessions for cheating: controls no honest game sends, speed hacks, message floods, changed game files, debuggers and injected libraries, edited memory and automated aim. What is found is logged, and players are removed for what only a changed game does. See the Anti-cheat page of the documentation.");
+				BeginProperty("Load Save At Start");
+				if (ImGui.Checkbox("##loadsave", ref project.LoadSaveAtStart))
+					project.Save();
+				if (ImGui.IsItemHovered())
+					ImGui.SetTooltip("When the game starts, the save in the slot below is put back before any script runs ([Saved] fields, objects made while playing, SavedTransform). See the Saving page of the documentation.");
+				if (project.LoadSaveAtStart)
+				{
+					BeginProperty("Save Slot");
+					ImGui.SetNextItemWidth(-1);
+					if (ImGui.InputText("##saveslot", project.SaveSlot))
+						project.Save();
+				}
 				BeginProperty("Voice Chat");
 				if (ImGui.Checkbox("##voice", ref project.VoiceChat))
 					project.Save();

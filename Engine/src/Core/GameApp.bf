@@ -64,6 +64,7 @@ class GameApp : Application
 	{
 		// Scene packs that finished downloading (in a browser) join the others.
 		AssetPack.Poll();
+		SaveSystem.Update();
 		SceneManager.ApplyPending(mScene);
 		let camera = FindCamera();
 		if (camera != null)

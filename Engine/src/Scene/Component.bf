@@ -108,6 +108,15 @@ abstract class Component
 	public void SendNetworkEvent(StringView name, float value = 0) => NetworkSync.SendEvent(this, name, value);
 	/// Called just before the scene is written to disk; save side files here.
 	public virtual void OnBeforeSave() { }
+	/// Writes or reads this component's [Saved] fields (SaveSystem). The compiler writes this for every component
+	/// with a [Saved] field; override it, calling base, only to keep extra values by hand.
+	public virtual void SaveFields(SaveIO io) { }
+	/// Whether the component has [Saved] fields: written by the compiler with SaveFields.
+	public virtual bool HasSavedFields => false;
+	/// SaveSystem.Save is about to read this component's [Saved] fields: bring them up to date here.
+	public virtual void OnSaving() { }
+	/// SaveSystem.Load has just put this component's [Saved] fields back: rebuild anything made from them here.
+	public virtual void OnLoaded() { }
 	/// Called after a field was changed by the Inspector or the scene loader.
 	public virtual void OnValidate() { }
 	/// Draw editor-only helpers with DebugDraw.

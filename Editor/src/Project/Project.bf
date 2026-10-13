@@ -72,6 +72,9 @@ class Project
 	/// Each scene's own files go into a pack of their own beside game.tpak, so that an update to one map rewrites one
 	/// small file, and a web build can start before every map has downloaded.
 	public bool PackSplit = true;
+	/// SaveSystem.LoadAtStart for this game: put the save in SaveSlot back as the first scene starts.
+	public bool LoadSaveAtStart;
+	public String SaveSlot = new .("default") ~ delete _;
 	/// Wildcards, separated by ';', for files that scripts load by a name they put together (Models/prop_*.glb):
 	/// a build cannot see those, so they always go into the shared pack.
 	public String PackShared = new .() ~ delete _;
@@ -119,6 +122,8 @@ class Project
 			case "packAssets": PackAssets = value != "0";
 			case "packCompress": PackCompress = value != "0";
 			case "packSplit": PackSplit = value != "0";
+			case "loadSaveAtStart": LoadSaveAtStart = value == "1";
+			case "saveSlot": if (!value.IsEmpty) SaveSlot.Set(value);
 			case "packShared": PackShared.Set(value);
 			case "voiceChat": VoiceChat = value == "1";
 			case "voicePushToTalk": VoicePushToTalk = value == "1";
@@ -153,6 +158,10 @@ class Project
 			text.Append("packCompress = 0\n");
 		if (!PackSplit)
 			text.Append("packSplit = 0\n");
+		if (LoadSaveAtStart)
+			text.Append("loadSaveAtStart = 1\n");
+		if (SaveSlot != "default")
+			text.AppendF("saveSlot = {}\n", SaveSlot);
 		if (!PackShared.IsEmpty)
 			text.AppendF("packShared = {}\n", PackShared);
 		if (VoiceChat)

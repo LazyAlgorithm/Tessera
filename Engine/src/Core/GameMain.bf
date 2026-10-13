@@ -65,6 +65,10 @@ static class GameMain
             if (key == "steamAppId") Steam.AppId = (uint32)Math.Max(SceneSerializer.ParseInt(value), 0);
             if (key == "name") Achievements.SaveName.Set(value);
             if (key == "name") WebRtc.AppName.Set(value);
+            if (key == "name") { GamePaths.Game.Set(value); GamePaths.Refresh(); }
+            if (key == "company" && !value.IsEmpty) { GamePaths.Company.Set(value); GamePaths.Refresh(); }
+            if (key == "loadSaveAtStart") SaveSystem.LoadAtStart = value == "1";
+            if (key == "saveSlot" && !value.IsEmpty) SaveSystem.StartSlot.Set(value);
         }
         Assets.ProjectPath.Set(scope $"{root}/Assets");
         Environment.SetEnvironmentVariable("TESSERA_ROOT", root);

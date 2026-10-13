@@ -89,6 +89,12 @@ extension EditorApp
 		SceneSerializer.Save(mScene, mSnapshot);
 		mPlay = .Playing;
 		mFocusGame = true;
+		// Each Play is a fresh run of the game: a save set to load at start is loaded again.
+		GamePaths.Game.Set(Project.Current.Name);
+		GamePaths.Refresh();
+		SaveSystem.LoadAtStart = Project.Current.LoadSaveAtStart;
+		SaveSystem.StartSlot.Set(Project.Current.SaveSlot);
+		SaveSystem.NewRun();
 		mScene.StartPlay();
 	}
 
