@@ -126,7 +126,7 @@ On a phone or tablet the game draws its own on-screen controls, made once (at st
 | `AddButton(name, label, anchor, offset, radius, dragLooks)` | A round button at `anchor` (0 to 1 each way) plus `offset` in screen units (the short side: the height when held sideways, the width when upright). With `dragLooks`, dragging the finger on it also turns the view through that look area, so one thumb can fire and aim. |
 | `AddSwipe(name, source, direction)` | A flick across another control, usually a look area: see below. |
 
-Every control has `visible` (a game shows a button only when it does something; a hidden one takes no touches), `lit` (drawn filled in, for a switch that is on) and `label`. `TouchControls.Scale` sizes everything at once and `EdgeMargin` keeps it in from the screen's edges (a player's setting, say).
+Every control has `visible` (a hidden one is not drawn and takes no touches), `dimmed` (drawn faded: it keeps its place but does nothing right now, which keeps a layout from shifting under the player's thumb), `lit` (drawn filled in, for a switch that is on) and `label`. A stick with `hideWhenIdle` is drawn only while a thumb is on it, where the thumb landed. `TouchControls.Scale` sizes everything at once and `EdgeMargin` keeps it in from the screen's edges (a player's setting, say).
 
 ### Flicks
 

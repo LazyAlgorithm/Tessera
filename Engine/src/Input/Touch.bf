@@ -139,6 +139,11 @@ class TouchControl
 	public bool visible = true;
 	/// A button drawn filled in, for a switch that is on.
 	public bool lit;
+	/// A button drawn faded: it keeps its place (so the layout never shifts under the player's thumb) but does
+	/// nothing right now, such as Grenade with none left. It still takes touches, so a tap on it is not a look drag.
+	public bool dimmed;
+	/// Stick: drawn only while a thumb is on it, where the thumb landed; with none, nothing on screen at all.
+	public bool hideWhenIdle;
 	/// Swipe: the control whose fingers it watches, and the way a flick must go (screen directions: (0, 1) is down).
 	public String swipeSource = new .() ~ delete _;
 	public Vector2 swipeDirection;
@@ -487,20 +492,24 @@ static class TouchControls
 			case .Button:
 				let center = control.Center(screen);
 				let radius = control.RadiusPixels(screen);
-				ImGui.DrawCircleFilled(.(center.x, center.y), radius, Backing);
+				let fade = control.dimmed ? 0.35f : 1.0f;
+				let ink = Color(Tint.r, Tint.g, Tint.b, Tint.a * fade);
+				ImGui.DrawCircleFilled(.(center.x, center.y), radius, Color(Backing.r, Backing.g, Backing.b, Backing.a * fade));
 				if (control.value > 0 || control.lit)
 					ImGui.DrawCircleFilled(.(center.x, center.y), radius, control.value > 0 ? pressed : faint);
-				ImGui.DrawCircle(.(center.x, center.y), radius, Tint, thickness);
+				ImGui.DrawCircle(.(center.x, center.y), radius, ink, thickness);
 				if (!control.label.IsEmpty)
 				{
 					// The label fits the button: a size from the button's own, smaller for longer words.
 					let fontSize = Math.Clamp(radius * 1.9f / Math.Max(control.label.Length, 4), 10.0f, radius * 0.5f);
 					ImGui.PushFontSize(fontSize);
 					let size = ImGui.CalcTextSize(control.label.CStr());
-					ImGui.DrawText(.(Math.Round(center.x - size.x * 0.5f), Math.Round(center.y - size.y * 0.5f)), Tint, control.label.CStr());
+					ImGui.DrawText(.(Math.Round(center.x - size.x * 0.5f), Math.Round(center.y - size.y * 0.5f)), ink, control.label.CStr());
 					ImGui.PopFont();
 				}
 			case .Stick:
+				if (control.hideWhenIdle && control.finger == null)
+					continue;
 				let reach = control.RadiusPixels(screen);
 				let resting = control.Center(screen);
 				let center = control.finger != null ? control.origin : resting;
