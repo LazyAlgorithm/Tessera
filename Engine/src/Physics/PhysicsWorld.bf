@@ -123,7 +123,12 @@ class PhysicsWorld
 			Jolt.JobConfig config;
 			config.maxJobs = 2048;
 			config.maxBarriers = 8;
+#if BF_PLATFORM_WASM
+			// A web page has one thread: jobs run on it while the physics step waits for them.
+			config.numThreads = 0;
+#else
 			config.numThreads = 3;
+#endif
 			sJobSystem = Jolt.JPH_JobSystemThreadPool_Create(&config);
 			sJoltInitialized = true;
 		}

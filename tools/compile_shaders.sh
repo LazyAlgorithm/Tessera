@@ -11,11 +11,13 @@ status=0
 
 compile() { # name type
 	local name="$1" type="$2" target profile platform
-	for target in spirv glsl essl metal; do
+	for target in spirv glsl essl webgl metal; do
 		case "$target" in
 			spirv) profile=spirv; platform=linux ;;
 			glsl) profile=430; platform=linux ;;
 			essl) profile=310_es; platform=android ;;
+			# WebGL 2 is OpenGL ES 3.0: the web build's shaders.
+			webgl) profile=300_es; platform=asm.js ;;
 			metal) profile=metal; platform=osx ;;
 		esac
 		mkdir -p "$out/$target"

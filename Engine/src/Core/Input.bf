@@ -157,25 +157,58 @@ static class Input
 			sWheel = sPendingWheel;
 			sPendingWheel = 0;
 		}
+		// A touch screen also moves the mouse and presses its button, for menus. While the on-screen controls are
+		// up, fingers work those instead, so the pretend mouse must not also fire or turn the view.
+		if (TouchControls.Active && (Touch.Touching || Time.RealTime - Touch.LastTouchTime < 0.5f))
+		{
+			sButtons = 0;
+			sMouseDelta = .(0, 0);
+		}
 		Gamepad.Poll();
 		NoteDevice();
+		Touch.Update();
 		InputActions.Update();
 	}
 
 	// ---- which device the player is using ----
 
 	static bool sUsingGamepad;
+	static bool sUsingTouch;
+
+	/// True when the last thing the player used was the touch screen: the on-screen controls are showing.
+	public static bool UsingTouch => sUsingTouch;
 
 	/// True when the last thing the player touched was a controller, false when it was the keyboard or mouse. For
 	/// showing the right button names, hiding the pointer, or helping a controller's aim.
 	public static bool UsingGamepad => sUsingGamepad;
 
+	static bool sTouchChecked;
+
 	static void NoteDevice()
 	{
-		if (Gamepad.Active)
-			sUsingGamepad = true;
-		else if (sMouseDelta.LengthSquared > 4 || sButtons != 0 || sWheel != 0)
+		// A phone or tablet starts out with the touch controls; anything else with the keyboard and mouse.
+		if (!sTouchChecked)
+		{
+			sTouchChecked = true;
+			sUsingTouch = WebPlatform.IsTouchDevice;
+		}
+		// The mouse a touch screen pretends to be says nothing about a real mouse.
+		let touchedLately = Touch.Touching || Time.RealTime - Touch.LastTouchTime < 0.5f;
+		if (Touch.Touching)
+		{
+			sUsingTouch = true;
 			sUsingGamepad = false;
+		}
+		else if (Gamepad.Active)
+		{
+			sUsingGamepad = true;
+			sUsingTouch = false;
+		}
+		else if (!touchedLately && (sMouseDelta.LengthSquared > 4 || sButtons != 0 || sWheel != 0))
+		{
+			sUsingGamepad = false;
+			sUsingTouch = false;
+		}
 		else
 		{
 			for (int i < KeyCount)
@@ -183,6 +216,7 @@ static class Input
 				if (sKeys[i] && !sPrevKeys[i])
 				{
 					sUsingGamepad = false;
+					sUsingTouch = false;
 					break;
 				}
 			}

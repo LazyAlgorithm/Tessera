@@ -153,7 +153,9 @@ class EditorApp : Application
 		{
 			OpenBuildWindow();
 			if (HasArg("--build-windows"))
-				mBuildWindows = true;
+				mBuildTarget = .Windows;
+			if (HasArg("--build-web"))
+				mBuildTarget = .Web;
 			if (HasArg("--build-editor"))
 				mBuildEditor = true;
 			// For automated checks: build straight away into the given folder.

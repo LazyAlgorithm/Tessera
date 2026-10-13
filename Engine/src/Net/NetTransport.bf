@@ -11,7 +11,10 @@ enum NetworkTransportKind : int32
 	Direct,
 	/// Through Steam: players are found by Steam ID and traffic goes over Steam's relay network, so nobody
 	/// forwards a port or reveals an address. Needs the Steam client running.
-	Steam
+	Steam,
+	/// Browser to browser (WebRTC), for games built for the web: the host gets a room code, players join with it,
+	/// and nobody forwards a port. A web build uses this whatever the kind says, since a browser can do nothing else.
+	WebRtc
 }
 
 enum NetEventKind { Connected, Disconnected, Data }
@@ -43,11 +46,20 @@ abstract class NetTransport
 
 	public static NetTransport Create(NetworkTransportKind kind)
 	{
+#if BF_PLATFORM_WASM
+		// A web page can open neither a UDP port nor Steam's network.
+		return new WebRtcTransport();
+#else
 		switch (kind)
 		{
 		case .Steam: return new SteamTransport();
 		case .Direct: return new ENetTransport();
+		case .WebRtc:
+			// Only a web build talks WebRTC; elsewhere the address is taken as an ordinary one.
+			Log.Warning("WebRTC is for games built for the web; using a direct connection.");
+			return new ENetTransport();
 		}
+#endif
 	}
 }
 

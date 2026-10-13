@@ -174,7 +174,7 @@ static class Workshop
 		uint64[] buffer = scope .[count];
 		let filled = sGetSubscribedItems(sUgc, &buffer[0], count, false);
 		for (uint32 i < Math.Min(filled, count))
-			ids.Add(buffer[i]);
+			ids.Add(buffer[(int)i]);
 	}
 
 	public static bool IsSubscribed(uint64 id) => Bind() && sGetItemState != null && (sGetItemState(sUgc, id) & cSubscribed) != 0;

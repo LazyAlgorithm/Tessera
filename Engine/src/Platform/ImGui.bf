@@ -380,6 +380,7 @@ static class ImGui
 	[CLink] static extern void ImDrawList_AddTriangleFilled(void* list, Vec2 a, Vec2 b, Vec2 c, uint32 color);
 	[CLink] static extern void ImDrawList_AddQuadFilled(void* list, Vec2 a, Vec2 b, Vec2 c, Vec2 d, uint32 color);
 	[CLink] static extern void ImDrawList_AddCircleFilled(void* list, Vec2 center, float radius, uint32 color, int32 segments);
+	[CLink] static extern void ImDrawList_AddCircle(void* list, Vec2 center, float radius, uint32 color, int32 segments, float thickness);
 	[CLink] static extern void ImDrawList_PushClipRect(void* list, Vec2 min, Vec2 max, bool intersect);
 	[CLink] static extern void ImDrawList_PopClipRect(void* list);
 	[CLink] static extern void igSetScrollY_Float(float y);
@@ -594,6 +595,7 @@ static class ImGui
 	public static void DrawTriangleFilled(Vec2 a, Vec2 b, Vec2 c, Color color) => ImDrawList_AddTriangleFilled(igGetWindowDrawList(), a, b, c, color.ToABGR());
 	public static void DrawQuadFilled(Vec2 a, Vec2 b, Vec2 c, Vec2 d, Color color) => ImDrawList_AddQuadFilled(igGetWindowDrawList(), a, b, c, d, color.ToABGR());
 	public static void DrawCircleFilled(Vec2 center, float radius, Color color) => ImDrawList_AddCircleFilled(igGetWindowDrawList(), center, radius, color.ToABGR(), 0);
+	public static void DrawCircle(Vec2 center, float radius, Color color, float thickness = 1) => ImDrawList_AddCircle(igGetWindowDrawList(), center, radius, color.ToABGR(), 0, thickness);
 	/// Limits what is drawn next to a rectangle (inside the current limit), until PopClipRect.
 	public static void PushClipRect(Vec2 min, Vec2 max) => ImDrawList_PushClipRect(igGetWindowDrawList(), min, max, true);
 	public static void PopClipRect() => ImDrawList_PopClipRect(igGetWindowDrawList());

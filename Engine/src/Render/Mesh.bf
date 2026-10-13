@@ -105,7 +105,7 @@ class Mesh
 			v.normal = .Zero;
 		for (int i = 0; i + 2 < Indices.Count; i += 3)
 		{
-			let a = Indices[i], b = Indices[i + 1], c = Indices[i + 2];
+			let a = (int)Indices[i], b = (int)Indices[i + 1], c = (int)Indices[i + 2];
 			let n = Vector3.Cross(Vertices[b].position - Vertices[a].position, Vertices[c].position - Vertices[a].position);
 			Vertices[a].normal = Vertices[a].normal + n;
 			Vertices[b].normal = Vertices[b].normal + n;
@@ -158,9 +158,9 @@ class Mesh
 		float best = -1.0f;
 		for (int i = 0; i + 2 < Indices.Count; i += 3)
 		{
-			let a = Vertices[Indices[i]].position;
-			let b = Vertices[Indices[i + 1]].position;
-			let c = Vertices[Indices[i + 2]].position;
+			let a = Vertices[(int)Indices[i]].position;
+			let b = Vertices[(int)Indices[i + 1]].position;
+			let c = Vertices[(int)Indices[i + 2]].position;
 			let e1 = b - a;
 			let e2 = c - a;
 			let p = Vector3.Cross(ray.direction, e2);

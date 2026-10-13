@@ -118,11 +118,11 @@ class SkinnedModel
 				model.UVs.Add(prim.uvs != null ? Vector2(prim.uvs[v * 2], prim.uvs[v * 2 + 1]) : default);
 				float total = 0;
 				for (int k < 4)
-					total += prim.weights[v * 4 + k];
+					total += prim.weights[v * 4 + (uint32)k];
 				for (int k < 4)
 				{
-					model.JointIndices.Add((uint16)Math.Min((int32)prim.joints[v * 4 + k], jointCount - 1));
-					model.Weights.Add(total > 0 ? prim.weights[v * 4 + k] / total : (k == 0 ? 1.0f : 0.0f));
+					model.JointIndices.Add((uint16)Math.Min((int32)prim.joints[v * 4 + (uint32)k], jointCount - 1));
+					model.Weights.Add(total > 0 ? prim.weights[v * 4 + (uint32)k] / total : (k == 0 ? 1.0f : 0.0f));
 				}
 			}
 			// Mirroring Z on output turns triangles inside out, so swap two corners.

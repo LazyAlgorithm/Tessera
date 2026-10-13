@@ -31,7 +31,10 @@ enum InputBindingKind : int32
 	/// Two keys as an axis: the first is -1, the second +1.
 	KeyAxis,
 	/// Four keys as a direction: up, down, left, right.
-	Keys
+	Keys,
+	/// An on-screen control on a touch screen (see TouchControls): a button's press, a stick's direction or a look
+	/// area's movement. Which one is index (TouchControls.NameId).
+	Touch
 }
 
 /// One way of working an action: a key, a button, a stick... An action can have any number.
@@ -56,6 +59,7 @@ struct InputBinding
 	public static InputBinding Pad(GamepadButton button) => .() { kind = .PadButton, button = button };
 	public static InputBinding Stick(bool right, float scale = 1) => .() { kind = .PadStick, index = right ? 1 : 0, scale = scale };
 	public static InputBinding WASD => .() { kind = .Keys, key = .W, key2 = .S, key3 = .A, key4 = .D };
+	public static InputBinding TouchControl(StringView name) => .() { kind = .Touch, index = TouchControls.NameId(name) };
 }
 
 /// Something the player can do ("Jump", "Move", "Fire"), whatever they do it with.
@@ -302,6 +306,12 @@ static class InputActions
 					binding.kind = .KeyAxis;
 					ok = words.Count > 3 && ParseKey(words[2], out binding.key) && ParseKey(words[3], out binding.key2);
 					used = 4;
+				case "touch":
+					binding.kind = .Touch;
+					ok = words.Count > 2;
+					if (ok)
+						binding.index = TouchControls.NameId(words[2]);
+					used = 3;
 				case "keys":
 					binding.kind = .Keys;
 					ok = words.Count > 5 && ParseKey(words[2], out binding.key) && ParseKey(words[3], out binding.key2) && ParseKey(words[4], out binding.key3) && ParseKey(words[5], out binding.key4);
@@ -351,6 +361,7 @@ static class InputActions
 					case .PadDpad: text.Append("dpad");
 					case .KeyAxis: text.AppendF("keyaxis {} {}", binding.key, binding.key2);
 					case .Keys: text.AppendF("keys {} {} {} {}", binding.key, binding.key2, binding.key3, binding.key4);
+					case .Touch: text.AppendF("touch {}", TouchControls.NameOf(binding.index));
 					}
 					if (binding.scale != 1)
 						text.AppendF(" scale {}", binding.scale);
@@ -508,6 +519,12 @@ static class InputActions
 			KeyName(binding.key2, name);
 			name.Append(' ');
 			KeyName(binding.key4, name);
+		case .Touch:
+			let control = TouchControls.FindById(binding.index);
+			if (control != null && !control.label.IsEmpty)
+				name.Append(control.label);
+			else
+				name.Append(TouchControls.NameOf(binding.index));
 		}
 	}
 
@@ -520,7 +537,7 @@ static class InputActions
 			return;
 		for (let binding in action.bindings)
 		{
-			if (binding.IsGamepad == Input.UsingGamepad)
+			if (binding.kind == .Touch ? Input.UsingTouch : (binding.IsGamepad == Input.UsingGamepad && !Input.UsingTouch))
 			{
 				BindingName(binding, text);
 				return;
@@ -624,6 +641,32 @@ static class InputActions
 			float amount = 0;
 			switch (binding.kind)
 			{
+			case .Touch:
+				let control = TouchControls.FindById(binding.index);
+				if (control != null && TouchControls.Active)
+				{
+					switch (control.kind)
+					{
+					case .Stick:
+						var direction = control.vector;
+						if (direction.LengthSquared > 1)
+							direction = direction.Normalized;
+						if (binding.invert)
+							direction.y = -direction.y;
+						action.vector += direction;
+						action.delta += direction * binding.scale * deltaTime;
+						amount = direction.Length;
+					case .Look:
+						// Like the mouse: pixels moved, up positive.
+						let moved = control.delta;
+						action.delta += Vector2(moved.x, binding.invert ? moved.y : -moved.y) * binding.scale;
+						amount = moved.LengthSquared > 0 ? 0.001f : 0;
+					case .Button:
+						if (control.value > Math.Abs(action.value))
+							action.value = control.value;
+						amount = control.value;
+					}
+				}
 			case .MouseDelta:
 				// Up is positive, as for sticks.
 				let moved = Input.MouseDelta;

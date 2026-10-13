@@ -287,7 +287,12 @@ static class Steam
 		if (sTried)
 			return sLibrary != null;
 		sTried = true;
-#if BF_PLATFORM_WINDOWS
+#if BF_PLATFORM_WASM
+		// A web page cannot load the Steam client library: the game runs as if Steam were not there.
+		if (sTried)
+			return false;
+		let fileName = "";
+#elif BF_PLATFORM_WINDOWS
 		let fileName = "steam_api64.dll";
 #elif BF_PLATFORM_MACOS
 		let fileName = "libsteam_api.dylib";

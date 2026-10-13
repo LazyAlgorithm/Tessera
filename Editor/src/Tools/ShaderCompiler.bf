@@ -14,7 +14,7 @@ static class ShaderCompiler
 {
 	/// Backends compiled for: folder, shaderc profile, shaderc platform. The first is the one this machine runs,
 	/// and the only one whose failure counts as the shader failing.
-	static (StringView folder, StringView profile, StringView platform)[?] sTargets = .(("spirv", "spirv", "linux"), ("glsl", "430", "linux"), ("essl", "310_es", "android"), ("metal", "metal", "osx"));
+	static (StringView folder, StringView profile, StringView platform)[?] sTargets = .(("spirv", "spirv", "linux"), ("glsl", "430", "linux"), ("essl", "310_es", "android"), ("webgl", "300_es", "asm.js"), ("metal", "metal", "osx"));
 
 	static void Defines(ShaderAsset shader, bool withTextures, String output)
 	{

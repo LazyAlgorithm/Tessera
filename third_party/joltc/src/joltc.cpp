@@ -756,6 +756,10 @@ JPH_JobSystem* JPH_JobSystemThreadPool_Create(const JobSystemThreadPoolConfig* c
 	uint32_t maxJobs = createConfig.maxJobs > 0 ? createConfig.maxJobs : JPH::cMaxPhysicsJobs;
 	uint32_t maxBarriers = createConfig.maxBarriers > 0 ? createConfig.maxBarriers : JPH::cMaxPhysicsBarriers;
 	int32_t numThreads = createConfig.numThreads > 0 ? createConfig.numThreads : -1;
+#if defined(__EMSCRIPTEN__) && !defined(__EMSCRIPTEN_PTHREADS__)
+	// Tessera: a single-threaded web build cannot start threads; the caller's thread runs every job.
+	numThreads = 0;
+#endif
 	JPH::JobSystem* jobSystem = new JPH::JobSystemThreadPool(maxJobs, maxBarriers, numThreads);
 	return reinterpret_cast<JPH_JobSystem*>(jobSystem);
 }

@@ -200,6 +200,11 @@ class VoxelTerrain : Component
 	List<Chunk> mFinished = new .() ~ delete _;
 	List<Chunk> mGraveyard = new .() ~ delete _;
 	List<Thread> mThreads = new .() ~ delete _;
+	/// Web builds have no worker threads: chunks are built on the main thread, a few milliseconds' worth a frame.
+	bool mInline;
+	int32[] mInlineEdgeCache ~ delete _;
+	/// True once the terrain is registered and building chunks, on workers or inline.
+	bool Streaming => mThreads.Count > 0 || mInline;
 	Monitor mMonitor = new .() ~ delete _;
 	WaitEvent mWake = new .() ~ delete _;
 	bool mQuit;
@@ -232,6 +237,11 @@ class VoxelTerrain : Component
 	public override void OnRegister()
 	{
 		CaptureSettings();
+#if BF_PLATFORM_WASM
+		mInline = true;
+		mInlineEdgeCache = new int32[SampleCount * 3];
+		return;
+#else
 		let workers = Math.Max(1, Math.Min(6, (int)Platform.BfpSystem_GetNumLogicalCPUs(null) - 2));
 		for (int i < workers)
 		{
@@ -240,6 +250,7 @@ class VoxelTerrain : Component
 			thread.Start(false);
 			mThreads.Add(thread);
 		}
+#endif
 	}
 
 	public override void OnUnregister()
@@ -257,6 +268,7 @@ class VoxelTerrain : Component
 			delete thread;
 		}
 		mThreads.Clear();
+		mInline = false;
 		// Chunk objects are children; when the terrain object itself is being destroyed they are already gone.
 		for (let child in Transform.Children)
 		{
@@ -324,7 +336,7 @@ class VoxelTerrain : Component
 			Assets.ResolvePath(editsFile, path);
 			regenerate |= LoadEdits(path);
 		}
-		if (regenerate && mThreads.Count > 0)
+		if (regenerate && Streaming)
 			Regenerate();
 	}
 
@@ -524,7 +536,7 @@ class VoxelTerrain : Component
 		}
 		mGeneratorVersion++;
 		CaptureSettings();
-		if (mThreads.Count > 0)
+		if (Streaming)
 			Regenerate();
 	}
 
@@ -797,14 +809,7 @@ class VoxelTerrain : Component
 				mWake.WaitFor(50);
 				continue;
 			}
-			if (!chunk.generated)
-				GenerateDensity(chunk);
-			chunk.vertices.Clear();
-			chunk.indices.Clear();
-			if (mStyle == .Smooth)
-				BuildSmooth(chunk, edgeCache);
-			else
-				BuildBlocky(chunk);
+			BuildChunk(chunk, edgeCache);
 			using (mMonitor.Enter())
 			{
 				chunk.state = .Ready;
@@ -814,11 +819,43 @@ class VoxelTerrain : Component
 		}
 	}
 
+	void BuildChunk(Chunk chunk, int32[] edgeCache)
+	{
+		if (!chunk.generated)
+			GenerateDensity(chunk);
+		chunk.vertices.Clear();
+		chunk.indices.Clear();
+		if (mStyle == .Smooth)
+			BuildSmooth(chunk, edgeCache);
+		else
+			BuildBlocky(chunk);
+	}
+
+	/// Without worker threads: builds queued chunks on this thread until the time budget is spent (always at least
+	/// one, so the terrain keeps coming in on a slow device).
+	void BuildInline()
+	{
+		let start = SDL.SDL_GetTicksNS();
+		while (mJobs.Count > 0)
+		{
+			let chunk = mJobs.PopBack();
+			chunk.dirty = false;
+			BuildChunk(chunk, mInlineEdgeCache);
+			chunk.state = .Ready;
+			mFinished.Add(chunk);
+			if (SDL.SDL_GetTicksNS() - start > InlineBudgetNs)
+				break;
+		}
+	}
+
+	/// How long a web build spends building terrain chunks each frame.
+	const uint64 InlineBudgetNs = 6 * 1000000;
+
 	// ---- streaming (main thread) ----
 
 	public override void OnFrame()
 	{
-		if (mThreads.Count == 0)
+		if (!Streaming)
 			return;
 		let chunkWorld = ChunkCells * mVoxelSize;
 		let local = Transform.InverseTransformPoint(ViewerPosition);
@@ -926,6 +963,9 @@ class VoxelTerrain : Component
 				}
 			}
 		}
+
+		if (mInline)
+			BuildInline();
 
 		// Upload finished meshes within the frame budget.
 		for (int i < Math.Max(uploadsPerFrame, 1))

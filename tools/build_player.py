@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
-"""Build a player (Linux, or Windows with --platform windows) with no TesseraEditor dependency and stage its runtime assets.
+"""Build a player (Linux, Windows with --platform windows, or the web with --platform web) with no TesseraEditor
+dependency and stage its runtime assets.
 
 A Windows player is built here on Linux: the Windows Beef compiler runs under Wine and links against the native
-libraries in build/native-win. tools/windows/setup.sh downloads and builds what that needs, once."""
+libraries in build/native-win. tools/windows/setup.sh downloads and builds what that needs, once.
+
+A web player is a folder to put on any web server (GitHub Pages, itch.io): index.html, the game as WebAssembly and its
+asset pack. Beef compiles it through Emscripten and links the native libraries in build/native-web; tools/web/setup.sh
+sets that up, once."""
 import argparse
 import json
 import os
@@ -18,6 +23,17 @@ import pack_assets
 # Windows system libraries the native libraries call into (SDL, bgfx, ENet, miniaudio).
 WINDOWS_SYSTEM_LIBS = ('user32', 'gdi32', 'shell32', 'winmm', 'imm32', 'ole32', 'oleaut32', 'version', 'setupapi', 'advapi32',
                        'ws2_32', 'psapi', 'uuid', 'cfgmgr32')
+# The same libraries built for the web (tools/web/build_native.sh).
+WEB_NATIVE_LIBS = ('libtessera_native.a', 'bgfx/cmake/bgfx/libbgfx.a', 'bgfx/cmake/bimg/libbimg.a', 'bgfx/cmake/bimg/libbimg_decode.a',
+                   'bgfx/cmake/bx/libbx.a', 'SDL/libSDL3.a', 'joltc/libjoltc.a', '_deps/joltphysics-build/libJolt.a', 'enet/libenet.a')
+# How Emscripten links the web player. WebGL 2 only; memory grows as the game needs it; a large stack, as Beef code
+# keeps a lot on it; the browser's storage (IDBFS) for saved files; the page (tools/web/shell) drives start-up.
+WEB_LINK_FLAGS = ('-sUSE_WEBGL2=1', '-sMIN_WEBGL_VERSION=2', '-sMAX_WEBGL_VERSION=2', '-sFULL_ES3=1', '-sALLOW_MEMORY_GROWTH=1',
+                  '-sINITIAL_MEMORY=268435456', '-sSTACK_SIZE=8388608', '-sFORCE_FILESYSTEM=1', '-lidbfs.js', '-sENVIRONMENT=web',
+                  # miniaudio's Web Audio code reads the memory as Module.HEAPF32.
+                  '-sEXPORTED_RUNTIME_METHODS=FS,addRunDependency,removeRunDependency,wasmTable,HEAPF32', '-sEXIT_RUNTIME=0', '-sMINIFY_HTML=0',
+                  # The browser glue (native/tessera_web.c) is JavaScript the linker only takes from the archive when asked.
+                  '-Wl,-u,tn_web_free')
 WINDOWS_NATIVE_LIBS = ('tessera_native.lib', 'bgfx/cmake/bgfx/bgfx.lib', 'bgfx/cmake/bimg/bimg.lib', 'bgfx/cmake/bimg/bimg_decode.lib',
                        'bgfx/cmake/bx/bx.lib', 'SDL/SDL3-static.lib', 'joltc/joltc.lib', '_deps/joltphysics-build/Jolt.lib', 'enet/enet.lib')
 
@@ -27,13 +43,30 @@ def wine_path(path, separator='\\'):
     return 'Z:' + str(path).replace('/', separator)
 
 
+def write_web_page(engine, project, name, staging):
+    """The page that loads and runs a web player: index.html, its install manifest and icon."""
+    shell = engine / 'tools' / 'web' / 'shell'
+    pack = 'game.tpak' if (staging / 'game.tpak').is_file() else ''
+    for file in ('index.html', 'manifest.webmanifest'):
+        text = (shell / file).read_text().replace('{{NAME}}', name).replace('{{SCRIPT}}', name + '.js').replace('{{PACK}}', pack)
+        (staging / file).write_text(text)
+    # Multiplayer between browsers (WebRTC); see the file for how players find each other.
+    shutil.copy2(shell / 'tessera-net.js', staging / 'tessera-net.js')
+    for icon in (project / 'icon.png', project / 'src' / 'icon.png', engine / 'icon.png'):
+        if icon.is_file():
+            shutil.copy2(icon, staging / 'icon.png')
+            break
+    # GitHub Pages runs its own site generator (Jekyll) over a folder unless told not to.
+    (staging / '.nojekyll').write_text('')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('project', type=Path)
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--scene', help='Asset-relative start scene')
     parser.add_argument('--config', choices=('Debug', 'Release'), default='Release')
-    parser.add_argument('--platform', choices=('linux', 'windows'), default='windows' if os.name == 'nt' else 'linux')
+    parser.add_argument('--platform', choices=('linux', 'windows', 'web'), default='windows' if os.name == 'nt' else 'linux')
     parser.add_argument('--replace', action='store_true', help='Replace the output folder if it holds an earlier build (it must contain game.tessera)')
     parser.add_argument('--fullscreen', action='store_true', help='The game starts fullscreen, whatever the project says')
     parser.add_argument('--windowed', action='store_true', help='The game starts in a window, whatever the project says')
@@ -56,10 +89,11 @@ def main():
             key, value = line.split('=', 1)
             settings[key.strip()] = value.strip()
     windows = args.platform == 'windows'
+    web = args.platform == 'web'
     # On a Windows machine Beef builds for Windows by itself; on Linux its Windows release runs under Wine.
     cross = windows and os.name != 'nt'
     if os.name == 'nt' and not windows:
-        parser.error('A Linux player is built on Linux.')
+        parser.error(f'A {"web" if web else "Linux"} player is built on Linux.')
     engine = Path(settings['engine']).resolve()
     recorded_engine = settings['engine']
     # A project copied from another machine names an engine folder that is not here: use the engine this tool
@@ -78,6 +112,12 @@ def main():
             parser.error(f'The Windows toolchain is not set up. Run {engine / "tools/windows/setup.sh"} once.')
         if not cross and not (natives / 'tessera_native.lib').is_file():
             parser.error(f'The native libraries for Windows are missing from {natives}.')
+    if web:
+        natives = engine / 'build' / 'native-web'
+        if not (natives / 'libtessera_native.a').is_file():
+            parser.error(f'The native libraries for the web are missing from {natives}. Run {engine / "tools/web/setup.sh"} once.')
+        if args.loose:
+            parser.error('A web player always packs its assets: a browser loads one file far faster than thousands.')
     if not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', name):
         parser.error('Project name must be a valid Beef identifier.')
     scene = args.scene or settings.get('startScene', 'Scenes/Main.tscene')
@@ -115,17 +155,21 @@ def main():
             location = (project / space['Projects'][dependency]['Path']).resolve()
             project_entries.append(f'{dependency} = {{Path = {q(located(location))}}}')
         (workspace / 'BeefSpace.toml').write_text('FileVersion = 1\nProjects = {' + ', '.join(project_entries) + '}\n[Workspace]\nStartupProject = ' + q(name) + '\n'
-                                               + (f'[Configs.{args.config}.Win64]\nToolset = "LLVM"\n' if windows else ''))
+                                               + (f'[Configs.{args.config}.Win64]\nToolset = "LLVM"\n' if windows else '')
+                                               # Emscripten is a GNU-style toolchain. Debug info would stop its optimiser.
+                                               + (f'[Configs.{args.config}.wasm32]\nToolset = "GNU"\n' + ('EmitDebugInfo = "No"\n' if args.config == 'Release' else '') if web else ''))
         if windows:
             # The project's own settings are for Linux; a Windows player links the same libraries as built for Windows.
             config = {'OtherLinkFlags': '$(LinkFlags) ' + ' '.join([(wine_path(natives / lib) if cross else str(natives / lib)) for lib in WINDOWS_NATIVE_LIBS] + [lib + '.lib' for lib in WINDOWS_SYSTEM_LIBS])}
+        elif web:
+            config = {'OtherLinkFlags': '$(LinkFlags) ' + ' '.join([str(natives / lib) for lib in WEB_NATIVE_LIBS] + list(WEB_LINK_FLAGS))}
         else:
             config = proj['Configs'][args.config]['Linux64']
         target_type = 'BeefGUIApplication' if windows and not args.console else 'BeefConsoleApplication'
-        beef_platform = 'Win64' if windows else 'Linux64'
+        beef_platform = 'Win64' if windows else 'wasm32' if web else 'Linux64'
         lines = ['FileVersion = 1', 'Dependencies = {' + ', '.join(f'{key} = {q(value)}' for key, value in dependencies.items()) + '}', '[Project]', f'Name = {q(name)}', f'TargetType = {q(target_type)}', f'StartupObject = {q(name + ".Program")}', f'[Configs.{args.config}.{beef_platform}]']
         for key, value in config.items():
-            if not windows and isinstance(value, str) and recorded_engine and str(engine) != recorded_engine:
+            if not windows and not web and isinstance(value, str) and recorded_engine and str(engine) != recorded_engine:
                 value = value.replace(recorded_engine, str(engine))
             lines.append(f'{key} = {q(value)}')
         (workspace / 'BeefProj.toml').write_text('\n'.join(lines) + '\n')
@@ -138,15 +182,21 @@ def main():
             if built.returncode != 0:
                 raise SystemExit('The Windows build failed.')
         else:
-            subprocess.run([os.environ.get('BEEFBUILD', 'BeefBuild'), f'-workspace={workspace}', f'-config={args.config}', '-verbosity=minimal'] + (['-platform=Win64'] if windows else []), check=True)
+            subprocess.run([os.environ.get('BEEFBUILD', 'BeefBuild'), f'-workspace={workspace}', f'-config={args.config}', '-verbosity=minimal'] + (['-platform=Win64'] if windows else ['-platform=wasm32'] if web else []), check=True)
         output.parent.mkdir(parents=True, exist_ok=True)
         staging = Path(tempfile.mkdtemp(prefix=output.name + '-', dir=output.parent))
         try:
-            executable = name + ('.exe' if windows else '')
-            shutil.copy2(workspace / 'build' / f'{args.config}_{beef_platform}' / name / executable, staging / executable)
+            built_folder = workspace / 'build' / f'{args.config}_{beef_platform}' / name
+            if web:
+                # The program is a script and its WebAssembly; the page that runs them comes from tools/web/shell.
+                for suffix in ('.js', '.wasm'):
+                    shutil.copy2(built_folder / (name + suffix), staging / (name + suffix))
+            else:
+                executable = name + ('.exe' if windows else '')
+                shutil.copy2(built_folder / executable, staging / executable)
             # Of the engine's files a game reads only the compiled shaders, and only those of the graphics backends
-            # it can start on this system: Vulkan, plus OpenGL as the fallback on Linux.
-            for backend in (('spirv',) if windows else ('spirv', 'glsl')):
+            # it can start on this system: Vulkan, plus OpenGL as the fallback on Linux; WebGL 2 in a browser.
+            for backend in (('webgl',) if web else ('spirv',) if windows else ('spirv', 'glsl')):
                 shutil.copytree(engine / 'Engine' / 'assets' / 'shaders' / backend, staging / 'Engine' / 'assets' / 'shaders' / backend)
             for file in (engine / 'Engine' / 'assets').iterdir():
                 if file.is_file():
@@ -160,7 +210,8 @@ def main():
                 target = staging / 'Assets' / file.relative_to(project / 'src')
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(file, target)
-            steam = settings.get('steamAppId', '')
+            # A web page cannot load Steam.
+            steam = '' if web else settings.get('steamAppId', '')
             if steam:
                 # A game that is not started from Steam says which app it is with this file, and needs Valve's
                 # Steamworks library beside it: the project's own copy if it has one, else one found on this machine.
@@ -174,18 +225,22 @@ def main():
                     print(f'Note: {library} was not found, so this build runs without Steam. Put the file from the Steamworks SDK in {project} and build again.')
             hrtf = settings.get('audioHrtf', '')
             # How the game starts out: the project's Build setting, unless this run says otherwise.
-            fullscreen = (settings.get('fullscreen', '') == '1' or args.fullscreen) and not args.windowed
+            # In a browser the page fills the window, and the player chooses full screen.
+            fullscreen = (settings.get('fullscreen', '') == '1' or args.fullscreen) and not args.windowed and not web
             (staging / 'game.tessera').write_text(f'name = {name}\nstartScene = {scene}\n' + (f'steamAppId = {steam}\n' if steam else '') + (f'audioHrtf = {hrtf}\n' if hrtf else '') + ('fullscreen = 1\n' if fullscreen else '') + ''.join(f'{k} = {settings[k]}\n' for k in ('antiCheat', 'voiceChat', 'voicePushToTalk', 'voiceProximity', 'voiceTeamOnly', 'voiceKey') if settings.get(k)))
             if output.exists():
                 shutil.rmtree(output)
             # Everything the game reads goes into one pack, unless the project (or --loose) says to leave it loose.
+            # A web build's pack is downloaded by every player every time, so it is always compressed.
             if not args.loose and settings.get('packAssets', '1') != '0':
                 packed = [(file.relative_to(staging).as_posix(), str(file)) for folder in ('Assets', 'Engine') for file in (staging / folder).rglob('*') if file.is_file()]
                 packed.append(('game.tessera', str(staging / 'game.tessera')))
-                pack_assets.write_pack(staging / 'game.tpak', packed, compress=not args.no_compress and settings.get('packCompress', '1') != '0')
+                pack_assets.write_pack(staging / 'game.tpak', packed, compress=not args.no_compress and (web or settings.get('packCompress', '1') != '0'))
                 shutil.rmtree(staging / 'Assets')
                 shutil.rmtree(staging / 'Engine')
                 (staging / 'game.tessera').unlink()
+            if web:
+                write_web_page(engine, project, name, staging)
             staging.rename(output)
         except BaseException:
             shutil.rmtree(staging)

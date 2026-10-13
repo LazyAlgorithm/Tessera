@@ -27,6 +27,10 @@ static class SDL
 	public const uint32 EVENT_MOUSE_WHEEL = 0x403;
 	public const uint32 EVENT_GAMEPAD_ADDED = 0x653;
 	public const uint32 EVENT_GAMEPAD_REMOVED = 0x654;
+	public const uint32 EVENT_FINGER_DOWN = 0x700;
+	public const uint32 EVENT_FINGER_UP = 0x701;
+	public const uint32 EVENT_FINGER_MOTION = 0x702;
+	public const uint32 EVENT_FINGER_CANCELED = 0x703;
 
 	/// SDL_Event is a 128 byte union; fields are read by offset through the helpers below.
 	[CRepr]
@@ -77,6 +81,7 @@ static class SDL
 	[CLink] public static extern char8* SDL_GetBasePath();
 	[CLink] public static extern char8* SDL_GetPrefPath(char8* org, char8* app);
 	[CLink] public static extern char8* SDL_GetCurrentVideoDriver();
+	[CLink] public static extern bool SDL_SetClipboardText(char8* text);
 	[CLink] public static extern bool SDL_StartTextInput(void* window);
 	// Game controllers.
 	[CLink] public static extern uint32* SDL_GetGamepads(int32* count);

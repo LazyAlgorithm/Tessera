@@ -86,7 +86,12 @@ static class Gfx
 		{
 		case .Vulkan: sShaderFolder.Set("spirv");
 		case .OpenGL: sShaderFolder.Set("glsl");
+#if BF_PLATFORM_WASM
+		// WebGL 2: OpenGL ES 3.0 shaders.
+		case .OpenGLES: sShaderFolder.Set("webgl");
+#else
 		case .OpenGLES: sShaderFolder.Set("essl");
+#endif
 		case .Metal: sShaderFolder.Set("metal");
 		case .Direct3D11, .Direct3D12: sShaderFolder.Set("dx11");
 		default: sShaderFolder.Set("spirv");

@@ -212,6 +212,12 @@
 #	define BX_PLATFORM_OSX __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__
 #elif defined(__wasm__)
 #	include <emscripten/version.h>
+// Tessera: Emscripten 3.1.4x renamed its version macros to lower case; accept either spelling.
+#	if !defined(__EMSCRIPTEN_MAJOR__) && defined(__EMSCRIPTEN_major__)
+#		define __EMSCRIPTEN_MAJOR__ __EMSCRIPTEN_major__
+#		define __EMSCRIPTEN_MINOR__ __EMSCRIPTEN_minor__
+#		define __EMSCRIPTEN_TINY__  __EMSCRIPTEN_tiny__
+#	endif
 #	undef  BX_PLATFORM_EMSCRIPTEN
 #	define BX_PLATFORM_EMSCRIPTEN (__EMSCRIPTEN_MAJOR__ * 10000 + __EMSCRIPTEN_MINOR__ * 100 + __EMSCRIPTEN_TINY__)
 #elif defined(__ORBIS__)

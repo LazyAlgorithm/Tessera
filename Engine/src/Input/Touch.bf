@@ -1,0 +1,360 @@
+using System;
+using System.Collections;
+
+namespace Tessera;
+
+/// A finger on a touch screen, in window pixels.
+class Finger
+{
+	public uint64 id;
+	public Vector2 position, start;
+	/// Movement since the last frame.
+	public Vector2 delta;
+	public bool down = true;
+	/// The on-screen control this finger works, or null.
+	public TouchControl owner;
+}
+
+/// Fingers on a touch screen (phones, tablets, touch laptops). Filled from the window's events by Application.
+static class Touch
+{
+	static List<Finger> sFingers = new .() ~ DeleteContainerAndItems!(_);
+	static Vector2 sPendingMove;
+	static float sLastTouchTime = -100;
+
+	/// The fingers on the screen this frame.
+	public static List<Finger> Fingers => sFingers;
+	/// When a finger last touched the screen (Time.RealTime).
+	public static float LastTouchTime => sLastTouchTime;
+
+	static Vector2 ToPixels(ref SDL.Event event)
+	{
+		let width = Application.Instance != null ? Application.Instance.Width : 1;
+		let height = Application.Instance != null ? Application.Instance.Height : 1;
+		// SDL_TouchFingerEvent: x and y from 0 to 1 across the window.
+		return .(event.ReadFloat(32) * width, event.ReadFloat(36) * height);
+	}
+
+	static uint64 FingerId(ref SDL.Event event) => *(uint64*)((uint8*)&event + 24);
+
+	/// Called by Application for each window event.
+	public static void OnEvent(ref SDL.Event event)
+	{
+		switch (event.type)
+		{
+		case SDL.EVENT_FINGER_DOWN:
+			let finger = new Finger();
+			finger.id = FingerId(ref event);
+			finger.position = finger.start = ToPixels(ref event);
+			sFingers.Add(finger);
+			sLastTouchTime = Time.RealTime;
+			TouchControls.FingerDown(finger);
+		case SDL.EVENT_FINGER_MOTION:
+			for (let finger in sFingers)
+			{
+				if (finger.id == FingerId(ref event) && finger.down)
+				{
+					let position = ToPixels(ref event);
+					finger.delta += position - finger.position;
+					finger.position = position;
+				}
+			}
+			sLastTouchTime = Time.RealTime;
+		case SDL.EVENT_FINGER_UP, SDL.EVENT_FINGER_CANCELED:
+			for (let finger in sFingers)
+			{
+				if (finger.id == FingerId(ref event))
+					finger.down = false;
+			}
+		default:
+		}
+	}
+
+	/// Called once a frame by Input.Poll, after the events: works the on-screen controls, then forgets lifted fingers.
+	public static void Update()
+	{
+		TouchControls.Update();
+		for (int i = sFingers.Count - 1; i >= 0; i--)
+		{
+			let finger = sFingers[i];
+			finger.delta = .(0, 0);
+			if (!finger.down)
+			{
+				sFingers.RemoveAt(i);
+				delete finger;
+			}
+		}
+	}
+
+	/// True while a finger is on the screen.
+	public static bool Touching
+	{
+		get
+		{
+			for (let finger in sFingers)
+			{
+				if (finger.down)
+					return true;
+			}
+			return false;
+		}
+	}
+}
+
+enum TouchControlKind
+{
+	/// A thumbstick that appears where the thumb lands in its area: a direction, like a controller stick.
+	Stick,
+	/// An area to drag across to turn the view: movement, like the mouse.
+	Look,
+	/// A round button: down while touched.
+	Button
+}
+
+/// One on-screen control. Its place is an anchor on the screen (0 to 1 each way: (1, 1) is the bottom right) plus an
+/// offset in screen heights, so the layout keeps its shape on any phone.
+class TouchControl
+{
+	public String name = new .() ~ delete _;
+	public String label = new .() ~ delete _;
+	public TouchControlKind kind;
+	/// Button: centre. Stick: where it rests when not touched.
+	public Vector2 anchor, offset;
+	/// Button or stick size, in screen heights.
+	public float radius = 0.07f;
+	/// Stick and look: the screen area where a touch takes the control, as fractions of the screen (x, y, width, height).
+	public Vector4 area;
+	/// Button: dragging the finger also turns the view through this look control, so a player can fire and aim
+	/// with one thumb.
+	public String dragLooks = new .() ~ delete _;
+	public bool visible = true;
+
+	// This frame.
+	public float value;
+	public Vector2 vector;
+	public Vector2 delta;
+	public Finger finger;
+	public Vector2 origin;
+
+	public Vector2 Center(Vector2 screen) => .(anchor.x * screen.x + offset.x * screen.y, anchor.y * screen.y + offset.y * screen.y);
+	public float RadiusPixels(Vector2 screen) => radius * screen.y;
+	public bool AreaContains(Vector2 point, Vector2 screen) => point.x >= area.x * screen.x && point.x <= (area.x + area.z) * screen.x && point.y >= area.y * screen.y && point.y <= (area.y + area.w) * screen.y;
+}
+
+/// The game's on-screen controls for touch screens. A game adds them once (AddStick, AddLook, AddButton) and binds
+/// them to its input actions in its .tinput file ("bind touch Fire"), so the same actions work from a keyboard,
+/// a controller or a touch screen. The controls only appear on a touch screen, and only while Shown is true (a game
+/// turns it off in menus, where a tap is a click).
+static class TouchControls
+{
+	static List<TouchControl> sControls = new .() ~ DeleteContainerAndItems!(_);
+	// Binding numbers: a .tinput file can name a control before the game adds it.
+	static List<String> sNames = new .() ~ DeleteContainerAndItems!(_);
+
+	/// The game is in play (not in a menu): the controls are drawn and take touches.
+	public static bool Shown = true;
+	/// How the controls look: the colour of their outlines and labels.
+	public static Color Tint = Color(1, 1, 1, 0.55f);
+
+	/// True when the controls are on screen: a touch screen is in use and the game shows them.
+	public static bool Active => Shown && Input.UsingTouch && sControls.Count > 0;
+
+	public static List<TouchControl> Controls => sControls;
+
+	public static int32 NameId(StringView name)
+	{
+		for (int i < sNames.Count)
+		{
+			if (sNames[i] == name)
+				return (int32)i;
+		}
+		sNames.Add(new String(name));
+		return (int32)(sNames.Count - 1);
+	}
+
+	public static StringView NameOf(int32 id) => id >= 0 && id < sNames.Count ? sNames[id] : "";
+
+	public static TouchControl Find(StringView name)
+	{
+		for (let control in sControls)
+		{
+			if (control.name == name)
+				return control;
+		}
+		return null;
+	}
+
+	public static TouchControl FindById(int32 id) => id >= 0 && id < sNames.Count ? Find(sNames[id]) : null;
+
+	static TouchControl Add(StringView name, TouchControlKind kind)
+	{
+		var control = Find(name);
+		if (control == null)
+		{
+			control = new TouchControl();
+			control.name.Set(name);
+			sControls.Add(control);
+			NameId(name);
+		}
+		control.kind = kind;
+		return control;
+	}
+
+	/// A thumbstick taking touches that start in area (fractions of the screen), resting at anchor + offset.
+	public static TouchControl AddStick(StringView name, Vector4 area, Vector2 anchor, Vector2 offset, float radius = 0.11f)
+	{
+		let control = Add(name, .Stick);
+		control.area = area;
+		control.anchor = anchor;
+		control.offset = offset;
+		control.radius = radius;
+		return control;
+	}
+
+	/// An area to drag across to turn the view.
+	public static TouchControl AddLook(StringView name, Vector4 area)
+	{
+		let control = Add(name, .Look);
+		control.area = area;
+		return control;
+	}
+
+	/// A round button at anchor + offset (offset in screen heights) with a short label.
+	public static TouchControl AddButton(StringView name, StringView label, Vector2 anchor, Vector2 offset, float radius = 0.07f, StringView dragLooks = "")
+	{
+		let control = Add(name, .Button);
+		control.label.Set(label);
+		control.anchor = anchor;
+		control.offset = offset;
+		control.radius = radius;
+		control.dragLooks.Set(dragLooks);
+		return control;
+	}
+
+	public static void Clear()
+	{
+		ClearAndDeleteItems(sControls);
+	}
+
+	static Vector2 Screen => Application.Instance != null ? Vector2(Application.Instance.Width, Application.Instance.Height) : Vector2(1, 1);
+
+	/// A finger came down: the control under it takes it. Buttons first, then sticks, then look areas.
+	public static void FingerDown(Finger finger)
+	{
+		if (!Shown)
+			return;
+		let screen = Screen;
+		TouchControl best = null;
+		float bestDistance = float.MaxValue;
+		for (let control in sControls)
+		{
+			if (!control.visible || control.kind != .Button || control.finger != null)
+				continue;
+			// A little bigger than drawn: thumbs are not precise.
+			let distance = (finger.position - control.Center(screen)).Length;
+			if (distance < control.RadiusPixels(screen) * 1.3f && distance < bestDistance)
+			{
+				best = control;
+				bestDistance = distance;
+			}
+		}
+		for (let kind in TouchControlKind[2](.Stick, .Look))
+		{
+			for (let control in sControls)
+			{
+				if (best == null && control.visible && control.kind == kind && control.finger == null && control.AreaContains(finger.position, screen))
+					best = control;
+			}
+		}
+		if (best != null)
+		{
+			best.finger = finger;
+			best.origin = finger.position;
+			finger.owner = best;
+		}
+	}
+
+	public static void Update()
+	{
+		let screen = Screen;
+		for (let control in sControls)
+		{
+			control.value = 0;
+			control.vector = .(0, 0);
+			control.delta = .(0, 0);
+		}
+		for (let control in sControls)
+		{
+			let finger = control.finger;
+			if (finger == null)
+				continue;
+			switch (control.kind)
+			{
+			case .Button:
+				control.value = finger.down ? 1 : 0;
+				if (!control.dragLooks.IsEmpty)
+				{
+					let look = Find(control.dragLooks);
+					if (look != null)
+						look.delta += finger.delta;
+				}
+			case .Stick:
+				var offset = finger.position - control.origin;
+				let reach = control.RadiusPixels(screen);
+				// A thumb that goes past the edge drags the stick along, so it never has to come back to recentre.
+				if (offset.Length > reach)
+				{
+					control.origin += offset.Normalized * (offset.Length - reach);
+					offset = finger.position - control.origin;
+				}
+				control.vector = Vector2(offset.x, -offset.y) / Math.Max(reach, 1);
+				control.value = control.vector.Length;
+			case .Look:
+				control.delta += finger.delta;
+			}
+			if (!finger.down || !Shown)
+			{
+				finger.owner = null;
+				control.finger = null;
+			}
+		}
+	}
+
+	/// Draws the controls. GameApp calls this inside its full-screen interface window.
+	public static void Draw()
+	{
+		if (!Active)
+			return;
+		let screen = Screen;
+		let faint = Color(Tint.r, Tint.g, Tint.b, Tint.a * 0.35f);
+		let pressed = Color(Tint.r, Tint.g, Tint.b, Tint.a * 0.45f);
+		let thickness = Math.Max(2.0f, screen.y * 0.004f);
+		for (let control in sControls)
+		{
+			if (!control.visible)
+				continue;
+			switch (control.kind)
+			{
+			case .Button:
+				let center = control.Center(screen);
+				let radius = control.RadiusPixels(screen);
+				if (control.value > 0)
+					ImGui.DrawCircleFilled(.(center.x, center.y), radius, pressed);
+				ImGui.DrawCircle(.(center.x, center.y), radius, Tint, thickness);
+				if (!control.label.IsEmpty)
+				{
+					let size = ImGui.CalcTextSize(control.label.CStr());
+					ImGui.DrawText(.(center.x - size.x * 0.5f, center.y - size.y * 0.5f), Tint, control.label.CStr());
+				}
+			case .Stick:
+				let reach = control.RadiusPixels(screen);
+				let resting = control.Center(screen);
+				let center = control.finger != null ? control.origin : resting;
+				ImGui.DrawCircle(.(center.x, center.y), reach, faint, thickness);
+				let knob = center + Vector2(control.vector.x, -control.vector.y) * reach;
+				ImGui.DrawCircleFilled(.(knob.x, knob.y), reach * 0.42f, control.finger != null ? pressed : faint);
+			case .Look:
+			}
+		}
+	}
+}

@@ -69,8 +69,11 @@ class GameApp : Application
 		else if (mScene.Network != null && mScene.Network.Identities.Count > 0)
 			VoxelTerrain.ViewerPosition = mScene.Network.Identities.Back.Transform.Position;
 		mScene.Update();
+#if !BF_PLATFORM_WASM
+		// (A web page is closed with the browser; there, Escape only gives the mouse back.)
 		if (Input.GetKeyDown(.Escape))
 			Running = false;
+#endif
 	}
 
 	Camera FindCamera()
@@ -99,6 +102,8 @@ class GameApp : Application
 			ImGui.Begin("##GameGUI", null, ImGui.WindowFlags.NoDecoration | ImGui.WindowFlags.NoBackground | ImGui.WindowFlags.NoSavedSettings
 				| ImGui.WindowFlags.NoMove | ImGui.WindowFlags.NoBringToFrontOnFocus | ImGui.WindowFlags.NoScrollWithMouse);
 			GUI.Run(mScene, .(0, 0), .(Width, Height));
+			// On a touch screen, the game's on-screen controls go over everything else.
+			TouchControls.Draw();
 			ImGui.End();
 			ImGui.tn_imgui_render(250);
 		}

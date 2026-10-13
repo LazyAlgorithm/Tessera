@@ -106,6 +106,10 @@ namespace
 		swapChain.nwh = SDL_GetPointerProperty(props, SDL_PROP_WINDOW_UIKIT_WINDOW_POINTER, nullptr);
 #elif defined(SDL_PLATFORM_ANDROID)
 		swapChain.nwh = SDL_GetPointerProperty(props, SDL_PROP_WINDOW_ANDROID_WINDOW_POINTER, nullptr);
+#elif defined(SDL_PLATFORM_EMSCRIPTEN)
+		// bgfx's WebGL backend takes the CSS selector of the canvas SDL draws into.
+		(void)props;
+		swapChain.nwh = (void*)"#canvas";
 #elif defined(SDL_PLATFORM_LINUX)
 		const char* driver = SDL_GetCurrentVideoDriver();
 		if (driver != nullptr && SDL_strcmp(driver, "wayland") == 0)

@@ -32,12 +32,17 @@ static class Watchdog
 
 	public static void Start()
 	{
+#if BF_PLATFORM_WASM
+		// No second thread in a web page; the browser itself reports a page that stops responding.
+		return;
+#else
 		if (sThread != null)
 			return;
 		sStop = false;
 		sThread = new Thread(new => Watch);
 		sThread.IsBackground = true;
 		sThread.Start(false);
+#endif
 	}
 
 	public static void Stop()

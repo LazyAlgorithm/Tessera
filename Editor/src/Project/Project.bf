@@ -268,14 +268,14 @@ class Project
 
     /// Stages a shipping executable built against Tessera only, plus its runtime assets.
     /// outputPath is the game's own folder; an earlier build of a game found there is replaced.
-    public bool BuildPlayer(StringView outputPath, bool windows)
+    public bool BuildPlayer(StringView outputPath, BuildTarget target)
     {
         WriteBuildFiles();
         Directory.CreateDirectory(scope $"{Path}/build").IgnoreError();
         let command = scope String(Terminal.Python)..Append(' ');
         Terminal.Quote(scope $"{EngineRoot}/tools/build_player.py", command);
         command.Append(' '); Terminal.Quote(Path, command);
-        command.AppendF(" --platform {} --replace --output ", windows ? "windows" : "linux"); Terminal.Quote(outputPath, command);
+        command.AppendF(" --platform {} --replace --output ", target.ToString(.. scope .())..ToLower()); Terminal.Quote(outputPath, command);
         command.Append(" > "); Terminal.Quote(scope $"{Path}/build/build.log", command);
         command.Append(" 2>&1");
         return Terminal.Run(command) == 0;

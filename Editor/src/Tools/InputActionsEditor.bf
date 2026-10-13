@@ -368,6 +368,15 @@ extension EditorApp
 					changed |= KeyCombo("##left", ref binding.key3);
 					ImGui.SameLine();
 					changed |= KeyCombo("##right", ref binding.key4);
+				case .Touch:
+					// The name of an on-screen control the game adds with TouchControls.
+					let controlName = scope String(TouchControls.NameOf(binding.index));
+					ImGui.SetNextItemWidth(160);
+					if (ImGui.InputText("##touch", controlName))
+					{
+						binding.index = TouchControls.NameId(controlName);
+						changed = true;
+					}
 				default:
 				}
 				// A second row for the extras, so that the first stays readable.

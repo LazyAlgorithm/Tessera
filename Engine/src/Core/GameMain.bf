@@ -17,7 +17,13 @@ static class GameMain
         let manifest = scope String();
         if (AssetPack.ReadAllText(scope $"{root}/game.tessera", manifest) case .Err)
         { Console.WriteLine("Missing game.tessera (or game.tpak). Use --game <package folder>."); return 1; }
+#if BF_PLATFORM_WASM
+        // In a browser this function is left for good once the game starts (see WebPlatform.RunMainLoop) while the game
+        // keeps running, so the game must not live on its stack.
+        let app = new GameApp();
+#else
         let app = scope GameApp();
+#endif
         // A built game has no console: keep a log beside it (or in the temporary folder if that is read-only),
         // and note in it what the game was doing if it ever stops moving.
         {
@@ -57,6 +63,7 @@ static class GameMain
             if (key == "voiceKey") { if (Enum.Parse<KeyCode>(value) case .Ok(let voiceKey)) VoiceChat.PushToTalkKey = voiceKey; }
             if (key == "steamAppId") Steam.AppId = (uint32)Math.Max(SceneSerializer.ParseInt(value), 0);
             if (key == "name") Achievements.SaveName.Set(value);
+            if (key == "name") WebRtc.AppName.Set(value);
         }
         Assets.ProjectPath.Set(scope $"{root}/Assets");
         Environment.SetEnvironmentVariable("TESSERA_ROOT", root);

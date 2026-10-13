@@ -27,6 +27,7 @@ class Application
 	String mScreenshotPath = new .() ~ delete _;
 	String mEngineRootHint = new .() ~ delete _;
 	double mAccumulator;
+	uint64 mLastTicks;
 
 	public static Application Instance;
 
@@ -134,6 +135,12 @@ class Application
 				return 1;
 			}
 			var flags = SDL.WINDOW_RESIZABLE | SDL.WINDOW_HIGH_PIXEL_DENSITY;
+#if BF_PLATFORM_WASM
+			// A phone's screen has three or four pixels to each of the page's: drawing them all would cost more frame
+			// rate than the sharpness is worth. Phones draw at the page's own resolution.
+			if (WebPlatform.IsMobile)
+				flags &= ~SDL.WINDOW_HIGH_PIXEL_DENSITY;
+#endif
 			if (StartMaximized)
 				flags |= SDL.WINDOW_MAXIMIZED;
 			if (GameWindow.TakeStartState())
@@ -155,97 +162,109 @@ class Application
 			return 1;
 		}
 
-		var last = SDL.SDL_GetTicksNS();
+		mLastTicks = SDL.SDL_GetTicksNS();
+#if BF_PLATFORM_WASM
+		// A web page must not loop forever: the browser would never get to draw or deliver input. The browser calls
+		// Frame once per display refresh instead, and this call does not return.
+		WebPlatform.RunMainLoop(this);
+		return 0;
+#else
 		while (Running)
-		{
-			Watchdog.Beat();
-			// Steam delivers its events here; this does nothing unless the game has started Steam.
-			Steam.Update();
-			Watchdog.Stage = "anti-cheat: keeping the game's memory closed";
-			AntiCheat.Maintain();
-			Watchdog.Stage = "reading window events and input";
-			if (!Headless)
-			{
-				SDL.Event event = default;
-				while (SDL.SDL_PollEvent(&event))
-				{
-					switch (event.type)
-					{
-					case SDL.EVENT_QUIT, SDL.EVENT_WINDOW_CLOSE_REQUESTED:
-						Running = false;
-					case SDL.EVENT_WINDOW_PIXEL_SIZE_CHANGED:
-						Width = event.WindowData1;
-						Height = event.WindowData2;
-						Gfx.Resize(Width, Height);
-					case SDL.EVENT_MOUSE_WHEEL:
-						Input.OnWheel(event.WheelY);
-					case SDL.EVENT_GAMEPAD_ADDED, SDL.EVENT_GAMEPAD_REMOVED:
-						Gamepad.Rescan();
-					default:
-					}
-					OnEvent(ref event);
-				}
-				Input.Poll();
-			}
-
-			let now = SDL.SDL_GetTicksNS();
-			var delta = (double)(now - last) / 1.0e9;
-			last = now;
-			if (delta > 0.25)
-				delta = 0.25;
-			Time.UnscaledDeltaTime = (float)delta;
-			Time.RealTime += (float)delta;
-			Time.DeltaTime = (float)delta * Time.TimeScale;
-			Time.FrameCount++;
-			if (delta > 0)
-				Time.SmoothedFps = Mathf.Lerp(Time.SmoothedFps, (float)(1.0 / delta), Time.SmoothedFps <= 0 ? 1.0f : 0.05f);
-
-			mAccumulator += delta * Time.TimeScale;
-			int steps = 0;
-			Watchdog.Stage = "running simulation ticks";
-			var tickLength = (double)Time.FixedDeltaTime / Math.Clamp(Time.TickScale, 0.5f, 2.0f);
-			while (mAccumulator >= tickLength && steps < 8)
-			{
-				OnFixedUpdate();
-				mAccumulator -= tickLength;
-				steps++;
-				tickLength = (double)Time.FixedDeltaTime / Math.Clamp(Time.TickScale, 0.5f, 2.0f);
-			}
-			if (steps == 8)
-				mAccumulator = 0;
-			Time.InterpolationAlpha = (float)Math.Min(mAccumulator / tickLength, 1.0);
-			Watchdog.Stage = "running the frame update (scripts, UI, audio)";
-
-			OnUpdate();
-
-			if (!Headless)
-			{
-				bgfx.set_view_rect(0, 0, 0, (uint16)Width, (uint16)Height, 0, 1);
-				Watchdog.Stage = "drawing the scene";
-				OnRender();
-				Watchdog.Stage = "presenting the frame (graphics driver)";
-				if (mFrameLimit > 0 && Time.FrameCount == mFrameLimit - 2 && !mScreenshotPath.IsEmpty)
-					Native.tn_gfx_screenshot(mScreenshotPath.CStr());
-				bgfx.frame(0);
-				DebugDraw.Lines.Clear();
-				Gizmos.Lines.Clear();
-				Gizmos.Triangles.Clear();
-			}
-			else
-			{
-				// Dedicated servers have no vsync to pace them.
-				SDL.SDL_DelayNS(1000000);
-			}
-
-			if (mFrameLimit > 0 && Time.FrameCount >= mFrameLimit)
-				Running = false;
-		}
-
+			Frame();
 		Shutdown();
 		return 0;
+#endif
 	}
 
-	void Shutdown()
+	/// One pass of the main loop: events and input, fixed ticks, the frame update and drawing.
+	public void Frame()
+	{
+		Watchdog.Beat();
+		// Steam delivers its events here; this does nothing unless the game has started Steam.
+		Steam.Update();
+		Watchdog.Stage = "anti-cheat: keeping the game's memory closed";
+		AntiCheat.Maintain();
+		Watchdog.Stage = "reading window events and input";
+		if (!Headless)
+		{
+			SDL.Event event = default;
+			while (SDL.SDL_PollEvent(&event))
+			{
+				switch (event.type)
+				{
+				case SDL.EVENT_QUIT, SDL.EVENT_WINDOW_CLOSE_REQUESTED:
+					Running = false;
+				case SDL.EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+					Width = event.WindowData1;
+					Height = event.WindowData2;
+					Gfx.Resize(Width, Height);
+				case SDL.EVENT_MOUSE_WHEEL:
+					Input.OnWheel(event.WheelY);
+				case SDL.EVENT_GAMEPAD_ADDED, SDL.EVENT_GAMEPAD_REMOVED:
+					Gamepad.Rescan();
+				case SDL.EVENT_FINGER_DOWN, SDL.EVENT_FINGER_UP, SDL.EVENT_FINGER_MOTION, SDL.EVENT_FINGER_CANCELED:
+					Touch.OnEvent(ref event);
+				default:
+				}
+				OnEvent(ref event);
+			}
+			Input.Poll();
+		}
+
+		let now = SDL.SDL_GetTicksNS();
+		var delta = (double)(now - mLastTicks) / 1.0e9;
+		mLastTicks = now;
+		if (delta > 0.25)
+			delta = 0.25;
+		Time.UnscaledDeltaTime = (float)delta;
+		Time.RealTime += (float)delta;
+		Time.DeltaTime = (float)delta * Time.TimeScale;
+		Time.FrameCount++;
+		if (delta > 0)
+			Time.SmoothedFps = Mathf.Lerp(Time.SmoothedFps, (float)(1.0 / delta), Time.SmoothedFps <= 0 ? 1.0f : 0.05f);
+
+		mAccumulator += delta * Time.TimeScale;
+		int steps = 0;
+		Watchdog.Stage = "running simulation ticks";
+		var tickLength = (double)Time.FixedDeltaTime / Math.Clamp(Time.TickScale, 0.5f, 2.0f);
+		while (mAccumulator >= tickLength && steps < 8)
+		{
+			OnFixedUpdate();
+			mAccumulator -= tickLength;
+			steps++;
+			tickLength = (double)Time.FixedDeltaTime / Math.Clamp(Time.TickScale, 0.5f, 2.0f);
+		}
+		if (steps == 8)
+			mAccumulator = 0;
+		Time.InterpolationAlpha = (float)Math.Min(mAccumulator / tickLength, 1.0);
+		Watchdog.Stage = "running the frame update (scripts, UI, audio)";
+
+		OnUpdate();
+
+		if (!Headless)
+		{
+			bgfx.set_view_rect(0, 0, 0, (uint16)Width, (uint16)Height, 0, 1);
+			Watchdog.Stage = "drawing the scene";
+			OnRender();
+			Watchdog.Stage = "presenting the frame (graphics driver)";
+			if (mFrameLimit > 0 && Time.FrameCount == mFrameLimit - 2 && !mScreenshotPath.IsEmpty)
+				Native.tn_gfx_screenshot(mScreenshotPath.CStr());
+			bgfx.frame(0);
+			DebugDraw.Lines.Clear();
+			Gizmos.Lines.Clear();
+			Gizmos.Triangles.Clear();
+		}
+		else
+		{
+			// Dedicated servers have no vsync to pace them.
+			SDL.SDL_DelayNS(1000000);
+		}
+
+		if (mFrameLimit > 0 && Time.FrameCount >= mFrameLimit)
+			Running = false;
+	}
+
+	public void Shutdown()
 	{
 		AntiCheat.Release();
 		OnShutdown();

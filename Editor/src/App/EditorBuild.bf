@@ -61,8 +61,8 @@ extension EditorApp
         CompileStaleShaders();
         let output = scope String();
         BuildOutputFolder(output);
-        Log.Info(scope $"Building the {(mBuildEditor ? "editor" : "game")} for {(mBuildWindows ? "Windows" : "Linux")}...");
-        mBuildSucceeded = mBuildEditor ? project.PackageEngine(output, mBuildWindows) : project.BuildPlayer(output, mBuildWindows);
+        Log.Info(scope $"Building the {(mBuildEditor ? "editor" : "game")} for {(mBuildTarget == .Web ? "the web" : mBuildTarget.ToString(.. scope .()))}...");
+        mBuildSucceeded = mBuildEditor ? project.PackageEngine(output, mBuildTarget == .Windows) : project.BuildPlayer(output, mBuildTarget);
         if (mBuildSucceeded)
         {
             Log.Info(scope $"{(mBuildEditor ? "Editor" : "Game")} packaged at {output}");

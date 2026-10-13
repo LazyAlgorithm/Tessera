@@ -11,6 +11,12 @@ endif()
 
 set(TP ${CMAKE_CURRENT_SOURCE_DIR}/../third_party)
 
+if(EMSCRIPTEN)
+	# Emscripten turns SSE into WebAssembly SIMD. bx asks for SSE 4.2 on every non-MSVC compiler, and Jolt's headers
+	# use SSE when built for WebAssembly SIMD, so everything that includes them needs both flags.
+	add_compile_options(-msimd128 -msse4.2)
+endif()
+
 # ---- bgfx (renderer: Vulkan / Metal / D3D11 / D3D12 / GLES / WebGL) ----
 set(BGFX_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(BGFX_BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -19,6 +25,12 @@ set(BGFX_CUSTOM_TARGETS OFF CACHE BOOL "" FORCE)
 # shaderc: the editor runs it to compile a project's own shaders. The Windows cross-build makes shaderc.exe for the
 # Windows editor.
 set(BGFX_BUILD_TOOLS ON CACHE BOOL "" FORCE)
+if(EMSCRIPTEN)
+	# A web build (emcmake cmake ..., see tools/web/build_native.sh) runs in a browser: shaderc is a desktop tool,
+	# and there is a single thread, so bgfx renders on the thread that calls frame().
+	set(BGFX_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
+	set(BGFX_CONFIG_MULTITHREADED OFF CACHE BOOL "" FORCE)
+endif()
 set(BGFX_BUILD_TOOLS_GEOMETRY OFF CACHE BOOL "" FORCE)
 set(BGFX_BUILD_TOOLS_TEXTURE OFF CACHE BOOL "" FORCE)
 set(BGFX_BUILD_TOOLS_BIN2C OFF CACHE BOOL "" FORCE)
@@ -60,6 +72,10 @@ set(PROFILER_IN_DEBUG_AND_RELEASE OFF CACHE BOOL "" FORCE)
 set(JPH_USE_DX12 OFF CACHE BOOL "" FORCE)
 set(JPH_USE_VK OFF CACHE BOOL "" FORCE)
 set(JPH_USE_MTL OFF CACHE BOOL "" FORCE)
+if(EMSCRIPTEN)
+	# WebAssembly SIMD: every current browser has it, and Jolt is much faster with it.
+	set(USE_WASM_SIMD ON CACHE BOOL "" FORCE)
+endif()
 add_subdirectory(${TP}/joltc joltc)
 
 # ---- Opus (voice chat codec), compiled into the shim so there is no extra archive to link ----
@@ -96,6 +112,7 @@ add_library(tessera_native STATIC
 	tessera_guard.c
 	tessera_physics.cpp
 	tessera_audio.c
+	tessera_web.c
 	$<TARGET_OBJECTS:opus>
 )
 target_compile_features(tessera_native PRIVATE cxx_std_20)
