@@ -57,7 +57,14 @@ jobs:
           sudo apt-get install -y --no-install-recommends ninja-build cmake zip p7zip-full xz-utils curl \
             libx11-dev libxext-dev libxi-dev libxfixes-dev libxcursor-dev libxrandr-dev libxss-dev libxrender-dev \
             libgl-dev libegl-dev libasound2-dev libpulse-dev libwayland-dev libxkbcommon-dev \
-            libffi-dev zlib1g-dev libzstd-dev libxml2-dev libedit-dev wine64 wine
+            libffi-dev zlib1g-dev libzstd-dev libxml2-dev libedit-dev xvfb libgl1-mesa-dri
+          # Wine from WineHQ: Ubuntu's Wine 6 cannot start the Windows Beef compiler.
+          sudo mkdir -pm755 /etc/apt/keyrings
+          sudo wget -qO /etc/apt/keyrings/winehq-archive.key https://dl.winehq.org/wine-builds/winehq.key
+          sudo wget -qNP /etc/apt/sources.list.d/ https://dl.winehq.org/wine-builds/ubuntu/dists/jammy/winehq-jammy.sources
+          sudo apt-get update
+          sudo apt-get install -y --install-recommends winehq-stable
+          wine --version
           wget -q https://apt.llvm.org/llvm.sh
           sudo bash llvm.sh "$LLVM_VERSION"
           sudo apt-get install -y "llvm-$LLVM_VERSION-dev" "clang-$LLVM_VERSION" "lld-$LLVM_VERSION" "libclang-rt-$LLVM_VERSION-dev"
@@ -92,7 +99,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.local/share/tessera-win
-          key: tessera-win-v1
+          key: tessera-win-v2
 
       - name: Linux
         run: |
@@ -107,8 +114,9 @@ jobs:
       - name: Windows
         run: |
           cd tessera
-          tools/windows/setup.sh --accept-license
-          python3 tools/package_engine.py --platform windows --folder ../out/Tessera-Windows
+          # The Windows compiler sets up graphics as it starts, so it gets a virtual display.
+          xvfb-run -a tools/windows/setup.sh --accept-license
+          xvfb-run -a python3 tools/package_engine.py --platform windows --folder ../out/Tessera-Windows
 
       - name: Zip
         run: |
