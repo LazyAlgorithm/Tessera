@@ -8,6 +8,8 @@ class Finger
 {
 	public uint64 id;
 	public Vector2 position, start;
+	/// When it came down (Time.RealTime).
+	public float startTime;
 	/// Movement since the last frame.
 	public Vector2 delta;
 	public bool down = true;
@@ -47,6 +49,7 @@ static class Touch
 			let finger = new Finger();
 			finger.id = FingerId(ref event);
 			finger.position = finger.start = ToPixels(ref event);
+			finger.startTime = Time.RealTime;
 			sFingers.Add(finger);
 			sLastTouchTime = Time.RealTime;
 			TouchControls.FingerDown(finger);
@@ -110,7 +113,8 @@ enum TouchControlKind
 	Look,
 	/// A round button: down while touched.
 	Button,
-	/// A directional swipe observed on a look area; never captures a finger itself.
+	/// A flick across another control (usually a look area), seen when the finger lifts: it never takes a finger of
+	/// its own, and is down for the one frame the flick ends on.
 	Swipe
 }
 
@@ -133,12 +137,15 @@ class TouchControl
 	public bool visible = true;
 	/// A button drawn filled in, for a switch that is on.
 	public bool lit;
-	/// Swipe source control and direction (-1/0/1 on each axis).
+	/// Swipe: the control whose fingers it watches, and the way a flick must go (screen directions: (0, 1) is down).
 	public String swipeSource = new .() ~ delete _;
 	public Vector2 swipeDirection;
-	public bool swipeFired;
-	public bool swipeTracking;
-	public uint64 swipeFingerId;
+	/// Swipe: how far a flick must travel, in screen heights, and the longest it may take from touch to lift, in
+	/// seconds. A slow drag (aiming) is never a flick, however far it goes.
+	public float swipeDistance = 0.1f, swipeTime = 0.3f;
+	/// Swipe on a look area: when the flick is recognised, the view turns back by what the flick turned it, so a
+	/// player who flicks down to crouch is still aiming where they were.
+	public bool swipeGivesBackLook = true;
 
 	// This frame.
 	public float value, previous;
@@ -266,7 +273,11 @@ static class TouchControls
 		return control;
 	}
 
-	/// A one-shot directional swipe on a look zone. Gestures do not steal pointer ownership.
+	/// A flick across another control, usually a look area: TouchControls.AddSwipe("Crouch", "Look", .(0, 1)) is down
+	/// for one frame when a finger that started on Look is flicked downwards and lifted. It never takes a finger of its
+	/// own, so the look area works as before; a slow drag is never a flick (swipeTime), and the view turns back by
+	/// what the flick turned it (swipeGivesBackLook). Bind it like a button ("bind touch Crouch"); being one frame
+	/// long, it suits an action read as pressed, or a switch the game flips.
 	public static TouchControl AddSwipe(StringView name, StringView lookSource, Vector2 direction)
 	{
 		let control = Add(name, .Swipe);
@@ -360,39 +371,41 @@ static class TouchControls
 			case .Swipe:
 				break;
 			}
-			if (!finger.down || !Shown || !control.visible)
-			{
-				finger.owner = null;
-				control.finger = null;
-			}
 		}
-		// Resolve swipe gestures after look/stick/button updates. A finger belongs to only one
-		// pointer zone, but several gesture observers can watch its travel without capturing it.
+		// Flicks are seen as the finger lifts, while the control it worked still holds it.
 		for (let control in sControls)
 		{
 			if (control.kind != .Swipe || !control.visible)
 				continue;
 			let source = Find(control.swipeSource);
 			let finger = source != null ? source.finger : null;
-			if (finger == null || !finger.down)
-			{
-				control.swipeFired = false;
-				control.swipeTracking = false;
+			if (finger == null || finger.down)
 				continue;
-			}
-			if (!control.swipeTracking || control.swipeFingerId != finger.id)
-			{
-				control.swipeFingerId = finger.id;
-				control.swipeTracking = true;
-				control.swipeFired = false;
-			}
 			let travel = finger.position - finger.start;
-			let along = travel.x * control.swipeDirection.x + travel.y * control.swipeDirection.y;
-			let cross = Math.Abs(travel.x * control.swipeDirection.y - travel.y * control.swipeDirection.x);
-			if (!control.swipeFired && along > screen.y * 0.12f && along > cross * 1.8f)
+			let length = control.swipeDirection.Length;
+			if (length <= 0)
+				continue;
+			let way = control.swipeDirection / length;
+			let along = travel.x * way.x + travel.y * way.y;
+			let across = Math.Abs(travel.x * way.y - travel.y * way.x);
+			let quick = Time.RealTime - finger.startTime <= control.swipeTime;
+			if (quick && along >= control.swipeDistance * screen.y && along > across * 1.8f)
 			{
 				control.value = 1;
-				control.swipeFired = true;
+				if (control.swipeGivesBackLook && source.kind == .Look)
+					source.delta -= travel;
+			}
+		}
+		// Lifted fingers, and fingers on controls that have gone, let go.
+		for (let control in sControls)
+		{
+			let finger = control.finger;
+			if (finger == null)
+				continue;
+			if (!finger.down || !Shown || !control.visible)
+			{
+				finger.owner = null;
+				control.finger = null;
 			}
 		}
 	}

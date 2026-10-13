@@ -18,11 +18,14 @@ namespace Tessera;
 ///
 /// Layout is a small flexbox: flex-direction (column | row), gap, padding, margin, width / height
 /// (pixels or %), flex-grow, align-items and justify-content, plus position: absolute with left / top / right / bottom.
+/// @media blocks rearrange a document for its shape (portrait or landscape, narrow or wide): see ParseStyles.
 class UIDocumentData
 {
 	class Rule
 	{
 		public String selector = new .() ~ delete _;
+		/// The @media condition the rule is in, or empty.
+		public String media = new .() ~ delete _;
 		public UIProps props = new .() ~ delete _;
 		public int specificity;
 		/// Place in the stylesheet: of two rules equally specific, the later one wins, as in CSS.
@@ -258,10 +261,20 @@ class UIDocumentData
 	}
 
 	/// Re-reads styleText into rules. Call after editing the stylesheet.
+	///
+	/// Rules can sit in @media blocks, which apply only while the document's layout area matches, so one document
+	/// can rearrange itself for a portrait phone instead of shrinking a landscape layout until it is unreadable:
+	///   @media (orientation: portrait) { #left { left: 24; right: 24; width: auto } .right { display: none } }
+	///   @media (max-width: 700), (max-aspect-ratio: 4/3) { ... }
+	/// Conditions: orientation (portrait | landscape), min-/max-width, min-/max-height and min-/max-aspect-ratio
+	/// (width/height, such as 16/9), joined with "and"; a comma between conditions means "or". Widths and heights
+	/// are in the document's own layout units (with a reference height or width, the units it is designed in), and
+	/// are tested afresh on every layout, so a phone turned sideways rearranges at once. A rule in a block wins over
+	/// an equally specific rule earlier in the file, as in CSS; a style="" attribute still wins over both, so give
+	/// the parts that rearrange an id or class rather than inline positions.
 	public void ParseStyles()
 	{
 		ClearAndDeleteItems!(mRules);
-		int i = 0;
 		// Comments (/* ... */) are left out.
 		let clean = scope String(styleText);
 		while (true)
@@ -272,22 +285,55 @@ class UIDocumentData
 			let to = clean.IndexOf("*/", from + 2);
 			clean.Remove(from, (to < 0 ? clean.Length : to + 2) - from);
 		}
-		let text = (StringView)clean;
+		ParseRules(clean, "");
+		// (List.Sort is not stable, so source order is part of the key.)
+		mRules.Sort(scope (a, b) => (a.specificity != b.specificity) ? (a.specificity <=> b.specificity) : (a.order <=> b.order));
+	}
+
+	void ParseRules(StringView text, StringView media)
+	{
+		int i = 0;
 		while (i < text.Length)
 		{
 			let open = text.IndexOf('{', i);
 			if (open < 0)
 				break;
+			var prelude = text.Substring(i, open - i);
+			prelude.Trim();
+			if (prelude.StartsWith("@media"))
+			{
+				// The block runs to its matching brace: it holds whole rules of its own.
+				int depth = 0;
+				int close = -1;
+				for (int at = open; at < text.Length; at++)
+				{
+					if (text[at] == '{')
+						depth++;
+					else if (text[at] == '}' && --depth == 0)
+					{
+						close = at;
+						break;
+					}
+				}
+				if (close < 0)
+					break;
+				var condition = prelude.Substring(6);
+				condition.Trim();
+				ParseRules(text.Substring(open + 1, close - open - 1), condition);
+				i = close + 1;
+				continue;
+			}
 			let close = text.IndexOf('}', open);
 			if (close < 0)
 				break;
-			for (var selector in text.Substring(i, open - i).Split(','))
+			for (var selector in prelude.Split(','))
 			{
 				selector.Trim();
 				if (selector.IsEmpty)
 					continue;
 				let rule = new Rule();
 				rule.selector.Set(selector);
+				rule.media.Set(media);
 				rule.specificity = selector.StartsWith('#') ? 100 : (selector.StartsWith('.') ? 10 : 1);
 				rule.props.ParseDeclarations(text.Substring(open + 1, close - open - 1));
 				rule.order = mRules.Count;
@@ -295,12 +341,94 @@ class UIDocumentData
 			}
 			i = close + 1;
 		}
-		// (List.Sort is not stable, so source order is part of the key.)
-		mRules.Sort(scope (a, b) => (a.specificity != b.specificity) ? (a.specificity <=> b.specificity) : (a.order <=> b.order));
 	}
 
-	static bool Matches(Rule rule, UIElement element)
+	// The layout area the @media conditions are tested against, set by Layout.
+	float mViewWidth, mViewHeight;
+
+	/// True when an @media condition holds for a layout area of this size (see ParseStyles).
+	public static bool MediaMatches(StringView condition, float width, float height)
 	{
+		if (condition.IsEmpty)
+			return true;
+		// "a, b": either will do.
+		for (var alternative in condition.Split(','))
+		{
+			bool all = true;
+			// Each "(name: value)" in turn; the words around them ("screen", "and") ask nothing of a game's view.
+			int at = 0;
+			while (true)
+			{
+				let from = alternative.IndexOf('(', at);
+				if (from < 0)
+					break;
+				let to = alternative.IndexOf(')', from);
+				if (to < 0)
+				{
+					all = false;
+					break;
+				}
+				at = to + 1;
+				let part = alternative.Substring(from + 1, to - from - 1);
+				let colon = part.IndexOf(':');
+				if (colon < 0)
+				{
+					all = false;
+					break;
+				}
+				var name = part.Substring(0, colon);
+				name.Trim();
+				var value = part.Substring(colon + 1);
+				value.Trim();
+				if (value.EndsWith("px"))
+					value.RemoveFromEnd(2);
+				float number = 0;
+				let slash = value.IndexOf('/');
+				if (slash >= 0)
+				{
+					// An aspect ratio written as a fraction: 16/9.
+					var over = value.Substring(0, slash);
+					var under = value.Substring(slash + 1);
+					over.Trim();
+					under.Trim();
+					float top = 0, bottom = 1;
+					if (float.Parse(over) case .Ok(let a))
+						top = a;
+					if (float.Parse(under) case .Ok(let b))
+						bottom = b;
+					number = bottom != 0 ? top / bottom : 0;
+				}
+				else if (float.Parse(value) case .Ok(let parsed))
+					number = parsed;
+				let aspect = height > 0 ? width / height : 1;
+				bool holds;
+				switch (name)
+				{
+				case "orientation": holds = value == "portrait" ? height > width : (value == "landscape" ? width >= height : false);
+				case "min-width": holds = width >= number;
+				case "max-width": holds = width <= number;
+				case "min-height": holds = height >= number;
+				case "max-height": holds = height <= number;
+				case "min-aspect-ratio": holds = aspect >= number;
+				case "max-aspect-ratio": holds = aspect <= number;
+				default: holds = false;
+				}
+				if (!holds)
+				{
+					all = false;
+					break;
+				}
+			}
+			if (all)
+				return true;
+		}
+		return false;
+	}
+
+	bool Matches(Rule rule, UIElement element)
+	{
+		if (!rule.media.IsEmpty && !MediaMatches(rule.media, mViewWidth, mViewHeight))
+			return false;
 		let selector = (StringView)rule.selector;
 		if (selector.StartsWith('#'))
 			return element.Id == selector.Substring(1);
@@ -520,6 +648,8 @@ class UIDocumentData
 	{
 		if (root == null)
 			return;
+		mViewWidth = width;
+		mViewHeight = height;
 		ComputeStyles(root);
 		Measure(root, width, height);
 		Arrange(root, 0, 0, width, height);
