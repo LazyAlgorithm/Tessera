@@ -9,8 +9,10 @@ static class RenderResources
 {
 	public const int MaxLights = 16;
 	public const int CascadeCount = 4;
-	public const int32 ShadowAtlasSize = 4096;
-	public const int32 ShadowTileSize = ShadowAtlasSize / 2;
+	/// The shadow map's size in pixels (four cascades in a 2 x 2 grid). Set before the first frame is drawn; phones
+	/// use a smaller one (Gfx.UseMobileQuality).
+	public static int32 ShadowAtlasSize = 4096;
+	public static int32 ShadowTileSize => ShadowAtlasSize / 2;
 
 	public static bool Ready;
 	public static bgfx.ProgramHandle MeshProgram;
@@ -128,6 +130,14 @@ class RenderView
 
 	public uint16 ViewBase;
 	public bool ToBackbuffer;
+	/// How much of the output's resolution the 3D scene is drawn at: below 1 it is drawn smaller and stretched to
+	/// fit, which costs much less on a phone's many pixels. The interface is drawn afterwards at full resolution.
+	public static float RenderScale = 1;
+	/// The most lines the 3D scene is drawn at, however tall the window (0: no limit). Phones have very sharp
+	/// screens and modest graphics chips: the scene is drawn at this and stretched, the interface stays sharp.
+	public static int32 MaxSceneHeight = 0;
+	/// Multisampled edges on the scene. Off saves a lot on phones.
+	public static bool Antialias = true;
 	public bool DrawGizmos;
 	public bool DrawShadows = true;
 
@@ -139,6 +149,10 @@ class RenderView
 
 	int32 mWidth;
 	int32 mHeight;
+	// The size drawn to (the window, or the output texture); the scene is mWidth x mHeight, RenderScale of it.
+	int32 mOutWidth, mOutHeight;
+	float mBuiltScale;
+	bool mBuiltAntialias;
 	bgfx.TextureHandle mSceneColor = .() { idx = uint16.MaxValue };
 	bgfx.FrameBufferHandle mSceneFb = .() { idx = uint16.MaxValue };
 	bgfx.TextureHandle mOutputColor = .() { idx = uint16.MaxValue };
@@ -174,8 +188,9 @@ class RenderView
 		ReleaseTargets();
 	}
 
-	public int32 Width => mWidth;
-	public int32 Height => mHeight;
+	/// The size of the picture drawn (the scene inside may be drawn smaller: RenderScale).
+	public int32 Width => mOutWidth;
+	public int32 Height => mOutHeight;
 	/// Texture holding the finished image when not rendering to the backbuffer.
 	public uint16 OutputTexture => mOutputColor.idx;
 
@@ -199,20 +214,31 @@ class RenderView
 
 	public void Resize(int32 width, int32 height)
 	{
-		let w = Math.Max(width, 8);
-		let h = Math.Max(height, 8);
-		if (w == mWidth && h == mHeight && mSceneFb.Valid)
+		let outWidth = Math.Max(width, 8);
+		let outHeight = Math.Max(height, 8);
+		var scale = Math.Clamp(RenderScale, 0.25f, 1.0f);
+		if (MaxSceneHeight > 0)
+			scale = Math.Max(Math.Min(scale, (float)MaxSceneHeight / outHeight), 0.25f);
+		if (outWidth == mOutWidth && outHeight == mOutHeight && scale == mBuiltScale && Antialias == mBuiltAntialias && mSceneFb.Valid)
 			return;
 		ReleaseTargets();
+		mOutWidth = outWidth;
+		mOutHeight = outHeight;
+		mBuiltScale = scale;
+		mBuiltAntialias = Antialias;
+		let w = Math.Max((int32)(outWidth * scale), 8);
+		let h = Math.Max((int32)(outHeight * scale), 8);
 		mWidth = w;
 		mHeight = h;
 
 		let clamp = (uint64)0x0000002a;
-		let msaa4 = (uint64)0x0000003000000000;
+		// Multisampling also makes the texture a render target; without it the texture has to say so itself.
+		let msaa4 = Antialias ? (uint64)0x0000003000000000 : 0;
+		let target = Antialias ? msaa4 : (uint64)0x0000001000000000;
 		let writeOnly = (uint64)0x0000008000000000;
 		let rt = (uint64)0x0000001000000000;
 		bgfx.TextureHandle[2] sceneTextures;
-		sceneTextures[0] = bgfx.create_texture_2d((uint16)w, (uint16)h, false, 1, .RGBA16F, msaa4 | clamp, null, 0);
+		sceneTextures[0] = bgfx.create_texture_2d((uint16)w, (uint16)h, false, 1, .RGBA16F, target | clamp, null, 0);
 		sceneTextures[1] = bgfx.create_texture_2d((uint16)w, (uint16)h, false, 1, .D32F, msaa4 | writeOnly, null, 0);
 		mSceneColor = sceneTextures[0];
 		mSceneFb = bgfx.create_frame_buffer_from_handles(2, &sceneTextures, true);
@@ -227,7 +253,7 @@ class RenderView
 
 		if (!ToBackbuffer)
 		{
-			mOutputColor = bgfx.create_texture_2d((uint16)w, (uint16)h, false, 1, .RGBA8, rt | clamp, null, 0);
+			mOutputColor = bgfx.create_texture_2d((uint16)outWidth, (uint16)outHeight, false, 1, .RGBA8, rt | clamp, null, 0);
 			mOutputFb = bgfx.create_frame_buffer_from_handles(1, &mOutputColor, true);
 		}
 	}
@@ -426,7 +452,7 @@ class RenderView
 		let postView = (uint16)(ViewBase + 9);
 		bgfx.set_view_name(postView, "Tonemap", 7);
 		bgfx.set_view_frame_buffer(postView, mOutputFb);
-		bgfx.set_view_rect(postView, 0, 0, (uint16)mWidth, (uint16)mHeight, 0, 1);
+		bgfx.set_view_rect(postView, 0, 0, (uint16)mOutWidth, (uint16)mOutHeight, 0, 1);
 		bgfx.set_view_clear(postView, 0, 0, 1.0f, 0);
 		Vector4 postParams = .(env.exposure, 0.35f, 1.05f, bloom > 0.001f ? bloom : 0);
 		bgfx.set_uniform(RenderResources.uPostParams, &postParams, 1);

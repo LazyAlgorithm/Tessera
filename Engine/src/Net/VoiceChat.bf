@@ -56,7 +56,8 @@ static class VoiceChat
 	public static float MicrophoneVolume = 1;
 	/// Loudness of other players' voices. The Voice mixer group (Audio.SetGroupVolume(.Voice, ...)) applies as well.
 	public static float Volume = 1;
-	/// Stops your microphone being sent without turning voice chat off.
+	/// Stops your microphone being sent without turning voice chat off: you still hear the others. The microphone
+	/// is not even opened while muted, so a browser does not ask for permission to use it.
 	public static bool Muted;
 	/// Stops other players' voices being played.
 	public static bool Deafened;
@@ -155,7 +156,7 @@ static class VoiceChat
 		if (session == null && sLocal != null && !(Enabled && Loopback))
 			DeleteAndNullify!(sLocal);
 		// The microphone is open only while voice chat is on and there is someone to send to (or a test running).
-		let wantMic = Enabled && session != null && !Audio.Disabled && !Audio.NoDevice && (session.CanSend || Loopback);
+		let wantMic = Enabled && !Muted && session != null && !Audio.Disabled && !Audio.NoDevice && (session.CanSend || Loopback);
 		if (wantMic && tn_voice_capturing() == 0 && !sMicFailed)
 		{
 			if (tn_voice_capture_start() == 0)

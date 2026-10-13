@@ -98,10 +98,10 @@ class GameApp : Application
 			// Components draw their interface into one invisible window covering the screen.
 			ImGui.tn_imgui_new_frame();
 			ImGui.SetNextWindowPos(.(0, 0));
-			ImGui.SetNextWindowSize(.(Width, Height));
+			ImGui.SetNextWindowSize(.(InterfaceWidth, InterfaceHeight));
 			ImGui.Begin("##GameGUI", null, ImGui.WindowFlags.NoDecoration | ImGui.WindowFlags.NoBackground | ImGui.WindowFlags.NoSavedSettings
 				| ImGui.WindowFlags.NoMove | ImGui.WindowFlags.NoBringToFrontOnFocus | ImGui.WindowFlags.NoScrollWithMouse);
-			GUI.Run(mScene, .(0, 0), .(Width, Height));
+			GUI.Run(mScene, .(0, 0), .(InterfaceWidth, InterfaceHeight));
 			// On a touch screen, the game's on-screen controls go over everything else.
 			TouchControls.Draw();
 			ImGui.End();

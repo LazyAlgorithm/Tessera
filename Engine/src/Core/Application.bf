@@ -17,6 +17,11 @@ class Application
 	public void* Window;
 	public int32 Width = 1600;
 	public int32 Height = 900;
+	/// The window's size for the interface, in points: the same as Width and Height except on a screen with more
+	/// than one pixel to a point (phones, high-density laptops), where the interface library measures in points and
+	/// draws its text and shapes at full sharpness by itself.
+	public float InterfaceWidth = 1600;
+	public float InterfaceHeight = 900;
 	public bool Running = true;
 	public bool Headless;
 	public bool StartMaximized;
@@ -136,10 +141,10 @@ class Application
 			}
 			var flags = SDL.WINDOW_RESIZABLE | SDL.WINDOW_HIGH_PIXEL_DENSITY;
 #if BF_PLATFORM_WASM
-			// A phone's screen has three or four pixels to each of the page's: drawing them all would cost more frame
-			// rate than the sharpness is worth. Phones draw at the page's own resolution.
+			// Phones: the interface at the screen's full sharpness, the 3D scene at a resolution the phone can keep up
+			// with (the page also caps the pixel density at 2).
 			if (WebPlatform.IsMobile)
-				flags &= ~SDL.WINDOW_HIGH_PIXEL_DENSITY;
+				Gfx.UseMobileQuality();
 #endif
 			if (StartMaximized)
 				flags |= SDL.WINDOW_MAXIMIZED;
@@ -209,6 +214,17 @@ class Application
 				OnEvent(ref event);
 			}
 			Input.Poll();
+			int32 pointsWide = 0, pointsHigh = 0;
+			if (Window != null && SDL.SDL_GetWindowSize(Window, &pointsWide, &pointsHigh) && pointsWide > 0 && pointsHigh > 0)
+			{
+				InterfaceWidth = pointsWide;
+				InterfaceHeight = pointsHigh;
+			}
+			else
+			{
+				InterfaceWidth = Width;
+				InterfaceHeight = Height;
+			}
 		}
 
 		let now = SDL.SDL_GetTicksNS();

@@ -29,8 +29,9 @@ static class Touch
 
 	static Vector2 ToPixels(ref SDL.Event event)
 	{
-		let width = Application.Instance != null ? Application.Instance.Width : 1;
-		let height = Application.Instance != null ? Application.Instance.Height : 1;
+		// In the interface's units (points), where the controls are drawn.
+		let width = Application.Instance != null ? Application.Instance.InterfaceWidth : 1;
+		let height = Application.Instance != null ? Application.Instance.InterfaceHeight : 1;
 		// SDL_TouchFingerEvent: x and y from 0 to 1 across the window.
 		return .(event.ReadFloat(32) * width, event.ReadFloat(36) * height);
 	}
@@ -128,16 +129,27 @@ class TouchControl
 	/// with one thumb.
 	public String dragLooks = new .() ~ delete _;
 	public bool visible = true;
+	/// A button drawn filled in, for a switch that is on.
+	public bool lit;
 
 	// This frame.
-	public float value;
+	public float value, previous;
 	public Vector2 vector;
 	public Vector2 delta;
 	public Finger finger;
 	public Vector2 origin;
 
-	public Vector2 Center(Vector2 screen) => .(anchor.x * screen.x + offset.x * screen.y, anchor.y * screen.y + offset.y * screen.y);
-	public float RadiusPixels(Vector2 screen) => radius * screen.y;
+	public Vector2 Center(Vector2 screen)
+	{
+		let scale = TouchControls.Scale;
+		return .(anchor.x * screen.x + offset.x * scale * screen.y, anchor.y * screen.y + offset.y * scale * screen.y);
+	}
+	public float RadiusPixels(Vector2 screen) => radius * TouchControls.Scale * screen.y;
+
+	/// A button: touched this frame and not the last.
+	public bool Pressed => value > 0.5f && previous <= 0.5f;
+	/// A button: held down.
+	public bool Held => value > 0.5f;
 	public bool AreaContains(Vector2 point, Vector2 screen) => point.x >= area.x * screen.x && point.x <= (area.x + area.z) * screen.x && point.y >= area.y * screen.y && point.y <= (area.y + area.w) * screen.y;
 }
 
@@ -153,8 +165,13 @@ static class TouchControls
 
 	/// The game is in play (not in a menu): the controls are drawn and take touches.
 	public static bool Shown = true;
-	/// How the controls look: the colour of their outlines and labels.
-	public static Color Tint = Color(1, 1, 1, 0.55f);
+	/// How the controls look: the colour of their outlines and labels, and of the disc behind each button that keeps
+	/// it readable over a bright scene.
+	public static Color Tint = Color(1, 1, 1, 0.7f);
+	public static Color Backing = Color(0.02f, 0.05f, 0.1f, 0.35f);
+	/// Makes every control bigger or smaller (and further from or nearer to its corner), for a player's taste or
+	/// a game's interface scale setting.
+	public static float Scale = 1;
 
 	/// True when the controls are on screen: a touch screen is in use and the game shows them.
 	public static bool Active => Shown && Input.UsingTouch && sControls.Count > 0;
@@ -183,6 +200,11 @@ static class TouchControls
 		}
 		return null;
 	}
+
+	/// A button by name was pressed this frame (false if there is none, or the controls are not on screen).
+	public static bool Pressed(StringView name) => Active && (Find(name)?.Pressed ?? false);
+	/// A button by name is held down.
+	public static bool Held(StringView name) => Active && (Find(name)?.Held ?? false);
 
 	public static TouchControl FindById(int32 id) => id >= 0 && id < sNames.Count ? Find(sNames[id]) : null;
 
@@ -236,7 +258,7 @@ static class TouchControls
 		ClearAndDeleteItems(sControls);
 	}
 
-	static Vector2 Screen => Application.Instance != null ? Vector2(Application.Instance.Width, Application.Instance.Height) : Vector2(1, 1);
+	static Vector2 Screen => Application.Instance != null ? Vector2(Application.Instance.InterfaceWidth, Application.Instance.InterfaceHeight) : Vector2(1, 1);
 
 	/// A finger came down: the control under it takes it. Buttons first, then sticks, then look areas.
 	public static void FingerDown(Finger finger)
@@ -245,6 +267,7 @@ static class TouchControls
 			return;
 		let screen = Screen;
 		TouchControl best = null;
+		// (Hidden controls take no touches: a button a game shows only when it applies leaves the look area there.)
 		float bestDistance = float.MaxValue;
 		for (let control in sControls)
 		{
@@ -279,6 +302,7 @@ static class TouchControls
 		let screen = Screen;
 		for (let control in sControls)
 		{
+			control.previous = control.value;
 			control.value = 0;
 			control.vector = .(0, 0);
 			control.delta = .(0, 0);
@@ -312,7 +336,7 @@ static class TouchControls
 			case .Look:
 				control.delta += finger.delta;
 			}
-			if (!finger.down || !Shown)
+			if (!finger.down || !Shown || !control.visible)
 			{
 				finger.owner = null;
 				control.finger = null;
@@ -328,7 +352,7 @@ static class TouchControls
 		let screen = Screen;
 		let faint = Color(Tint.r, Tint.g, Tint.b, Tint.a * 0.35f);
 		let pressed = Color(Tint.r, Tint.g, Tint.b, Tint.a * 0.45f);
-		let thickness = Math.Max(2.0f, screen.y * 0.004f);
+		let thickness = Math.Max(2.0f, screen.y * 0.005f);
 		for (let control in sControls)
 		{
 			if (!control.visible)
@@ -338,13 +362,18 @@ static class TouchControls
 			case .Button:
 				let center = control.Center(screen);
 				let radius = control.RadiusPixels(screen);
-				if (control.value > 0)
-					ImGui.DrawCircleFilled(.(center.x, center.y), radius, pressed);
+				ImGui.DrawCircleFilled(.(center.x, center.y), radius, Backing);
+				if (control.value > 0 || control.lit)
+					ImGui.DrawCircleFilled(.(center.x, center.y), radius, control.value > 0 ? pressed : faint);
 				ImGui.DrawCircle(.(center.x, center.y), radius, Tint, thickness);
 				if (!control.label.IsEmpty)
 				{
+					// The label fits the button: a size from the button's own, smaller for longer words.
+					let fontSize = Math.Clamp(radius * 1.9f / Math.Max(control.label.Length, 4), 10.0f, radius * 0.5f);
+					ImGui.PushFontSize(fontSize);
 					let size = ImGui.CalcTextSize(control.label.CStr());
-					ImGui.DrawText(.(center.x - size.x * 0.5f, center.y - size.y * 0.5f), Tint, control.label.CStr());
+					ImGui.DrawText(.(Math.Round(center.x - size.x * 0.5f), Math.Round(center.y - size.y * 0.5f)), Tint, control.label.CStr());
+					ImGui.PopFont();
 				}
 			case .Stick:
 				let reach = control.RadiusPixels(screen);

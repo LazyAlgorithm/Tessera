@@ -69,6 +69,15 @@ static class Gfx
 	static String sShaderFolder = new .() ~ delete _;
 
 	/// rendererOverride: a bgfx.RendererType value, or -1 to pick the best backend for the platform.
+	/// Settings for a phone or tablet: the 3D scene drawn at no more than 540 lines and stretched (the interface
+	/// stays sharp), no multisampling, and a smaller shadow map. Call before the first frame.
+	public static void UseMobileQuality()
+	{
+		RenderView.MaxSceneHeight = 540;
+		RenderView.Antialias = false;
+		RenderResources.ShadowAtlasSize = 2048;
+	}
+
 	public static bool Init(void* window, int32 width, int32 height, int32 rendererOverride = -1)
 	{
 		if (!Native.tn_gfx_init(window, width, height, rendererOverride, ResetFlags))
