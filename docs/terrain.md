@@ -16,6 +16,14 @@ The area starts at the object's position and extends along +X and +Z; the menu i
 
 Changing the size, height or mode in the Inspector rebuilds the terrain; sculpting already done is kept where it still fits.
 
+## Manual adjacent terrain tiles (experimental)
+
+Select a **Fixed** Voxel Terrain in the Inspector. Under **Adjacent Tiles**, choose **+X**, **-X**, **+Z**, or **-Z** to add a new flat tile immediately beside it. The new tile inherits the source's size, voxel resolution, flat height, vertical range, voxel style and terrain colors. The editor refuses to add another fixed tile at the same origin.
+
+Raise, Lower, Smooth, Flatten and Paint strokes that reach neighboring fixed terrain areas are forwarded to those tiles. The terrain mode remains **Fixed** by default; endless terrain is opt-in. Games can supply a custom density generator through `SetGenerator`.
+
+**Status:** This is an initial editor workflow, not a finished seamless terrain system. Fixed terrain density currently falls off at its boundary, which may create a visible join; independent voxel meshes can also diverge at shared edges. Seam stitching/shared border samples, tile deletion/resizing behavior, undo for brush edits, and native runtime tests remain outstanding. Tiles are separate VoxelTerrain components and their saved edits remain separate.
+
 ## Endless terrain
 
 Set **Mode** to **Endless** for a world generated from noise around the camera: `seed`, `terrainHeight`, `terrainScale`, `caveAmount` and `viewDistance` shape it. This is what the open-world sample scene uses. Scenes saved before terrains had a mode keep their endless terrain.
