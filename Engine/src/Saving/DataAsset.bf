@@ -330,8 +330,12 @@ abstract class DataAsset
 	}
 
 	/// Drops every loaded asset and the file index (the editor calls this after scripts reload or play stops).
+	/// Goes up each time ClearCache drops the loaded assets: code that keeps an asset can tell it must Get it again.
+	public static int CacheVersion { get; private set; }
+
 	public static void ClearCache()
 	{
+		CacheVersion++;
 		for (let entry in sReading)
 			delete entry.task;
 		sReading.Clear();

@@ -5,6 +5,10 @@ namespace Tessera;
 /// Editor-free packaged game entry point. Distribution layout: game.tessera, Assets/, Engine/assets/.
 static class GameMain
 {
+    /// Runs once in a built game after its files and manifest are found, before its window opens: the place to load
+    /// settings that decide how the window opens (fullscreen, say). GamePaths and DataAsset work from here on.
+    public static Event<delegate void()> BeforeWindow ~ _.Dispose();
+
     public static int Run(String[] args)
     {
         let root = scope String();
@@ -88,6 +92,7 @@ static class GameMain
             else if (arg == "--netstats") NetworkManager.LogStats = true;
             else if (arg == "--editor") { Console.WriteLine("This game was built without the editor."); return 1; }
         }
+        BeforeWindow();
         return app.Run(args);
     }
 }
