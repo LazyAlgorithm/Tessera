@@ -144,10 +144,16 @@ class TouchControl
 	public Vector2 swipeDirection;
 	/// Swipe: how far a flick must travel, in screen units (the short side), and the longest it may take from touch to lift, in
 	/// seconds. A slow drag (aiming) is never a flick, however far it goes.
-	public float swipeDistance = 0.1f, swipeTime = 0.3f;
-	/// Swipe on a look area: when the flick is recognised, the view turns back by what the flick turned it, so a
-	/// player who flicks down to crouch is still aiming where they were.
-	public bool swipeGivesBackLook = true;
+	public float swipeDistance = 0.12f, swipeTime = 0.25f;
+	/// Swipe on a look area: while a stroke could still become a flick (mostly the flick's way, and fast enough to
+	/// finish in time), the view does not turn the flick's way; if it becomes a flick that turn never happens, and if
+	/// it does not (it slows, turns aside or takes too long) the view catches up at once. Ordinary aiming is never
+	/// held, and only a stroke that fast and that way is held, for at most swipeTime.
+	public bool swipeHoldsLook = true;
+	// The stroke being watched: its finger, the turn held back from it, and whether it can still be a flick.
+	uint64 mStrokeFinger;
+	Vector2 mHeld;
+	bool mStroking, mCandidate;
 
 	// This frame.
 	public float value, previous;
@@ -170,6 +176,73 @@ class TouchControl
 	public bool Pressed => value > 0.5f && previous <= 0.5f;
 	/// A button: held down.
 	public bool Held => value > 0.5f;
+	/// Swipe: follows the stroke of the finger on its source control this frame (TouchControls.Update).
+	public void WatchStroke(Vector2 screen)
+	{
+		if (kind != .Swipe)
+			return;
+		let source = TouchControls.Find(swipeSource);
+		let finger = source != null ? source.finger : null;
+		let length = swipeDirection.Length;
+		if (!visible || finger == null || length <= 0)
+		{
+			if (mStroking && source != null)
+				source.delta += mHeld;
+			mStroking = false;
+			mHeld = .(0, 0);
+			return;
+		}
+		if (!mStroking || mStrokeFinger != finger.id)
+		{
+			mStroking = true;
+			mStrokeFinger = finger.id;
+			mHeld = .(0, 0);
+			mCandidate = true;
+		}
+		let way = swipeDirection / length;
+		let travel = finger.position - finger.start;
+		let along = travel.x * way.x + travel.y * way.y;
+		let across = Math.Abs(travel.x * way.y - travel.y * way.x);
+		let elapsed = Time.RealTime - finger.startTime;
+		let distance = swipeDistance * TouchControls.Unit(screen);
+		let looks = swipeHoldsLook && source.kind == .Look;
+		if (!finger.down)
+		{
+			// Lifted: a flick if it was quick, far enough and mostly the flick's way.
+			if (elapsed <= swipeTime && along >= distance && along > across * 1.8f)
+			{
+				value = 1;
+				// The turn it held back never happens, and whatever of the flick's way got through is undone: the
+				// view ends up where it was before the stroke began, the flick's way.
+				if (looks)
+					source.delta -= Vector2(way.x * along - mHeld.x, way.y * along - mHeld.y);
+			}
+			else if (looks)
+				source.delta += mHeld;
+			mStroking = false;
+			mHeld = .(0, 0);
+			return;
+		}
+		if (!looks || !mCandidate)
+			return;
+		// Could it still be a flick? Not backwards or aside, and on pace to cover the distance in time.
+		let onPace = along >= distance * Math.Min(elapsed / swipeTime, 1) * 0.999f;
+		if (elapsed <= swipeTime && along >= 0 && along >= across * 1.8f && onPace)
+		{
+			// Hold back this frame's turn the flick's way.
+			let forward = finger.delta.x * way.x + finger.delta.y * way.y;
+			let step = Vector2(way.x * forward, way.y * forward);
+			source.delta -= step;
+			mHeld += step;
+		}
+		else
+		{
+			mCandidate = false;
+			source.delta += mHeld;
+			mHeld = .(0, 0);
+		}
+	}
+
 	public bool AreaContains(Vector2 point, Vector2 screen) => point.x >= area.x * screen.x && point.x <= (area.x + area.z) * screen.x && point.y >= area.y * screen.y && point.y <= (area.y + area.w) * screen.y;
 }
 
@@ -278,8 +351,8 @@ static class TouchControls
 
 	/// A flick across another control, usually a look area: TouchControls.AddSwipe("Crouch", "Look", .(0, 1)) is down
 	/// for one frame when a finger that started on Look is flicked downwards and lifted. It never takes a finger of its
-	/// own, so the look area works as before; a slow drag is never a flick (swipeTime), and the view turns back by
-	/// what the flick turned it (swipeGivesBackLook). Bind it like a button ("bind touch Crouch"); being one frame
+	/// own, so the look area works as before; a slow drag is never a flick (swipeTime), and the view does not turn
+	/// the flick's way while a stroke could still be one (swipeHoldsLook). Bind it like a button ("bind touch Crouch"); being one frame
 	/// long, it suits an action read as pressed, or a switch the game flips.
 	public static TouchControl AddSwipe(StringView name, StringView lookSource, Vector2 direction)
 	{
@@ -378,30 +451,10 @@ static class TouchControls
 				break;
 			}
 		}
-		// Flicks are seen as the finger lifts, while the control it worked still holds it.
+		// Flicks: watched while the stroke lasts, recognised as the finger lifts, while the control it worked still
+		// holds the finger.
 		for (let control in sControls)
-		{
-			if (control.kind != .Swipe || !control.visible)
-				continue;
-			let source = Find(control.swipeSource);
-			let finger = source != null ? source.finger : null;
-			if (finger == null || finger.down)
-				continue;
-			let travel = finger.position - finger.start;
-			let length = control.swipeDirection.Length;
-			if (length <= 0)
-				continue;
-			let way = control.swipeDirection / length;
-			let along = travel.x * way.x + travel.y * way.y;
-			let across = Math.Abs(travel.x * way.y - travel.y * way.x);
-			let quick = Time.RealTime - finger.startTime <= control.swipeTime;
-			if (quick && along >= control.swipeDistance * Unit(screen) && along > across * 1.8f)
-			{
-				control.value = 1;
-				if (control.swipeGivesBackLook && source.kind == .Look)
-					source.delta -= travel;
-			}
-		}
+			control.WatchStroke(screen);
 		// Lifted fingers, and fingers on controls that have gone, let go.
 		for (let control in sControls)
 		{
