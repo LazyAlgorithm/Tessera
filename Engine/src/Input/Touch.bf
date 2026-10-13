@@ -137,6 +137,7 @@ class TouchControl
 	public String swipeSource = new .() ~ delete _;
 	public Vector2 swipeDirection;
 	public bool swipeFired;
+	public bool swipeTracking;
 	public uint64 swipeFingerId;
 
 	// This frame.
@@ -356,6 +357,8 @@ static class TouchControls
 				control.value = control.vector.Length;
 			case .Look:
 				control.delta += finger.delta;
+			case .Swipe:
+				break;
 			}
 			if (!finger.down || !Shown || !control.visible)
 			{
@@ -374,11 +377,13 @@ static class TouchControls
 			if (finger == null || !finger.down)
 			{
 				control.swipeFired = false;
+				control.swipeTracking = false;
 				continue;
 			}
-			if (control.swipeFingerId != finger.id)
+			if (!control.swipeTracking || control.swipeFingerId != finger.id)
 			{
 				control.swipeFingerId = finger.id;
+				control.swipeTracking = true;
 				control.swipeFired = false;
 			}
 			let travel = finger.position - finger.start;
