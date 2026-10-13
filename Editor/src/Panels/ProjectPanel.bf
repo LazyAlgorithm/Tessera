@@ -27,6 +27,8 @@ extension EditorApp
 	String mRenameText = new .() ~ delete _;
 	String mDeletePath = new .() ~ delete _;
 	String mNewItemName = new .() ~ delete _;
+	/// The class of the data asset being made (+ > Data Asset).
+	String mNewDataType = new .() ~ delete _;
 	String mPendingMoveFrom = new .() ~ delete _;
 	String mPendingMoveTo = new .() ~ delete _;
 	int32 mNewItemKind = -1; // 0 folder, 1 script, 2 scene
@@ -203,7 +205,7 @@ extension EditorApp
 				{
 					mSelectedAsset.Set(entry.path);
 					// A material clicked here is what the Inspector shows, until an object is selected again.
-					mInspectAsset = entry.name.EndsWith(".tmat");
+					mInspectAsset = entry.name.EndsWith(".tmat") || entry.name.EndsWith(".tdata");
 				}
 				if (hovered && ImGui.IsMouseDoubleClicked(0))
 					activate = entry;
@@ -450,6 +452,7 @@ extension EditorApp
 		else if (entry.name.EndsWith(".tcontroller")) { color = .(0.78f, 0.48f, 0.14f, 1); tag = "ANIMATOR"; }
 		else if (entry.name.EndsWith(".tanim")) { color = .(0.30f, 0.55f, 0.75f, 1); tag = "CLIP"; }
 		else if (entry.name.EndsWith(".tmat")) { color = .(0.62f, 0.36f, 0.66f, 1); tag = "MATERIAL"; }
+		else if (entry.name.EndsWith(".tdata")) { color = .(0.20f, 0.60f, 0.52f, 1); tag = "DATA"; }
 		else if (entry.name.EndsWith(".tshader")) { color = .(0.40f, 0.62f, 0.30f, 1); tag = "SHADER"; }
 		else if (entry.name.EndsWith(".tcompute")) { color = .(0.30f, 0.62f, 0.50f, 1); tag = "COMPUTE"; }
 		else if (IsAudioFile(entry.name)) { color = .(0.35f, 0.72f, 0.80f, 1); tag = "AUDIO"; }
@@ -504,6 +507,23 @@ extension EditorApp
 		if (ImGui.MenuItem("Shader (code)")) BeginNewItem(10, "NewShader");
 		if (ImGui.MenuItem("Compute Shader")) BeginNewItem(11, "NewCompute");
 		if (ImGui.MenuItem("UI Document")) BeginNewItem(4, "NewUI");
+		if (ImGui.BeginMenu("Data Asset"))
+		{
+			let types = scope List<Type>();
+			DataAsset.Types(types);
+			if (types.IsEmpty)
+				ImGui.TextDisabled("No data asset classes yet: write one with [DataAsset] (see the Saving page).");
+			for (let type in types)
+			{
+				let name = type.GetName(.. scope .());
+				if (ImGui.MenuItem(name))
+				{
+					mNewDataType.Set(type.GetFullName(.. scope .()));
+					BeginNewItem(13, name);
+				}
+			}
+			ImGui.EndMenu();
+		}
 	}
 
 	void BeginNewItem(int32 kind, StringView defaultName)
@@ -684,6 +704,24 @@ extension EditorApp
 			CreateShaderAsset(mNewItemName, true);
 		case 12:
 			CreateShaderGraphAsset(mNewItemName);
+		case 13:
+			let path = scope $"{mBrowsePath}/{mNewItemName}.tdata";
+			if (File.Exists(path))
+			{
+				Log.Error(scope $"{path} already exists.");
+				break;
+			}
+			let asset = DataAsset.Create(DataAsset.TypeNamed(mNewDataType));
+			if (asset == null)
+			{
+				Log.Error("That data asset class could not be made.");
+				break;
+			}
+			let text = scope String();
+			asset.WriteText(text);
+			delete asset;
+			File.WriteAllText(path, text).IgnoreError();
+			DataAsset.ClearCache();
 		default:
 		}
 		RefreshAssetList();

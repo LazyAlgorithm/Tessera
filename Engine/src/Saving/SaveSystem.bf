@@ -146,6 +146,7 @@ static class SaveSystem
 	/// Once a frame, from the application: finishes saves and loads whose storage answered, and fires the events.
 	public static void Update()
 	{
+		DataAsset.Poll();
 		for (int i = sTasks.Count - 1; i >= 0; i--)
 		{
 			let task = sTasks[i];

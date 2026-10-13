@@ -68,6 +68,8 @@ extension EditorApp
 				ImGui.TextDisabled(relative.CStr());
 				DrawMaterialInspector(relative);
 			}
+			else if (mInspectAsset && mSelectedAsset.EndsWith(".tdata"))
+				DrawDataAssetInspector(mSelectedAsset);
 			else if (selected == null)
 				DrawSceneSettings();
 			else

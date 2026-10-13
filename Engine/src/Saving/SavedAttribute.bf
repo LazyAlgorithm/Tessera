@@ -95,10 +95,12 @@ static class SaveCodegen
 		}
 
 		let isComponent = owner.IsSubtypeOf(typeof(Component));
+		// Data assets have SaveFields to override, as components do.
+		let isAsset = owner.IsSubtypeOf(typeof(DataAsset));
 		let isStruct = owner.IsValueType;
 		// A class of the game's own whose base class has [Saved] fields already has SaveFields to extend.
 		var baseSaved = false;
-		if (!isComponent && !isStruct)
+		if (!isComponent && !isAsset && !isStruct)
 		{
 			var check = owner.BaseType;
 			while (check != null && check != typeof(Object))
@@ -112,7 +114,7 @@ static class SaveCodegen
 			}
 		}
 		let code = scope String();
-		if (isComponent || baseSaved)
+		if (isComponent || isAsset || baseSaved)
 			code.Append("public override void SaveFields(Tessera.SaveIO io)\n{\n\tbase.SaveFields(io);\n");
 		else if (isStruct)
 			code.Append("public void SaveFields(Tessera.SaveIO io) mut\n{\n");
@@ -133,7 +135,7 @@ static class SaveCodegen
 		if (isComponent)
 			code.Append("public override bool HasSavedFields => true;\n");
 		Compiler.EmitTypeBody(owner, code);
-		if (!isComponent && !baseSaved)
+		if (!isComponent && !isAsset && !baseSaved)
 			Compiler.EmitAddInterface(owner, typeof(ISaveable));
 	}
 

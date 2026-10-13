@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.IO;
 using Tessera;
 
 namespace SavingTests;
@@ -84,6 +85,17 @@ class Progress : Component
 	public int32 loadedCalls;
 
 	public override void Awake() { seenAtAwake = coins; }
+	public override void OnLoaded() { loadedCalls++; }
+}
+
+[DataAsset]
+class TestSettings : DataAsset
+{
+	public float maxSpeed = 10;
+	public String title = new .("Untitled") ~ delete _;
+	[Saved] public float volume = 0.8f;
+	[Saved] public List<String> recent = new .() ~ DeleteContainerAndItems!(_);
+	public int32 loadedCalls;
 	public override void OnLoaded() { loadedCalls++; }
 }
 
@@ -297,6 +309,46 @@ class Program
 		Check(!SaveSystem.Exists(name), "and deleted");
 	}
 
+	static void DataAssets()
+	{
+		// An asset file as the editor writes it.
+		let folder = scope $"{GamePaths.PlayerData}asset-test";
+		Directory.CreateDirectory(scope $"{folder}/Data").IgnoreError();
+		Assets.ProjectPath.Set(folder);
+		DataAsset.Storage = new FileSaveStorage(scope $"{folder}/player");
+		DataAsset.Storage.Delete("Data/Settings");
+		{
+			let made = DataAsset.Create(typeof(TestSettings)) as TestSettings;
+			made.maxSpeed = 25;
+			made.title.Set("Arena");
+			made.volume = 0.5f;
+			made.recent.Add(new String("Foundry"));
+			let text = scope String();
+			made.WriteText(text);
+			delete made;
+			File.WriteAllText(scope $"{folder}/Data/Settings.tdata", text).IgnoreError();
+		}
+		DataAsset.ClearCache();
+		let settings = DataAsset.Get<TestSettings>();
+		Check(settings != null && settings.AssetPath == "Data/Settings.tdata", scope $"Get<T>() finds the project's asset of that class ({settings?.AssetPath})");
+		Check(settings.maxSpeed == 25 && settings.title == "Arena" && settings.volume == 0.5f && settings.recent.Count == 1, "it has the file's values, lists included");
+		Check(DataAsset.Get<TestSettings>() == settings && DataAsset.Get<TestSettings>("Data/Settings.tdata") == settings, "every script gets the same one");
+		settings.volume = 0.2f;
+		settings.recent.Add(new String("Sanctum"));
+		settings.maxSpeed = 99;
+		settings.Save();
+		DataAsset.ClearCache();
+		let again = DataAsset.Get<TestSettings>();
+		Check(again.volume == 0.2f && again.recent.Count == 2 && again.loadedCalls == 1, "the player's [Saved] fields come back from their folder");
+		Check(again.maxSpeed == 25, "fields that are not [Saved] come from the file");
+		again.Revert();
+		Check(again.volume == 0.5f && again.recent.Count == 1, "Revert goes back to the file's values");
+		DataAsset.ClearCache();
+		let fresh = DataAsset.Get<TestSettings>();
+		Check(fresh.volume == 0.5f, "and forgets the player's copy");
+		DataAsset.ClearCache();
+	}
+
 	public static int Main(String[] args)
 	{
 		let scene = scope Scene();
@@ -387,6 +439,7 @@ class Program
 		}
 		Console.WriteLine(scope $"{bytes.Count} bytes, {text.Length} characters of text");
 		SceneSaves();
+		DataAssets();
 		Console.WriteLine(sFailed == 0 ? "All saving checks passed." : scope $"{sFailed} saving checks FAILED.");
 		return sFailed == 0 ? 0 : 1;
 	}

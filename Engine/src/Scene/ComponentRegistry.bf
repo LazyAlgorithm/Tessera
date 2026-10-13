@@ -83,6 +83,8 @@ static class ComponentRegistry
 	public static void Refresh()
 	{
 		if (sInfos != null) { DeleteContainerAndItems!(sInfos); sInfos = null; }
+		// Scripts were reloaded: loaded data assets are of the old classes.
+		DataAsset.ClearCache();
 		Build();
 	}
 
@@ -149,16 +151,19 @@ static class ComponentRegistry
 	}
 
 	/// Collects the serializable fields of a component, base class fields first.
-	public static void GetFields(Component component, List<FieldRef> fields, bool forReload = false)
+	public static void GetFields(Component component, List<FieldRef> fields, bool forReload = false) => GetFields(component, typeof(Component), fields, forReload);
+
+	/// The same for any object (a data asset), with the fields of the classes from stopAt down.
+	public static void GetFields(Object target, Type stopAt, List<FieldRef> fields, bool forReload = false)
 	{
 		List<TypeInstance> chain = scope .();
-		var type = component.GetType() as TypeInstance;
-		while (type != null && type != typeof(Component))
+		var type = target.GetType() as TypeInstance;
+		while (type != null && type != stopAt)
 		{
 			chain.Add(type);
 			type = type.BaseType;
 		}
-		let basePtr = (uint8*)Internal.UnsafeCastToPtr(component);
+		let basePtr = (uint8*)Internal.UnsafeCastToPtr(target);
 		for (int i = chain.Count - 1; i >= 0; i--)
 		{
 			for (let field in chain[i].GetFields(.Instance | .Public | .NonPublic | .DeclaredOnly))

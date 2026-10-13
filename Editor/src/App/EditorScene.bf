@@ -103,6 +103,8 @@ extension EditorApp
 		if (mPlay == .Edit)
 			return;
 		mScene.StopPlay();
+		// Data assets as the game left them are not the files: the next Play reads them afresh.
+		DataAsset.ClearCache();
 		if (mScene.Network != null)
 		{
 			mScene.Network.Stop();
