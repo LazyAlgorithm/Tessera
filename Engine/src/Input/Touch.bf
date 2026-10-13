@@ -142,7 +142,9 @@ class TouchControl
 	public Vector2 Center(Vector2 screen)
 	{
 		let scale = TouchControls.Scale;
-		return .(anchor.x * screen.x + offset.x * scale * screen.y, anchor.y * screen.y + offset.y * scale * screen.y);
+		// Kept in from the edges it is anchored to by EdgeMargin (not at all from a centre anchor).
+		let margin = TouchControls.EdgeMargin * screen.y;
+		return .(anchor.x * screen.x + offset.x * scale * screen.y + (1 - 2 * anchor.x) * margin.x, anchor.y * screen.y + offset.y * scale * screen.y + (1 - 2 * anchor.y) * margin.y);
 	}
 	public float RadiusPixels(Vector2 screen) => radius * TouchControls.Scale * screen.y;
 
@@ -172,6 +174,9 @@ static class TouchControls
 	/// Makes every control bigger or smaller (and further from or nearer to its corner), for a player's taste or
 	/// a game's interface scale setting.
 	public static float Scale = 1;
+	/// How far every control is kept in from the edge of the screen it sits by, in screen heights (x from the sides,
+	/// y from the top and bottom): phones with curved or rounded edges hide what is right at them.
+	public static Vector2 EdgeMargin = .(0.06f, 0.03f);
 
 	/// True when the controls are on screen: a touch screen is in use and the game shows them.
 	public static bool Active => Shown && Input.UsingTouch && sControls.Count > 0;
