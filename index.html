@@ -853,7 +853,7 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
       </ul>
 
       <h2 id="manual-viewmodel">First-person viewmodel</h2>
-      <p><em>On the <code>dev</code> branch; in <code>main</code> with the next release.</em> A first-person player's arms and weapon are drawn in a pass of their own, after the world and over it, with their own field of view and a near clip at the eye: a gun never pokes into a wall it is held against, and keeps its shape however wide the world's field of view.</p>
+      <p>A first-person player's arms and weapon are drawn in a pass of their own, after the world and over it, with their own field of view and a near clip at the eye: a gun never pokes into a wall it is held against, and keeps its shape however wide the world's field of view.</p>
       <ol>
         <li>In <strong>Project Settings</strong>, name a layer <code>Viewmodel</code> and untick it against every layer in the collision table.</li>
         <li>Make the arms and weapon children of the camera's object and put each part on that layer (the Layer menu at the top of the Inspector).</li>
@@ -874,7 +874,7 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
       </table></div>
 
       <h2 id="manual-skinned-materials">Materials on skinned meshes</h2>
-      <p><em>On the <code>dev</code> branch; in <code>main</code> with the next release.</em> A rigged model with several materials (skin, cloth, armour) or any textures is drawn in parts, one per material in the file, each with the material saved there: base colour, normal, metallic-roughness, occlusion and emissive textures (inside a <code>.glb</code>, as <code>data:</code> addresses or as files beside the model), metallic, roughness, alpha mode and double sides. A model with one plain material is drawn as before, with its Mesh Renderer's settings.</p>
+      <p>A rigged model with several materials (skin, cloth, armour) or any textures is drawn in parts, one per material in the file, each with the material saved there: base colour, normal, metallic-roughness, occlusion and emissive textures (inside a <code>.glb</code>, as <code>data:</code> addresses or as files beside the model), metallic, roughness, alpha mode and double sides. A model with one plain material is drawn as before, with its Mesh Renderer's settings.</p>
       <p>The Inspector lists the parts under the <strong>Skinned Mesh Renderer</strong> by the file's material names; type a <code>.tmat</code> beside one to use it instead. A Material on the Mesh Renderer covers every part without one of its own, and the renderer's Color tints them all. From code, <code>skinned.SetPartMaterial(index, "Materials/armour.tmat")</code>, which is sent to every machine in a network session; <code>PartCount</code> and <code>PartName(i)</code> list the parts. The textures are named after the model (<code>Models/hero.glb#image2</code>), so your own materials can use them too.</p>
 
       <h2 id="manual-audio">Audio and voice</h2>
