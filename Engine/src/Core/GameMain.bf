@@ -55,6 +55,9 @@ static class GameMain
             if (key == "startScene") app.StartScene.Set(value);
             if (key == "audioHrtf") Audio.Hrtf = value == "1";
             if (key == "fullscreen") GameWindow.StartsFullscreen = value == "1";
+            if (key == "windowWidth") GameWindow.StartWidth = (int32)Math.Max(SceneSerializer.ParseInt(value), 0);
+            if (key == "windowHeight") GameWindow.StartHeight = (int32)Math.Max(SceneSerializer.ParseInt(value), 0);
+            if (key == "escapeQuits") GameWindow.EscapeQuits = value != "0";
             // With the anti-cheat on, a built game also closes its memory to other programs and watches itself.
             if (key == "antiCheat" && value == "1")
             {

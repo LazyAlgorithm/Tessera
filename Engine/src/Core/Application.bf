@@ -150,6 +150,11 @@ class Application
 				flags |= SDL.WINDOW_MAXIMIZED;
 			if (GameWindow.TakeStartState())
 				flags |= SDL.WINDOW_FULLSCREEN;
+			if (GameWindow.StartWidth > 0 && GameWindow.StartHeight > 0)
+			{
+				Width = GameWindow.StartWidth;
+				Height = GameWindow.StartHeight;
+			}
 			Window = SDL.SDL_CreateWindow(Title.CStr(), Width, Height, flags);
 			if (Window == null)
 			{

@@ -84,7 +84,7 @@ class GameApp : Application
 		mScene.Update();
 #if !BF_PLATFORM_WASM
 		// (A web page is closed with the browser; there, Escape only gives the mouse back.)
-		if (Input.GetKeyDown(.Escape))
+		if (GameWindow.EscapeQuits && Input.GetKeyDown(.Escape))
 			Running = false;
 #endif
 	}

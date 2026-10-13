@@ -231,7 +231,7 @@ def main():
             # How the game starts out: the project's Build setting, unless this run says otherwise.
             # In a browser the page fills the window, and the player chooses full screen.
             fullscreen = (settings.get('fullscreen', '') == '1' or args.fullscreen) and not args.windowed and not web
-            (staging / 'game.tessera').write_text(f'name = {name}\nstartScene = {scene}\n' + (f'steamAppId = {steam}\n' if steam else '') + (f'audioHrtf = {hrtf}\n' if hrtf else '') + ('fullscreen = 1\n' if fullscreen else '') + ''.join(f'{k} = {settings[k]}\n' for k in ('antiCheat', 'voiceChat', 'voicePushToTalk', 'voiceProximity', 'voiceTeamOnly', 'voiceKey', 'loadSaveAtStart', 'saveSlot') if settings.get(k)))
+            (staging / 'game.tessera').write_text(f'name = {name}\nstartScene = {scene}\n' + (f'steamAppId = {steam}\n' if steam else '') + (f'audioHrtf = {hrtf}\n' if hrtf else '') + ('fullscreen = 1\n' if fullscreen else '') + ''.join(f'{k} = {settings[k]}\n' for k in ('antiCheat', 'voiceChat', 'voicePushToTalk', 'voiceProximity', 'voiceTeamOnly', 'voiceKey', 'loadSaveAtStart', 'saveSlot', 'windowWidth', 'windowHeight', 'escapeQuits') if settings.get(k)))
             if output.exists():
                 shutil.rmtree(output)
             # Everything the game reads goes into one pack, unless the project (or --loose) says to leave it loose.
