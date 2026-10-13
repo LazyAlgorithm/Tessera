@@ -5,7 +5,7 @@ log="$(mktemp)"
 bash -eo pipefail "$1" 2>&1 | tee "$log"
 status=${PIPESTATUS[0]}
 if [ "$status" -ne 0 ]; then
-	tail -n 60 "$log" | sed -e 's/%/%25/g' -e 's/\r/%0D/g' | awk 'BEGIN { ORS = "%0A" } { print }' | sed 's/^/::error title=Last lines before the failure::/'
+	{ grep -iE "error|failed|fatal|no such|not found|undefined" "$log" | tail -n 12; echo "----"; tail -n 12 "$log"; } | cut -c1-220 | sed -e 's/%/%25/g' -e 's/\r/%0D/g' | awk 'BEGIN { ORS = "%0A" } { print }' | sed 's/^/::error title=Last lines before the failure::/'
 	echo
 fi
 exit "$status"

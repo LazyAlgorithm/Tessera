@@ -66,9 +66,10 @@ jobs:
             sudo ln -sf "/usr/lib/llvm-$LLVM_VERSION/bin/$tool" "/usr/local/bin/$tool"
           done
 
+      # Restored and saved as separate steps, so that a compiler built by a run that later fails is still kept.
       - name: Cache the Beef compiler
         id: beef-cache
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: ~/beef
           key: beef-${{ env.BEEF_COMMIT }}-llvm${{ env.LLVM_VERSION }}-jammy
@@ -79,6 +80,13 @@ jobs:
           git clone https://github.com/beefytech/Beef ~/beef
           git -C ~/beef checkout "$BEEF_COMMIT"
           cd ~/beef/bin && ./build.sh
+
+      - name: Keep the Beef compiler
+        if: steps.beef-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/beef
+          key: beef-${{ env.BEEF_COMMIT }}-llvm${{ env.LLVM_VERSION }}-jammy
 
       - name: Cache the Windows toolchain
         uses: actions/cache@v4
@@ -93,7 +101,7 @@ jobs:
           cd tessera
           python3 tools/patch_textedit.py
           cmake -S native -B build/native -G Ninja -DCMAKE_BUILD_TYPE=Release
-          cmake --build build/native -j "$(nproc)"
+          cmake --build build/native -j "$(nproc)" --target tessera_native bgfx bimg bimg_decode bx SDL3-static joltc Jolt enet shaderc
           python3 tools/package_engine.py --platform linux --folder ../out/Tessera-Linux
 
       - name: Windows
