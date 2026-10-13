@@ -20,6 +20,15 @@ static class GUI
 	public static ImGui.Vec2 Origin => sOrigin;
 	public static float Width;
 	public static float Height;
+	/// Logical UI units (SDL window points), independent of the physical render resolution.
+	public static float LogicalWidth => Width;
+	public static float LogicalHeight => Height;
+	/// Current view aspect ratio; changes naturally on window resize or phone rotation.
+	public static float AspectRatio => Height > 0 ? Width / Height : 1;
+	public static bool IsPortrait => Height > Width;
+	public static bool IsLandscape => Width >= Height;
+	/// Physical framebuffer pixels per logical UI point. Do not multiply UI positions by this value.
+	public static float PixelRatio => Application.Instance != null && Width > 0 ? (float)Application.Instance.Width / Width : 1;
 	/// True while the mouse is over a GUI control, so gameplay can ignore the click.
 	public static bool MouseOverControl;
 
