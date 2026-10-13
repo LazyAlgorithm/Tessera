@@ -107,3 +107,17 @@ Collaboration belongs to a **persistent project**, not an ephemeral host session
 6. Collaborative text editing, asset exchange, contribution dashboard, and Git snapshots.
 
 **Status:** design only; no implementation or runtime validation claimed.
+
+## GitHub-backed project workflow: owner-approved collaboration branches
+
+- Authenticate desktop users with a GitHub App OAuth/device flow and minimal repository permissions. GitHub identity is for attribution and repository authorization; P2P membership is authenticated independently.
+- Each persistent Tessera project references an owner-controlled upstream GitHub repository and default branch. Contributors can keep local clones and optionally individual forks/independent remotes.
+- Each collaborative workstream has a stable named branch such as `collab/level-design-01`. The branch represents the workstream, **not** the lifetime of a P2P connection; users can leave, rejoin, and work offline.
+- Local edits are journaled immediately. Reconnecting peers reconcile and validate changes before generating a Git checkpoint. A single integration coordinator prepares canonical checkpoint commits so shared operations are not duplicated across forks.
+- A designated integration actor with appropriate GitHub permissions pushes the collaboration branch to upstream or an authorized fork and opens/updates a pull request. If contributors lack upstream write access, use an authorized owner-side integration process or PR from a fork; never assume a peer can push upstream.
+- The owner reviews and explicitly merges the PR to the protected default branch, or leaves the branch open/archives it. **Session end must never automatically merge to main.**
+- Keep creator/owner authority separate from ephemeral coordinator election. Changing P2P coordinator must not grant GitHub repository write access.
+- Show GitHub commit and PR provenance alongside Tessera's signed per-operation contribution log. Do not count replicated operations twice.
+- Handle stale collaboration branches, base-branch updates, conflicting Git commits, failed pushes, and offline peers before finalizing checkpoints. Ensure user approval for destructive history rewriting.
+
+Status: product and technical specification only; no working branch-sync implementation yet.
