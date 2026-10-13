@@ -6,9 +6,10 @@
 #   - a push to the `release` branch: a pre-release named after the date and commit;
 #   - by hand, from the Actions tab (Run workflow): the same, or the zips only as downloadable artifacts.
 #
-# Everything is built on one Linux machine: Windows through tools/windows/setup.sh (the Windows Beef compiler under
-# Wine, and Microsoft's C runtime and Windows SDK libraries fetched by xwin under the Visual Studio Build Tools
-# licence). Ubuntu 22.04 keeps the Linux build to glibc 2.35, so it runs on most current distributions.
+# Linux and Windows build at the same time, each on its own system: Linux on Ubuntu 22.04 (glibc 2.35, so it runs on
+# most current distributions), Windows on a Windows machine with Microsoft's compiler tools. The third-party native
+# libraries are kept in the Actions cache (.github/scripts/native-deps.sh) and only built again when third_party/ or
+# the native CMake setup changes; the Beef compilers are cached too. A third job puts both zips on the release.
 name: Engine release
 
 on:
@@ -26,14 +27,15 @@ permissions:
   contents: write
 
 env:
-  # Beef's compiler for Linux, built from source (its Windows compiler is downloaded by setup.sh).
+  # Beef's compiler for Linux, built from source. Windows uses Beef's own Windows release.
   BEEF_COMMIT: b62833e327d6b08f3566b31102c57646de6916b0
   LLVM_VERSION: '22'
+  NATIVE_TARGETS: tessera_native bgfx bimg bimg_decode bx SDL3-static joltc Jolt enet shaderc
 
 jobs:
-  build:
+  linux:
     runs-on: ubuntu-22.04
-    timeout-minutes: 180
+    timeout-minutes: 90
     defaults:
       run:
         # A failing step repeats the end of its output on the run's page (.github/scripts/step.sh).
@@ -52,28 +54,19 @@ jobs:
 
       - name: Install build tools
         run: |
-          sudo dpkg --add-architecture i386
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends ninja-build cmake zip p7zip-full xz-utils curl \
+          sudo apt-get install -y --no-install-recommends ninja-build cmake zip xz-utils curl \
             libx11-dev libxext-dev libxi-dev libxfixes-dev libxcursor-dev libxrandr-dev libxss-dev libxrender-dev \
             libgl-dev libegl-dev libasound2-dev libpulse-dev libwayland-dev libxkbcommon-dev \
-            libffi-dev zlib1g-dev libzstd-dev libxml2-dev libedit-dev xvfb libgl1-mesa-dri
-          # Wine from WineHQ: Ubuntu's Wine 6 cannot start the Windows Beef compiler.
-          sudo mkdir -pm755 /etc/apt/keyrings
-          sudo wget -qO /etc/apt/keyrings/winehq-archive.key https://dl.winehq.org/wine-builds/winehq.key
-          sudo wget -qNP /etc/apt/sources.list.d/ https://dl.winehq.org/wine-builds/ubuntu/dists/jammy/winehq-jammy.sources
-          sudo apt-get update
-          sudo apt-get install -y --install-recommends winehq-stable
-          wine --version
+            libffi-dev zlib1g-dev libzstd-dev libxml2-dev libedit-dev
           wget -q https://apt.llvm.org/llvm.sh
           sudo bash llvm.sh "$LLVM_VERSION"
-          sudo apt-get install -y "llvm-$LLVM_VERSION-dev" "clang-$LLVM_VERSION" "lld-$LLVM_VERSION" "libclang-rt-$LLVM_VERSION-dev"
-          # Plain names for what the build scripts call (clang-cl, lld-link, llvm-lib and the rest for Windows).
-          for tool in clang clang++ clang-cl lld-link llvm-lib llvm-rc llvm-mt llvm-ar llvm-config wasm-ld; do
+          sudo apt-get install -y "llvm-$LLVM_VERSION-dev" "clang-$LLVM_VERSION" "lld-$LLVM_VERSION"
+          for tool in clang clang++ llvm-ar llvm-config; do
             sudo ln -sf "/usr/lib/llvm-$LLVM_VERSION/bin/$tool" "/usr/local/bin/$tool"
           done
 
-      # Restored and saved as separate steps, so that a compiler built by a run that later fails is still kept.
+      # Restored and saved as separate steps, so that what a run builds is kept even if a later step fails.
       - name: Cache the Beef compiler
         id: beef-cache
         uses: actions/cache/restore@v4
@@ -95,49 +88,154 @@ jobs:
           path: ~/beef
           key: beef-${{ env.BEEF_COMMIT }}-llvm${{ env.LLVM_VERSION }}-jammy
 
-      - name: Cache the Windows toolchain
-        uses: actions/cache@v4
-        with:
-          path: ~/.local/share/tessera-win
-          key: tessera-win-v2
+      - name: Native library cache key
+        id: native-key
+        run: echo "key=$(tessera/.github/scripts/native-deps.sh key linux)" >> "$GITHUB_OUTPUT"
 
-      - name: Linux
+      - name: Cache the native libraries
+        id: native-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: tessera/build/native
+          key: ${{ steps.native-key.outputs.key }}
+
+      - name: Native libraries
         run: |
-          echo "BEEFBUILD=$HOME/beef/IDE/dist/BeefBuild" >> "$GITHUB_ENV"
-          export BEEFBUILD="$HOME/beef/IDE/dist/BeefBuild"
+          [ "${{ steps.native-cache.outputs.cache-hit }}" = "true" ] && tessera/.github/scripts/native-deps.sh settle
           cd tessera
           python3 tools/patch_textedit.py
-          cmake -S native -B build/native -G Ninja -DCMAKE_BUILD_TYPE=Release
-          cmake --build build/native -j "$(nproc)" --target tessera_native bgfx bimg bimg_decode bx SDL3-static joltc Jolt enet shaderc
-          python3 tools/package_engine.py --platform linux --folder ../out/Tessera-Linux
+          [ -f build/native/CMakeCache.txt ] || cmake -S native -B build/native -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build/native -j "$(nproc)" --target $NATIVE_TARGETS
 
-      - name: Windows
+      - name: Keep the native libraries
+        if: steps.native-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: tessera/build/native
+          key: ${{ steps.native-key.outputs.key }}
+
+      - name: Build and package
         run: |
+          export BEEFBUILD="$HOME/beef/IDE/dist/BeefBuild"
           cd tessera
-          # The Windows compiler sets up graphics as it starts, so it gets a virtual display.
-          xvfb-run -a tools/windows/setup.sh --accept-license
-          xvfb-run -a python3 tools/package_engine.py --platform windows --folder ../out/Tessera-Windows
+          python3 tools/package_engine.py --platform linux --folder ../out/Tessera-Linux
+          cd ../out && zip -qr9 Tessera-Linux.zip Tessera-Linux
 
-      - name: Zip
-        run: |
-          cd out
-          for build in Tessera-Linux Tessera-Windows; do
-            zip -qr9 "$build.zip" "$build"
-          done
-          ls -la *.zip
-
-      - name: Keep the zips with this run
+      - name: Keep the zip
         uses: actions/upload-artifact@v4
         with:
-          name: tessera-builds
-          path: out/*.zip
+          name: Tessera-Linux
+          path: out/Tessera-Linux.zip
+
+  windows:
+    runs-on: windows-2022
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: bash tessera/.github/scripts/step.sh {0}
+    steps:
+      # Scripts are run by bash: keep their line endings as they are in the repository.
+      - name: Line endings
+        shell: pwsh
+        run: git config --global core.autocrlf false
+
+      - name: Get Tessera
+        uses: actions/checkout@v4
+        with:
+          path: tessera
+
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Microsoft's compiler environment (the C runtime and Windows SDK), used by clang-cl and Beef's linker.
+      - name: Visual Studio environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Install build tools
+        run: |
+          python -m pip install --quiet ninja
+          ninja --version
+          clang-cl --version | head -1
+
+      - name: Cache the Beef compiler
+        id: beef-cache
+        uses: actions/cache@v4
+        with:
+          path: beef-win
+          key: beef-win-v1
+
+      - name: Get the Beef compiler
+        if: steps.beef-cache.outputs.cache-hit != 'true'
+        run: |
+          curl -sL -o BeefSetup.exe http://nightly.beeflang.org/BeefSetup.exe
+          mkdir -p beef-win && (cd beef-win && 7z x -y ../BeefSetup.exe > /dev/null)
+          rm -f BeefSetup.exe
+
+      - name: Native library cache key
+        id: native-key
+        run: echo "key=$(tessera/.github/scripts/native-deps.sh key windows)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the native libraries
+        id: native-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: tessera/build/native-win
+          key: ${{ steps.native-key.outputs.key }}
+
+      - name: Native libraries
+        run: |
+          [ "${{ steps.native-cache.outputs.cache-hit }}" = "true" ] && tessera/.github/scripts/native-deps.sh settle
+          cd tessera
+          python tools/patch_textedit.py
+          # Beef links Windows programs against the static C runtime; so must everything linked into them.
+          [ -f build/native-win/CMakeCache.txt ] || cmake -S native -B build/native-win -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl \
+            -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded -DCMAKE_POLICY_DEFAULT_CMP0091=NEW
+          cmake --build build/native-win -j "$NUMBER_OF_PROCESSORS" --target $NATIVE_TARGETS
+
+      - name: Keep the native libraries
+        if: steps.native-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: tessera/build/native-win
+          key: ${{ steps.native-key.outputs.key }}
+
+      - name: Build and package
+        run: |
+          # Beef finds its libraries beside itself.
+          printf 'Version = 1\nUnversionedLibDirs = ["../BeefLibs"]\n' > beef-win/bin/BeefConfig.toml
+          export BEEFBUILD="$(cygpath -w "$PWD/beef-win/bin/BeefBuild.exe")"
+          cd tessera
+          python tools/package_engine.py --platform windows --folder ../out/Tessera-Windows
+          cd ../out && 7z a -tzip -mx=9 Tessera-Windows.zip Tessera-Windows > /dev/null
+
+      - name: Keep the zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: Tessera-Windows
+          path: out/Tessera-Windows.zip
+
+  release:
+    needs: [linux, windows]
+    if: github.event_name == 'push' || inputs.publish
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Get the zips
+        uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
 
       - name: Release
-        if: github.event_name == 'push' || inputs.publish
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          short="$(git -C tessera rev-parse --short HEAD)"
+          ls -la out
+          short="${GITHUB_SHA:0:7}"
           if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
             tag="${GITHUB_REF_NAME}"; title="Tessera ${GITHUB_REF_NAME}"; pre=""
           else

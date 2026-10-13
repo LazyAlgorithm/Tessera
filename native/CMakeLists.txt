@@ -87,7 +87,7 @@ set(OPUS_INSTALL_CMAKE_CONFIG_MODULE OFF CACHE BOOL "" FORCE)
 if(MSVC)
 	set(OPUS_STATIC_RUNTIME ON CACHE BOOL "" FORCE)
 endif()
-if(CMAKE_CROSSCOMPILING AND MSVC)
+if(MSVC AND CMAKE_C_COMPILER_ID MATCHES "Clang")
 	# Opus leaves out the per-file SSE4.1/AVX2 switches for Microsoft's compiler, and clang-cl needs them.
 	set(OPUS_DISABLE_INTRINSICS ON CACHE BOOL "" FORCE)
 endif()
