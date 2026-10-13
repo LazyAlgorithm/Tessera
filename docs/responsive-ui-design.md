@@ -60,4 +60,24 @@ The earlier mobile workarounds (Ringfall phone references 900/1080, percentage w
 
 Fix viewport measurement and canvas sizing **first**, then remove compensating per-game scale overrides, then implement responsive screen layouts. Avoid further arbitrary reference-resolution tweaks unless measured viewport and computed layout prove they are necessary.
 
-This document captures the agreed design direction. It does not claim all of these behaviors are implemented or tested.
+This document captures the agreed design direction. *Implementation status* below records what is built.
+
+## Implementation status (October 2026, `dev`)
+
+**Viewport.** The web shell sizes the canvas explicitly to the viewport inside the safe areas (`tools/web/shell/index.html`); SDL follows it on load, resize and rotation. Measured in an emulated iPhone: canvas 844×390 CSS px, drawing buffer 1688×780 at a pixel ratio of 2, UI 844×390 points, and the same swapped after rotation. The safe-area inset is applied once, by the shell; the UI does not add its own.
+
+**@media rules (engine).** Stylesheets may hold `@media` blocks: `orientation`, `min-/max-width`, `min-/max-height`, `min-/max-aspect-ratio`, joined with `and`, alternatives with commas. Widths and heights are in the document's layout units and are tested on every layout, so rotation rearranges a screen at once. Inline `style=""` still wins over the stylesheet, so parts that rearrange take their position from an id or class. This is the breakpoint/orientation mechanism the layout contract asks for; no separate per-orientation files are needed.
+
+**Text measurement (engine fix).** Wrapped text with `width: auto` or a percentage was measured as if 0 wide, and the contents of a fixed-width panel (or one pinned to both sides) against the whole parent, so text drew narrower than measured and pushed or overlapped what followed. Both now measure at the width they are drawn.
+
+**Scaling.** Uniform fit to the tighter of a design height and width, as specified. A game may give different design sizes per orientation through `UIDocument.SetVariant(variant, height, width)`. Ringfall's phone documents: landscape 600 high × at least 1100 wide (so a 4:3 tablet still fits the right-hand parts); portrait 560 wide × at least 990 high. Typical scales: 0.65 on a landscape iPhone, 0.70 in portrait (before: about 0.36 in portrait, from width-fitting a landscape layout).
+
+**Ringfall screens.** Every phone screen (main menu, Play, Lobby, Join, Player, Settings, Match settings, Players, Pause, Connect) keeps its landscape layout and has a portrait block that stacks its columns, shares rows across the width and gives the bottom bar a second row of buttons where needed. Inline positions moved into the stylesheets.
+
+**Debugging.** `--ui-debug` (on the web: `?arg=--ui-debug`) shows the view size in points, pixel ratio, orientation, variant and document scale in a corner. It is off unless asked for; the temporary always-on overlay is gone.
+
+**Not done yet.**
+- Scrolling containers. Every Ringfall screen fits without one at the design sizes; a longer screen would need `overflow` support in the engine.
+- The in-game HUD (`hud.tui`, not a phone variant) in portrait: it is placed from the screen edges and stays usable, but is designed for landscape play.
+- Text entry: inputs on a touch screen use the browser's own prompt box (existing behaviour), so the on-screen keyboard never covers the field.
+- Real-device checks: notches and home indicators, Android Chrome, rotation mid-match.

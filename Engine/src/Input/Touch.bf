@@ -119,7 +119,9 @@ enum TouchControlKind
 }
 
 /// One on-screen control. Its place is an anchor on the screen (0 to 1 each way: (1, 1) is the bottom right) plus an
-/// offset in screen heights, so the layout keeps its shape on any phone.
+/// offset in screen units, so the layout keeps its shape on any phone. A screen unit is the screen's short side: its
+/// height when held sideways, its width when upright, so a layout made for landscape keeps its proportions in portrait
+/// instead of reaching past the screen's narrow width.
 class TouchControl
 {
 	public String name = new .() ~ delete _;
@@ -127,7 +129,7 @@ class TouchControl
 	public TouchControlKind kind;
 	/// Button: centre. Stick: where it rests when not touched.
 	public Vector2 anchor, offset;
-	/// Button or stick size, in screen heights.
+	/// Button or stick size, in screen units (the short side).
 	public float radius = 0.07f;
 	/// Stick and look: the screen area where a touch takes the control, as fractions of the screen (x, y, width, height).
 	public Vector4 area;
@@ -140,7 +142,7 @@ class TouchControl
 	/// Swipe: the control whose fingers it watches, and the way a flick must go (screen directions: (0, 1) is down).
 	public String swipeSource = new .() ~ delete _;
 	public Vector2 swipeDirection;
-	/// Swipe: how far a flick must travel, in screen heights, and the longest it may take from touch to lift, in
+	/// Swipe: how far a flick must travel, in screen units (the short side), and the longest it may take from touch to lift, in
 	/// seconds. A slow drag (aiming) is never a flick, however far it goes.
 	public float swipeDistance = 0.1f, swipeTime = 0.3f;
 	/// Swipe on a look area: when the flick is recognised, the view turns back by what the flick turned it, so a
@@ -158,10 +160,11 @@ class TouchControl
 	{
 		let scale = TouchControls.Scale;
 		// Kept in from the edges it is anchored to by EdgeMargin (not at all from a centre anchor).
-		let margin = TouchControls.EdgeMargin * screen.y;
-		return .(anchor.x * screen.x + offset.x * scale * screen.y + (1 - 2 * anchor.x) * margin.x, anchor.y * screen.y + offset.y * scale * screen.y + (1 - 2 * anchor.y) * margin.y);
+		let unit = TouchControls.Unit(screen);
+		let margin = TouchControls.EdgeMargin * unit;
+		return .(anchor.x * screen.x + offset.x * scale * unit + (1 - 2 * anchor.x) * margin.x, anchor.y * screen.y + offset.y * scale * unit + (1 - 2 * anchor.y) * margin.y);
 	}
-	public float RadiusPixels(Vector2 screen) => radius * TouchControls.Scale * screen.y;
+	public float RadiusPixels(Vector2 screen) => radius * TouchControls.Scale * TouchControls.Unit(screen);
 
 	/// A button: touched this frame and not the last.
 	public bool Pressed => value > 0.5f && previous <= 0.5f;
@@ -189,7 +192,7 @@ static class TouchControls
 	/// Makes every control bigger or smaller (and further from or nearer to its corner), for a player's taste or
 	/// a game's interface scale setting.
 	public static float Scale = 1;
-	/// How far every control is kept in from the edge of the screen it sits by, in screen heights (x from the sides,
+	/// How far every control is kept in from the edge of the screen it sits by, in screen units (the short side) (x from the sides,
 	/// y from the top and bottom): phones with curved or rounded edges hide what is right at them.
 	public static Vector2 EdgeMargin = .(0.06f, 0.03f);
 
@@ -261,7 +264,7 @@ static class TouchControls
 		return control;
 	}
 
-	/// A round button at anchor + offset (offset in screen heights) with a short label.
+	/// A round button at anchor + offset (offset in screen units: the short side) with a short label.
 	public static TouchControl AddButton(StringView name, StringView label, Vector2 anchor, Vector2 offset, float radius = 0.07f, StringView dragLooks = "")
 	{
 		let control = Add(name, .Button);
@@ -290,6 +293,9 @@ static class TouchControls
 	{
 		ClearAndDeleteItems(sControls);
 	}
+
+	/// The length sizes and offsets are measured in: the screen's short side (its height when held sideways).
+	public static float Unit(Vector2 screen) => Math.Min(screen.x, screen.y);
 
 	static Vector2 Screen => Application.Instance != null ? Vector2(Application.Instance.InterfaceWidth, Application.Instance.InterfaceHeight) : Vector2(1, 1);
 
@@ -389,7 +395,7 @@ static class TouchControls
 			let along = travel.x * way.x + travel.y * way.y;
 			let across = Math.Abs(travel.x * way.y - travel.y * way.x);
 			let quick = Time.RealTime - finger.startTime <= control.swipeTime;
-			if (quick && along >= control.swipeDistance * screen.y && along > across * 1.8f)
+			if (quick && along >= control.swipeDistance * Unit(screen) && along > across * 1.8f)
 			{
 				control.value = 1;
 				if (control.swipeGivesBackLook && source.kind == .Look)
@@ -418,7 +424,7 @@ static class TouchControls
 		let screen = Screen;
 		let faint = Color(Tint.r, Tint.g, Tint.b, Tint.a * 0.35f);
 		let pressed = Color(Tint.r, Tint.g, Tint.b, Tint.a * 0.45f);
-		let thickness = Math.Max(2.0f, screen.y * 0.005f);
+		let thickness = Math.Max(2.0f, Unit(screen) * 0.005f);
 		for (let control in sControls)
 		{
 			if (!control.visible)
