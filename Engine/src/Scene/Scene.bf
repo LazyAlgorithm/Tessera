@@ -56,6 +56,87 @@ class Scene
 	public float SpawnPhaseTime;
 	public bool SpawnStartOver;
 
+	Dictionary<String, List<GameObject>> mTagged = new .() ~ { for (let entry in _) { delete entry.key; delete entry.value; } delete _; };
+	int32 mWorldState;
+
+	/// Called when the active world state changes, with the state before and the state now.
+	public Event<delegate void(int32 from, int32 to)> WorldStateChanged ~ _.Dispose();
+
+	/// The active world state (an index into ProjectConfig.WorldStates). Objects that are not part of it are not
+	/// drawn, do not collide, are not heard and are not walked on. Setting it switches all of that in one go.
+	public int32 WorldState
+	{
+		get => mWorldState;
+		set
+		{
+			let state = Math.Clamp(value, 0, ProjectConfig.MaxWorldStates - 1);
+			if (state == mWorldState)
+				return;
+			let previous = mWorldState;
+			mWorldState = state;
+			Physics.ApplyWorldState(this);
+			WorldStateChanged(previous, state);
+		}
+	}
+
+	/// The same by name; false when the project has no world state of that name.
+	public bool SetWorldState(StringView name)
+	{
+		let state = ProjectConfig.WorldStateNamed(name);
+		if (state < 0)
+			return false;
+		WorldState = state;
+		return true;
+	}
+
+	void WorldMembershipChanged(GameObject gameObject)
+	{
+		Physics.ApplyWorldState(gameObject);
+	}
+
+	void IndexTag(GameObject gameObject, StringView tag, bool add)
+	{
+		if (add)
+		{
+			List<GameObject> list;
+			if (!mTagged.TryGetValueAlt(tag, out list))
+			{
+				list = new .();
+				mTagged[new String(tag)] = list;
+			}
+			list.Add(gameObject);
+		}
+		else if (mTagged.TryGetValueAlt(tag, let list))
+			list.Remove(gameObject);
+	}
+
+	/// The first object with that tag that is active, or null. Fast: tagged objects are kept in lists by tag.
+	public GameObject FindWithTag(StringView tag)
+	{
+		if (mTagged.TryGetValueAlt(tag, let list))
+		{
+			for (let gameObject in list)
+			{
+				if (!gameObject.IsDestroyed && gameObject.ActiveInHierarchy)
+					return gameObject;
+			}
+		}
+		return null;
+	}
+
+	/// Adds every object with that tag (active or not) to the list.
+	public void FindAllWithTag(StringView tag, List<GameObject> found)
+	{
+		if (mTagged.TryGetValueAlt(tag, let list))
+		{
+			for (let gameObject in list)
+			{
+				if (!gameObject.IsDestroyed)
+					found.Add(gameObject);
+			}
+		}
+	}
+
 	public List<GameObject> Roots => mRoots;
 	public List<GameObject> Objects => mObjects;
 	public List<Component> Components => mComponents;
@@ -174,6 +255,8 @@ class Scene
 		mObjects.Remove(gameObject);
 		mById.Remove(gameObject.Id);
 		mDestroyQueue.Remove(gameObject);
+		for (int i < gameObject.TagCount)
+			IndexTag(gameObject, gameObject.GetTag(i), false);
 		delete gameObject;
 	}
 

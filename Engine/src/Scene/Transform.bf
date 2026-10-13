@@ -149,6 +149,7 @@ class Transform
 		if (parent == mParent || (parent != null && parent.IsChildOf(this)))
 			return;
 		let world = LocalToWorld;
+		let wasInWorld = mGameObject.InActiveWorld;
 		if (mParent != null)
 			mParent.Children.Remove(this);
 		else
@@ -164,6 +165,9 @@ class Transform
 			local.Decompose(out mLocalPosition, out mLocalRotation, out mLocalScale);
 		}
 		MarkDirty();
+		// A new parent can take the object into or out of the active world state.
+		if (mGameObject.InActiveWorld != wasInWorld)
+			mGameObject.Scene?.Physics.ApplyWorldState(mGameObject);
 	}
 
 	void MarkDirty()

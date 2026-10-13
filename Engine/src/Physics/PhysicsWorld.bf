@@ -66,12 +66,20 @@ class PhysicsWorld
 		public void* shape;
 		/// The body belongs to a character controller, which moves and destroys it; it is listed so queries can name its object.
 		public bool external;
+		/// Taken out of the simulation because its object is not in the active world state.
+		public bool outOfWorld;
 	}
 
+	// Jolt's object layer for a body is its motion class times 32 plus its GameObject's layer (ProjectConfig): the
+	// class decides what moves against what, the layer which of the project's layers collide.
 	const uint32 LayerStatic = 0;
 	const uint32 LayerMoving = 1;
 	/// Debris rests on scenery but passes through everything that moves, characters included.
 	const uint32 LayerDebris = 2;
+	const uint32 LayersPerClass = (uint32)ProjectConfig.MaxLayers;
+
+	static uint32 ObjectLayer(uint32 motionClass, int32 layer) => motionClass * LayersPerClass + (uint32)Math.Clamp(layer, 0, ProjectConfig.MaxLayers - 1);
+	static uint32 ObjectLayer(uint32 motionClass, Transform transform) => ObjectLayer(motionClass, transform != null ? transform.GameObject.Layer : 0);
 
 	static bool sJoltInitialized;
 	static void* sJobSystem;
@@ -132,15 +140,30 @@ class PhysicsWorld
 			sJobSystem = Jolt.JPH_JobSystemThreadPool_Create(&config);
 			sJoltInitialized = true;
 		}
-		let broadPhase = Jolt.JPH_BroadPhaseLayerInterfaceTable_Create(3, 2);
-		Jolt.JPH_BroadPhaseLayerInterfaceTable_MapObjectToBroadPhaseLayer(broadPhase, LayerStatic, 0);
-		Jolt.JPH_BroadPhaseLayerInterfaceTable_MapObjectToBroadPhaseLayer(broadPhase, LayerMoving, 1);
-		Jolt.JPH_BroadPhaseLayerInterfaceTable_MapObjectToBroadPhaseLayer(broadPhase, LayerDebris, 1);
-		let pairFilter = Jolt.JPH_ObjectLayerPairFilterTable_Create(3);
-		Jolt.JPH_ObjectLayerPairFilterTable_EnableCollision(pairFilter, LayerStatic, LayerMoving);
-		Jolt.JPH_ObjectLayerPairFilterTable_EnableCollision(pairFilter, LayerMoving, LayerMoving);
-		Jolt.JPH_ObjectLayerPairFilterTable_EnableCollision(pairFilter, LayerStatic, LayerDebris);
-		let objectVsBroadPhase = Jolt.JPH_ObjectVsBroadPhaseLayerFilterTable_Create(broadPhase, 2, pairFilter, 3);
+		ProjectConfig.EnsureLoaded();
+		let layerCount = 3 * LayersPerClass;
+		let broadPhase = Jolt.JPH_BroadPhaseLayerInterfaceTable_Create(layerCount, 2);
+		for (int32 layer < ProjectConfig.MaxLayers)
+		{
+			Jolt.JPH_BroadPhaseLayerInterfaceTable_MapObjectToBroadPhaseLayer(broadPhase, ObjectLayer(LayerStatic, layer), 0);
+			Jolt.JPH_BroadPhaseLayerInterfaceTable_MapObjectToBroadPhaseLayer(broadPhase, ObjectLayer(LayerMoving, layer), 1);
+			Jolt.JPH_BroadPhaseLayerInterfaceTable_MapObjectToBroadPhaseLayer(broadPhase, ObjectLayer(LayerDebris, layer), 1);
+		}
+		let pairFilter = Jolt.JPH_ObjectLayerPairFilterTable_Create(layerCount);
+		// What moves against what (static-moving, moving-moving, static-debris), for each pair of the project's
+		// layers that collide.
+		uint32[3][2] classes = .(.(LayerStatic, LayerMoving), .(LayerMoving, LayerMoving), .(LayerStatic, LayerDebris));
+		for (int32 a < ProjectConfig.MaxLayers)
+		{
+			for (int32 b < ProjectConfig.MaxLayers)
+			{
+				if (!ProjectConfig.LayersCollide(a, b))
+					continue;
+				for (let pair in classes)
+					Jolt.JPH_ObjectLayerPairFilterTable_EnableCollision(pairFilter, ObjectLayer(pair[0], a), ObjectLayer(pair[1], b));
+			}
+		}
+		let objectVsBroadPhase = Jolt.JPH_ObjectVsBroadPhaseLayerFilterTable_Create(broadPhase, 2, pairFilter, layerCount);
 
 		Jolt.PhysicsSystemSettings settings = default;
 		settings.maxBodies = 16384;
@@ -160,11 +183,14 @@ class PhysicsWorld
 		for (let character in mCharacters)
 			Jolt.tn_character_destroy(character, mSystem);
 		mCharacters.Clear();
+		mCharacterOwners.Clear();
 		Controllers.Clear();
 		for (let entry in mEntries)
 		{
 			if (entry.external)
 				continue;
+			if (entry.outOfWorld)
+				Jolt.JPH_BodyInterface_AddBody(mBodyInterface, entry.bodyId, Jolt.DontActivate);
 			Jolt.JPH_BodyInterface_RemoveAndDestroyBody(mBodyInterface, entry.bodyId);
 			Jolt.JPH_Shape_Destroy(entry.shape);
 		}
@@ -269,7 +295,7 @@ class PhysicsWorld
 			motion = Jolt.MotionStatic;
 		let debris = rigidbody != null && rigidbody.debris && motion != Jolt.MotionStatic;
 
-		let settings = Jolt.JPH_BodyCreationSettings_Create3(shape, &position, &rotation, motion, motion == Jolt.MotionStatic ? LayerStatic : (debris ? LayerDebris : LayerMoving));
+		let settings = Jolt.JPH_BodyCreationSettings_Create3(shape, &position, &rotation, motion, ObjectLayer(motion == Jolt.MotionStatic ? LayerStatic : (debris ? LayerDebris : LayerMoving), transform));
 		Jolt.JPH_BodyCreationSettings_SetUserData(settings, (uint64)transform.GameObject.Id);
 		if (rigidbody != null)
 		{
@@ -308,6 +334,12 @@ class PhysicsWorld
 		{
 			mDebris.Add(bodyId);
 			Jolt.tn_physics_set_debris(bodyId, true);
+		}
+		// An object outside the active world state is kept out of the simulation until that state is active.
+		if (!transform.GameObject.InActiveWorld)
+		{
+			Jolt.JPH_BodyInterface_RemoveBody(mBodyInterface, bodyId);
+			entry.outOfWorld = true;
 		}
 		return bodyId;
 	}
@@ -372,12 +404,70 @@ class PhysicsWorld
 		}
 		if (mDebris.Remove(bodyId))
 			Jolt.tn_physics_set_debris(bodyId, false);
+		if (entry.outOfWorld)
+			Jolt.JPH_BodyInterface_AddBody(mBodyInterface, bodyId, Jolt.DontActivate);
 		Jolt.JPH_BodyInterface_RemoveAndDestroyBody(mBodyInterface, bodyId);
 		Jolt.JPH_Shape_Destroy(entry.shape);
 		mByBody.Remove(bodyId);
 		mEntries.Remove(entry);
 		delete entry;
 	}
+
+	// ---- layers and world states ----
+
+	Dictionary<void*, Transform> mCharacterOwners = new .() ~ delete _;
+
+	uint32 CharacterLayer(void* character) => ObjectLayer(LayerMoving, mCharacterOwners.TryGetValue(character, let owner) ? owner : null);
+
+	/// Moves an object's bodies to its current layer (GameObject.Layer calls this).
+	public void RefreshLayer(GameObject gameObject)
+	{
+		if (mBodyInterface == null)
+			return;
+		for (let entry in mEntries)
+		{
+			if (entry.transform.GameObject != gameObject)
+				continue;
+			let current = Jolt.JPH_BodyInterface_GetObjectLayer(mBodyInterface, entry.bodyId);
+			Jolt.JPH_BodyInterface_SetObjectLayer(mBodyInterface, entry.bodyId, ObjectLayer(current / LayersPerClass, gameObject.Layer));
+		}
+		mBroadPhaseDirty = true;
+	}
+
+	/// Takes bodies of objects outside the scene's active world state out of the simulation and puts back those
+	/// inside it (Scene.WorldState calls this). A character's own body stays: the character decides where it goes.
+	public void ApplyWorldState(Scene scene)
+	{
+		if (mBodyInterface == null)
+			return;
+		for (let entry in mEntries)
+		{
+			if (entry.external)
+				continue;
+			let inWorld = entry.transform.GameObject.InActiveWorld;
+			if (inWorld && entry.outOfWorld)
+			{
+				var position = entry.transform.Position;
+				var rotation = entry.transform.Rotation;
+				Jolt.JPH_BodyInterface_SetPositionAndRotation(mBodyInterface, entry.bodyId, &position, &rotation, Jolt.DontActivate);
+				Jolt.JPH_BodyInterface_AddBody(mBodyInterface, entry.bodyId, Jolt.Activate);
+				entry.outOfWorld = false;
+				entry.lastVersion = entry.transform.Version;
+			}
+			else if (!inWorld && !entry.outOfWorld)
+			{
+				Jolt.JPH_BodyInterface_RemoveBody(mBodyInterface, entry.bodyId);
+				entry.outOfWorld = true;
+			}
+		}
+		mBroadPhaseDirty = true;
+	}
+
+	/// The same after one object's world states changed (its children's bodies may change with it).
+	public void ApplyWorldState(GameObject gameObject) => ApplyWorldState(gameObject.Scene);
+
+	/// True when the body is taking part in the simulation (false while its object is outside the active world state).
+	public bool IsInWorld(uint32 bodyId) => mByBody.TryGetValue(bodyId, let entry) && !entry.outOfWorld;
 
 	// ---- character controllers ----
 
@@ -414,18 +504,19 @@ class PhysicsWorld
 			return null;
 		var position = transform.Position;
 		var rotation = rotationIn;
-		let character = Jolt.tn_character_create(mSystem, shape, &position, &rotation, Mathf.Clamp(maxSlopeDegrees, 1, 89) * Mathf.Deg2Rad, Math.Max(mass, 0.001f), Math.Max(pushStrength, 0), supportHeight, LayerMoving, (uint64)transform.GameObject.Id, true, soft);
+		let character = Jolt.tn_character_create(mSystem, shape, &position, &rotation, Mathf.Clamp(maxSlopeDegrees, 1, 89) * Mathf.Deg2Rad, Math.Max(mass, 0.001f), Math.Max(pushStrength, 0), supportHeight, ObjectLayer(LayerMoving, transform), (uint64)transform.GameObject.Id, true, soft);
 		// The character and its inner body hold their own references.
 		Jolt.JPH_Shape_Destroy(shape);
 		if (character == null)
 			return null;
 		mCharacters.Add(character);
+		mCharacterOwners[character] = transform;
 		TrackInnerBody(character, transform);
 		mBroadPhaseDirty = true;
 		// Find the floor now, so ground state is right before the first move.
 		var velocity = Vector3.Zero;
 		PrepareQuery();
-		Jolt.tn_character_set_state(character, mSystem, LayerMoving, &position, &rotation, &velocity, soft);
+		Jolt.tn_character_set_state(character, mSystem, CharacterLayer(character), &position, &rotation, &velocity, soft);
 		return character;
 	}
 
@@ -434,6 +525,7 @@ class PhysicsWorld
 	{
 		if (!mCharacters.Remove(character))
 			return;
+		mCharacterOwners.Remove(character);
 		UntrackInnerBody(character);
 		Jolt.tn_character_destroy(character, mSystem);
 	}
@@ -460,7 +552,7 @@ class PhysicsWorld
 		Jolt.JPH_PhysicsSystem_SetGravity(mSystem, &gravity);
 		var velocity = velocityIn;
 		let step = Math.Max(stepHeight, 0);
-		Jolt.tn_character_move(character, mSystem, LayerMoving, &velocity, deltaTime, step, step, Math.Max(stepReach, 0.15f), soft, &state);
+		Jolt.tn_character_move(character, mSystem, CharacterLayer(character), &velocity, deltaTime, step, step, Math.Max(stepReach, 0.15f), soft, &state);
 		return state;
 	}
 
@@ -471,7 +563,7 @@ class PhysicsWorld
 			return;
 		var position = positionIn; var rotation = rotationIn; var velocity = velocityIn;
 		PrepareQuery();
-		Jolt.tn_character_set_state(character, mSystem, LayerMoving, &position, &rotation, &velocity, soft);
+		Jolt.tn_character_set_state(character, mSystem, CharacterLayer(character), &position, &rotation, &velocity, soft);
 	}
 
 	/// True if the shape fits where the character stands, allowing that much overlap with the surroundings.
@@ -484,7 +576,7 @@ class PhysicsWorld
 		if (shape == null)
 			return false;
 		PrepareQuery();
-		let fits = Jolt.tn_character_set_shape(character, mSystem, LayerMoving, shape, maxPenetration, soft);
+		let fits = Jolt.tn_character_set_shape(character, mSystem, CharacterLayer(character), shape, maxPenetration, soft);
 		Jolt.JPH_Shape_Destroy(shape);
 		return fits;
 	}
@@ -501,7 +593,7 @@ class PhysicsWorld
 		// Transforms moved by gameplay or the network since the last step win over the simulation.
 		for (let entry in mEntries)
 		{
-			if (entry.external || entry.transform.Version == entry.lastVersion)
+			if (entry.external || entry.outOfWorld || entry.transform.Version == entry.lastVersion)
 				continue;
 			var position = entry.transform.Position;
 			var rotation = entry.transform.Rotation;
@@ -515,7 +607,7 @@ class PhysicsWorld
 
 		for (let entry in mEntries)
 		{
-			if (entry.dynamic || entry.kinematic)
+			if ((entry.dynamic || entry.kinematic) && !entry.outOfWorld)
 			{
 				Vector3 position = default;
 				Quaternion rotation = default;
@@ -705,7 +797,7 @@ class PhysicsWorld
 		return hit;
 	}
 
-	bool CastQuery(void* shape, Vector3 origin, Quaternion orientation, Vector3 direction, float maxDistance, out ShapeCastHit hit, uint32 ignoreBody)
+	bool CastQuery(void* shape, Vector3 origin, Quaternion orientation, Vector3 direction, float maxDistance, out ShapeCastHit hit, uint32 ignoreBody, uint32 layerMask)
 	{
 		hit = default;
 		if (shape == null || !Finite(origin) || !Finite(direction) || direction.LengthSquared < 1.0e-12f || !direction.LengthSquared.IsFinite || !maxDistance.IsFinite || maxDistance <= 0 || !ValidRotation(orientation)) return false;
@@ -715,18 +807,19 @@ class PhysicsWorld
 		var rotation = orientation.Normalized;
 		var displacement = direction.Normalized * maxDistance;
 		Jolt.ShapeHit nativeHit = default;
-		if (!Jolt.tn_physics_cast_shape(query, shape, &from, &rotation, &displacement, ignoreBody, &nativeHit)) return false;
+		if (!Jolt.tn_physics_cast_shape(query, shape, &from, &rotation, &displacement, ignoreBody, &nativeHit, layerMask)) return false;
 		hit = MakeShapeHit(nativeHit, maxDistance);
 		return true;
 	}
 
 	/// Sweeps a sphere and returns its closest contact. Direction need not be normalized.
-	/// A starting overlap returns distance zero and its penetration depth.
-	public bool SphereCast(Vector3 origin, float radius, Vector3 direction, float maxDistance, out ShapeCastHit hit, uint32 ignoreBody = uint32.MaxValue)
-		=> CastQuery(SphereQueryShape(radius), origin, .Identity, direction, maxDistance, out hit, ignoreBody);
+	/// A starting overlap returns distance zero and its penetration depth. layerMask: the layers it sees (one bit
+	/// per layer; ProjectConfig.Mask makes one from names), all of them by default.
+	public bool SphereCast(Vector3 origin, float radius, Vector3 direction, float maxDistance, out ShapeCastHit hit, uint32 ignoreBody = uint32.MaxValue, uint32 layerMask = uint32.MaxValue)
+		=> CastQuery(SphereQueryShape(radius), origin, .Identity, direction, maxDistance, out hit, ignoreBody, layerMask);
 
 	/// The endpoints are the centers of the capsule's two hemispheres.
-	public bool CapsuleCast(Vector3 point1, Vector3 point2, float radius, Vector3 direction, float maxDistance, out ShapeCastHit hit, uint32 ignoreBody = uint32.MaxValue)
+	public bool CapsuleCast(Vector3 point1, Vector3 point2, float radius, Vector3 direction, float maxDistance, out ShapeCastHit hit, uint32 ignoreBody = uint32.MaxValue, uint32 layerMask = uint32.MaxValue)
 	{
 		hit = default;
 		if (!Finite(point1) || !Finite(point2)) return false;
@@ -735,14 +828,14 @@ class PhysicsWorld
 		if (!length.IsFinite) return false;
 		// Local capsule Y is aligned with the endpoint axis.
 		let rotation = length < 1.0e-6f ? Quaternion.Identity : Quaternion.LookRotation(Math.Abs(axis.Normalized.z) < 0.9f ? .Forward : .Right, axis.Normalized);
-		return CastQuery(CapsuleQueryShape(length * 0.5f, radius), (point1 + point2) * 0.5f, rotation, direction, maxDistance, out hit, ignoreBody);
+		return CastQuery(CapsuleQueryShape(length * 0.5f, radius), (point1 + point2) * 0.5f, rotation, direction, maxDistance, out hit, ignoreBody, layerMask);
 	}
 
 	/// Size is the full width/height/depth, matching BoxCollider.size.
-	public bool BoxCast(Vector3 origin, Vector3 size, Quaternion orientation, Vector3 direction, float maxDistance, out ShapeCastHit hit, uint32 ignoreBody = uint32.MaxValue)
-		=> CastQuery(BoxQueryShape(size), origin, orientation, direction, maxDistance, out hit, ignoreBody);
+	public bool BoxCast(Vector3 origin, Vector3 size, Quaternion orientation, Vector3 direction, float maxDistance, out ShapeCastHit hit, uint32 ignoreBody = uint32.MaxValue, uint32 layerMask = uint32.MaxValue)
+		=> CastQuery(BoxQueryShape(size), origin, orientation, direction, maxDistance, out hit, ignoreBody, layerMask);
 
-	int OverlapQuery(void* shape, Vector3 origin, Quaternion orientation, List<ShapeCastHit> hits, uint32 ignoreBody)
+	int OverlapQuery(void* shape, Vector3 origin, Quaternion orientation, List<ShapeCastHit> hits, uint32 ignoreBody, uint32 layerMask)
 	{
 		hits.Clear();
 		if (shape == null || !Finite(origin) || !ValidRotation(orientation)) return 0;
@@ -750,33 +843,34 @@ class PhysicsWorld
 		if (query == null) return 0;
 		if (mOverlapHits.Count < 64) mOverlapHits.Resize(64);
 		var from = origin; var rotation = orientation.Normalized;
-		var count = Jolt.tn_physics_overlap_shape(query, shape, &from, &rotation, ignoreBody, mOverlapHits.Ptr, (int32)mOverlapHits.Count);
+		var count = Jolt.tn_physics_overlap_shape(query, shape, &from, &rotation, ignoreBody, mOverlapHits.Ptr, (int32)mOverlapHits.Count, layerMask);
 		if (count > mOverlapHits.Count)
 		{
 			mOverlapHits.Resize(count);
-			count = Jolt.tn_physics_overlap_shape(query, shape, &from, &rotation, ignoreBody, mOverlapHits.Ptr, (int32)mOverlapHits.Count);
+			count = Jolt.tn_physics_overlap_shape(query, shape, &from, &rotation, ignoreBody, mOverlapHits.Ptr, (int32)mOverlapHits.Count, layerMask);
 		}
 		for (int i < count) hits.Add(MakeShapeHit(mOverlapHits[i], 0));
 		return (int)hits.Count;
 	}
 
 	/// Returns contacts, including separate subshapes of compound/mesh bodies. Clears hits first.
-	public int OverlapSphere(Vector3 origin, float radius, List<ShapeCastHit> hits, uint32 ignoreBody = uint32.MaxValue)
-		=> OverlapQuery(SphereQueryShape(radius), origin, .Identity, hits, ignoreBody);
-	public int OverlapBox(Vector3 origin, Vector3 size, Quaternion orientation, List<ShapeCastHit> hits, uint32 ignoreBody = uint32.MaxValue)
-		=> OverlapQuery(BoxQueryShape(size), origin, orientation, hits, ignoreBody);
-	public int OverlapCapsule(Vector3 point1, Vector3 point2, float radius, List<ShapeCastHit> hits, uint32 ignoreBody = uint32.MaxValue)
+	public int OverlapSphere(Vector3 origin, float radius, List<ShapeCastHit> hits, uint32 ignoreBody = uint32.MaxValue, uint32 layerMask = uint32.MaxValue)
+		=> OverlapQuery(SphereQueryShape(radius), origin, .Identity, hits, ignoreBody, layerMask);
+	public int OverlapBox(Vector3 origin, Vector3 size, Quaternion orientation, List<ShapeCastHit> hits, uint32 ignoreBody = uint32.MaxValue, uint32 layerMask = uint32.MaxValue)
+		=> OverlapQuery(BoxQueryShape(size), origin, orientation, hits, ignoreBody, layerMask);
+	public int OverlapCapsule(Vector3 point1, Vector3 point2, float radius, List<ShapeCastHit> hits, uint32 ignoreBody = uint32.MaxValue, uint32 layerMask = uint32.MaxValue)
 	{
 		hits.Clear();
 		if (!Finite(point1) || !Finite(point2)) return 0;
 		let axis = point2 - point1; let length = axis.Length;
 		if (!length.IsFinite) return 0;
 		let rotation = length < 1.0e-6f ? Quaternion.Identity : Quaternion.LookRotation(Math.Abs(axis.Normalized.z) < 0.9f ? .Forward : .Right, axis.Normalized);
-		return OverlapQuery(CapsuleQueryShape(length * 0.5f, radius), (point1 + point2) * 0.5f, rotation, hits, ignoreBody);
+		return OverlapQuery(CapsuleQueryShape(length * 0.5f, radius), (point1 + point2) * 0.5f, rotation, hits, ignoreBody, layerMask);
 	}
 
-	/// Casts a ray and reports the closest body hit within maxDistance. Debris is passed through.
-	public bool Raycast(Vector3 origin, Vector3 direction, float maxDistance, out RaycastHit hit)
+	/// Casts a ray and reports the closest body hit within maxDistance. Debris is passed through. layerMask: the
+	/// layers it sees (ProjectConfig.Mask("Default", "Enemies")), all of them by default.
+	public bool Raycast(Vector3 origin, Vector3 direction, float maxDistance, out RaycastHit hit, uint32 layerMask = uint32.MaxValue)
 	{
 		hit = default;
 		if (mSystem == null || direction.LengthSquared < 1.0e-12f)
@@ -790,7 +884,7 @@ class PhysicsWorld
 			var from = origin + unit * travelled;
 			var delta = unit * (maxDistance - travelled);
 			Jolt.RayCastResult result = default;
-			if (!Jolt.JPH_NarrowPhaseQuery_CastRay(query, &from, &delta, &result, null, null, null))
+			if (!Jolt.JPH_NarrowPhaseQuery_CastRay(query, &from, &delta, &result, null, Jolt.tn_physics_layer_filter(layerMask), null))
 				return false;
 			let distance = travelled + result.fraction * (maxDistance - travelled);
 			if (mDebris.Contains(result.bodyId))

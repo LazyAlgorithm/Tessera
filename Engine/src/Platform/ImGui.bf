@@ -250,6 +250,7 @@ static class ImGui
 	[CLink] static extern void igSeparator();
 	[CLink] static extern void igSeparatorText(char8* label);
 	[CLink] static extern void igSpacing();
+	[CLink] static extern void igNewLine();
 	[CLink] static extern void igDummy(Vec2 size);
 	[CLink] static extern void igIndent(float width);
 	[CLink] static extern void igUnindent(float width);
@@ -422,6 +423,8 @@ static class ImGui
 	public static void Separator() => igSeparator();
 	public static void SeparatorText(char8* label) => igSeparatorText(label);
 	public static void Spacing() => igSpacing();
+	/// Ends a line of items placed with SameLine.
+	public static void NewLine() => igNewLine();
 	public static void Dummy(Vec2 size) => igDummy(size);
 	public static void Indent(float width = 0) => igIndent(width);
 	public static void Unindent(float width = 0) => igUnindent(width);

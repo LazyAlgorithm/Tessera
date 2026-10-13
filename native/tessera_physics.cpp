@@ -14,6 +14,25 @@ extern "C" void tn_physics_set_debris(uint32_t bodyId, bool debris) {
     if (debris) gDebris.insert(bodyId); else gDebris.erase(bodyId);
 }
 
+// Ray and shape queries see only the physics layers in a mask. A Jolt object layer is the engine's motion class
+// times 32 plus the project's layer (0-31), so the low five bits are the layer. Queries run on one thread at a time.
+static uint32_t gQueryMask = 0xFFFFFFFFu;
+static bool JPH_API_CALL queryLayerAllowed(void*, JPH_ObjectLayer layer) {
+    return ((gQueryMask >> (layer & 31u)) & 1u) != 0;
+}
+
+// The filter for a query with that mask; null (no filtering) for every layer.
+extern "C" const JPH_ObjectLayerFilter* tn_physics_layer_filter(uint32_t mask) {
+    static JPH_ObjectLayerFilter* filter = nullptr;
+    if (filter == nullptr) {
+        static const JPH_ObjectLayerFilter_Procs procs{queryLayerAllowed};
+        JPH_ObjectLayerFilter_SetProcs(&procs);
+        filter = JPH_ObjectLayerFilter_Create(nullptr);
+    }
+    gQueryMask = mask;
+    return mask == 0xFFFFFFFFu ? nullptr : filter;
+}
+
 struct TnShapeHit {
     uint32_t bodyId;
     float fraction;
@@ -46,7 +65,7 @@ static float collectCast(void* user, const JPH_ShapeCastResult* result) {
 
 extern "C" bool tn_physics_cast_shape(const JPH_NarrowPhaseQuery* query,
     const JPH_Shape* shape, const JPH_RVec3* origin, const JPH_Quat* rotation,
-    const JPH_Vec3* displacement, uint32_t ignoreBody, TnShapeHit* hit) {
+    const JPH_Vec3* displacement, uint32_t ignoreBody, TnShapeHit* hit, uint32_t layerMask) {
     *hit = {UINT32_MAX, 1, {0, 0, 0}, {0, 0, 0}, 0};
     JPH_RMat4 transform;
     #ifdef JPH_DOUBLE_PRECISION
@@ -61,7 +80,7 @@ extern "C" bool tn_physics_cast_shape(const JPH_NarrowPhaseQuery* query,
     JPH_RVec3 baseOffset{0, 0, 0};
     CastContext context{ignoreBody, hit};
     JPH_NarrowPhaseQuery_CastShape(query, shape, &transform, displacement, &settings,
-        &baseOffset, collectCast, &context, nullptr, nullptr, nullptr, nullptr);
+        &baseOffset, collectCast, &context, nullptr, tn_physics_layer_filter(layerMask), nullptr, nullptr);
     return hit->bodyId != UINT32_MAX;
 }
 
@@ -84,7 +103,7 @@ static void collectOverlap(void* user, const JPH_CollideShapeResult* result) {
 
 extern "C" int tn_physics_overlap_shape(const JPH_NarrowPhaseQuery* query,
     const JPH_Shape* shape, const JPH_RVec3* origin, const JPH_Quat* rotation,
-    uint32_t ignoreBody, TnShapeHit* hits, int capacity) {
+    uint32_t ignoreBody, TnShapeHit* hits, int capacity, uint32_t layerMask) {
     JPH_RMat4 transform;
     #ifdef JPH_DOUBLE_PRECISION
     JPH_RMat4_RotationTranslation(&transform, rotation, origin);
@@ -98,7 +117,7 @@ extern "C" int tn_physics_overlap_shape(const JPH_NarrowPhaseQuery* query,
     OverlapContext context{ignoreBody, hits, capacity, 0};
     JPH_NarrowPhaseQuery_CollideShape2(query, shape, &scale, &transform, &settings,
         &baseOffset, JPH_CollisionCollectorType_AllHit, collectOverlap, &context,
-        nullptr, nullptr, nullptr, nullptr);
+        nullptr, tn_physics_layer_filter(layerMask), nullptr, nullptr);
     return context.count;
 }
 

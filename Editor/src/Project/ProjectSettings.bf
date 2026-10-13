@@ -96,6 +96,8 @@ extension EditorApp
 				ImGui.EndTable();
 			}
 
+			DrawProjectConfigSettings();
+
 			ImGui.SeparatorText("Libraries");
 			ImGui.TextWrapped("Beef libraries your scripts can use. Paste a Git address to download one into the project's Libraries folder, or a folder path to reference a library that lives elsewhere.");
 			List<(String name, String path)> libraries = scope .();

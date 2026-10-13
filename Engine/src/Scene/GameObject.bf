@@ -22,6 +22,115 @@ class GameObject
 	Scene mScene;
 	bool mActive = true;
 	bool mDestroyed;
+	int32 mLayer;
+	List<String> mTags ~ DeleteContainerAndItems!(_);
+	uint32 mWorldStates = uint32.MaxValue;
+
+	/// The physics layer (named in Project Settings, 0 to 31): which other layers this object's colliders, rigid
+	/// body and character controller collide with, and which ray and shape queries see it. 0 is "Default".
+	public int32 Layer
+	{
+		get => mLayer;
+		set
+		{
+			let layer = Math.Clamp(value, 0, ProjectConfig.MaxLayers - 1);
+			if (layer == mLayer)
+				return;
+			mLayer = layer;
+			mScene?.Physics.RefreshLayer(this);
+		}
+	}
+
+	/// The world states this object is part of, one bit per state in Project Settings (all of them by default).
+	/// Outside the scene's active world state it is not drawn, does not collide, is not heard and is not walked on.
+	public uint32 WorldStates
+	{
+		get => mWorldStates;
+		set
+		{
+			if (value == mWorldStates)
+				return;
+			mWorldStates = value;
+			mScene?.[Friend]WorldMembershipChanged(this);
+		}
+	}
+
+	/// True when the object is part of that world state.
+	public bool InWorldState(int32 state) => state >= 0 && state < 32 && (mWorldStates & (1u << state)) != 0;
+
+	/// Puts the object in or takes it out of one world state.
+	public void SetInWorldState(int32 state, bool member)
+	{
+		if (state < 0 || state >= 32)
+			return;
+		WorldStates = member ? (mWorldStates | (1u << state)) : (mWorldStates & ~(1u << state));
+	}
+
+	/// True when the object, and every object above it, is part of the scene's active world state: a parent left
+	/// out of a state takes its children out with it.
+	public bool InActiveWorld
+	{
+		get
+		{
+			if (mScene == null)
+				return true;
+			let bit = 1u << mScene.WorldState;
+			var transform = Transform;
+			while (transform != null)
+			{
+				if ((transform.GameObject.mWorldStates & bit) == 0)
+					return false;
+				transform = transform.Parent;
+			}
+			return true;
+		}
+	}
+
+	// ---- tags ----
+
+	/// How many tags the object has, and each in turn.
+	public int TagCount => mTags != null ? mTags.Count : 0;
+	public StringView GetTag(int index) => mTags[index];
+
+	public bool HasTag(StringView tag)
+	{
+		if (mTags == null)
+			return false;
+		for (let t in mTags)
+		{
+			if (t == tag)
+				return true;
+		}
+		return false;
+	}
+
+	/// Gives the object a tag (any text; the editor offers the tags listed in Project Settings). Scene.FindWithTag
+	/// and FindAllWithTag find tagged objects without looking at every object.
+	public void AddTag(StringView tag)
+	{
+		if (tag.IsEmpty || HasTag(tag))
+			return;
+		if (mTags == null)
+			mTags = new .();
+		mTags.Add(new .(tag));
+		mScene?.[Friend]IndexTag(this, tag, true);
+	}
+
+	public void RemoveTag(StringView tag)
+	{
+		if (mTags == null)
+			return;
+		for (int i < mTags.Count)
+		{
+			if (mTags[i] == tag)
+			{
+				mScene?.[Friend]IndexTag(this, tag, false);
+				delete mTags[i];
+				mTags.RemoveAt(i);
+				return;
+			}
+		}
+	}
 
 	public this(StringView name)
 	{

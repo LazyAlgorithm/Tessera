@@ -61,8 +61,15 @@ static class Jolt
 	[CLink] public static extern void tn_character_move(void* character, void* system, uint32 layer, Vector3* velocity, float deltaTime, float stepUp, float stepDown, float stepForwardTest, bool soft, CharacterState* state);
 	[CLink] public static extern void tn_character_set_state(void* character, void* system, uint32 layer, Vector3* position, Quaternion* rotation, Vector3* velocity, bool soft);
 	[CLink] public static extern bool tn_character_set_shape(void* character, void* system, uint32 layer, void* shape, float maxPenetration, bool soft);
-	[CLink] public static extern bool tn_physics_cast_shape(void* query, void* shape, Vector3* origin, Quaternion* rotation, Vector3* displacement, uint32 ignoreBody, ShapeHit* hit);
-	[CLink] public static extern int32 tn_physics_overlap_shape(void* query, void* shape, Vector3* origin, Quaternion* rotation, uint32 ignoreBody, ShapeHit* hits, int32 capacity);
+	[CLink] public static extern bool tn_physics_cast_shape(void* query, void* shape, Vector3* origin, Quaternion* rotation, Vector3* displacement, uint32 ignoreBody, ShapeHit* hit, uint32 layerMask);
+	[CLink] public static extern int32 tn_physics_overlap_shape(void* query, void* shape, Vector3* origin, Quaternion* rotation, uint32 ignoreBody, ShapeHit* hits, int32 capacity, uint32 layerMask);
+	/// The object layer filter for a query that sees only the layers in the mask (null for all of them).
+	[CLink] public static extern void* tn_physics_layer_filter(uint32 mask);
+	[CLink] public static extern uint32 JPH_BodyInterface_GetObjectLayer(void* bodyInterface, uint32 bodyId);
+	[CLink] public static extern void JPH_BodyInterface_SetObjectLayer(void* bodyInterface, uint32 bodyId, uint32 layer);
+	[CLink] public static extern void JPH_BodyInterface_AddBody(void* bodyInterface, uint32 bodyId, int32 activation);
+	[CLink] public static extern void JPH_BodyInterface_RemoveBody(void* bodyInterface, uint32 bodyId);
+	[CLink] public static extern bool JPH_BodyInterface_IsAdded(void* bodyInterface, uint32 bodyId);
 
 	[CRepr] public struct IndexedTriangle
 	{

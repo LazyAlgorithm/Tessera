@@ -155,6 +155,8 @@ extension EditorApp
 			return;
 		}
 
+		DrawObjectConfig(gameObject);
+
 		// ---- Transform ----
 		ImGui.Separator();
 		if (ImGui.CollapsingHeader(scope String()..AppendF("{}  Transform", StringView(Icons.Transform)).CStr(), ImGui.TreeFlags.DefaultOpen) && BeginPropertyTable("transform"))

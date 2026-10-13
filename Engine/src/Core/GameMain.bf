@@ -75,6 +75,8 @@ static class GameMain
             if (key == "saveSlot" && !value.IsEmpty) SaveSystem.StartSlot.Set(value);
         }
         Assets.ProjectPath.Set(scope $"{root}/Assets");
+        // Physics layers, tags and world states.
+        ProjectConfig.Load();
         Environment.SetEnvironmentVariable("TESSERA_ROOT", root);
         for (int i = 0; i < args.Count; i++)
         {

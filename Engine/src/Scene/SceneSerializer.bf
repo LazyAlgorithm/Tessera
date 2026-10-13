@@ -55,6 +55,21 @@ static class SceneSerializer
 		let q = transform.LocalRotation;
 		let s = transform.LocalScale;
 		text.AppendF("transform {} {} {} {} {} {} {} {} {} {}\n", p.x, p.y, p.z, q.x, q.y, q.z, q.w, s.x, s.y, s.z);
+		// Written only when set, so scenes that use none of them read as they always did.
+		if (gameObject.Layer != 0)
+			text.AppendF("layer {}\n", gameObject.Layer);
+		if (gameObject.TagCount > 0)
+		{
+			text.Append("tags");
+			for (int i < gameObject.TagCount)
+			{
+				text.Append(' ');
+				Quote(gameObject.GetTag(i), text);
+			}
+			text.Append('\n');
+		}
+		if (gameObject.WorldStates != uint32.MaxValue)
+			text.AppendF("worlds {:X8}\n", gameObject.WorldStates);
 
 		List<FieldRef> fields = scope .();
 		for (let component in gameObject.Components)
@@ -258,6 +273,18 @@ static class SceneSerializer
 			else if (key == "folder" && current != null)
 			{
 				current.IsFolder = true;
+			}
+			else if (key == "layer" && current != null && tokens.Count >= 2)
+				current.Layer = ParseInt(tokens[1]);
+			else if (key == "tags" && current != null)
+			{
+				for (int i = 1; i < tokens.Count; i++)
+					current.AddTag(tokens[i]);
+			}
+			else if (key == "worlds" && current != null && tokens.Count >= 2)
+			{
+				if (uint32.Parse(tokens[1], .HexNumber) case .Ok(let mask))
+					current.WorldStates = mask;
 			}
 			else if (key == "transform" && current != null && tokens.Count >= 11)
 			{

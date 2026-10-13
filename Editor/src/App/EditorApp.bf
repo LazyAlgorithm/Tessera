@@ -102,6 +102,7 @@ class EditorApp : Application
 		mSceneView = new RenderView(10);
 		mSceneView.DrawGizmos = true;
 		mGameView = new RenderView(30);
+		ProjectConfig.Load();
 		mScene = new Scene();
 		let sceneArg = scope String();
 		GetArg("--scene", sceneArg);
