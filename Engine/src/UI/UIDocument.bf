@@ -131,7 +131,7 @@ class UIDocument : Component
 			Reload();
 		if (mData == null)
 			return;
-		let reference = (mFromVariant && VariantReferenceHeight > 0 && referenceHeight > 0) ? VariantReferenceHeight : referenceHeight;
+		let reference = (mFromVariant && VariantReferenceHeight > 0) ? VariantReferenceHeight : referenceHeight;
 		var baseScale = reference > 0 ? Math.Max(GUI.Height / reference, 0.1f) : 1.0f;
 		let widthReference = mFromVariant && VariantReferenceWidth > 0 ? VariantReferenceWidth : referenceWidth;
 		if (widthReference > 0)
