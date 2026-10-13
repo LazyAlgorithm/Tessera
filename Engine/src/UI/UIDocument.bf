@@ -22,6 +22,8 @@ class UIDocument : Component
 	/// Scale the whole document with the height of the view: sizes in the document are then for a view this many
 	/// pixels tall (1080, say) and it fills any window the same way. 0 leaves sizes as real pixels.
 	public float referenceHeight = 0;
+	/// Optional reference width. When set, scale uniformly to fit both dimensions.
+	public float referenceWidth = 0;
 	/// Draws the document this much bigger, laid out for a view that much smaller: for a player's interface scale
 	/// setting. Suits documents whose parts are placed from the edges (a HUD); a page laid out to fill the
 	/// reference size exactly runs off the screen when it is made bigger.
@@ -128,8 +130,9 @@ class UIDocument : Component
 			return;
 		let reference = (mFromVariant && VariantReferenceHeight > 0 && referenceHeight > 0) ? VariantReferenceHeight : referenceHeight;
 		var baseScale = reference > 0 ? Math.Max(GUI.Height / reference, 0.1f) : 1.0f;
-		if (mFromVariant && VariantReferenceWidth > 0 && referenceHeight > 0)
-			baseScale = Math.Min(baseScale, Math.Max(GUI.Width / VariantReferenceWidth, 0.1f));
+		let widthReference = mFromVariant && VariantReferenceWidth > 0 ? VariantReferenceWidth : referenceWidth;
+		if (widthReference > 0)
+			baseScale = Math.Min(baseScale, Math.Max(GUI.Width / widthReference, 0.1f));
 		let scale = baseScale * Math.Clamp(mUserScale, 0.25f, 4.0f);
 		mData.scale = scale;
 		mData.Layout(GUI.Width / scale, GUI.Height / scale);
