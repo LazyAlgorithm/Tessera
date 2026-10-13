@@ -34,7 +34,7 @@ static class Toolchain
 
 	public static List<Item> Items = new .() ~ DeleteContainerAndItems!(_);
 	static String sFolder = new .() ~ delete _;
-	static String sRelease = new .("toolchain-1") ~ delete _;
+	static String sRelease = new .("toolchain-2") ~ delete _;
 	static bool sChecked;
 
 	const String ReleaseBase = "https://github.com/LazyAlgorithm/Tessera/releases/download/";

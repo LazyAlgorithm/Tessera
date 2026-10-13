@@ -86,8 +86,10 @@ jobs:
           dist=~/beef/IDE/dist
           # The compiler and what it links programs with; not the IDE's files, the debug builds or LTO caches.
           tar -C ~/beef/IDE --exclude='dist/ltocache' --exclude='dist/gdb' --exclude='dist/images' --exclude='dist/fonts' \
-            --exclude='dist/shaders' --exclude='*.dll' --exclude='*.bat' --exclude='*_d' --exclude='*_d.a' --exclude='*_boot*' \
-            --exclude='*.build.txt' -cf - dist | tar -C "$stage/IDE" -xf -
+            --exclude='dist/shaders' --exclude='*.dll' --exclude='*.bat' --exclude='*_d' --exclude='*_boot*' \
+            --exclude='*.build.txt' -chf - dist | tar -C "$stage/IDE" -xf -
+          # The runtime libraries are links into the build folders: those were followed (-h), so no link is left.
+          find "$stage" -type l -print -delete
           # Every shared library it loads except the C library itself, so it runs on other distributions too.
           mkdir -p "$stage/IDE/dist/shared"
           ldd "$dist/BeefBuild" | awk '/=> \// { print $3 }' | grep -vE '/(libc|libm|libpthread|libdl|librt|ld-linux[^/]*)\.so' | while read -r lib; do
@@ -101,7 +103,11 @@ jobs:
           WRAP
           sed -i 's/^          //' "$stage/IDE/dist/BeefBuild.sh"
           chmod +x "$stage/IDE/dist/BeefBuild.sh"
-          "$stage/IDE/dist/BeefBuild.sh" -version || true
+          # It must compile and link a program on its own.
+          mkdir -p hello/src && printf 'namespace Hello;\nclass Program { public static int Main() { System.Console.WriteLine("hello"); return 0; } }\n' > hello/src/Program.bf
+          (cd hello && "$stage/IDE/dist/BeefBuild.sh" -new > /dev/null 2>&1 || true)
+          printf 'namespace Hello;\nclass Program { public static int Main() { System.Console.WriteLine("hello"); return 0; } }\n' > hello/src/Program.bf
+          (cd hello && env -u LD_LIBRARY_PATH "$stage/IDE/dist/BeefBuild.sh" -run)
           tar -C stage -czf beef-linux-x64.tar.gz beef
           ls -la beef-linux-x64.tar.gz
 
