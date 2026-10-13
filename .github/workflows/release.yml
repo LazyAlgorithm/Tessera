@@ -130,6 +130,9 @@ jobs:
   windows:
     runs-on: windows-2022
     timeout-minutes: 90
+    env:
+      # The build scripts read and write UTF-8 text, whatever the machine's own code page.
+      PYTHONUTF8: '1'
     defaults:
       run:
         shell: bash tessera/.github/scripts/step.sh {0}

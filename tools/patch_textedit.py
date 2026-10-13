@@ -11,14 +11,14 @@ root = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'third_par
 header = os.path.join(root, 'TextEditor.h')
 source = os.path.join(root, 'TextEditor.cpp')
 
-h = open(header).read()
+h = open(header, encoding='utf-8').read()
 if 'tagBlocks' not in h:
     anchor = '\t\tbool indentationForBlocks = false;\n'
     assert anchor in h, 'TextEditor.h layout changed'
     h = h.replace(anchor, anchor + '\n\t\t// does the language use <tag> ... </tag> pairs for blocks (markup)\n\t\tbool tagBlocks = false;\n', 1)
-    open(header, 'w').write(h)
+    open(header, 'w', encoding='utf-8').write(h)
 
-c = open(source).read()
+c = open(source, encoding='utf-8').read()
 if 'tagBlocks' not in c:
     anchor = '\t\tupdated = previous != *this;\n'
     assert c.count(anchor) == 1, 'TextEditor.cpp layout changed'
@@ -87,15 +87,15 @@ if 'tagBlocks' not in c:
 
 '''
     c = c.replace(anchor, block + anchor, 1)
-    open(source, 'w').write(c)
+    open(source, 'w', encoding='utf-8').write(c)
 print('TextEdit tag folding patch applied')
 
 # Completion after a dot: the widget only starts suggesting while a word is being typed, so "Audio." showed
 # nothing until another letter followed. Start on '.' as well; the application decides what to offer.
-c = open(source).read()
+c = open(source, encoding='utf-8').read()
 old = "\tif (CodePoint::isWord(character)) {\n\t\tif (!cursors.hasMultiple() && autocomplete.startTyping(cursors)) {"
 new = "\tif (CodePoint::isWord(character) || character == '.') {\n\t\tif (!cursors.hasMultiple() && autocomplete.startTyping(cursors)) {"
 if new not in c:
     assert c.count(old) == 1, 'TextEditor.cpp layout changed (completion trigger)'
-    open(source, 'w').write(c.replace(old, new, 1))
+    open(source, 'w', encoding='utf-8').write(c.replace(old, new, 1))
 
