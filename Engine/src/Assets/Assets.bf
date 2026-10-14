@@ -156,8 +156,38 @@ static class Assets
 		return mesh;
 	}
 
+	/// True when a mesh or texture is loaded already (GetMesh / GetTexture return it at once).
+	public static bool HasMesh(StringView path) => path.StartsWith("builtin:") || sMeshes.ContainsKeyAlt(path);
+	public static bool HasTexture(StringView path) => path.IsEmpty || sTextures.ContainsKeyAlt(path);
+
+	/// Takes a mesh read on a loading thread (BuildModel) into the cache, sending it to the graphics card. Returns
+	/// the mesh now cached under that path (an earlier one if it was loaded meanwhile; the new one is then deleted).
+	public static Mesh AdoptMesh(StringView path, Mesh mesh)
+	{
+		if (sMeshes.TryGetValueAlt(path, let cached))
+		{
+			delete mesh;
+			return cached;
+		}
+		if (mesh == null)
+			return null;
+		mesh.Upload();
+		sMeshes[new String(path)] = mesh;
+		return mesh;
+	}
+
 	/// Loads a glTF / GLB file. Without a "#index" suffix every primitive is merged into one mesh.
 	static Mesh LoadModel(StringView path)
+	{
+		let mesh = BuildModel(path);
+		if (mesh != null)
+			mesh.Upload();
+		return mesh;
+	}
+
+	/// Reads a glTF / GLB file into a mesh without sending it to the graphics card, so that it can run on a loading
+	/// thread. Null when the file cannot be read.
+	public static Mesh BuildModel(StringView path)
 	{
 		var filePart = path;
 		int32 only = -1;
@@ -217,7 +247,7 @@ static class Assets
 			if (prim.normals == null)
 				mesh.RecalculateNormals();
 		}
-		mesh.Upload();
+		mesh.RecalculateBounds();
 		return mesh;
 	}
 

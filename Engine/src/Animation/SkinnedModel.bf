@@ -67,11 +67,48 @@ class SkinnedModel
 		return null;
 	}
 
+	/// An image found in a model, read on a loading thread and turned into a texture on the main thread.
+	public class PendingImage
+	{
+		public String name = new .() ~ delete _;
+		public uint8[] pixels ~ delete _;
+		public int32 width, height;
+	}
+
+	/// True when the model is loaded already (Load returns it at once).
+	public static bool IsLoaded(StringView path) => sCache.ContainsKeyAlt(path);
+
 	/// Loads (and caches) a rigged model. Returns null when the file has no skeleton.
 	public static SkinnedModel Load(StringView path)
 	{
 		if (sCache.TryGetValueAlt(path, let cached))
 			return cached;
+		let model = Build(path, null);
+		if (model != null)
+			sCache[new String(path)] = model;
+		return model;
+	}
+
+	/// Takes a model read on a loading thread (Build) into the cache, making textures of its images. Returns the
+	/// model now cached under that path (an earlier one if it was loaded meanwhile; the new one is then deleted).
+	public static SkinnedModel Adopt(StringView path, SkinnedModel model, List<PendingImage> images)
+	{
+		for (let image in images)
+			Assets.AddTexture(image.name, image.pixels.Ptr, image.width, image.height);
+		if (sCache.TryGetValueAlt(path, let cached))
+		{
+			delete model;
+			return cached;
+		}
+		if (model != null)
+			sCache[new String(path)] = model;
+		return model;
+	}
+
+	/// Reads a rigged model without touching the graphics card or the cache, so that it can run on a loading thread:
+	/// with images given, the model's pictures are copied into it instead of being made into textures.
+	public static SkinnedModel Build(StringView path, List<PendingImage> images)
+	{
 		let full = scope String();
 		Assets.ResolvePath(path, full);
 		let scene = Native.tn_gltf_load(full.CStr());
@@ -122,7 +159,17 @@ class SkinnedModel
 			let pixels = Native.tn_gltf_get_image(scene, i, &width, &height);
 			let name = new String()..AppendF("{}#image{}", path, i);
 			imageNames.Add(name);
-			if (pixels != null)
+			if (pixels != null && images != null)
+			{
+				let image = new PendingImage();
+				image.name.Set(name);
+				image.width = width;
+				image.height = height;
+				image.pixels = new uint8[width * height * 4];
+				Internal.MemCpy(image.pixels.Ptr, pixels, width * height * 4);
+				images.Add(image);
+			}
+			else if (pixels != null)
 				Assets.AddTexture(name, pixels, width, height);
 		}
 		void Image(String into, int32 index)
@@ -214,7 +261,6 @@ class SkinnedModel
 			delete model;
 			return null;
 		}
-		sCache[new String(path)] = model;
 		return model;
 	}
 }
