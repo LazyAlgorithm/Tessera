@@ -48,6 +48,7 @@ extension EditorApp
 			for (let component in mScene.Components)
 				component.OnBeforeSave();
 			mStashedScene.Clear();
+			Foliage.SyncAll(mScene);
 			SceneSerializer.Save(mScene, mStashedScene);
 			mStashedScenePath.Set(mScene.Path);
 			mStashedSceneName.Set(mScene.Name);

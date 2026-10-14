@@ -73,12 +73,18 @@ class Program
 		let lens = scope SceneEnvironment();
 		lens.focusRange = 8;
 		Check(lens.BlurAmount(10, 10) == 0 && lens.BlurAmount(14, 10) == 0 && lens.BlurAmount(6, 10) == 0, "sharp within half the range either side of the focus");
-		Check(Near(lens.BlurAmount(18, 10), 0.5f) && lens.BlurAmount(22, 10) == 1 && lens.BlurAmount(0.5f, 10) == 1, "fully blurred a whole range beyond that");
+		Check(Near(lens.BlurAmount(18, 10), 0.5f) && lens.BlurAmount(22, 10) == 1 && lens.BlurAmount(40, 10) == 1, "fully blurred a whole range beyond that");
+		// In front of the focus there may not be a whole range of room: at 0.5 m it is 9.5 m from the focus, 5.5 m past the sharp part.
+		Check(Near(lens.BlurAmount(2, 10), 0.5f) && Near(lens.BlurAmount(0.5f, 10), 5.5f / 8), "and the same in front of the focus, as far as there is room");
+		lens.focusRange = 2;
+		Check(lens.BlurAmount(7, 10) == 1 && lens.BlurAmount(0.5f, 10) == 1, "a narrow range blurs the near ground fully");
+		lens.focusRange = 8;
 		Check(lens.BlurAmount(-1, 10) == 0, "the viewmodel (depth -1) is always sharp");
 
 		// ---- lookup tables ----
 		Check(PostProcess.LookupSize(256, 16) == 16 && PostProcess.LookupSize(1024, 32) == 32, "256 x 16 and 1024 x 32 images are lookup tables");
-		Check(PostProcess.LookupSize(256, 256) == 0 && PostProcess.LookupSize(100, 10) == 0, "other images are not");
+		Check(PostProcess.LookupSize(100, 10) == 10 && PostProcess.LookupSize(4, 2) == 2 && PostProcess.LookupSize(4096, 64) == 64, "so is any size from 2 to 64 (100 x 10 is size 10)");
+		Check(PostProcess.LookupSize(256, 256) == 0 && PostProcess.LookupSize(100, 16) == 0 && PostProcess.LookupSize(1, 1) == 0 && PostProcess.LookupSize(16900, 130) == 0, "other images are not");
 		List<uint8> neutral = scope .();
 		PostProcess.MakeNeutralLookup(16, neutral);
 		Check(neutral.Count == 256 * 16 * 4, "a neutral table of 16 is 256 x 16 pixels");

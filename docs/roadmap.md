@@ -94,9 +94,14 @@ Work agreed and queued, in order (see *How to use this page* above for what "don
 - [x] Foliage and wind (2026-10-13): the Foliage component (painted, instanced plants; built-in grass, bush, tree
   and pine) with its brush in the Inspector, Wind Zone components (global and sphere), `Wind Sway` on Mesh
   Renderers, bending in the mesh vertex shader. `docs/foliage.md`, `Tests/Foliage`. Networking: scene data, the
-  same everywhere; `Wind.At` for code. Not yet: undo for the brush, shadows that sway, plants with colliders.
+  same everywhere; `Wind.At` for code. Not yet: plants with colliders.
 - [x] Editor: number fields can be typed into (click, or double-click a slider); the UI tab shows the whole document
   scaled to fit, with named placeholders for canvases (`preview`, `preview-src`).
+- [x] Destructible objects from any model (2026-10-13): Voxel Object Shape **Mesh** fills a closed model in as solid
+  material, keeping its size, colours and texture coordinates; the outside takes the Mesh Renderer's material and
+  the inside an Interior Material or one made from the outside's. `docs/voxel-objects.md`, `Tests/VoxelObject`.
+- [x] Foliage follow-ups (2026-10-13): a Foliage tool in the Terrain Tools, undo and redo for brush strokes (applied
+  in place), shadows and the depth pass bending in the wind with the plants.
 - [ ] E5b animation retargeting: play clips made for one rig on another (a shared humanoid bone map, matched by
   name with an editor to fix the matches, bone lengths and rest poses allowed to differ, root motion scaled to the
   target's size); the Animator plays any retargeted clip, and networking already sends clip and state, not bones

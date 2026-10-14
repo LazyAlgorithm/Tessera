@@ -22,7 +22,7 @@ compile() { # name type
 		esac
 		mkdir -p "$out/$target"
 		if ! "$shaderc" -f "$src/$name.sc" -o "$out/$target/$name.bin" --type "$type" \
-			--platform "$platform" -p "$profile" -i "$include" --varyingdef "$src/varying.def.sc" -O 3; then
+			--platform "$platform" -p "$profile" -i "$include" -i "$src/include" --varyingdef "$src/varying.def.sc" -O 3; then
 			echo "FAILED: $name ($target)" >&2
 			status=1
 		fi

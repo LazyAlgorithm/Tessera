@@ -798,7 +798,7 @@ class RenderView
 			while (start < items.Count)
 			{
 				int end = start + 1;
-				while (end < items.Count && items[end].mesh == items[start].mesh && items[end].material == items[start].material)
+				while (end < items.Count && items[end].mesh == items[start].mesh && items[end].material == items[start].material && items[end].renderer.windSway == items[start].renderer.windSway)
 					end++;
 				SubmitDepthBatch(view, items, start, end - start, pass == 1 ? viewmodelViewProj : worldViewProj, pass == 1);
 				start = end;
@@ -832,6 +832,7 @@ class RenderView
 		bgfx.set_instance_data_buffer(&buffer, 0, (uint32)drawCount);
 		var matrix = viewProj;
 		Vector4 depthParams = .(viewmodel ? 1 : 0, 0, 0, 0);
+		SetWindUniforms(first.renderer.windSway);
 		bgfx.set_uniform(RenderResources.uDepthViewProj, &matrix, 1);
 		bgfx.set_uniform(RenderResources.uDepthParams, &depthParams, 1);
 		uint64 cull = Gfx.StateCullCcw;
@@ -1002,7 +1003,7 @@ class RenderView
 		while (start < visible.Count)
 		{
 			int end = start + 1;
-			while (end < visible.Count && visible[end].mesh == visible[start].mesh)
+			while (end < visible.Count && visible[end].mesh == visible[start].mesh && visible[end].renderer.windSway == visible[start].renderer.windSway)
 				end++;
 			SubmitBatch(view, visible, start, end - start, true);
 			start = end;
@@ -1053,6 +1054,7 @@ class RenderView
 
 		if (shadowPass)
 		{
+			SetWindUniforms(first.renderer.windSway);
 			bgfx.set_state(Gfx.StateWriteZ | Gfx.StateDepthLess, 0);
 			bgfx.submit(view, RenderResources.ShadowProgram, 0, 0xff);
 			return;
@@ -1174,6 +1176,19 @@ class RenderView
 			Instances += count;
 			Triangles += count * mesh.IndexCount / 3;
 		}
+	}
+
+	/// What the shadow and depth passes need to bend a draw in the wind as the lit pass does: the wind, the time and
+	/// how far this draw sways.
+	void SetWindUniforms(float amount)
+	{
+		Vector4 sway = .(amount, 0, 0, 0);
+		Vector4 surface = .(0, Time.RealTime, 0, 0);
+		bgfx.set_uniform(RenderResources.uSway, &sway, 1);
+		bgfx.set_uniform(RenderResources.uSurface, &surface, 1);
+		bgfx.set_uniform(RenderResources.uWind, &mWind, 1);
+		bgfx.set_uniform(RenderResources.uWindZone, &mWindZone, 4);
+		bgfx.set_uniform(RenderResources.uWindPush, &mWindPush, 4);
 	}
 
 	void SetFrameUniforms()

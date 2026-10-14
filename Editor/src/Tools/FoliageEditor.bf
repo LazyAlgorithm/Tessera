@@ -16,7 +16,8 @@ extension EditorApp
 		if (ToolButton("Paint", painting, 90))
 		{
 			mFoliagePainting = painting ? null : foliage;
-			mBrushTool = -1;
+			// On a terrain this is the Terrain Tools' Foliage tool; elsewhere no terrain brush is in the way.
+			mBrushTool = (mFoliagePainting != null && foliage.GameObject.GetComponent<VoxelTerrain>() != null) ? cFoliageTool : -1;
 		}
 		ImGui.SameLine();
 		ImGui.TextDisabled(scope String()..AppendF("{} plants", foliage.Count).CStr());
@@ -56,7 +57,7 @@ extension EditorApp
 			MarkDirty();
 		}
 		if (painting)
-			ImGui.TextWrapped("Drag in the Scene view to paint plants on the ground. Hold Shift to erase. Add another Foliage component for another kind of plant.");
+			ImGui.TextWrapped("Drag in the Scene view to paint plants on the ground. Hold Shift to erase. Ctrl+Z undoes a stroke. Add another Foliage component for another kind of plant.");
 		else
 			ImGui.TextDisabled("Press Paint, then drag in the Scene view.");
 	}

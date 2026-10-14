@@ -119,12 +119,27 @@ class Foliage : Component
 	public override void OnUnregister() => sAll.Remove(this);
 	public override void OnValidate() => Read();
 
-	public override void OnBeforeSave()
+	public override void OnBeforeSave() => Sync();
+
+	/// Packs the plants into the `plants` field if they have changed since it was last written. Saving a scene does
+	/// it; so must anything else that takes the scene as text (the editor's undo, and its copy of the scene taken
+	/// before play).
+	public void Sync()
 	{
 		if (!mChanged)
 			return;
 		Write();
 		mChanged = false;
+	}
+
+	/// Sync for every Foliage of a scene.
+	public static void SyncAll(Scene scene)
+	{
+		for (let foliage in sAll)
+		{
+			if (foliage.GameObject != null && !foliage.GameObject.IsDestroyed && foliage.Scene == scene)
+				foliage.Sync();
+		}
 	}
 
 	// ---- placing ----

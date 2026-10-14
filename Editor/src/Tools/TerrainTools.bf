@@ -21,20 +21,33 @@ extension EditorApp
 	Vector3 mBrushTestPoint;
 
 	const int32 cTilesTool = 5;
-	static readonly char8*[?] cBrushNames = .("Raise", "Lower", "Smooth", "Flatten", "Paint", "Tiles");
+	const int32 cFoliageTool = 6;
+	static readonly char8*[?] cBrushNames = .("Raise", "Lower", "Smooth", "Flatten", "Paint", "Tiles", "Foliage");
 	static readonly char8*[?] cLayerNames = .("Automatic", "Grass", "Rock", "Sand", "Snow", "Dirt");
 
 	void DrawTerrainTools(VoxelTerrain terrain)
 	{
 		ImGui.Spacing();
 		ImGui.SeparatorText("Terrain Tools");
-		let width = (ImGui.GetContentRegionAvail().x - 4 * 7) / 6;
-		for (int32 i < 6)
+		// Two rows: the sculpting brushes, then tiles and foliage.
+		let width = (ImGui.GetContentRegionAvail().x - 4 * 6) / 5;
+		for (int32 i < 7)
 		{
-			if (i > 0)
+			if (i != 0 && i != 5)
 				ImGui.SameLine();
 			if (ToolButton(cBrushNames[i], mBrushTool == i, width))
+			{
 				mBrushTool = mBrushTool == i ? -1 : i;
+				if (mBrushTool != cFoliageTool)
+					mFoliagePainting = null;
+			}
+			if (i == cFoliageTool && ImGui.IsItemHovered())
+				ImGui.SetTooltip("Grass, bushes and trees painted on the ground.");
+		}
+		if (mBrushTool == cFoliageTool)
+		{
+			DrawTerrainFoliage(terrain);
+			return;
 		}
 
 		if (mBrushTool == cTilesTool)
@@ -86,6 +99,79 @@ extension EditorApp
 			ImGui.SetTooltip("Builds every piece of the ground again from its sculpting.");
 		ImGui.SameLine();
 		ImGui.TextDisabled(terrain.editsFolder.IsEmpty ? "Sculpting is saved with the scene" : terrain.editsFolder.CStr());
+	}
+
+	/// The Foliage tool: the kinds of plant on this terrain (each a Foliage component on its object), buttons to add
+	/// more, and which one the brush paints.
+	void DrawTerrainFoliage(VoxelTerrain terrain)
+	{
+		let owner = terrain.GameObject;
+		List<Foliage> kinds = scope .();
+		for (let component in owner.Components)
+		{
+			if (let foliage = component as Foliage)
+				kinds.Add(foliage);
+		}
+		ImGui.TextDisabled("Add a kind of plant:");
+		char8*[4] labels = .("Grass", "Bush", "Tree", "Pine");
+		char8*[4] meshes = .("builtin:grass", "builtin:bush", "builtin:tree", "builtin:pine");
+		float[4] densities = .(6, 0.05f, 0.012f, 0.012f);
+		float[4] sways = .(1, 0.35f, 0.25f, 0.2f);
+		float[4] distances = .(70, 150, 300, 300);
+		for (int i < 4)
+		{
+			if (i > 0)
+				ImGui.SameLine();
+			if (ImGui.Button(scope String()..AppendF("+ {}", StringView(labels[i])).CStr()))
+			{
+				let added = owner.AddComponent<Foliage>();
+				added.mesh.Set(StringView(meshes[i]));
+				added.density = densities[i];
+				added.sway = sways[i];
+				added.viewDistance = distances[i];
+				added.castShadows = i >= 2;
+				mFoliagePainting = added;
+				MarkDirty();
+			}
+		}
+		if (kinds.Count == 0)
+		{
+			ImGui.TextWrapped("Nothing planted yet. Press a button above, then drag over the ground in the Scene view.");
+			return;
+		}
+		ImGui.Spacing();
+		for (let foliage in kinds)
+		{
+			ImGui.PushID(Internal.UnsafeCastToPtr(foliage));
+			let painting = mFoliagePainting == foliage;
+			var name = StringView(foliage.mesh);
+			if (name.StartsWith("builtin:"))
+				name.RemoveFromStart(8);
+			let slash = name.LastIndexOf('/');
+			if (slash >= 0)
+				name.RemoveFromStart(slash + 1);
+			if (ToolButton(scope String()..AppendF("{}  ({})", name, foliage.Count).CStr(), painting, ImGui.GetContentRegionAvail().x - 70))
+				mFoliagePainting = painting ? null : foliage;
+			if (ImGui.IsItemHovered())
+				ImGui.SetTooltip("Paint this kind of plant. Its settings (mesh, density, sizes, sway) are in its Foliage component below.");
+			ImGui.SameLine();
+			if (ImGui.Button("Clear", .(62, 0)))
+			{
+				foliage.Clear();
+				MarkDirty();
+			}
+			ImGui.PopID();
+		}
+		if (BeginPropertyTable("terrainfoliage"))
+		{
+			BeginProperty("Brush Size");
+			ImGui.SliderFloat("##foliagesize", ref mFoliageBrush, 0.5f, 30, "%.1f");
+			ImGui.EndTable();
+		}
+		if (mFoliagePainting != null)
+			ImGui.TextWrapped("Drag in the Scene view to paint. Hold Shift to erase. Ctrl+Z undoes a stroke.");
+		else
+			ImGui.TextDisabled("Pick a kind of plant above to paint it.");
 	}
 
 	void DrawTileTools(VoxelTerrain terrain)
@@ -261,6 +347,22 @@ extension EditorApp
 			voxels.ResetShape();
 			MarkDirty();
 		}
+		// Any model can be made destructible: this takes the one the object is already drawn with.
+		let drawn = voxels.GetComponent<MeshRenderer>();
+		if (drawn != null && !drawn.mesh.IsEmpty && !drawn.mesh.StartsWith("builtin:") && (voxels.shape != .Mesh || voxels.mesh != drawn.mesh))
+		{
+			if (ImGui.Button("Make This Model Destructible"))
+			{
+				voxels.shape = .Mesh;
+				voxels.mesh.Set(drawn.mesh);
+				voxels.OnValidate();
+				MarkDirty();
+			}
+			if (ImGui.IsItemHovered())
+				ImGui.SetTooltip("Sets Shape to Mesh with the Mesh Renderer's model. The model must be closed (no open sides) to be filled in.");
+		}
+		if (voxels.shape == .Mesh && voxels.IsEmpty)
+			ImGui.TextColored(.(1.0f, 0.6f, 0.3f, 1), voxels.mesh.IsEmpty ? "Choose a model in Mesh." : "Nothing came of that model: is it closed, with no open sides?");
 		ImGui.SetNextItemWidth(-1);
 		ImGui.SliderFloat("##carvesize", ref mBrushSize, 0.1f, 10, "Brush %.2f");
 		ImGui.TextWrapped("At runtime call Carve(point, radius) from a script; loose pieces break off and fall.");
@@ -445,6 +547,12 @@ extension EditorApp
 		{
 			EndBrushStroke();
 			UpdateTileTool(terrain, ray);
+			return true;
+		}
+		if (terrain != null && mBrushTool == cFoliageTool)
+		{
+			// The Foliage tool with no kind of plant picked: nothing to do, and the sculpting brushes stay out of it.
+			EndBrushStroke();
 			return true;
 		}
 		if (terrain != null)
