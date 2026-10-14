@@ -30,8 +30,34 @@ static class SceneSerializer
 		text.AppendF("env bloom {}\n", env.bloom);
 		text.AppendF("env bloomThreshold {}\n", env.bloomThreshold);
 		text.AppendF("env shadowDistance {}\n", env.shadowDistance);
+		// Screen effects and colour grading: written only when changed, so scenes that use none stay as they were.
+		let defaults = scope SceneEnvironment();
+		Number(text, "ambientOcclusion", env.ambientOcclusion, defaults.ambientOcclusion);
+		Number(text, "occlusionRadius", env.occlusionRadius, defaults.occlusionRadius);
+		Number(text, "depthOfField", env.depthOfField, defaults.depthOfField);
+		Number(text, "focusDistance", env.focusDistance, defaults.focusDistance);
+		Number(text, "focusRange", env.focusRange, defaults.focusRange);
+		Number(text, "autoFocus", env.autoFocus ? 1 : 0, 0);
+		Number(text, "motionBlur", env.motionBlur, defaults.motionBlur);
+		Number(text, "contrast", env.contrast, defaults.contrast);
+		Number(text, "saturation", env.saturation, defaults.saturation);
+		Number(text, "temperature", env.temperature, defaults.temperature);
+		Number(text, "tint", env.tint, defaults.tint);
+		if (env.colorFilter.r != 1 || env.colorFilter.g != 1 || env.colorFilter.b != 1 || env.colorFilter.a != 1)
+			WriteColor(text, "colorFilter", env.colorFilter);
+		Number(text, "vignette", env.vignette, defaults.vignette);
+		if (!env.colorLookup.IsEmpty)
+			text.AppendF("env colorLookup {}\n", Quote(env.colorLookup, .. scope .()));
+		Number(text, "colorLookupStrength", env.colorLookupStrength, defaults.colorLookupStrength);
 		for (let root in scene.Roots)
 			SaveObject(root, text);
+	}
+
+	/// Writes an environment number only when it differs from a new scene's.
+	static void Number(String text, StringView name, float value, float standard)
+	{
+		if (value != standard)
+			text.AppendF("env {} {}\n", name, value);
 	}
 
 	static void WriteColor(String text, StringView name, Color c)
@@ -231,7 +257,11 @@ static class SceneSerializer
 	static GameObject LoadInternal(Scene scene, StringView text, bool clear, bool remap)
 	{
 		if (clear)
+		{
 			scene.Clear();
+			// A scene file lists only the settings it changed from these.
+			scene.Environment.Reset();
+		}
 		GameObject first = null;
 		Dictionary<uint32, GameObject> created = scope .();
 		GameObject current = null;
@@ -373,6 +403,21 @@ static class SceneSerializer
 		case "bloom": env.bloom = value;
 		case "bloomThreshold": env.bloomThreshold = value;
 		case "shadowDistance": env.shadowDistance = value;
+		case "ambientOcclusion": env.ambientOcclusion = value;
+		case "occlusionRadius": env.occlusionRadius = value;
+		case "depthOfField": env.depthOfField = value;
+		case "focusDistance": env.focusDistance = value;
+		case "focusRange": env.focusRange = value;
+		case "autoFocus": env.autoFocus = value != 0;
+		case "motionBlur": env.motionBlur = value;
+		case "contrast": env.contrast = value;
+		case "saturation": env.saturation = value;
+		case "temperature": env.temperature = value;
+		case "tint": env.tint = value;
+		case "colorFilter": env.colorFilter = color;
+		case "vignette": env.vignette = value;
+		case "colorLookup": env.colorLookup.Set(tokens[2]);
+		case "colorLookupStrength": env.colorLookupStrength = value;
 		}
 	}
 

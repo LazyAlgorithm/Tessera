@@ -201,6 +201,9 @@ static class AssetPreviews
 		if (sView == null)
 		{
 			sView = new RenderView(cViewBase);
+			sView.ShowAmbientOcclusion = false;
+			sView.ShowDepthOfField = false;
+			sView.ShowMotionBlur = false;
 			sScene = new Scene();
 			sScene.Environment.ambientIntensity = 0.75f;
 			sScene.Environment.fogDensity = 0;

@@ -21,6 +21,11 @@ static class RenderResources
 	public static bgfx.ProgramHandle TonemapProgram;
 	public static bgfx.ProgramHandle BloomDownProgram, BloomBlurProgram;
 	public static bgfx.UniformHandle sBloom, uBloomParams;
+	// Screen effects (docs/post-processing.md).
+	public static bgfx.ProgramHandle DepthProgram, AoProgram, AoApplyProgram, DofBlurProgram, DofCombineProgram, MotionBlurProgram;
+	public static bgfx.UniformHandle sDepth, sAo, sBlur, sLut;
+	public static bgfx.UniformHandle uDepthViewProj, uDepthParams, uAoParams, uDofParams, uMotionParams, uPrevViewProj;
+	public static bgfx.UniformHandle uPostRight, uPostUp, uPostForward, uPostEye, uGradeParams, uGradeFilter;
 	public static bgfx.ProgramHandle LineProgram;
 
 	public static bgfx.UniformHandle sAlbedo, sShadowMap, sColor;
@@ -45,6 +50,28 @@ static class RenderResources
 		BloomBlurProgram = Gfx.LoadProgram("vs_fullscreen", "fs_bloom_blur");
 		sBloom = bgfx.create_uniform("s_bloom", .Sampler, 1);
 		uBloomParams = bgfx.create_uniform("u_bloomParams", .Vec4, 1);
+		DepthProgram = Gfx.LoadProgram("vs_depth", "fs_depth");
+		AoProgram = Gfx.LoadProgram("vs_fullscreen", "fs_ao");
+		AoApplyProgram = Gfx.LoadProgram("vs_fullscreen", "fs_ao_apply");
+		DofBlurProgram = Gfx.LoadProgram("vs_fullscreen", "fs_dof_blur");
+		DofCombineProgram = Gfx.LoadProgram("vs_fullscreen", "fs_dof_combine");
+		MotionBlurProgram = Gfx.LoadProgram("vs_fullscreen", "fs_motion_blur");
+		sDepth = bgfx.create_uniform("s_depth", .Sampler, 1);
+		sAo = bgfx.create_uniform("s_ao", .Sampler, 1);
+		sBlur = bgfx.create_uniform("s_blur", .Sampler, 1);
+		sLut = bgfx.create_uniform("s_lut", .Sampler, 1);
+		uDepthViewProj = bgfx.create_uniform("u_depthViewProj", .Mat4, 1);
+		uDepthParams = bgfx.create_uniform("u_depthParams", .Vec4, 1);
+		uAoParams = bgfx.create_uniform("u_aoParams", .Vec4, 1);
+		uDofParams = bgfx.create_uniform("u_dofParams", .Vec4, 1);
+		uMotionParams = bgfx.create_uniform("u_motionParams", .Vec4, 1);
+		uPrevViewProj = bgfx.create_uniform("u_prevViewProj", .Mat4, 1);
+		uPostRight = bgfx.create_uniform("u_postRight", .Vec4, 1);
+		uPostUp = bgfx.create_uniform("u_postUp", .Vec4, 1);
+		uPostForward = bgfx.create_uniform("u_postForward", .Vec4, 1);
+		uPostEye = bgfx.create_uniform("u_postEye", .Vec4, 1);
+		uGradeParams = bgfx.create_uniform("u_gradeParams", .Vec4, 1);
+		uGradeFilter = bgfx.create_uniform("u_gradeFilter", .Vec4, 1);
 		LineProgram = Gfx.LoadProgram("vs_debug", "fs_debug");
 
 		sAlbedo = bgfx.create_uniform("s_albedo", .Sampler, 1);
@@ -98,6 +125,12 @@ static class RenderResources
 		bgfx.destroy_program(TonemapProgram);
 		bgfx.destroy_program(BloomDownProgram);
 		bgfx.destroy_program(BloomBlurProgram);
+		bgfx.destroy_program(DepthProgram);
+		bgfx.destroy_program(AoProgram);
+		bgfx.destroy_program(AoApplyProgram);
+		bgfx.destroy_program(DofBlurProgram);
+		bgfx.destroy_program(DofCombineProgram);
+		bgfx.destroy_program(MotionBlurProgram);
 		bgfx.destroy_program(LineProgram);
 		bgfx.destroy_frame_buffer(ShadowFrameBuffer);
 		Ready = false;
@@ -108,8 +141,11 @@ static class RenderResources
 ///
 /// Pipeline: four shadow cascades for the sun, an HDR multisampled forward pass with sky,
 /// instanced opaque geometry and debug lines, see-through geometry, the viewmodel (a first-person camera's arms and
-/// weapon, over everything: Camera.viewmodelLayer), bloom (when the scene asks for any), then a tonemapping resolve.
-/// Each RenderView uses eleven consecutive bgfx view ids starting at ViewBase.
+/// weapon, over everything: Camera.viewmodelLayer), the screen effects the scene asks for (ambient occlusion, depth of
+/// field and motion blur, from a depth pass: docs/post-processing.md), bloom, then a tonemapping resolve with colour
+/// grading. Each RenderView uses ViewCount (17) consecutive bgfx view ids starting at ViewBase: shadows 0 to 3, scene
+/// 4, see-through 5, viewmodel 6, depth 7, ambient occlusion 8 and 9, depth of field 10 and 11, motion blur 12, bloom
+/// 13 to 15, tonemap 16.
 class RenderView
 {
 	struct RenderItem
@@ -131,7 +167,16 @@ class RenderView
 		public Color color;
 	}
 
+	/// How many bgfx view ids one RenderView uses, from ViewBase. Give each RenderView a ViewBase this far apart.
+	public const int ViewCount = 17;
+	const int cDepthView = 7, cAoView = 8, cAoApplyView = 9, cDofBlurView = 10, cDofCombineView = 11, cMotionView = 12, cBloomView = 13, cTonemapView = 16;
+
 	public uint16 ViewBase;
+	/// Which of the scene's screen effects this view shows (the editor's Scene view leaves out depth of field and
+	/// motion blur, which get in the way of editing).
+	public bool ShowAmbientOcclusion = true;
+	public bool ShowDepthOfField = true;
+	public bool ShowMotionBlur = true;
 	public bool ToBackbuffer;
 	/// How much of the output's resolution the 3D scene is drawn at: below 1 it is drawn smaller and stretched to
 	/// fit, which costs much less on a phone's many pixels. The interface is drawn afterwards at full resolution.
@@ -165,6 +210,23 @@ class RenderView
 	bgfx.TextureHandle[2] mBloomColor = .(.() { idx = uint16.MaxValue }, .() { idx = uint16.MaxValue });
 	bgfx.FrameBufferHandle[2] mBloomFb = .(.() { idx = uint16.MaxValue }, .() { idx = uint16.MaxValue });
 	int32 mBloomWidth, mBloomHeight;
+	// The screen effects', made the first time a scene uses one: the depth pass (distance in front of the camera,
+	// with a depth buffer of its own), two full-size pictures to pass the image between, half-size ambient occlusion
+	// and depth of field.
+	bgfx.TextureHandle mDepthColor = .() { idx = uint16.MaxValue };
+	bgfx.FrameBufferHandle mDepthFb = .() { idx = uint16.MaxValue };
+	bgfx.TextureHandle[2] mPostColor = .(.() { idx = uint16.MaxValue }, .() { idx = uint16.MaxValue });
+	bgfx.FrameBufferHandle[2] mPostFb = .(.() { idx = uint16.MaxValue }, .() { idx = uint16.MaxValue });
+	bgfx.TextureHandle mAoColor = .() { idx = uint16.MaxValue };
+	bgfx.FrameBufferHandle mAoFb = .() { idx = uint16.MaxValue };
+	bgfx.TextureHandle mDofColor = .() { idx = uint16.MaxValue };
+	bgfx.FrameBufferHandle mDofFb = .() { idx = uint16.MaxValue };
+	int32 mHalfWidth, mHalfHeight;
+	// Last frame's camera, for motion blur.
+	Matrix4 mPrevViewProj;
+	Vector3 mPrevPosition;
+	bool mHasPrev;
+	Vector4 mPostRight, mPostUp, mPostForward, mPostEye;
 
 	List<RenderItem> mItems = new .() ~ delete _;
 	List<RenderItem> mShadowItems = new .() ~ delete _;
@@ -217,6 +279,51 @@ class RenderView
 				bgfx.destroy_frame_buffer(mBloomFb[i]);
 			mBloomFb[i].idx = uint16.MaxValue;
 		}
+		ReleaseEffectTargets();
+	}
+
+	void ReleaseEffectTargets()
+	{
+		void Release(ref bgfx.FrameBufferHandle fb)
+		{
+			if (fb.Valid)
+				bgfx.destroy_frame_buffer(fb);
+			fb.idx = uint16.MaxValue;
+		}
+		Release(ref mDepthFb);
+		Release(ref mPostFb[0]);
+		Release(ref mPostFb[1]);
+		Release(ref mAoFb);
+		Release(ref mDofFb);
+	}
+
+	/// Makes the screen effects' targets, at the scene's size, the first time they are needed.
+	void EnsureEffectTargets()
+	{
+		if (mDepthFb.Valid)
+			return;
+		let rt = (uint64)0x0000001000000000;
+		let clamp = (uint64)0x0000002a;
+		let point = (uint64)0x00000040 | 0x00000100;
+		let writeOnly = (uint64)0x0000008000000000;
+		// Distance in front of the camera: 32-bit where it can be drawn to (precise far away), else 16-bit.
+		let depthFormat = bgfx.is_texture_valid(0, false, 1, .R32F, rt | clamp | point) ? bgfx.TextureFormat.R32F : bgfx.TextureFormat.R16F;
+		bgfx.TextureHandle[2] depthTextures;
+		depthTextures[0] = bgfx.create_texture_2d((uint16)mWidth, (uint16)mHeight, false, 1, depthFormat, rt | clamp | point, null, 0);
+		depthTextures[1] = bgfx.create_texture_2d((uint16)mWidth, (uint16)mHeight, false, 1, .D32F, rt | writeOnly, null, 0);
+		mDepthColor = depthTextures[0];
+		mDepthFb = bgfx.create_frame_buffer_from_handles(2, &depthTextures, true);
+		for (int i < 2)
+		{
+			mPostColor[i] = bgfx.create_texture_2d((uint16)mWidth, (uint16)mHeight, false, 1, .RGBA16F, rt | clamp, null, 0);
+			mPostFb[i] = bgfx.create_frame_buffer_from_handles(1, &mPostColor[i], true);
+		}
+		mHalfWidth = Math.Max(mWidth / 2, 4);
+		mHalfHeight = Math.Max(mHeight / 2, 4);
+		mAoColor = bgfx.create_texture_2d((uint16)mHalfWidth, (uint16)mHalfHeight, false, 1, .RGBA8, rt | clamp, null, 0);
+		mAoFb = bgfx.create_frame_buffer_from_handles(1, &mAoColor, true);
+		mDofColor = bgfx.create_texture_2d((uint16)mHalfWidth, (uint16)mHalfHeight, false, 1, .RGBA16F, rt | clamp, null, 0);
+		mDofFb = bgfx.create_frame_buffer_from_handles(1, &mDofColor, true);
 	}
 
 	public void Resize(int32 width, int32 height)
@@ -473,6 +580,77 @@ class RenderView
 				SubmitBatch(viewmodelView, mViewmodelTransparent, i, 1, false, true);
 		}
 
+		// ---- screen effects: ambient occlusion, depth of field, motion blur (docs/post-processing.md) ----
+		// Each reads the picture so far and writes the next one; bloom and the tonemap read the last.
+		var picture = mSceneColor;
+		// The scene sets how much of each; the player's settings (ScreenEffects) can turn each off.
+		let ao = ScreenEffects.AmbientOcclusion && ShowAmbientOcclusion && env.ambientOcclusion > 0.001f;
+		let dof = ScreenEffects.DepthOfField && ShowDepthOfField && env.depthOfField > 0.001f;
+		let motionAmount = Math.Clamp(env.motionBlur, 0.0f, 1.0f) * Math.Clamp(ScreenEffects.MotionBlurAmount, 0.0f, 2.0f);
+		let motion = ScreenEffects.MotionBlur && ShowMotionBlur && motionAmount > 0.001f;
+		let worldViewProj = camera.projection * camera.view;
+		if (ao || dof || motion)
+		{
+			EnsureEffectTargets();
+			SetPostCamera(camera);
+			SubmitDepthPass((uint16)(ViewBase + cDepthView), camera);
+			int next = 0;
+			if (ao)
+			{
+				Vector4 aoParams = .(Math.Max(env.occlusionRadius, 0.05f), Math.Clamp(env.ambientOcclusion, 0.0f, 2.0f), 1.0f / mWidth, 1.0f / mHeight);
+				SetPostUniforms();
+				bgfx.set_uniform(RenderResources.uAoParams, &aoParams, 1);
+				bgfx.set_texture(0, RenderResources.sDepth, mDepthColor, uint32.MaxValue);
+				EffectPass((uint16)(ViewBase + cAoView), "Ambient occlusion", mAoFb, mHalfWidth, mHalfHeight, RenderResources.AoProgram);
+
+				Vector4 applyParams = .(0, 0, 1.0f / mHalfWidth, 1.0f / mHalfHeight);
+				SetPostUniforms();
+				bgfx.set_uniform(RenderResources.uAoParams, &applyParams, 1);
+				bgfx.set_texture(0, RenderResources.sColor, picture, uint32.MaxValue);
+				bgfx.set_texture(1, RenderResources.sAo, mAoColor, uint32.MaxValue);
+				bgfx.set_texture(2, RenderResources.sDepth, mDepthColor, uint32.MaxValue);
+				EffectPass((uint16)(ViewBase + cAoApplyView), "Occlusion apply", mPostFb[next], mWidth, mHeight, RenderResources.AoApplyProgram);
+				picture = mPostColor[next];
+				next ^= 1;
+			}
+			if (dof)
+			{
+				Vector4 dofParams = .(env.autoFocus ? -1.0f : Math.Max(env.focusDistance, 0.0f), Math.Max(env.focusRange, 0.01f),
+					Math.Clamp(env.depthOfField, 0.0f, 2.0f) * SceneEnvironment.DepthOfFieldReach, (float)mHeight / mWidth);
+				SetPostUniforms();
+				bgfx.set_uniform(RenderResources.uDofParams, &dofParams, 1);
+				bgfx.set_texture(0, RenderResources.sColor, picture, uint32.MaxValue);
+				bgfx.set_texture(1, RenderResources.sDepth, mDepthColor, uint32.MaxValue);
+				EffectPass((uint16)(ViewBase + cDofBlurView), "Depth of field blur", mDofFb, mHalfWidth, mHalfHeight, RenderResources.DofBlurProgram);
+
+				SetPostUniforms();
+				bgfx.set_uniform(RenderResources.uDofParams, &dofParams, 1);
+				bgfx.set_texture(0, RenderResources.sColor, picture, uint32.MaxValue);
+				bgfx.set_texture(1, RenderResources.sDepth, mDepthColor, uint32.MaxValue);
+				bgfx.set_texture(2, RenderResources.sBlur, mDofColor, uint32.MaxValue);
+				EffectPass((uint16)(ViewBase + cDofCombineView), "Depth of field", mPostFb[next], mWidth, mHeight, RenderResources.DofCombineProgram);
+				picture = mPostColor[next];
+				next ^= 1;
+			}
+			if (motion)
+			{
+				// A cut (a respawn, a new camera) is not a movement to smear.
+				var previous = (mHasPrev && (camera.position - mPrevPosition).Length < 5) ? mPrevViewProj : worldViewProj;
+				Vector4 motionParams = .(motionAmount, 0.06f, 0, 0);
+				SetPostUniforms();
+				bgfx.set_uniform(RenderResources.uMotionParams, &motionParams, 1);
+				bgfx.set_uniform(RenderResources.uPrevViewProj, &previous, 1);
+				bgfx.set_texture(0, RenderResources.sColor, picture, uint32.MaxValue);
+				bgfx.set_texture(1, RenderResources.sDepth, mDepthColor, uint32.MaxValue);
+				EffectPass((uint16)(ViewBase + cMotionView), "Motion blur", mPostFb[next], mWidth, mHeight, RenderResources.MotionBlurProgram);
+				picture = mPostColor[next];
+				next ^= 1;
+			}
+		}
+		mPrevViewProj = worldViewProj;
+		mPrevPosition = camera.position;
+		mHasPrev = true;
+
 		// ---- bloom: keep what is bright at a quarter size, blur it across and down ----
 		let bloom = Math.Max(env.bloom, 0);
 		if (bloom > 0.001f)
@@ -489,23 +667,131 @@ class RenderView
 				SubmitFullscreen(view, program, Gfx.StateWriteRGB | Gfx.StateWriteA);
 			}
 			let threshold = Math.Max(env.bloomThreshold, 0);
-			Pass((uint16)(ViewBase + 7), "Bloom bright", mBloomFb[0], mSceneColor, RenderResources.BloomDownProgram, .(threshold, Math.Max(threshold * 0.5f, 0.05f), 1.0f / mWidth, 1.0f / mHeight));
-			Pass((uint16)(ViewBase + 8), "Bloom across", mBloomFb[1], mBloomColor[0], RenderResources.BloomBlurProgram, .(0, 0, 1.0f / mBloomWidth, 0));
-			Pass((uint16)(ViewBase + 9), "Bloom down", mBloomFb[0], mBloomColor[1], RenderResources.BloomBlurProgram, .(0, 0, 0, 1.0f / mBloomHeight));
+			Pass((uint16)(ViewBase + cBloomView), "Bloom bright", mBloomFb[0], picture, RenderResources.BloomDownProgram, .(threshold, Math.Max(threshold * 0.5f, 0.05f), 1.0f / mWidth, 1.0f / mHeight));
+			Pass((uint16)(ViewBase + cBloomView + 1), "Bloom across", mBloomFb[1], mBloomColor[0], RenderResources.BloomBlurProgram, .(0, 0, 1.0f / mBloomWidth, 0));
+			Pass((uint16)(ViewBase + cBloomView + 2), "Bloom down", mBloomFb[0], mBloomColor[1], RenderResources.BloomBlurProgram, .(0, 0, 0, 1.0f / mBloomHeight));
 		}
 
-		// ---- tonemap resolve ----
-		let postView = (uint16)(ViewBase + 10);
+		// ---- tonemap resolve, with colour grading ----
+		let postView = (uint16)(ViewBase + cTonemapView);
 		bgfx.set_view_name(postView, "Tonemap", 7);
 		bgfx.set_view_frame_buffer(postView, mOutputFb);
 		bgfx.set_view_rect(postView, 0, 0, (uint16)mOutWidth, (uint16)mOutHeight, 0, 1);
 		bgfx.set_view_clear(postView, 0, 0, 1.0f, 0);
-		Vector4 postParams = .(env.exposure, 0.35f, 1.05f, bloom > 0.001f ? bloom : 0);
+		Vector4 postParams = .(env.exposure * Math.Clamp(ScreenEffects.Brightness, 0.25f, 4.0f), Math.Max(env.vignette, 0), Math.Max(env.saturation, 0), bloom > 0.001f ? bloom : 0);
 		bgfx.set_uniform(RenderResources.uPostParams, &postParams, 1);
-		bgfx.set_texture(0, RenderResources.sColor, mSceneColor, uint32.MaxValue);
+		let lookup = PostProcess.GetLookup(env.colorLookup, let lookupSize);
+		Vector4 gradeParams = .(Math.Max(env.contrast, 0), Math.Clamp(env.temperature, -1.0f, 1.0f), Math.Clamp(env.tint, -1.0f, 1.0f), Math.Clamp(env.colorLookupStrength, 0.0f, 1.0f));
+		let filter = Linear(env.colorFilter);
+		Vector4 gradeFilter = .(filter.x, filter.y, filter.z, (float)lookupSize);
+		bgfx.set_uniform(RenderResources.uGradeParams, &gradeParams, 1);
+		bgfx.set_uniform(RenderResources.uGradeFilter, &gradeFilter, 1);
+		bgfx.set_texture(0, RenderResources.sColor, picture, uint32.MaxValue);
 		// With no bloom the sampler still needs something; its contribution is multiplied by zero.
-		bgfx.set_texture(1, RenderResources.sBloom, bloom > 0.001f ? mBloomColor[0] : mSceneColor, uint32.MaxValue);
+		bgfx.set_texture(1, RenderResources.sBloom, bloom > 0.001f ? mBloomColor[0] : picture, uint32.MaxValue);
+		bgfx.set_texture(2, RenderResources.sLut, lookup, uint32.MaxValue);
 		SubmitFullscreen(postView, RenderResources.TonemapProgram, Gfx.StateWriteRGB | Gfx.StateWriteA);
+	}
+
+	/// The camera's frame for the screen effects' shaders (Engine/shaders/post.sh): its right, up and forward in the
+	/// world (the rows of the view matrix), the projection's spread, and which way texture v runs.
+	void SetPostCamera(CameraData camera)
+	{
+		let view = camera.view;
+		let projection = camera.projection;
+		mPostRight = .(view.m[0], view.m[4], view.m[8], 1.0f / projection.m[0]);
+		mPostUp = .(view.m[1], view.m[5], view.m[9], 1.0f / projection.m[5]);
+		mPostForward = .(view.m[2], view.m[6], view.m[10], camera.orthographic ? 1 : 0);
+		mPostEye = .(camera.position, Gfx.OriginBottomLeft ? 1 : -1);
+	}
+
+	void SetPostUniforms()
+	{
+		bgfx.set_uniform(RenderResources.uPostRight, &mPostRight, 1);
+		bgfx.set_uniform(RenderResources.uPostUp, &mPostUp, 1);
+		bgfx.set_uniform(RenderResources.uPostForward, &mPostForward, 1);
+		bgfx.set_uniform(RenderResources.uPostEye, &mPostEye, 1);
+	}
+
+	/// One full-screen step of the screen effects into a target (its uniforms and textures already set).
+	void EffectPass(uint16 view, StringView name, bgfx.FrameBufferHandle target, int32 width, int32 height, bgfx.ProgramHandle program)
+	{
+		bgfx.set_view_name(view, name.Ptr, (int32)name.Length);
+		bgfx.set_view_frame_buffer(view, target);
+		bgfx.set_view_rect(view, 0, 0, (uint16)width, (uint16)height, 0, 1);
+		bgfx.set_view_clear(view, 0, 0, 1.0f, 0);
+		SubmitFullscreen(view, program, Gfx.StateWriteRGB | Gfx.StateWriteA);
+	}
+
+	/// The depth pass: how far in front of the camera each solid surface is, for the screen effects. The world's
+	/// solid objects first, then the viewmodel's over them, marked -1 so the effects leave it alone. Nothing drawn is
+	/// the sky, 60000 (SKY_DEPTH in post.sh).
+	void SubmitDepthPass(uint16 view, CameraData camera)
+	{
+		var viewMatrix = camera.view;
+		var projMatrix = camera.projection;
+		bgfx.set_palette_color_rgba32f(cDepthPalette, 60000.0f, 0, 0, 1);
+		bgfx.set_view_name(view, "Depth", 5);
+		bgfx.set_view_frame_buffer(view, mDepthFb);
+		bgfx.set_view_rect(view, 0, 0, (uint16)mWidth, (uint16)mHeight, 0, 1);
+		bgfx.set_view_clear_mrt(view, 0x0003, 1.0f, 0, cDepthPalette, cDepthPalette, cDepthPalette, cDepthPalette, cDepthPalette, cDepthPalette, cDepthPalette, cDepthPalette);
+		bgfx.set_view_transform(view, &viewMatrix, &projMatrix);
+		bgfx.set_view_mode(view, .Sequential);
+		bgfx.touch(view);
+		let worldViewProj = projMatrix * viewMatrix;
+		let viewmodelViewProj = camera.viewmodelProjection * viewMatrix;
+		for (int pass < 2)
+		{
+			let items = pass == 0 ? mItems : mViewmodelItems;
+			int start = 0;
+			while (start < items.Count)
+			{
+				int end = start + 1;
+				while (end < items.Count && items[end].mesh == items[start].mesh && items[end].material == items[start].material)
+					end++;
+				SubmitDepthBatch(view, items, start, end - start, pass == 0 ? worldViewProj : viewmodelViewProj, pass == 1);
+				start = end;
+			}
+		}
+	}
+
+	const uint8 cDepthPalette = 15;
+
+	void SubmitDepthBatch(uint16 view, List<RenderItem> items, int start, int count, Matrix4 viewProj, bool viewmodel)
+	{
+		let stride = (uint16)sizeof(InstanceData);
+		let drawCount = Math.Min(count, (int)bgfx.get_avail_instance_data_buffer((uint32)count, stride));
+		if (drawCount <= 0)
+			return;
+		bgfx.InstanceDataBuffer buffer = default;
+		bgfx.alloc_instance_data_buffer(&buffer, (uint32)drawCount, stride);
+		let data = (InstanceData*)buffer.data;
+		for (int i < drawCount)
+		{
+			data[i].world = items[start + i].world;
+			data[i].color = .(1, 1, 1, 1);
+		}
+		let first = items[start];
+		let mesh = first.mesh;
+		if (mesh.IsDynamic)
+			bgfx.set_dynamic_vertex_buffer(0, mesh.DynamicBuffer, 0, (uint32)mesh.VertexCount);
+		else
+			bgfx.set_vertex_buffer(0, mesh.VertexBuffer, 0, (uint32)mesh.VertexCount);
+		bgfx.set_index_buffer(mesh.IndexBuffer, 0, (uint32)mesh.IndexCount);
+		bgfx.set_instance_data_buffer(&buffer, 0, (uint32)drawCount);
+		var matrix = viewProj;
+		Vector4 depthParams = .(viewmodel ? 1 : 0, 0, 0, 0);
+		bgfx.set_uniform(RenderResources.uDepthViewProj, &matrix, 1);
+		bgfx.set_uniform(RenderResources.uDepthParams, &depthParams, 1);
+		uint64 cull = Gfx.StateCullCcw;
+		if (first.material != null && first.material.doubleSided)
+			cull = 0;
+		// The viewmodel is over everything, so it is not depth tested.
+		uint64 depth = Gfx.StateWriteZ | Gfx.StateDepthLess;
+		if (viewmodel)
+			depth = 0;
+		bgfx.set_state(Gfx.StateWriteRGB | Gfx.StateWriteA | depth | cull, 0);
+		bgfx.submit(view, RenderResources.DepthProgram, 0, 0xff);
 	}
 
 	/// Whether an object is drawn in the viewmodel pass for this camera (Camera.viewmodelLayer) rather than with the world.

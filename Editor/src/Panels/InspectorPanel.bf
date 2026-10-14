@@ -117,6 +117,7 @@ extension EditorApp
 			BeginProperty("Fog Density"); changed |= ImGui.DragFloat("##fd", ref env.fogDensity, 0.0002f, 0, 0.2f, "%.4f");
 			ImGui.EndTable();
 		}
+		changed |= DrawScreenEffectsSettings(env);
 		if (changed)
 			MarkDirty();
 		ImGui.Spacing();

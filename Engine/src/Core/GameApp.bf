@@ -89,6 +89,8 @@ class GameApp : Application
 #endif
 	}
 
+	String mEffectsArg = new .() ~ delete _;
+
 	Camera FindCamera()
 	{
 		for (let camera in mScene.Cameras)
@@ -105,6 +107,9 @@ class GameApp : Application
 		if (camera == null)
 			return;
 		mView.Resize(Width, Height);
+		// --effects "ao=1,dof=0.6,...": try the screen effects on any scene (docs/post-processing.md).
+		if (GetArg("--effects", mEffectsArg))
+			PostProcess.ApplySettings(mEffectsArg, mScene.Environment);
 		mView.Render(mScene, camera.GetCameraData((float)Width / Math.Max(Height, 1)));
 		if (mGui)
 		{

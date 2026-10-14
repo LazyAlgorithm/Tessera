@@ -2,7 +2,7 @@
 
 Build native dependencies first using the engine's normal build setup. These fixtures use BeefBuild and the local native archives, without a display or GPU.
 
-For Layers, Viewmodel, SkinnedMaterials, Http, Saving, Navigation, CharacterController, BehaviorTree, Network, Audio, Voice, Animator, Material, Terrain, SpawnPoints, Achievements, References, InspectorTypes, ScriptCatalog, CodeEditor, GraphApi, GraphVariables, ShapeQueries, Scenes, Joints, UIDocuments and InputActions:
+For Layers, Viewmodel, PostProcessing, SkinnedMaterials, Http, Saving, Navigation, CharacterController, BehaviorTree, Network, Audio, Voice, Animator, Material, Terrain, SpawnPoints, Achievements, References, InspectorTypes, ScriptCatalog, CodeEditor, GraphApi, GraphVariables, ShapeQueries, Scenes, Joints, UIDocuments and InputActions:
 
 ```sh
 BeefBuild -workspace=Tests/Navigation -config=Debug -run

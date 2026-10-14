@@ -67,7 +67,11 @@ Work agreed and queued, in order (see *How to use this page* above for what "don
   and sway from the camera's movement, steadier when aiming, recoil with `Kick`), Preview slider and "Use current
   place as Hip / Aim" buttons in the Inspector, `docs/viewmodel.md`, `Tests/Viewmodel`. Networking: none needed.
   Website: Manual > First-person viewmodel.
-- [ ] E10 post-processing: ambient occlusion, depth of field, motion blur, colour grading
+- [x] E10 post-processing (2026-10-13, `dev`): ambient occlusion, depth of field (with auto-focus), camera motion
+  blur and colour grading (contrast, saturation, temperature, tint, colour filter, vignette, lookup tables) as scene
+  settings, from a depth pass that leaves the viewmodel alone. Inspector: Scene Settings > Screen Effects and Color
+  Grading (Make Neutral Lookup Table). Players' settings: `ScreenEffects` (off on phones). RenderViews now use 17 view
+  ids. `docs/post-processing.md`, `Tests/PostProcessing`. Website: Manual > Screen effects.
 - [ ] E9 async scene and asset loading
 - [ ] E4 animation layers and blend trees
 - [ ] E5 inverse kinematics, built in: two-bone limbs (arms, legs) with a pole target, look-at for heads and spines,

@@ -76,6 +76,10 @@ static class Gfx
 		RenderView.MaxSceneHeight = 540;
 		RenderView.Antialias = false;
 		RenderResources.ShadowAtlasSize = 2048;
+		// The screen effects that need a depth pass; a game can offer them back in its settings.
+		ScreenEffects.AmbientOcclusion = false;
+		ScreenEffects.DepthOfField = false;
+		ScreenEffects.MotionBlur = false;
 	}
 
 	public static bool Init(void* window, int32 width, int32 height, int32 rendererOverride = -1)
