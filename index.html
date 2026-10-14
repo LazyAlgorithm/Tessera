@@ -332,7 +332,7 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
     </div>
     <div class="features">
       <div class="feature"><span class="chip" style="background:var(--cobalt)"></span><h3>Rendering</h3><p>bgfx with forward HDR, four shadow cascades, flat shading for the low-poly look, bloom, fog and a procedural sky.</p></div>
-      <div class="feature"><span class="chip" style="background:var(--saffron)"></span><h3>Voxels</h3><p>Streaming marching-cubes terrain you can dig and build at run time, and objects that break into physics pieces.</p></div>
+      <div class="feature"><span class="chip" style="background:var(--saffron)"></span><h3>Voxels</h3><p>Smooth, contoured terrain you can dig and build at run time, with painted grass and trees that bend in the wind, and objects that break into physics pieces.</p></div>
       <div class="feature"><span class="chip" style="background:var(--jade)"></span><h3>Physics</h3><p>Jolt rigid bodies, colliders, ray and shape casts, joints, and a character controller that climbs steps.</p></div>
       <div class="feature"><span class="chip" style="background:var(--brick)"></span><h3>Networking</h3><p>Server-authoritative sessions with prediction, interpolation and lag compensation. Mark a field <code>[Sync]</code> and it is shared.</p></div>
       <div class="feature"><span class="chip" style="background:var(--jade)"></span><h3>Input actions</h3><p>Ask for “Jump”, not Space. Keyboard, mouse, Xbox, PlayStation, Switch pads and touch screens, from one file.</p></div>
@@ -438,7 +438,7 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
           <tr><td>Hierarchy</td><td>The object tree. Drag to re-parent; right-click to create, duplicate or delete.</td></tr>
           <tr><td>Scene</td><td>Right-drag to fly with <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>, <kbd>F</kbd> frames the selection, <kbd>W</kbd>/<kbd>E</kbd>/<kbd>R</kbd> move, rotate and scale. Hold <kbd>Ctrl</kbd> to snap.</td></tr>
           <tr><td>Game</td><td>What the first camera sees. Click it while playing to send it input; <kbd>Esc</kbd> frees the mouse.</td></tr>
-          <tr><td>Inspector</td><td>Components and their public fields. With nothing selected: the scene's lighting, sky and fog.</td></tr>
+          <tr><td>Inspector</td><td>Components and their public fields. Drag a number to change it, or click it without dragging to type one; double-click a slider to type. With nothing selected: the scene's lighting, sky and fog.</td></tr>
           <tr><td>Project</td><td>Assets. Drag models into the scene, images onto texture fields, files from your desktop into the window.</td></tr>
           <tr><td>Scripts</td><td>A code editor that knows the engine. Saving compiles in the background and marks errors on their lines.</td></tr>
           <tr><td>Graph, Behavior, UI</td><td>Visual scripting, behaviour trees for AI, and the interface document editor.</td></tr>
@@ -750,6 +750,9 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
       <a href="#manual" data-sec="manual-render">Rendering and materials</a>
       <a href="#manual" data-sec="manual-viewmodel">First-person viewmodel</a>
       <a href="#manual" data-sec="manual-skinned-materials">Materials on skinned meshes</a>
+      <a href="#manual" data-sec="manual-ik">Inverse kinematics</a>
+      <a href="#manual" data-sec="manual-terrain">Terrain</a>
+      <a href="#manual" data-sec="manual-foliage">Foliage and wind</a>
       <a href="#manual" data-sec="manual-audio">Audio and voice</a>
       <a href="#manual" data-sec="manual-ui">Interfaces</a>
       <a href="#manual" data-sec="manual-responsive">Phones and tablets</a>
@@ -877,6 +880,39 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
       <p>A rigged model with several materials (skin, cloth, armour) or any textures is drawn in parts, one per material in the file, each with the material saved there: base colour, normal, metallic-roughness, occlusion and emissive textures (inside a <code>.glb</code>, as <code>data:</code> addresses or as files beside the model), metallic, roughness, alpha mode and double sides. A model with one plain material is drawn as before, with its Mesh Renderer's settings.</p>
       <p>The Inspector lists the parts under the <strong>Skinned Mesh Renderer</strong> by the file's material names; type a <code>.tmat</code> beside one to use it instead. A Material on the Mesh Renderer covers every part without one of its own, and the renderer's Color tints them all. From code, <code>skinned.SetPartMaterial(index, "Materials/armour.tmat")</code>, which is sent to every machine in a network session; <code>PartCount</code> and <code>PartName(i)</code> list the parts. The textures are named after the model (<code>Models/hero.glb#image2</code>), so your own materials can use them too.</p>
 
+      <h2 id="manual-ik">Inverse kinematics</h2>
+      <p>Inverse kinematics (IK) poses a limb from where its end should be: you say where the hand goes and the arm works out the elbow. It is a layer over the animation: clips play first, then scripts, then IK, so a walk cycle carries on underneath while the hands stay on a rifle that sways and recoils. Each component has a <strong>Weight</strong> from the animation (0) to the IK (1), gives the pose back untouched when disabled, and runs in the editor as well as the game.</p>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Component</th><th>Does</th></tr></thead>
+        <tbody>
+          <tr><td>Limb IK</td><td>Holds a hand or foot on a target: hands on a weapon, a hand on a handle</td></tr>
+          <tr><td>Look At IK</td><td>Turns a head, or a head with the neck and spine, towards a target, within a limit</td></tr>
+          <tr><td>Foot Placement</td><td>Keeps both feet on uneven ground and lowers the hips to suit</td></tr>
+          <tr><td>Hand Pose</td><td>A curl slider for each finger, spread, trigger, and shapes: Open, Fist, Grip, Trigger, Point, Pinch</td></tr>
+        </tbody>
+      </table></div>
+      <p><strong>Hands on a weapon.</strong> Put two empty objects on the weapon where the hands belong. Add a <strong>Limb IK</strong> to the character for each arm: with <strong>Tip</strong> empty the Inspector lists the hands it finds, and the grip goes in <strong>Target</strong>. An object in <strong>Pole</strong> is where the elbow points. To turn the hand on the grip, set Weight to 0, rotate the hand, press <strong>Keep Hand's Rotation</strong>, and bring Weight back.</p>
+      <p>Each arm is its own component, so each lets go by itself: <code>leftArm.LetGo(0.15f)</code> sends that arm back to its animation to throw a grenade while the other stays on the grip, and <code>leftArm.Grab(0.2f)</code> brings it back. <code>SetTarget(other, seconds)</code> moves a hand to another grip without a jump.</p>
+      <p><strong>Rigged models</strong> take part when <strong>Expose Bones</strong> is ticked on the Skinned Mesh Renderer: every bone becomes an object, which IK can turn, an Animator can play clips on, and a weapon can be parented to.</p>
+      <p><strong>Animating with it.</strong> A target that is a child of the Animator's object is keyed like any other child. <strong>Key IK</strong> in the Animation window writes the pose IK is making into the clip, on every bone it moves. Recording keys a bone only when you move it by hand, not because IK is bending it.</p>
+      <p>From code, <code>IKSolver.TwoBone</code>, <code>Chain</code> and <code>LookAt</code> are the solvers themselves. In multiplayer IK is worked out on each machine; <code>LetGo</code>, <code>Grab</code>, <code>FadeWeight</code> and <code>SetShape</code> are followed everywhere when the object's owner calls them, and a target moves on other machines if it is shared like any other object.</p>
+
+      <h2 id="manual-terrain">Terrain</h2>
+      <p>A Voxel Terrain is a grid of tiles, flat until sculpted with Raise, Lower, Smooth, Flatten and Paint. While a brush is picked the Scene view shows a <strong>preview</strong> under the mouse: the brush's edge lying on the ground, and a see-through mesh of the shape it is about to make. Generating ground is the game's own business, done from code with a <code>[TerrainGenerator]</code> class; the editor has no generation settings.</p>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Style</th><th>Surface</th></tr></thead>
+        <tbody>
+          <tr><td>Contoured</td><td>Dual contouring: one point in each cell joined into a regular grid of quads. Rounder and more even. The default.</td></tr>
+          <tr><td>Smooth</td><td>Marching cubes. Choose it to go without dual contouring.</td></tr>
+          <tr><td>Blocky</td><td>One cube for each solid cell.</td></tr>
+        </tbody>
+      </table></div>
+      <p><strong>Contour Sharpness</strong> runs from the softest ground (0) to ridges and ledges kept crisp (1). <strong>Flat Shading</strong> shades every triangle flat for a faceted, low-poly look; off, the ground is shaded smoothly. A new terrain has a <strong>Voxel Size</strong> of half a metre, which with contouring and smooth shading passes for ordinary rolling terrain; 1 is coarser and lighter. Switching style moves nothing: sculpting, collision and networking work from the same samples.</p>
+
+      <h2 id="manual-foliage">Foliage and wind</h2>
+      <p>A <strong>Foliage</strong> component is one kind of plant, many times over, drawn together by the graphics card so that tens of thousands cost little. Choose its <strong>Mesh</strong> (<code>builtin:grass</code>, <code>builtin:bush</code>, <code>builtin:tree</code>, <code>builtin:pine</code>, or a model whose foot is at its origin), press <strong>Paint</strong>, and drag over the ground in the Scene view; Shift erases. Add another Foliage for another kind of plant. Each plant gets its own turn, size and shade. <strong>Density</strong> is plants to the square metre, <strong>Max Slope</strong> leaves steep ground bare, and <strong>View Distance</strong> is how far they are drawn (they thin out towards it). From code: <code>Paint</code>, <code>Erase</code>, <code>Add</code>, <code>Clear</code>.</p>
+      <p>A <strong>Wind Zone</strong> blows the way its object faces: <strong>Global</strong> over the whole scene, or <strong>Sphere</strong> inside a radius, fading to the edge. Zones add up. Foliage bends by its <strong>Sway</strong>, and so does any Mesh Renderer with <strong>Wind Sway</strong> above 0 (a flag, a tree placed by hand). The bending is done on the graphics card. <code>Wind.At(scene, position)</code> reads the wind from code. Plants are scenery: no colliders, saved with the scene, the same on every machine.</p>
+
       <h2 id="manual-audio">Audio and voice</h2>
       <p>miniaudio is built in. Put an <code>AudioSource</code> on anything that makes sound and an <code>AudioListener</code> on the ears. Stereo panning or HRTF for headphones, distance rolloff, Doppler, occlusion behind colliders, reverb zones and six mixer groups. WAV, OGG, MP3 and FLAC.</p>
       <p>Voice chat uses Opus and is off until you turn it on with <code>VoiceChat.Enabled</code>. The server decides who hears whom, for team-only or proximity voice. Push to talk works from any input action.</p>
@@ -887,6 +923,7 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
         <li><strong>GUI</strong> from <code>OnGUI</code>: <code>GUI.Label</code>, <code>Button</code>, <code>Bar</code>, <code>Box</code>, <code>Toggle</code>, <code>Slider</code>. Quick, for HUDs and debugging.</li>
         <li><strong>UI documents</strong>: <code>.tui</code> markup with a <code>.tcss</code> stylesheet, laid out with flexbox and absolute positioning, edited in the UI tab, worked with a mouse, a controller's d-pad or a touch screen. See <a href="#menu">A main menu</a>.</li>
       </ul>
+      <p>The UI tab lays a document out for the screen size chosen in its toolbar and draws the whole of it scaled to fit the panel. A <code>canvas</code>, which the game draws into, shows there as a named box: <code>preview="Motion tracker"</code> names it and <code>preview-src="UI/tracker.png"</code> shows a picture instead, both ignored while the game runs.</p>
 
       <h2 id="manual-responsive">Phones and tablets</h2>
       <p>One interface can serve a desktop, a phone held sideways and a phone held upright:</p>
