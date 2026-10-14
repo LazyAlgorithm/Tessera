@@ -78,8 +78,14 @@ Work agreed and queued, in order (see *How to use this page* above for what "don
   what a scene names found through its prefabs, scenes and materials. The Scene Loader component (Inspector, scene
   picker, `progress` for a loading bar). Networking: none needed (every machine loads for itself). `docs/loading.md`,
   `Tests/AsyncLoading`. Website: Manual > Loading in the background.
-- [ ] E4 animation layers and blend trees
-- [x] E5 inverse kinematics (2026-10-13, in the working folder on the development machine, not yet committed):
+- [x] E4 animation layers and blend trees (2026-10-14): controller layers (each a state machine; weight, Override or
+  Additive, a bone mask by name), 1D and 2D freeform blend trees (gradient band weights, clips kept in step), for
+  `.tanim` clips and for rigged models' clips with Expose Bones; controllers without them run as before. Animator
+  window: Layers list with weight (live), blending and mask; Clip or Blend Tree per state with parameters, clips,
+  thresholds or positions and a live diagram. `SetLayerWeight`, `StateIndexOn`, `NormalizedTimeOn`. Networking:
+  layer weights follow the owner (states and parameters already did). `docs/animator.md`, `Tests/AnimationLayers`.
+  Website: Manual > Animation layers and blend trees.
+- [x] E5 inverse kinematics (2026-10-13, `dev` and `main`):
   Limb IK (two-bone arms and legs with a pole, the hand locked to a target's rotation with an offset and a grip
   point, `LetGo` / `Grab` / `SetTarget` so that each arm is freed and returned by itself), Look At IK (head, neck
   and spine sharing the turn, within a limit), Foot Placement (feet on uneven ground, hips lowered, feet tilted),
