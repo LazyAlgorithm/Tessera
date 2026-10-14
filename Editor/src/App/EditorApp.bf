@@ -243,6 +243,40 @@ class EditorApp : Application
 					mBrushSize = Math.Clamp(brushSize, 1, 40);
 			}
 		}
+		// Test switch: --undo-test-foliage paints plants on the scene's first Foliage twice and checks that undo and
+		// redo take the strokes off and put them back without making the object again.
+		if (HasArg("--undo-test-foliage"))
+		{
+			let foliage = mScene.FindComponent<Foliage>();
+			if (foliage == null)
+				Log.Error("UNDO-TEST FAIL: the scene has no Foliage");
+			else
+			{
+				ResetUndo();
+				let n0 = foliage.Count;
+				foliage.Paint(foliage.Transform.Position + Vector3(5, 0, 5), 4);
+				MarkDirty();
+				mUndoPending = false;
+				CommitSceneStep();
+				let n1 = foliage.Count;
+				foliage.Paint(foliage.Transform.Position + Vector3(20, 0, 5), 4);
+				MarkDirty();
+				mUndoPending = false;
+				CommitSceneStep();
+				let n2 = foliage.Count;
+				Undo();
+				let u1 = mScene.FindComponent<Foliage>();
+				let afterOne = u1 != null ? u1.Count : -1;
+				Undo();
+				let u2 = mScene.FindComponent<Foliage>();
+				let afterTwo = u2 != null ? u2.Count : -1;
+				Redo();
+				let r1 = mScene.FindComponent<Foliage>();
+				let afterRedo = r1 != null ? r1.Count : -1;
+				let pass = n1 > n0 && n2 > n1 && afterOne == n1 && afterTwo == n0 && afterRedo == n1 && u1 == foliage && u2 == foliage && r1 == foliage;
+				Log.Info(scope $"UNDO-TEST {pass ? "PASS" : "FAIL"}: plants {n0} -> {n1} -> {n2}; undo {afterOne}, undo {afterTwo}, redo {afterRedo}; same component kept: {u1 == foliage && u2 == foliage && r1 == foliage}");
+			}
+		}
 		let selectName = scope String();
 		if (GetArg("--select", selectName))
 		{

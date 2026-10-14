@@ -33,6 +33,7 @@ extension EditorApp
 		ClearAndDeleteItems!(mUndoStack);
 		ClearAndDeleteItems!(mRedoStack);
 		mBaseline.Clear();
+		Foliage.SyncAll(mScene);
 		SceneSerializer.Save(mScene, mBaseline);
 		mUndoPending = false;
 	}
@@ -82,6 +83,7 @@ extension EditorApp
 	void CommitSceneStep()
 	{
 		let current = new String();
+		Foliage.SyncAll(mScene);
 		SceneSerializer.Save(mScene, current);
 		if (current == mBaseline)
 		{
@@ -198,7 +200,8 @@ extension EditorApp
 			afterIds.Add(block.id);
 			if (!beforeById.TryGetValue(block.id, let old) || old != block.text)
 			{
-				// A terrain whose tiles are all that changed takes them in place, keeping what it has loaded.
+				// A terrain whose tiles are all that changed takes them in place, keeping what it has loaded; so does
+				// an object whose painted plants are all that changed (which is often the terrain too).
 				if (old.Ptr != null && TilesOnlyChange(block.id, old, block.text))
 					continue;
 				rebuild.Add(block.id);
@@ -256,10 +259,11 @@ extension EditorApp
 			mSelectedId = 0;
 	}
 
-	/// True, and the change made, when the only lines of an object that differ are a terrain's tiles.
+	/// True, and the change made, when the only lines of an object that differ are a terrain's tiles and Foliage
+	/// components' plants: those are put into the components as they stand, with nothing made again.
 	bool TilesOnlyChange(uint32 id, StringView before, StringView after)
 	{
-		bool Tiles(StringView line) => line.StartsWith("field tiles ") || line.StartsWith("field nextTileId ");
+		bool Tiles(StringView line) => line.StartsWith("field tiles ") || line.StartsWith("field nextTileId ") || line.StartsWith("field plants ");
 		let a = scope String(), b = scope String();
 		for (let line in before.Split('\n'))
 			if (!Tiles(line))
@@ -269,9 +273,40 @@ extension EditorApp
 				b..Append(line).Append('\n');
 		if (a != b)
 			return false;
-		let terrain = mScene.FindById(id)?.GetComponent<VoxelTerrain>();
-		if (terrain == null)
+		let owner = mScene.FindById(id);
+		if (owner == null)
 			return false;
+		let terrain = owner.GetComponent<VoxelTerrain>();
+		// The object's Foliage components, in the order the text has them.
+		List<Foliage> kinds = scope .();
+		for (let component in owner.Components)
+		{
+			if (let foliage = component as Foliage)
+				kinds.Add(foliage);
+		}
+		int kind = 0;
+		bool anyPlants = false;
+		for (var line in after.Split('\n'))
+		{
+			line.Trim();
+			if (!line.StartsWith("field plants "))
+				continue;
+			if (kind >= kinds.Count)
+				return false;
+			var value = line.Substring(13);
+			value.Trim();
+			if (value.StartsWith('"') && value.EndsWith('"') && value.Length >= 2)
+				value = value.Substring(1, value.Length - 2);
+			if (kinds[kind].plants != value)
+			{
+				kinds[kind].plants.Set(value);
+				kinds[kind].OnValidate();
+			}
+			kind++;
+			anyPlants = true;
+		}
+		if (terrain == null)
+			return anyPlants;
 		for (var line in after.Split('\n'))
 		{
 			line.Trim();

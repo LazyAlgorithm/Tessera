@@ -86,6 +86,7 @@ extension EditorApp
 		mPrePlaySelection = mSelectedId;
         mPrePlayDirty = mDirty;
         mSnapshot.Clear();
+		Foliage.SyncAll(mScene);
 		SceneSerializer.Save(mScene, mSnapshot);
 		mPlay = .Playing;
 		mFocusGame = true;

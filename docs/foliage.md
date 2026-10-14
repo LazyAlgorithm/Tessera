@@ -9,11 +9,16 @@ A Foliage component is one kind of plant, many times over. Every plant of a comp
 graphics card draws them all together (instancing), so tens of thousands cost little. Each plant has its own turn,
 size and shade, so they do not look stamped out.
 
-1. Select the terrain (or any object) and add a **Foliage** component.
-2. Choose its **Mesh**: `builtin:grass`, `builtin:bush`, `builtin:tree`, `builtin:pine`, or a model of your own.
-3. Press **Paint** in the component, then drag over the ground in the Scene view. Hold **Shift** to erase.
-4. Add another Foliage component for another kind of plant. Several can sit on the same object, each with its own
-   Paint button.
+On a terrain:
+
+1. Select the terrain and press **Foliage** in its **Terrain Tools** (the second row, beside Tiles).
+2. Press **+ Grass**, **+ Bush**, **+ Tree** or **+ Pine**. Each adds a kind of plant, ready to paint.
+3. Drag over the ground in the Scene view. Hold **Shift** to erase. **Ctrl+Z** undoes a stroke.
+4. The kinds of plant are listed in the tool: press one to paint that kind. Each is a **Foliage** component on the
+   terrain, further down the Inspector, where its model, density, sizes and sway are set.
+
+On anything else, or to use a model of your own: add a **Foliage** component, choose its **Mesh**, and press
+**Paint** in the component.
 
 **Fill Terrain** paints every terrain tile at once. **Clear** removes every plant of that component.
 
@@ -73,7 +78,7 @@ What bends:
 - Any **Mesh Renderer** with **Wind Sway** above 0: a flag, a hanging sign, a tree placed by hand, reeds. It bends
   about its own origin, more the higher up, so put the origin at its foot.
 
-The bending is done on the graphics card, so it costs the same for one plant as for fifty thousand. The four Sphere
+The bending is done on the graphics card, so it costs the same for one plant as for fifty thousand. Shadows bend with what casts them, and so does the depth that ambient occlusion and depth of field work from. The four Sphere
 zones nearest the camera take part; Global zones always do.
 
 From code, `Wind.At(Scene, position)` is the wind at a point (a direction whose length is the strength), for
@@ -84,10 +89,7 @@ other machines if its object is shared (a Network Identity).
 
 ## Limits
 
-- Shadows of swaying plants do not sway, and the depth used by ambient occlusion and depth of field sees them
-  standing still.
 - Plants do not collide and cannot be walked into; put colliders on trees that must block the player.
-- Painting and erasing are not on the editor's undo yet.
 - Plants do not follow ground that is sculpted afterwards: erase and repaint there.
 - Custom shaders made before this version bend only after they are compiled again.
 

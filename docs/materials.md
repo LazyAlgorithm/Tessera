@@ -189,7 +189,7 @@ All of it has nodes, generated from the engine source: **Engine > Render > Mesh 
 - **Eight values and two textures** per custom shader, and it cannot replace the lighting itself.
 - **Transparent** objects are sorted by their centres, so large overlapping ones can draw in the wrong order.
 - **Compute shaders write one texture.** There are no compute buffers, and reading a compute texture back into a script is not supported.
-- Voxel terrain, voxel objects and particles use their own colours, not materials.
+- Voxel terrain and particles use their own colours, not materials. (Voxel objects take materials, outside and in: `docs/voxel-objects.md`.)
 - Direct3D is not compiled for (see [Building for Windows](windows)).
 
 ## Tests
