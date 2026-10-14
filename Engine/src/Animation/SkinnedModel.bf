@@ -57,6 +57,33 @@ class SkinnedModel
 
 	static Dictionary<String, SkinnedModel> sCache = new .() ~ DeleteDictionaryAndKeysAndValues!(_);
 
+	/// A joint's pose in a clip at a time (seconds), in the model's own right-handed space, as the clip's frames give it.
+	public void SampleJoint(Clip clip, float time, bool loop, int joint, out Vector3 position, out Quaternion rotation, out Vector3 scale)
+	{
+		let jointCount = Joints.Count;
+		let t = loop ? (clip.duration > 0 ? time % clip.duration : 0) : Math.Min(time, clip.duration);
+		let exact = t * 30.0f;
+		let f0 = Math.Clamp((int)exact, 0, clip.frames - 1);
+		let f1 = Math.Min(f0 + 1, clip.frames - 1);
+		let blend = exact - f0;
+		let a = clip.data.Ptr + (f0 * jointCount + joint) * 10;
+		let b = clip.data.Ptr + (f1 * jointCount + joint) * 10;
+		position = Vector3.Lerp(.(a[0], a[1], a[2]), .(b[0], b[1], b[2]), blend);
+		rotation = Quaternion.Slerp(.(a[3], a[4], a[5], a[6]), .(b[3], b[4], b[5], b[6]), blend);
+		scale = Vector3.Lerp(.(a[7], a[8], a[9]), .(b[7], b[8], b[9]), blend);
+	}
+
+	/// A joint's number by its name, or -1.
+	public int FindJoint(StringView name)
+	{
+		for (int i < Joints.Count)
+		{
+			if (Joints[i].name == name)
+				return i;
+		}
+		return -1;
+	}
+
 	public Clip FindClip(StringView name)
 	{
 		for (let clip in Clips)

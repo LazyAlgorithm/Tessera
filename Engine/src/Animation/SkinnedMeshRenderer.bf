@@ -25,6 +25,10 @@ class SkinnedMeshRenderer : Component
 	/// can play .tanim clips on it and the Animation window can key it. The model's own clips still play, underneath.
 	/// The objects are ordinary ones, saved with the scene; delete them yourself if you turn this off again.
 	public bool exposeBones = false;
+	/// Set by an Animator whose controller uses layers or blend trees: it poses the bone objects from the model's
+	/// clips itself, so the renderer leaves them alone.
+	[NonSerialized]
+	public bool posedByAnimator;
 	/// The parts' own materials, "Part=Materials/skin.tmat;Other=..." (the Inspector edits it as a list).
 	[HideInInspector]
 	public String materials = new .() ~ delete _;
@@ -423,7 +427,7 @@ class SkinnedMeshRenderer : Component
 		{
 			// The clip poses the bone objects; the mesh is bent from them at the end of the frame (SkinFromBones),
 			// once IK and scripts have moved them too. With no clip playing they are left as they are.
-			if (mCurrent != null)
+			if (mCurrent != null && !posedByAnimator)
 			{
 				for (int i < mModel.Joints.Count)
 				{

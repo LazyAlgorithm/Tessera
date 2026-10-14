@@ -38,6 +38,8 @@ extension EditorApp
 	Vector2 mAnimMenuPosition;
 	List<String> mAnimClipChoices = new .() ~ DeleteContainerAndItems!(_);
 	int mAnimClipChoicesFrame = -1000;
+	/// The layer shown on the canvas.
+	int32 mAnimLayer = 0;
 
 	/// Opens a controller in the Animator window. The path is a file on disk.
 	public void OpenAnimator(StringView fullPath)
@@ -198,8 +200,12 @@ extension EditorApp
 		if (mAnimTransition >= controller.transitions.Count)
 			mAnimTransition = -1;
 
-		// ---- left: parameters and the selection ----
+		// ---- left: layers, parameters and the selection ----
 		ImGui.BeginChild("animleft", .(270, 0), ImGui.ChildBorders);
+		mAnimLayer = Math.Clamp(mAnimLayer, 0, (int32)controller.layers.Count - 1);
+		DrawAnimatorLayers(controller, live);
+		ImGui.Dummy(.(0, 6));
+		ImGui.Separator();
 		ImGui.SetCursorPosX(8);
 		ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 6);
 		ImGui.Text("Parameters");
@@ -337,6 +343,8 @@ extension EditorApp
 		{
 			for (int32 i = (int32)controller.states.Count - 1; i >= -1; i--)
 			{
+				if (i >= 0 && controller.states[i].layer != mAnimLayer)
+					continue;
 				let p = AnimStatePosition(i);
 				if (graphMouse.x >= p.x && graphMouse.x <= p.x + cStateWidth && graphMouse.y >= p.y && graphMouse.y <= p.y + cStateHeight)
 				{
@@ -363,6 +371,8 @@ extension EditorApp
 		for (int32 i = 0; i < (int32)controller.transitions.Count; i++)
 		{
 			let transition = controller.transitions[i];
+			if (controller.LayerOf(transition) != mAnimLayer)
+				continue;
 			var from = Center(transition.from), to = Center(transition.to);
 			if (from == to)
 				continue;
@@ -379,8 +389,9 @@ extension EditorApp
 			let selected = i == mAnimTransition;
 			Arrow(from, to, selected ? Color(0.45f, 0.70f, 1, 1) : (hoverTransition == i ? Color(1, 1, 1, 1) : Color(0.75f, 0.75f, 0.78f, 0.9f)), (selected ? 2.4f : 1.5f) * zoom);
 		}
-		if (controller.states.Count > 0)
-			Arrow(cEntryPosition + Vector2(cStateWidth * 0.5f, cStateHeight * 0.5f), Center(Math.Clamp(controller.defaultState, 0, (int32)controller.states.Count - 1)), .(0.90f, 0.62f, 0.20f, 0.9f), 1.5f * zoom);
+		let layerDefault = controller.DefaultStateOf(mAnimLayer);
+		if (layerDefault >= 0)
+			Arrow(cEntryPosition + Vector2(cStateWidth * 0.5f, cStateHeight * 0.5f), Center(layerDefault), .(0.90f, 0.62f, 0.20f, 0.9f), 1.5f * zoom);
 		if (mAnimLinkFrom != -3)
 			Arrow(Center(mAnimLinkFrom), graphMouse, .(1, 1, 1, 0.9f), 1.5f * zoom);
 
@@ -401,12 +412,18 @@ extension EditorApp
 		for (int32 i = 0; i < (int32)controller.states.Count; i++)
 		{
 			let state = controller.states[i];
-			let isLive = live != null && live.CurrentStateIndex == i;
-			var color = i == controller.defaultState ? Color(0.78f, 0.48f, 0.14f, 1) : Color(0.32f, 0.32f, 0.35f, 1);
+			if (state.layer != mAnimLayer)
+				continue;
+			let isLive = live != null && live.StateIndexOn(mAnimLayer) == i;
+			var color = i == layerDefault ? Color(0.78f, 0.48f, 0.14f, 1) : Color(0.32f, 0.32f, 0.35f, 1);
 			if (isLive)
 				color = .(0.22f, 0.40f, 0.68f, 1);
-			let progress = isLive ? (state.loop ? live.NormalizedTime % 1.0f : live.NormalizedTime) : -1;
-			Box(state.position, state.name, color, mAnimState == i && mAnimTransition < 0, progress);
+			let time = isLive ? live.NormalizedTimeOn(mAnimLayer) : 0;
+			let progress = isLive ? (state.loop ? time % 1.0f : time) : -1;
+			let label = scope String(state.name);
+			if (state.blend != null)
+				label.Append("  (blend)");
+			Box(state.position, label, color, mAnimState == i && mAnimTransition < 0, progress);
 		}
 		NodeCanvas.EndFont();
 
@@ -419,6 +436,7 @@ extension EditorApp
 				if (hoverState >= 0 && hoverState != mAnimLinkFrom)
 				{
 					let transition = controller.AddTransition(mAnimLinkFrom, hoverState);
+					transition.layer = mAnimLayer;
 					// From Any State a transition needs a condition to mean anything; from a state, waiting for
 					// the clip to end is the usual default.
 					transition.hasExitTime = mAnimLinkFrom >= 0;
@@ -472,7 +490,7 @@ extension EditorApp
 						if (controller.FindState(name) < 0)
 							break;
 					}
-					controller.AddState(name, "", mAnimMenuPosition);
+					controller.AddState(name, "", mAnimMenuPosition).layer = mAnimLayer;
 					mAnimState = (int32)controller.states.Count - 1;
 					mAnimTransition = -1;
 					mAnimDirty = true;
@@ -486,7 +504,10 @@ extension EditorApp
 				{
 					if (ImGui.MenuItem("Set as Default State"))
 					{
-						controller.defaultState = mAnimMenuState;
+						if (mAnimLayer == 0)
+							controller.defaultState = mAnimMenuState;
+						else
+							controller.layers[mAnimLayer].defaultState = mAnimMenuState;
 						controller.Revision++;
 						mAnimDirty = true;
 					}
@@ -548,41 +569,38 @@ extension EditorApp
 			controller.Revision++;
 			mAnimDirty = true;
 		}
+		// What the state plays: one clip, or clips mixed by parameters.
 		ImGui.SetCursorPosX(8);
-		ImGui.SetNextItemWidth(170);
-		if (ImGui.BeginCombo("Clip##state", state.clip.IsEmpty ? (char8*)"(none)" : state.clip.CStr()))
+		var useTree = state.blend != null;
+		if (ImGui.RadioButton("Clip##motion", !useTree) && useTree)
 		{
-			RefreshClipChoices();
-			if (ImGui.Selectable("(none)", state.clip.IsEmpty))
-			{
-				state.clip.Clear();
-				mAnimDirty = true;
-			}
-			for (let choice in mAnimClipChoices)
-			{
-				if (ImGui.Selectable(choice.CStr(), choice == state.clip))
-				{
-					state.clip.Set(choice);
-					mAnimDirty = true;
-				}
-			}
-			// Clips inside the selected object's skinned model are named, not files.
-			let skinned = selectedAnimator != null ? FindSkinned(selectedAnimator) : null;
-			if (skinned != null && skinned.Model != null)
-			{
-				for (let clip in skinned.Model.Clips)
-				{
-					let label = scope String();
-					label.AppendF("{}  (model)", clip.name);
-					if (ImGui.Selectable(label.CStr(), clip.name == state.clip))
-					{
-						state.clip.Set(clip.name);
-						mAnimDirty = true;
-					}
-				}
-			}
-			ImGui.EndCombo();
+			DeleteAndNullify!(state.blend);
+			useTree = false;
+			mAnimDirty = true;
 		}
+		ImGui.SameLine();
+		if (ImGui.RadioButton("Blend Tree##motion", useTree) && !useTree)
+		{
+			state.blend = new .();
+			// Start from the clip it had, so nothing is lost.
+			if (!state.clip.IsEmpty)
+			{
+				let first = new AnimatorController.Motion();
+				first.clip.Set(state.clip);
+				state.blend.motions.Add(first);
+			}
+			useTree = true;
+			mAnimDirty = true;
+		}
+		if (!useTree)
+		{
+			ImGui.SetCursorPosX(8);
+			ImGui.SetNextItemWidth(170);
+			if (AnimClipCombo("Clip##state", state.clip, selectedAnimator))
+				mAnimDirty = true;
+		}
+		else
+			DrawBlendTree(controller, state.blend, selectedAnimator);
 		ImGui.SetCursorPosX(8);
 		ImGui.SetNextItemWidth(170);
 		if (ImGui.DragFloat("Speed##state", ref state.speed, 0.02f))
@@ -590,6 +608,288 @@ extension EditorApp
 		ImGui.SetCursorPosX(8);
 		if (ImGui.Checkbox("Loop##state", ref state.loop))
 			mAnimDirty = true;
+		if (mAnimDirty)
+			controller.Revision++;
+	}
+
+	/// A clip picker: .tanim files in the project and, for an object with a rigged model, the model's own clips.
+	bool AnimClipCombo(char8* label, String clip, Animator selectedAnimator)
+	{
+		bool changed = false;
+		if (ImGui.BeginCombo(label, clip.IsEmpty ? (char8*)"(none)" : clip.CStr()))
+		{
+			RefreshClipChoices();
+			if (ImGui.Selectable("(none)", clip.IsEmpty))
+			{
+				clip.Clear();
+				changed = true;
+			}
+			for (let choice in mAnimClipChoices)
+			{
+				if (ImGui.Selectable(choice.CStr(), choice == clip))
+				{
+					clip.Set(choice);
+					changed = true;
+				}
+			}
+			// Clips inside the selected object's skinned model are named, not files.
+			let skinned = selectedAnimator != null ? FindSkinned(selectedAnimator) : null;
+			if (skinned != null && skinned.Model != null)
+			{
+				for (let modelClip in skinned.Model.Clips)
+				{
+					let entry = scope String();
+					entry.AppendF("{}  (model)", modelClip.name);
+					if (ImGui.Selectable(entry.CStr(), modelClip.name == clip))
+					{
+						clip.Set(modelClip.name);
+						changed = true;
+					}
+				}
+			}
+			ImGui.EndCombo();
+		}
+		return changed;
+	}
+
+	/// A float parameter picker for a blend tree.
+	bool AnimParameterCombo(char8* label, AnimatorController controller, ref int32 parameter)
+	{
+		bool changed = false;
+		let current = parameter >= 0 && parameter < controller.parameters.Count ? controller.parameters[parameter].name.CStr() : (char8*)"(choose)";
+		if (ImGui.BeginCombo(label, current))
+		{
+			for (int32 i < (int32)controller.parameters.Count)
+			{
+				let p = controller.parameters[i];
+				if (p.type != .Float && p.type != .Int)
+					continue;
+				if (ImGui.Selectable(p.name.CStr(), parameter == i))
+				{
+					parameter = i;
+					changed = true;
+				}
+			}
+			ImGui.EndCombo();
+		}
+		return changed;
+	}
+
+	/// A blend tree's settings: its kind, its parameters, each clip and where it sits, and a picture of them with
+	/// the parameters' values now (live while the game plays).
+	void DrawBlendTree(AnimatorController controller, AnimatorController.BlendTree tree, Animator selectedAnimator)
+	{
+		ImGui.SetCursorPosX(8);
+		ImGui.SetNextItemWidth(170);
+		char8*[2] kinds = .("1D (one number)", "2D (two numbers)");
+		if (ImGui.BeginCombo("Kind##blend", kinds[(int)tree.type]))
+		{
+			for (int i < 2)
+			{
+				if (ImGui.Selectable(kinds[i], (int)tree.type == i))
+				{
+					tree.type = (BlendTreeType)i;
+					mAnimDirty = true;
+				}
+			}
+			ImGui.EndCombo();
+		}
+		ImGui.SetCursorPosX(8);
+		ImGui.SetNextItemWidth(170);
+		if (AnimParameterCombo(tree.type == .Simple1D ? "Parameter##bx" : "X##bx", controller, ref tree.parameterX))
+			mAnimDirty = true;
+		if (tree.type == .Freeform2D)
+		{
+			ImGui.SetCursorPosX(8);
+			ImGui.SetNextItemWidth(170);
+			if (AnimParameterCombo("Y##by", controller, ref tree.parameterY))
+				mAnimDirty = true;
+		}
+		if (controller.parameters.Count == 0)
+		{
+			ImGui.SetCursorPosX(8);
+			ImGui.TextDisabled("Add a Float parameter above first.");
+		}
+		ImGui.SetCursorPosX(8);
+		ImGui.TextDisabled(tree.type == .Simple1D ? "Clips, and the value where each plays alone:" : "Clips, and the X, Y where each plays alone:");
+		int remove = -1;
+		for (int i < tree.motions.Count)
+		{
+			let motion = tree.motions[i];
+			ImGui.PushID((int32)i);
+			ImGui.SetCursorPosX(8);
+			ImGui.SetNextItemWidth(120);
+			if (AnimClipCombo("##clip", motion.clip, selectedAnimator))
+				mAnimDirty = true;
+			ImGui.SameLine();
+			if (tree.type == .Simple1D)
+			{
+				ImGui.SetNextItemWidth(70);
+				if (ImGui.DragFloat("##threshold", ref motion.threshold, 0.05f))
+					mAnimDirty = true;
+			}
+			else
+			{
+				ImGui.SetNextItemWidth(70);
+				if (ImGui.DragFloat2("##position", &motion.position.x, 0.05f))
+					mAnimDirty = true;
+			}
+			ImGui.SameLine();
+			if (ImGui.SmallButton("x"))
+				remove = i;
+			ImGui.PopID();
+		}
+		if (remove >= 0)
+		{
+			delete tree.motions[remove];
+			tree.motions.RemoveAt(remove);
+			mAnimDirty = true;
+		}
+		ImGui.SetCursorPosX(8);
+		if (ImGui.SmallButton("+ Clip"))
+		{
+			let motion = new AnimatorController.Motion();
+			// Placed past the last one, so that it can be seen at once.
+			if (tree.motions.Count > 0)
+			{
+				motion.threshold = tree.motions.Back.threshold + 1;
+				motion.position = tree.motions.Back.position + Vector2(1, 0);
+			}
+			tree.motions.Add(motion);
+			mAnimDirty = true;
+		}
+		// The picture: clips as dots, the parameters now as a cross, each dot as big as its weight.
+		if (tree.motions.Count == 0)
+			return;
+		let live = (mPlay != .Edit && selectedAnimator != null && selectedAnimator.Controller == controller) ? selectedAnimator : null;
+		let x = tree.parameterX >= 0 ? (live != null ? live.GetParameter(tree.parameterX) : (tree.parameterX < controller.parameters.Count ? controller.parameters[tree.parameterX].defaultValue : 0)) : 0;
+		let y = tree.parameterY >= 0 ? (live != null ? live.GetParameter(tree.parameterY) : (tree.parameterY < controller.parameters.Count ? controller.parameters[tree.parameterY].defaultValue : 0)) : 0;
+		List<float> weights = scope .();
+		tree.Weights(x, y, weights);
+		ImGui.Dummy(.(0, 4));
+		ImGui.SetCursorPosX(8);
+		let origin = ImGui.GetCursorScreenPos();
+		let width = 240.0f, height = tree.type == .Simple1D ? 36.0f : 150.0f;
+		ImGui.InvisibleButton("##blendpicture", .(width, height));
+		ImGui.DrawRectFilled(origin, .(origin.x + width, origin.y + height), .(0.12f, 0.12f, 0.14f, 1), 4);
+		var low = Vector2(float.MaxValue, float.MaxValue), high = Vector2(-float.MaxValue, -float.MaxValue);
+		for (let motion in tree.motions)
+		{
+			let p = tree.type == .Simple1D ? Vector2(motion.threshold, 0) : motion.position;
+			low = .(Math.Min(low.x, p.x), Math.Min(low.y, p.y));
+			high = .(Math.Max(high.x, p.x), Math.Max(high.y, p.y));
+		}
+		low = .(Math.Min(low.x, x), Math.Min(low.y, y));
+		high = .(Math.Max(high.x, x), Math.Max(high.y, y));
+		let spanX = Math.Max(high.x - low.x, 0.001f), spanY = Math.Max(high.y - low.y, 0.001f);
+		ImGui.Vec2 At(Vector2 p) => .(origin.x + 14 + (p.x - low.x) / spanX * (width - 28), tree.type == .Simple1D ? origin.y + height * 0.5f : origin.y + height - 14 - (p.y - low.y) / spanY * (height - 28));
+		if (tree.type == .Simple1D)
+			ImGui.DrawLine(.(origin.x + 10, origin.y + height * 0.5f), .(origin.x + width - 10, origin.y + height * 0.5f), .(0.4f, 0.4f, 0.45f, 1));
+		for (int i < tree.motions.Count)
+		{
+			let motion = tree.motions[i];
+			let at = At(tree.type == .Simple1D ? Vector2(motion.threshold, 0) : motion.position);
+			ImGui.DrawCircleFilled(at, 3 + 7 * weights[i], .(0.35f, 0.65f, 1, 0.9f));
+		}
+		let now = At(.(x, y));
+		ImGui.DrawLine(.(now.x - 6, now.y), .(now.x + 6, now.y), .(1, 0.62f, 0.15f, 1), 2);
+		ImGui.DrawLine(.(now.x, now.y - 6), .(now.x, now.y + 6), .(1, 0.62f, 0.15f, 1), 2);
+		if (ImGui.IsItemHovered())
+			ImGui.SetTooltip("Each dot is a clip, as big as its share now; the cross is where the parameters are.");
+	}
+
+	/// The layers: which one the canvas shows, and the selected one's weight, blending and mask.
+	void DrawAnimatorLayers(AnimatorController controller, Animator live)
+	{
+		ImGui.SetCursorPosX(8);
+		ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 6);
+		ImGui.Text("Layers");
+		ImGui.SameLine();
+		if (ImGui.SmallButton("+##layer"))
+		{
+			let name = scope String();
+			for (int n = 1; ; n++)
+			{
+				name.Clear();
+				name.AppendF("Layer {}", n);
+				if (controller.FindLayer(name) < 0)
+					break;
+			}
+			controller.AddLayer(name);
+			mAnimLayer = (int32)controller.layers.Count - 1;
+			mAnimState = -2;
+			mAnimTransition = -1;
+			mAnimDirty = true;
+		}
+		if (ImGui.IsItemHovered())
+			ImGui.SetTooltip("A layer is a state machine of its own laid over the ones below: the upper body aiming\nwhile the legs run (Override with a mask), or a recoil added on top (Additive).");
+		for (int32 i < (int32)controller.layers.Count)
+		{
+			ImGui.PushID(i + 5000);
+			ImGui.SetCursorPosX(8);
+			if (ImGui.Selectable(controller.layers[i].name.CStr(), mAnimLayer == i, 0, .(250, 0)))
+			{
+				mAnimLayer = i;
+				mAnimState = -2;
+				mAnimTransition = -1;
+			}
+			ImGui.PopID();
+		}
+		let layer = controller.layers[mAnimLayer];
+		ImGui.SetCursorPosX(8);
+		ImGui.SetNextItemWidth(170);
+		if (ImGui.InputText("Name##layer", layer.name))
+			mAnimDirty = true;
+		if (mAnimLayer == 0)
+		{
+			ImGui.SetCursorPosX(8);
+			ImGui.TextDisabled("The whole body, always at full weight.");
+			return;
+		}
+		ImGui.SetCursorPosX(8);
+		ImGui.SetNextItemWidth(170);
+		// While the game plays the weight shown is the running Animator's, and changing it changes it there.
+		var weight = live != null ? live.GetLayerWeight(mAnimLayer) : layer.weight;
+		if (ImGui.SliderFloat("Weight##layer", ref weight, 0, 1))
+		{
+			if (live != null)
+				live.SetLayerWeight(mAnimLayer, weight);
+			else
+			{
+				layer.weight = weight;
+				mAnimDirty = true;
+			}
+		}
+		ImGui.SetCursorPosX(8);
+		ImGui.SetNextItemWidth(170);
+		char8*[2] modes = .("Override", "Additive");
+		if (ImGui.BeginCombo("Blending##layer", modes[(int)layer.blending]))
+		{
+			for (int i < 2)
+			{
+				if (ImGui.Selectable(modes[i], (int)layer.blending == i))
+				{
+					layer.blending = (AnimatorLayerBlend)i;
+					mAnimDirty = true;
+				}
+			}
+			ImGui.EndCombo();
+		}
+		ImGui.SetCursorPosX(8);
+		ImGui.SetNextItemWidth(170);
+		if (ImGui.InputText("Mask##layer", layer.mask))
+			mAnimDirty = true;
+		if (ImGui.IsItemHovered())
+			ImGui.SetTooltip("The bones this layer moves: each named bone and everything below it, separated by ;\n(\"spine_02\" for the upper body). Empty: every bone.");
+		ImGui.SetCursorPosX(8);
+		if (ImGui.SmallButton("Remove Layer"))
+		{
+			controller.RemoveLayer(mAnimLayer);
+			mAnimLayer = 0;
+			mAnimState = -2;
+			mAnimTransition = -1;
+			mAnimDirty = true;
+		}
 		if (mAnimDirty)
 			controller.Revision++;
 	}

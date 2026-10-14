@@ -180,6 +180,17 @@ class EditorApp : Application
 				OpenAnimator(full);
 			else
 				mShowAnimator = true;
+			// Test switch: --animator-state <name> selects a state (and shows its layer).
+			let stateName = scope String();
+			if (GetArg("--animator-state", stateName) && mAnimController != null)
+			{
+				let index = mAnimController.FindState(stateName);
+				if (index >= 0)
+				{
+					mAnimState = index;
+					mAnimLayer = mAnimController.states[index].layer;
+				}
+			}
 		}
 		let openClip = scope String();
 		if (GetArg("--animation", openClip))
