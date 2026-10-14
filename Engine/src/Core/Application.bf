@@ -289,6 +289,7 @@ class Application
 	{
 		AntiCheat.Release();
 		OnShutdown();
+		AssetLoader.Shutdown();
 		VoiceChat.Shutdown();
 		Audio.Shutdown();
 		Steam.Shutdown();

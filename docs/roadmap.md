@@ -72,7 +72,12 @@ Work agreed and queued, in order (see *How to use this page* above for what "don
   settings, from a depth pass that leaves the viewmodel alone. Inspector: Scene Settings > Screen Effects and Color
   Grading (Make Neutral Lookup Table). Players' settings: `ScreenEffects` (off on phones). RenderViews now use 17 view
   ids. `docs/post-processing.md`, `Tests/PostProcessing`. Website: Manual > Screen effects.
-- [ ] E9 async scene and asset loading
+- [x] E9 async scene and asset loading (2026-10-14): `SceneManager.LoadAsync` / `LoadAdditiveAsync` (stages, Progress,
+  allowActivation, Activate), `AssetLoader.Preload` and batches; models, rigged models and textures read and decoded
+  on two loading threads, sent to the graphics card within `AssetLoader.UploadBudget` a frame (inline in a browser);
+  what a scene names found through its prefabs, scenes and materials. The Scene Loader component (Inspector, scene
+  picker, `progress` for a loading bar). Networking: none needed (every machine loads for itself). `docs/loading.md`,
+  `Tests/AsyncLoading`. Website: Manual > Loading in the background.
 - [ ] E4 animation layers and blend trees
 - [x] E5 inverse kinematics (2026-10-13, in the working folder on the development machine, not yet committed):
   Limb IK (two-bone arms and legs with a pole, the hand locked to a target's rotation with an offset and a grip

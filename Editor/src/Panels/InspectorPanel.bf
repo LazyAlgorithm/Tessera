@@ -472,7 +472,7 @@ extension EditorApp
             let original=*(String*)field.ptr;
             let temporary=scope String();let text=original!=null ? original : temporary;
             bool changed;
-            if(field.name=="mesh" || field.name=="model" || field.name=="texture" || field.name=="document" || field.name=="prefab" || field.name=="tree" || field.name=="controller" || field.name=="material" || field.name=="interiorMaterial" || field.name=="shader" || field.name=="bakedData" || field.name=="audioClip" || field.name.EndsWith("Prefab"))
+            if(field.name=="mesh" || field.name=="model" || field.name=="texture" || field.name=="document" || field.name=="prefab" || field.name=="tree" || field.name=="controller" || field.name=="material" || field.name=="interiorMaterial" || field.name=="scene" || field.name=="shader" || field.name=="bakedData" || field.name=="audioClip" || field.name.EndsWith("Prefab"))
                 changed=DrawAssetPicker(text,field.name);
             else changed=ImGui.InputText("##v",text);
             if(changed && original==null) *(String*)field.ptr=new String(text);
@@ -507,6 +507,7 @@ extension EditorApp
         if(kind=="material" || kind=="interiorMaterial") return HasExtension(path,".tmat");
         if(kind=="shader") return HasExtension(path,".tcompute");
 		if (kind == "document") return HasExtension(path, ".tui");
+		if (kind == "scene") return HasExtension(path, ".tscene");
 		return HasExtension(path, ".tprefab");
 	}
 

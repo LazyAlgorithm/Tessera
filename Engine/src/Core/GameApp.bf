@@ -65,7 +65,7 @@ class GameApp : Application
 		// Scene packs that finished downloading (in a browser) join the others.
 		AssetPack.Poll();
 		SaveSystem.Update();
-		SceneManager.ApplyPending(mScene);
+		SceneManager.Update(mScene);
 		let camera = FindCamera();
 		if (camera != null)
 			VoxelTerrain.ViewerPosition = camera.Transform.Position;
