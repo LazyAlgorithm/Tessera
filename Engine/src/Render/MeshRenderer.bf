@@ -24,6 +24,10 @@ class MeshRenderer : Component
 	public bool flatShading = true;
 	public bool unlit = false;
 	public bool castShadows = true;
+	/// How far the object bends in the wind (Wind Zone components): 0 not at all, 1 like grass. It bends about its own
+	/// origin, more the higher up, so put the origin at the foot of a tree, a flag pole or a reed.
+	[Range(0, 2)]
+	public float windSway = 0;
 	/// Casts its shadow without being drawn itself. For what the camera must not see but the sun still should:
 	/// the head and arms of a first-person player's own body, say.
 	public bool shadowOnly = false;

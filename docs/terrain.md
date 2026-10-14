@@ -13,16 +13,18 @@ Every terrain is one grid of square tiles, all the same size. Select the terrain
 | Click a tile | Selects it |
 | Shift+click an empty place | Moves the selected tile there, with its sculpting |
 
-With a tile selected, the Inspector moves it one place at a time, removes it (leaving a hole), or applies a generator to it (below). Undo and redo cover adding, moving and removing tiles, and every sculpting or painting stroke. Pressing **F** frames all the tiles.
+With a tile selected, the Inspector moves it one place at a time, or removes it (leaving a hole). Undo and redo cover adding, moving and removing tiles, and every sculpting or painting stroke. Pressing **F** frames all the tiles.
+
+While a brush is picked, the Scene view shows a **preview** under the mouse: the brush's edge lying on the ground as it is, and a see-through mesh of the shape the brush is about to give it (raised, lowered, levelled to the Flatten height, evened out, or tinted with the paint layer). It shows where and which way; how far the ground moves depends on how long the brush is held. **Preview** in the Terrain Tools turns it off, leaving a plain circle.
 
 Where tiles meet, the ground simply carries on: brushes, smoothing and paint work across the edge, and the two sides match sample for sample. The ground ends, as a sheer side, only at the outer edge of the tiles and around holes.
 
 | Field | Default | Meaning |
 |---|---|---|
-| Tile Size | 4 | Chunks along each side of a tile. A chunk is 32 voxels, so 4 at voxel size 1 is 128 m. Choose it before sculpting. |
+| Tile Size | 8 | Chunks along each side of a tile. A chunk is 32 voxels, so 8 at voxel size 0.5 is 128 m. Choose it before sculpting. |
 | Flat Height | 0 | The height new ground starts at, above the object. |
 | Min Chunk Y, Max Chunk Y | -1, 2 | How far down and up the terrain reaches, in chunks: with the defaults, 32 m below the object to 96 m above. |
-| Voxel Size | 1 | Metres per voxel. Smaller is finer and costs more. |
+| Voxel Size | 0.5 | Metres per voxel. Smaller is finer and costs more. |
 | Stream Tiles | off | Load only the tiles within View Distance of the camera (and of each player, on a server). Off: all of them, all the time. |
 | Lod Distance | 4 | Level of detail, below. |
 
@@ -57,8 +59,10 @@ class Islands : TerrainGenerator
 
 Then either:
 
-- **Generator** (Terrain Tools, or the `generator` field): every chunk nobody has sculpted comes from it, in all tiles, as long as the game runs. Sculpting on top is kept as usual.
-- **Apply Generator** (Tiles tool, with a tile selected): bakes the generator into that one tile, as if it had been sculpted that way. The edge it shares with other tiles takes the new ground too, so there is no gap. Undo takes it back.
+- `terrain.generator = "MyGame.Hills"` (the class's full name), set from the game's code: every chunk nobody has sculpted comes from it, in all tiles, as long as the game runs. Sculpting on top is kept as usual.
+- `terrain.ApplyGenerator(generator, tileId)`: bakes a generator into one tile, as if it had been sculpted that way. The edge it shares with other tiles takes the new ground too, so there is no gap.
+
+The editor has no generation settings: there a terrain is its tiles, flat until sculpted. The sample noise's `seed`, `terrainScale` and `caveAmount` are still fields (saved in scenes and set from code) but are not shown in the Inspector.
 
 Coordinates are metres in the terrain's own space. `Density` and `Paint` run on worker threads, several at once: read only data that does not change while the terrain is generating, and copy what you need in `Begin(terrain)`, which runs on the main thread first. `terrain.SetGenerator((x, y, z) => ...)` does the same with a function from code, and `terrain.ApplyGenerator(generator, tileId)` is the bake.
 
@@ -68,11 +72,23 @@ Tessera's own noise is the sample `NoiseTerrainGenerator`; nothing uses it unles
 
 Set **Mode** to **Endless** for ground generated around the camera without end, by the terrain's generator (the sample noise if it has none: `seed`, `terrainHeight`, `terrainScale` and `caveAmount` shape it). This is what the open-world sample scene uses. Scenes saved before terrains had a mode keep their endless terrain.
 
+## Style: Smooth, Contoured or Blocky
+
+**Style** chooses how the samples become a surface.
+
+- **Smooth** is marching cubes. Each cell is cut by triangles through the points where the surface crosses its edges. Gentle slopes come out with small steps and thin triangles.
+- **Contoured** is dual contouring. Each cell the surface passes through gets one point, and the points are joined into a regular grid of quads. Slopes come out rounder and more even, with no slivers. **Contour Sharpness** places the points: at 0 each sits in the middle of where the surface crosses its cell, which gives the softest ground; at 1 it sits where the slopes around it meet, which keeps ridges, ledges and the corners of flattened areas crisp. The default is 0.35.
+- **Blocky** is one cube per solid cell.
+
+A new terrain is **Contoured**, with a **Voxel Size** of half a metre and smooth shading, which together pass for ordinary rolling terrain. To go without dual contouring set Style to **Smooth**. **Flat Shading** shades every triangle flat, for a faceted, low-poly look (Blocky ground is always flat). A Voxel Size of 1 is coarser, takes a quarter of the memory for the same ground and is quicker to sculpt across large areas; choose it before sculpting.
+
+Smooth and Contoured make their surface from the same samples, so switching between them moves nothing: sculpting, painting, saving, collision, raycasts and networking are the same. Contoured chunks meet without seams because each chunk makes the outermost ring of points from its neighbours' samples, exactly as the neighbour does; after a sculpting stroke the chunks around the changed one are built again for that reason, so a stroke rebuilds a few more chunks than in Smooth. Around cave mouths and very thin walls a contoured surface can show a stray thin triangle.
+
 ## Streaming and level of detail
 
 Endless terrains, and tiled ones with **Stream Tiles**, keep the chunks within **View Distance** (in chunks) of the camera. A game can give more places to keep loaded: a server fills `VoxelTerrain.Viewers` with each player's position every frame, so everyone has ground under them.
 
-Chunks further than **Lod Distance** chunks from the camera are drawn with half the detail, beyond twice that a quarter, beyond four times an eighth. Each chunk has a skirt along its sides so chunks of different detail meet without gaps. Collision always uses the full detail, so physics far from the camera is as exact as near it. 0 turns it off. Smooth style only.
+Chunks further than **Lod Distance** chunks from the camera are drawn with half the detail, beyond twice that a quarter, beyond four times an eighth. Each chunk has a skirt along its sides so chunks of different detail meet without gaps. Collision always uses the full detail, so physics far from the camera is as exact as near it. 0 turns it off. Smooth and Contoured styles.
 
 ## Editing at run time
 
@@ -94,4 +110,4 @@ Chunks further than **Lod Distance** chunks from the camera are drawn with half 
 
 ## Tests
 
-`BeefBuild -workspace=Tests/Terrain -config=Debug -run` (42 checks): a new terrain is one flat tile; tiles added on every side line up and the ground runs across them; raising, smoothing, painting, flattening and digging across tile edges leave both copies of every shared sample equal and the meshes meeting vertex for vertex; undo and redo of strokes; moving and removing tiles (holes) and undoing that; a file per tile, saved and loaded; generators by class, by function and applied to one tile; streaming tiles around several viewers; level of detail with full-detail collision; the bytes API; Endless mode; and scenes from before tiles and before modes.
+`BeefBuild -workspace=Tests/Terrain -config=Debug -run` (55 checks): a new terrain is one flat tile; tiles added on every side line up and the ground runs across them; raising, smoothing, painting, flattening and digging across tile edges leave both copies of every shared sample equal and the meshes meeting vertex for vertex; undo and redo of strokes; moving and removing tiles (holes) and undoing that; a file per tile, saved and loaded; generators by class, by function and applied to one tile; streaming tiles around several viewers; level of detail with full-detail collision; contoured ground (level when flat, no holes across chunk faces, edges and corners, no quad made twice, fewer triangles far away); the bytes API; Endless mode; and scenes from before tiles and before modes.

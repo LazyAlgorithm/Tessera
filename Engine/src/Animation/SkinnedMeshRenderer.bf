@@ -20,6 +20,11 @@ class SkinnedMeshRenderer : Component
 	public String clip = new .() ~ delete _;
 	public float speed = 1.0f;
 	public bool loop = true;
+	/// Makes an object for every bone of the skeleton, under this one, and bends the mesh from those objects: then
+	/// things can be parented to a bone (a weapon in a hand), the IK components can work on the skeleton, an Animator
+	/// can play .tanim clips on it and the Animation window can key it. The model's own clips still play, underneath.
+	/// The objects are ordinary ones, saved with the scene; delete them yourself if you turn this off again.
+	public bool exposeBones = false;
 	/// The parts' own materials, "Part=Materials/skin.tmat;Other=..." (the Inspector edits it as a list).
 	[HideInInspector]
 	public String materials = new .() ~ delete _;
@@ -41,15 +46,153 @@ class SkinnedMeshRenderer : Component
 	Matrix4[] mSkin ~ delete _;
 	bool[] mDone ~ delete _;
 	bool mAttachPending;
+	Transform[] mBones ~ delete _;
+	bool mBonesFor;
+	static List<SkinnedMeshRenderer> sAll = new .() ~ delete _;
+
+	/// The object for a bone, by the bone's name in the model, when Expose Bones is on; else null.
+	public Transform Bone(StringView name)
+	{
+		if (mModel == null || mBones == null)
+			return null;
+		for (int i < mModel.Joints.Count)
+		{
+			if (mModel.Joints[i].name == name)
+				return mBones[i];
+		}
+		return null;
+	}
+
+	// The model's space is right-handed and Tessera's is not: a pose crosses over by mirroring Z.
+	static Vector3 Mirror(Vector3 v) => .(v.x, v.y, -v.z);
+	static Quaternion Mirror(Quaternion q) => .(-q.x, -q.y, q.z, q.w);
+
+	static Transform ChildNamed(Transform parent, StringView name)
+	{
+		for (let child in parent.Children)
+		{
+			if (child.GameObject.Name == name && !child.GameObject.IsDestroyed)
+				return child;
+		}
+		return null;
+	}
+
+	Transform BoneObject(int index)
+	{
+		if (mBones[index] != null)
+			return mBones[index];
+		let joint = mModel.Joints[index];
+		var parent = Transform;
+		if (joint.parent >= 0)
+			parent = BoneObject(joint.parent);
+		else
+		{
+			// What the file has above the skeleton (an armature turned or scaled) becomes an object above the root
+			// bone, so that bone objects sit exactly where the mesh's bones are.
+			let above = joint.parentWorld;
+			let scale = Vector3(above.Right.Length, above.Up.Length, above.Forward.Length);
+			let plain = (above.Translation).LengthSquared < 1.0e-10f && Math.Abs(scale.x - 1) < 1.0e-4f && Math.Abs(scale.y - 1) < 1.0e-4f && Math.Abs(scale.z - 1) < 1.0e-4f
+				&& Math.Abs(above.Right.x - 1) < 1.0e-4f && Math.Abs(above.Up.y - 1) < 1.0e-4f;
+			if (!plain && scale.x > 0 && scale.y > 0 && scale.z > 0)
+			{
+				let name = scope $"{joint.name}.Armature";
+				var holder = ChildNamed(Transform, name);
+				if (holder == null)
+					holder = Scene.CreateGameObject(name, Transform).Transform;
+				holder.LocalPosition = Mirror(above.Translation);
+				holder.LocalRotation = Mirror(Quaternion.FromBasis(above.Right / scale.x, above.Up / scale.y, above.Forward / scale.z));
+				holder.LocalScale = scale;
+				parent = holder;
+			}
+		}
+		var bone = ChildNamed(parent, joint.name);
+		if (bone == null)
+		{
+			bone = Scene.CreateGameObject(joint.name, parent).Transform;
+			bone.LocalPosition = Mirror(joint.restPosition);
+			bone.LocalRotation = Mirror(joint.restRotation);
+			bone.LocalScale = joint.restScale;
+		}
+		mBones[index] = bone;
+		return bone;
+	}
+
+	/// Finds the bone objects, making the ones that are missing.
+	void SyncBones()
+	{
+		delete mBones;
+		mBones = null;
+		mBonesFor = exposeBones;
+		if (!exposeBones || mModel == null)
+			return;
+		mBones = new Transform[mModel.Joints.Count];
+		for (int i < mModel.Joints.Count)
+			BoneObject(i);
+	}
+
+	/// Bends every rigged model whose bones are objects from where those objects are now. Scene.Update calls it at the
+	/// end of the frame, after animation, scripts and IK have had their say.
+	public static void SkinFromBones(Scene scene)
+	{
+		for (let renderer in sAll)
+		{
+			if (renderer.exposeBones && renderer.mBones != null && renderer.GameObject != null && !renderer.GameObject.IsDestroyed && renderer.Scene == scene && renderer.IsActiveAndEnabled)
+				renderer.SkinNow();
+		}
+	}
+
+	void BoneWorld(int index)
+	{
+		if (mDone[index])
+			return;
+		let joint = mModel.Joints[index];
+		let bone = mBones[index];
+		Matrix4 local;
+		if (bone != null && !bone.GameObject.IsDestroyed)
+			local = Matrix4.TRS(Mirror(bone.LocalPosition), Mirror(bone.LocalRotation), bone.LocalScale);
+		else
+			local = Matrix4.TRS(joint.restPosition, joint.restRotation, joint.restScale);
+		if (joint.parent >= 0)
+		{
+			BoneWorld(joint.parent);
+			mWorld[index] = mWorld[joint.parent] * local;
+		}
+		else
+			mWorld[index] = joint.parentWorld * local;
+		mSkin[index] = mWorld[index] * joint.inverseBind;
+		mDone[index] = true;
+	}
+
+	void SkinNow()
+	{
+		if (mModel == null || mMesh == null || mBones == null || mBones.Count != mModel.Joints.Count)
+			return;
+		for (int i < mDone.Count)
+			mDone[i] = false;
+		for (int i < mModel.Joints.Count)
+			BoneWorld(i);
+		SkinVertices();
+	}
 
 	public StringView CurrentClip => mCurrent != null ? (StringView)mCurrent.name : "";
 	public SkinnedModel Model => mModel;
 
-	public override void OnRegister() => Reload();
-	public override void OnValidate() => Reload();
+	public override void OnRegister()
+	{
+		sAll.Add(this);
+		Reload();
+	}
+
+	public override void OnValidate()
+	{
+		Reload();
+		if (mBonesFor != exposeBones)
+			SyncBones();
+	}
 
 	public override void OnUnregister()
 	{
+		sAll.Remove(this);
 		let renderer = GetComponent<MeshRenderer>();
 		if (renderer != null && renderer.RuntimeMesh == mMesh)
 			renderer.RuntimeMesh = null;
@@ -175,6 +318,7 @@ class SkinnedMeshRenderer : Component
 		}
 		mResolvedMaterials.Set("\n");
 		mAttachPending = true;
+		SyncBones();
 		if (!clip.IsEmpty)
 			Play(clip, 0);
 		else if (mModel.Clips.Count > 0)
@@ -275,11 +419,43 @@ class SkinnedMeshRenderer : Component
 		mFade += Time.DeltaTime;
 		let weight = (mPrevious != null && mFade < mFadeDuration) ? Mathf.SmoothStep(0, 1, mFade / mFadeDuration) : 1.0f;
 
+		if (exposeBones && mBones != null)
+		{
+			// The clip poses the bone objects; the mesh is bent from them at the end of the frame (SkinFromBones),
+			// once IK and scripts have moved them too. With no clip playing they are left as they are.
+			if (mCurrent != null)
+			{
+				for (int i < mModel.Joints.Count)
+				{
+					let bone = mBones[i];
+					if (bone == null || bone.GameObject.IsDestroyed)
+						continue;
+					Vector3 position, scale; Quaternion rotation;
+					SamplePose(mCurrent, mTime, i, out position, out rotation, out scale);
+					if (weight < 1.0f && mPrevious != null)
+					{
+						Vector3 fromPosition, fromScale; Quaternion fromRotation;
+						SamplePose(mPrevious, mPreviousTime, i, out fromPosition, out fromRotation, out fromScale);
+						position = Vector3.Lerp(fromPosition, position, weight);
+						rotation = Quaternion.Slerp(fromRotation, rotation, weight);
+						scale = Vector3.Lerp(fromScale, scale, weight);
+					}
+					bone.LocalPosition = Mirror(position);
+					bone.LocalRotation = Mirror(rotation);
+					bone.LocalScale = scale;
+				}
+			}
+			return;
+		}
 		for (int i < mDone.Count)
 			mDone[i] = false;
 		for (int i < mModel.Joints.Count)
 			ComputeJoint(i, weight);
+		SkinVertices();
+	}
 
+	void SkinVertices()
+	{
 		let positions = mModel.Positions;
 		let normals = mModel.Normals;
 		let joints = mModel.JointIndices.Ptr;

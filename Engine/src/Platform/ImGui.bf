@@ -228,6 +228,7 @@ static class ImGui
 	[CLink] public static extern void tn_imgui_render(uint16 viewId);
 	[CLink] public static extern void tn_imgui_push_mono_font();
 	[CLink] public static extern int32 tn_imgui_capture_flags();
+	[CLink] public static extern bool tn_imgui_slider_float(char8* label, float* value, float min, float max, char8* format);
 	[CLink] public static extern void tn_gizmo_begin(float x, float y, float width, float height, bool orthographic);
 	[CLink] public static extern bool tn_gizmo_manipulate(float* view, float* projection, int32 operation, bool local, float* matrix, float* snap);
 	[CLink] public static extern bool tn_gizmo_is_using();
@@ -434,7 +435,8 @@ static class ImGui
 	public static bool DragFloat(char8* label, ref float v, float speed = 0.1f, float min = 0, float max = 0, char8* format = "%.3f") => igDragFloat(label, &v, speed, min, max, format, 0);
 	public static bool DragFloat3(char8* label, ref Vector3 v, float speed = 0.1f, float min = 0, float max = 0, char8* format = "%.3f") => igDragFloat3(label, &v.x, speed, min, max, format, 0);
 	public static bool DragInt(char8* label, ref int32 v, float speed = 1, int32 min = 0, int32 max = 0) => igDragInt(label, &v, speed, min, max, "%d", 0);
-	public static bool SliderFloat(char8* label, ref float v, float min, float max, char8* format = "%.3f") => igSliderFloat(label, &v, min, max, format, 0);
+	/// A slider between two numbers. Double-click it (or Ctrl+click) to type the number instead.
+	public static bool SliderFloat(char8* label, ref float v, float min, float max, char8* format = "%.3f") => tn_imgui_slider_float(label, &v, min, max, format);
 	public static bool DragFloat2(char8* label, float* v, float speed = 0.1f) => igDragFloat2(label, v, speed, 0, 0, "%.3f", 0);
 	public static bool DragFloat4(char8* label, float* v, float speed = 0.1f) => igDragFloat4(label, v, speed, 0, 0, "%.3f", 0);
 	public static bool InputInt(char8* label, ref int32 v) => igInputInt(label, &v, 1, 10, 0);

@@ -351,6 +351,9 @@ TN_API bool tn_imgui_init(SDL_Window* window, const char* iniPath, float uiScale
 	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_NavEnableKeyboard;
 	io.ConfigWindowsMoveFromTitleBarOnly = true;
 	io.ConfigDockingWithShift = false;
+	// A click on a number field that does not drag it turns it into a text box, so that values can be typed as well as
+	// dragged. (Double-click and Ctrl+click do the same.)
+	io.ConfigDragClickToInputText = true;
 	io.IniFilename = iniPath; // caller keeps the string alive
 	io.BackendRendererName = "tessera_bgfx";
 	io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset | ImGuiBackendFlags_RendererHasTextures;
@@ -422,6 +425,24 @@ TN_API void tn_imgui_new_frame()
 TN_API void tn_imgui_push_mono_font()
 {
 	ImGui::PushFont(s_monoFont, 0.0f);
+}
+
+// A slider that a double-click turns into a text box. Dear ImGui only does that for Ctrl+click (a plain click sets the
+// slider), so a double-click is passed on as one.
+TN_API bool tn_imgui_slider_float(const char* label, float* value, float min, float max, const char* format)
+{
+	ImGuiIO& io = ImGui::GetIO();
+	const bool ctrl = io.KeyCtrl;
+	const ImGuiKeyChord mods = io.KeyMods;
+	if (ImGui::IsMouseDoubleClicked(0))
+	{
+		io.KeyCtrl = true;
+		io.KeyMods |= ImGuiMod_Ctrl;
+	}
+	const bool changed = ImGui::SliderFloat(label, value, min, max, format, ImGuiSliderFlags_AlwaysClamp);
+	io.KeyCtrl = ctrl;
+	io.KeyMods = mods;
+	return changed;
 }
 
 // bit 0: ImGui wants the mouse, bit 1: ImGui wants the keyboard, bit 2: a text field is active

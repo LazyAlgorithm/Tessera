@@ -16,7 +16,8 @@ extension EditorApp
 	String mUiNewProperty = new .() ~ delete _;
 	UIElement mUiSelected;
 	bool mUiFocus;
-	int32 mUiPreviewSize = 1;
+	float mUiPreviewScale = 1;
+	int32 mUiPreviewSize = 2;
 
 	static readonly char8*[?] cUiTags = .("panel", "text", "button", "image", "input", "bar", "slider", "toggle", "canvas");
 	// Sized by cUiTags so that a tag added there without a name and a hint here does not compile.
@@ -76,7 +77,29 @@ extension EditorApp
 	static readonly char8*[?] cUiStyleNames = .("width", "height", "padding", "margin", "gap", "flex-direction", "flex-grow", "align-items",
 		"justify-content", "background-color", "color", "font-size", "border-radius", "border-width", "border-color", "text-align",
 		"position", "left", "top", "right", "bottom", "display");
-	static readonly (int32 w, int32 h, char8* name)[?] cUiSizes = .((960, 540, "960 x 540"), (1280, 720, "1280 x 720"), (1920, 1080, "1920 x 1080"));
+	// The view the document is laid out for; the preview is then drawn smaller or bigger to fit its panel.
+	static readonly (int32 w, int32 h, char8* name)[?] cUiSizes = .((960, 540, "960 x 540"), (1280, 720, "1280 x 720"), (1920, 1080, "1920 x 1080"),
+		(2560, 1080, "2560 x 1080 (wide)"), (1024, 768, "1024 x 768 (4:3)"), (1950, 900, "1950 x 900 (phone)"), (900, 1950, "900 x 1950 (phone upright)"));
+
+	/// The view a document is designed for, taken from a UI Document in the open scene that shows it: its Reference
+	/// Height, and Reference Width where it has one. Returns false when no component in the scene uses the document.
+	bool UiDesignSize(StringView path, out float width, out float height)
+	{
+		width = 0;
+		height = 0;
+		for (let component in mScene.Components)
+		{
+			let document = component as UIDocument;
+			if (document == null || document.document.IsEmpty || document.referenceHeight <= 0)
+				continue;
+			if (!path.EndsWith(document.document) && !scope String(path)..Replace('\\', '/').EndsWith(document.document))
+				continue;
+			height = document.referenceHeight;
+			width = document.referenceWidth > 0 ? document.referenceWidth : Math.Round(height * 16 / 9);
+			return true;
+		}
+		return false;
+	}
 
 	void OpenUI(StringView path)
 	{
@@ -89,6 +112,15 @@ extension EditorApp
 		if (!mUiData.Load(path))
 			mUiStatus.Set("Could not read the file.");
 		mUiFocus = true;
+		// Start on the size the document is designed for, when a UI Document in the scene says what that is.
+		if (UiDesignSize(path, let designWidth, let designHeight))
+		{
+			for (int32 i < (int32)cUiSizes.Count)
+			{
+				if (cUiSizes[i].h == (int32)designHeight && cUiSizes[i].w == (int32)designWidth)
+					mUiPreviewSize = i;
+			}
+		}
 	}
 
 	void CreateUIAsset(StringView name)
@@ -237,7 +269,7 @@ extension EditorApp
 		ImGui.SameLine();
 		if (ImGui.SmallButton("Open CSS")) OpenUiSource(true);
 		ImGui.SameLine(0, 14);
-		ImGui.SetNextItemWidth(120);
+		ImGui.SetNextItemWidth(190);
 		if (ImGui.BeginCombo("##size", cUiSizes[mUiPreviewSize].name))
 		{
 			for (int32 i < (int32)cUiSizes.Count)
@@ -247,6 +279,10 @@ extension EditorApp
 			}
 			ImGui.EndCombo();
 		}
+		if (ImGui.IsItemHovered())
+			ImGui.SetTooltip("The screen the preview stands for. The whole of it is always shown, drawn smaller or bigger to fit this panel.");
+		ImGui.SameLine();
+		ImGui.TextDisabled(scope String()..AppendF("{}%", (int)Math.Round(mUiPreviewScale * 100)).CStr());
 		ImGui.SameLine();
 		ImGui.TextDisabled(mUiStatus.CStr());
 		ImGui.Separator();
@@ -286,27 +322,37 @@ extension EditorApp
 		let available = ImGui.GetContentRegionAvail();
 		let designW = (float)cUiSizes[mUiPreviewSize].w;
 		let designH = (float)cUiSizes[mUiPreviewSize].h;
-		// The document is laid out at the size the panel can show, keeping the chosen aspect ratio.
-		let scale = Math.Min(available.x / designW, available.y / designH);
+		// The document is laid out for the chosen screen and drawn at whatever scale shows all of it in the panel,
+		// as a UI Document's Reference Height does in the game: sizes in the document never outgrow the preview.
+		let scale = Math.Max(Math.Min(available.x / designW, available.y / designH), 0.02f);
+		mUiPreviewScale = scale;
 		let viewW = designW * scale;
 		let viewH = designH * scale;
-		let origin = ImGui.GetCursorScreenPos();
+		var origin = ImGui.GetCursorScreenPos();
+		// In the middle of the panel.
+		origin.x += Math.Floor(Math.Max(available.x - viewW, 0) * 0.5f);
+		origin.y += Math.Floor(Math.Max(available.y - viewH, 0) * 0.5f);
+		ImGui.SetCursorScreenPos(origin);
 		ImGui.InvisibleButton("##preview", .(Math.Max(viewW, 1), Math.Max(viewH, 1)));
 		let previewHovered = ImGui.IsItemHovered();
 		ImGui.DrawRectFilled(origin, .(origin.x + viewW, origin.y + viewH), .(0.16f, 0.19f, 0.23f, 1));
-		mUiData.Layout(viewW, viewH);
+		ImGui.DrawRect(.(origin.x - 1, origin.y - 1), .(origin.x + viewW + 1, origin.y + viewH + 1), .(0.35f, 0.4f, 0.47f, 1));
+		mUiData.scale = scale;
+		mUiData.Layout(designW, designH);
+		ImGui.PushClipRect(origin, .(origin.x + viewW, origin.y + viewH));
 		mUiData.Draw(origin, null, false);
+		ImGui.PopClipRect();
 		if (previewHovered && ImGui.IsMouseClicked(0))
 		{
 			let mouse = ImGui.GetMousePos();
-			mUiSelected = PickUiElement(mUiData.root, mouse.x - origin.x, mouse.y - origin.y);
+			mUiSelected = PickUiElement(mUiData.root, (mouse.x - origin.x) / scale, (mouse.y - origin.y) / scale);
 			if (mUiSelected == mUiData.root)
 				mUiSelected = null;
 		}
 		if (mUiSelected != null)
 		{
-			let min = ImGui.Vec2(origin.x + mUiSelected.x, origin.y + mUiSelected.y);
-			ImGui.DrawRect(min, .(min.x + mUiSelected.width, min.y + mUiSelected.height), .(1.0f, 0.62f, 0.15f, 1), 0, 2);
+			let min = ImGui.Vec2(origin.x + mUiSelected.x * scale, origin.y + mUiSelected.y * scale);
+			ImGui.DrawRect(min, .(min.x + mUiSelected.width * scale, min.y + mUiSelected.height * scale), .(1.0f, 0.62f, 0.15f, 1), 0, 2);
 		}
 		ImGui.EndChild();
 		ImGui.SameLine();
@@ -348,6 +394,16 @@ extension EditorApp
 				UiAttribute("Bind", element, "bind");
 			if (element.tag == "image")
 				UiAttribute("Source", element, "src");
+			if (element.tag == "canvas")
+			{
+				UiAttribute("On Draw", element, "ondraw");
+				UiAttribute("Preview Name", element, "preview");
+				if (ImGui.IsItemHovered())
+					ImGui.SetTooltip("What this panel shows here in place of the game's drawing. Not used while the game runs.");
+				UiAttribute("Preview Picture", element, "preview-src");
+				if (ImGui.IsItemHovered())
+					ImGui.SetTooltip("A picture shown here in place of the game's drawing, such as a screenshot of it. Not used while the game runs.");
+			}
 			ImGui.EndTable();
 		}
 

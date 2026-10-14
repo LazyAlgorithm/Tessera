@@ -30,7 +30,11 @@ enum VoxelStyle : int32
 	/// Marching cubes: smooth slopes, faceted by flat shading.
 	Smooth,
 	/// One cube per solid cell with hidden faces removed.
-	Blocky
+	Blocky,
+	/// Dual contouring: one point in each cell the surface passes through, joined into a regular grid of quads.
+	/// Rounder and more even than Smooth (no slivers or stair-steps along gentle slopes), and able to keep hard
+	/// edges and corners where Contour Sharpness asks for them.
+	Contoured
 }
 
 /// One square tile of a terrain's grid.
@@ -66,34 +70,50 @@ class VoxelTerrain : Component
 
 	/// Fixed: tiles placed by hand. Endless: generated around the camera for ever.
 	public TerrainMode mode = .Fixed;
-	/// How many chunks a tile has along each side; every tile of the grid is the same size. The default 4 at voxel
-	/// size 1 makes tiles 128 m square. Choose it before sculpting: sculpting is kept per tile.
+	/// How many chunks a tile has along each side; every tile of the grid is the same size. The default 8 at voxel
+	/// size 0.5 makes tiles 128 m square. Choose it before sculpting: sculpting is kept per tile.
 	[Range(1, 16)]
-	public int32 tileSize = 4;
+	public int32 tileSize = 8;
 	/// How high flat ground starts, above the object's position.
 	public float flatHeight = 0.0f;
 	/// Fixed mode: load only the tiles near the camera (and near each player, on a server), within View Distance.
 	/// Off: every tile is there all the time.
 	public bool streamTiles = false;
 	/// The class that shapes ground nobody has sculpted, one marked [TerrainGenerator]. Empty: flat ground in Fixed
-	/// mode, the sample noise (seed, terrain height, scale, caves) in Endless mode. Chosen in the Terrain Tools.
+	/// mode, the sample noise (seed, terrain height, scale, caves) in Endless mode. Set from the game's code.
 	[HideInInspector]
 	public String generator = new .() ~ delete _;
-	public VoxelStyle style = .Smooth;
-	public float voxelSize = 1.0f;
+	public VoxelStyle style = .Contoured;
+	/// Contoured style only. 0 puts each point in the middle of where the surface crosses its cell, which gives the
+	/// softest ground. 1 puts it where the slopes around it meet, which keeps ridges, ledges and the corners of
+	/// flattened areas crisp. In between is a blend.
+	[Range(0, 1)]
+	public float contourSharpness = 0.35f;
+	/// Off: the ground is shaded smoothly, as rolling terrain. On: every triangle is shaded flat, for a faceted,
+	/// low-poly look. Blocky ground is always flat.
+	public bool flatShading = false;
+	/// The size of one cell of the ground, in metres. Half a metre makes ground fine enough to pass for ordinary
+	/// terrain; 1 is coarser, a quarter of the memory per metre and quicker to sculpt across large areas.
+	public float voxelSize = 0.5f;
 	/// Streaming radius in chunks: Endless mode, and Fixed mode with Stream Tiles.
 	public int32 viewDistance = 6;
 	public int32 minChunkY = -1;
 	public int32 maxChunkY = 2;
 	/// Chunks further than this many chunks from the camera are drawn with fewer triangles: half the detail beyond
 	/// it, a quarter beyond twice as far, an eighth beyond four times. 0 draws everything in full. Collision always
-	/// has the full detail. Smooth style only.
+	/// has the full detail. Smooth and Contoured styles.
 	[Range(0, 32)]
 	public int32 lodDistance = 4;
+	// What the sample noise generator makes of the ground. Generating ground is a game's own business, done from its
+	// code (a [TerrainGenerator] class, SetGenerator, Endless mode), so these are saved but not shown in the editor,
+	// where a terrain is simply its tiles.
+	[HideInInspector]
 	public int32 seed = 1337;
+	/// Also where the automatic colours put rock and snow: they come in towards this height.
 	public float terrainHeight = 28.0f;
+	[HideInInspector]
 	public float terrainScale = 0.012f;
-	[Range(0, 1)]
+	[HideInInspector]
 	public float caveAmount = 0.35f;
 	public float seaLevel = 0.0f;
 	public Color grassColor = .FromBytes(104, 159, 74);
@@ -112,9 +132,9 @@ class VoxelTerrain : Component
 	/// From before tiles: a rectangle of sizeX by sizeZ chunks. It is the terrain's shape while `tiles` is empty, so
 	/// older scenes, and code that sets these, keep working; the first tile edit or scene save writes the tiles out.
 	[HideInInspector]
-	public int32 sizeX = 4;
+	public int32 sizeX = 8;
 	[HideInInspector]
-	public int32 sizeZ = 4;
+	public int32 sizeZ = 8;
 	/// Where sculpting is kept: a folder (relative to the project) with a file for each tile. Set when the scene is saved.
 	[HideInInspector]
 	public String editsFolder = new .() ~ delete _;
@@ -282,6 +302,8 @@ class VoxelTerrain : Component
 	int32 mBusy;
 	// Copies of the settings read by worker threads.
 	VoxelStyle mStyle;
+	float mSharpness;
+	bool mFlat;
 	float mVoxelSize = 1, mTerrainHeight, mSeaLevel;
 	bool mLodOn, mColliders;
 	Color mGrass, mRock, mSand, mSnow, mDirt;
@@ -417,17 +439,30 @@ class VoxelTerrain : Component
 		}
 
 		mStyle = style;
+		mSharpness = Mathf.Clamp01(contourSharpness);
+		let flat = flatShading || style == .Blocky;
+		if (flat != mFlat)
+		{
+			// Shading is the renderer's business, not the mesh's: chunks already built just change over.
+			mFlat = flat;
+			for (let chunk in mChunks.Values)
+			{
+				let drawn = chunk.gameObject?.GetComponent<MeshRenderer>();
+				if (drawn != null)
+					drawn.flatShading = flat;
+			}
+		}
 		mVoxelSize = snap.voxelSize;
 		mTerrainHeight = terrainHeight;
 		mSeaLevel = seaLevel;
 		mColliders = generateColliders;
-		mLodOn = lodDistance > 0 && style == .Smooth;
+		mLodOn = lodDistance > 0 && style != .Blocky;
 		mGrass = grassColor;
 		mRock = rockColor;
 		mSand = sandColor;
 		mSnow = snowColor;
 		mDirt = dirtColor;
-		mSettingsHash = (int32)style ^ (int32)(voxelSize * 1000) ^ (int32)(terrainHeight * 100) * 7 ^ (int32)(seaLevel * 100) * 19
+		mSettingsHash = (int32)style ^ (int32)(contourSharpness * 1000) * 31 ^ (int32)(voxelSize * 1000) ^ (int32)(terrainHeight * 100) * 7 ^ (int32)(seaLevel * 100) * 19
 			^ (int32)grassColor.ToABGR() ^ (int32)rockColor.ToABGR() * 3 ^ (int32)sandColor.ToABGR() * 5
 			^ (int32)snowColor.ToABGR() * 7 ^ (int32)dirtColor.ToABGR() * 11 ^ (int32)mode * 104729 ^ snap.tileSize * 7919
 			^ (int32)(flatHeight * 100) * 23 ^ mGeneratorVersion * 4001 ^ (int32)generator.GetHashCode() * 13
@@ -1274,7 +1309,7 @@ class VoxelTerrain : Component
 		for (let entry in made)
 		{
 			if (mChunks.TryGetValue(entry.key, let chunk))
-				QueueRemesh(chunk);
+				QueueEdited(chunk);
 		}
 		// The neighbours' copies of the shared edge.
 		for (let chunk in mChunks.Values)
@@ -1301,7 +1336,7 @@ class VoxelTerrain : Component
 			{
 				chunk.edited = true;
 				chunk.shapeChanged = true;
-				QueueRemesh(chunk);
+				QueueEdited(chunk);
 			}
 		}
 		HasUnsavedEdits = true;
@@ -1753,7 +1788,7 @@ class VoxelTerrain : Component
 			chunk.gameObject.Transient = true;
 			let renderer = chunk.gameObject.AddComponent<MeshRenderer>();
 			renderer.RuntimeMesh = chunk.mesh;
-			renderer.flatShading = true;
+			renderer.flatShading = mFlat;
 			renderer.roughness = 0.95f;
 			if (mColliders)
 				chunk.gameObject.AddComponent<MeshCollider>().CollisionMesh = separate ? chunk.collisionMesh : null;
@@ -1761,6 +1796,9 @@ class VoxelTerrain : Component
 		else
 		{
 			chunk.gameObject.SetActive(true);
+			let drawn = chunk.gameObject.GetComponent<MeshRenderer>();
+			if (drawn != null)
+				drawn.flatShading = mFlat;
 			// Rebuild the collision for the new surface (not when only the drawing detail changed).
 			let collider = chunk.gameObject.GetComponent<MeshCollider>();
 			if (collider != null && chunk.builtCollision)
@@ -1769,6 +1807,27 @@ class VoxelTerrain : Component
 				collider.Refresh();
 			}
 		}
+	}
+
+	/// A chunk whose samples changed. Contoured ground places the points of a chunk's outermost cells from samples
+	/// up to two steps inside the chunks around it, so those are built again too and the edges go on meeting.
+	void QueueEdited(Chunk chunk)
+	{
+		QueueRemesh(chunk);
+		if (mStyle != .Contoured)
+			return;
+		for (int32 dz = -1; dz <= 1; dz++)
+			for (int32 dy = -1; dy <= 1; dy++)
+				for (int32 dx = -1; dx <= 1; dx++)
+				{
+					if (dx == 0 && dy == 0 && dz == 0)
+						continue;
+					if (mChunks.TryGetValue(.(chunk.coord.x + dx, chunk.coord.y + dy, chunk.coord.z + dz), let near) && near.generated)
+					{
+						near.shapeChanged = true;
+						QueueRemesh(near);
+					}
+				}
 	}
 
 	void QueueRemesh(Chunk chunk)
@@ -1963,7 +2022,7 @@ class VoxelTerrain : Component
 			chunk.edited = true;
 			chunk.shapeChanged = true;
 			HasUnsavedEdits = true;
-			QueueRemesh(chunk);
+			QueueEdited(chunk);
 		}
 	}
 
@@ -2113,7 +2172,7 @@ class VoxelTerrain : Component
 			}
 		}
 		for (let chunk in remesh)
-			QueueRemesh(chunk);
+			QueueEdited(chunk);
 		HasUnsavedEdits = true;
 	}
 
