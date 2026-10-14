@@ -131,6 +131,36 @@ class Program
 		breeze.Enabled = false;
 		ok &= Check(Wind.At(scene, .(500, 0, 0)).Length < 0.001f, "a disabled zone blows nothing");
 
+		// ---- things that push plants aside ----
+		Vector4[8] places = default, pushes = default;
+		FoliageBender.Gather(scene, .(0, 0, 0), ref places, ref pushes);
+		ok &= Check(places[0].w == 0, "with nothing walking about, nothing pushes");
+		let walker = scene.CreateGameObject("Walker");
+		walker.Transform.Position = .(3, 1, 0);
+		let controller = walker.AddComponent<CharacterController>();
+		controller.center = .(0, 0.9f, 0);
+		FoliageBender.Gather(scene, .(0, 0, 0), ref places, ref pushes);
+		ok &= Check(Math.Abs(places[0].x - 3) < 0.001f && Math.Abs(places[0].y - 1) < 0.001f && places[0].w > 0.5f && pushes[0].x == 1 && places[1].w == 0, "a character pushes plants aside at its feet, with nothing added to it");
+		let boulder = scene.CreateGameObject("Boulder");
+		boulder.Transform.Position = .(1, 0, 0);
+		let bender = boulder.AddComponent<FoliageBender>();
+		bender.radius = 2;
+		bender.strength = 0.5f;
+		FoliageBender.Gather(scene, .(0, 0, 0), ref places, ref pushes);
+		ok &= Check(places[0].x == 1 && places[0].w == 2 && pushes[0].x == 0.5f && places[1].x == 3, "a Foliage Bender pushes with its own reach and strength, and the nearest comes first");
+		let tuned = walker.AddComponent<FoliageBender>();
+		tuned.strength = 0;
+		FoliageBender.Gather(scene, .(0, 0, 0), ref places, ref pushes);
+		ok &= Check(places[0].x == 1 && places[1].w == 0, "a character with a Foliage Bender of strength 0 pushes nothing");
+		tuned.strength = 1;
+		for (int i < 10)
+		{
+			let more = scene.CreateGameObject("More").AddComponent<FoliageBender>();
+			more.Transform.Position = .(10 + i * 2, 0, 0);
+		}
+		FoliageBender.Gather(scene, .(0, 0, 0), ref places, ref pushes);
+		ok &= Check(places[7].w > 0 && places[7].x <= 20 && places[0].x == 1, "of many, the eight nearest the camera are used");
+
 		Console.WriteLine(ok ? "ALL PASSED" : "SOME FAILED");
 		Scene.Active = null;
 		return ok ? 0 : 1;

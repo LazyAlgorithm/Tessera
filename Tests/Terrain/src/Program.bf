@@ -381,6 +381,68 @@ class Program
             Check(LoadScene(legacy, scope $"{folder}/older.tscene") && legacy.FindComponent<VoxelTerrain>().mode == .Endless, "a scene saved before terrains had a mode keeps its endless terrain");
         }
 
+        // ---- plants follow sculpted ground ----
+        {
+            let scene = scope Scene();
+            let terrain = scene.CreateGameObject("Terrain").AddComponent<VoxelTerrain>(); terrain.voxelSize = 1; terrain.tileSize = 4; terrain.sizeX = 4; terrain.sizeZ = 4;
+            terrain.generateColliders = false;
+            terrain.lodDistance = 0;
+            terrain.OnValidate();
+            let grass = terrain.GameObject.AddComponent<Foliage>();
+            scene.StartPlay();
+            VoxelTerrain.ViewerPosition = .(64, 0, 64);
+            Settle(scene, terrain);
+            // A cave under the middle of the tile, with grass on its floor as well as on the hill above it.
+            terrain.ModifySphere(.(64, -9, 64), 5, -40);
+            Settle(scene, terrain);
+            float caveFloor = float.NaN;
+            for (float y = -9; y > -16; y -= 0.05f)
+            {
+                float density;
+                if (terrain.DensityAt(.(64, y, 64), out density) && density > 0) { caveFloor = y; break; }
+            }
+            float hollow = 1, roof = 0;
+            terrain.DensityAt(.(64, -9, 64), out hollow);
+            terrain.DensityAt(.(64, -2, 64), out roof);
+            Check(!caveFloor.IsNaN && hollow <= 0 && roof > 0, scope $"there is a cave under the hilltop (floor at {caveFloor:0.0}, solid ground above it)");
+            grass.Add(.(64, 0, 64));            // 0: on the surface, over the cave
+            grass.Add(.(64, caveFloor, 64));    // 1: on the cave floor
+            grass.Add(.(30, 0, 30));            // 2: on the surface, where a pit will be dug
+            grass.Add(.(100, 0, 100));          // 3: far from everything
+            grass.Add(.(30, 0, 100));           // 4: where a hill will bury it deep
+            // Raise the ground over the cave, a little at a time as a held brush does.
+            for (int i < 12)
+                terrain.Brush(.(64, 0, 64), 6, 0.08f, .Raise);
+            let top = Ground(terrain, 64, 64);
+            Check(top > 1 && Math.Abs(grass.PositionOf(0).y - top) < 0.15f, scope $"grass on ground that is raised rides up with it ({grass.PositionOf(0).y:0.00} on ground at {top:0.00})");
+            Check(Math.Abs(grass.PositionOf(1).y - caveFloor) < 0.1f, scope $"grass on the cave floor below stays on the cave floor ({grass.PositionOf(1).y:0.00})");
+            for (int i < 12)
+                terrain.Brush(.(30, 0, 30), 6, 0.08f, .Lower);
+            let pit = Ground(terrain, 30, 30);
+            Check(pit < -1 && Math.Abs(grass.PositionOf(2).y - pit) < 0.15f, scope $"grass on ground that is dug away goes down with it ({grass.PositionOf(2).y:0.00} in a pit at {pit:0.00})");
+            Check(grass.Count == 5 && Math.Abs(grass.PositionOf(3).y) < 0.01f, "grass away from the brush is not touched");
+            // Painting the ground a colour is not sculpting.
+            let beforePaint = grass.PositionOf(0).y;
+            terrain.Brush(.(64, top, 64), 6, 1, .Paint, 3);
+            Check(grass.PositionOf(0).y == beforePaint, "painting the ground does not move plants");
+            // A hill dropped on a plant all at once, far higher than the brush reaches up: the plant is buried and goes.
+            terrain.ModifySphere(.(30, 6, 100), 9, 60);
+            bool buriedGone = grass.Count == 4;
+            for (int i < grass.Count)
+                buriedGone &= (Vector3(grass.PositionOf(i).x - 30, 0, grass.PositionOf(i).z - 100)).Length > 1;
+            Check(buriedGone, scope $"grass buried under a hill is removed ({grass.Count} left)");
+            // The cave filled in: the grass on its floor is buried too.
+            terrain.ModifySphere(.(64, -9, 64), 7, 60);
+            bool caveGone = true;
+            for (int i < grass.Count)
+                caveGone &= grass.PositionOf(i).y > -5;
+            Check(caveGone && grass.Count == 3, scope $"filling the cave in removes the grass that was in it ({grass.Count} left)");
+            // The ground cut from under a plant, leaving it in the air: gone as well.
+            terrain.ModifySphere(.(100, -7, 100), 9, -60);
+            Check(grass.Count == 3 || grass.Count == 2, "a plant keeps its place while there is ground within reach under it");
+            scene.StopPlay();
+        }
+
         Scene.Active = null;
         // ---- contoured ground (dual contouring) ----
         {

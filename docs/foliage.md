@@ -87,10 +87,45 @@ anything that should drift with it: smoke, a sail, a paper bag.
 Wind is the same on every machine when the zones are. Zones saved in a scene are; a zone moved by a script moves on
 other machines if its object is shared (a Network Identity).
 
+## Plants and players
+
+Grass parts round a player's feet and closes again behind them.
+
+- **Characters need nothing.** Every object with a **Character Controller** pushes plants aside by itself, sized
+  from the controller.
+- For anything else that moves through plants (a creature, a vehicle, a rolling boulder), add a **Foliage Bender**.
+  **Radius** is how far it reaches, **Strength** how hard it pushes (1 lays grass well over, 0.3 only brushes it),
+  and **Offset** where it is centred in the object's own space, its feet as a rule.
+- Put a Foliage Bender on a character to change how it pushes, or with Strength 0 to stop it.
+
+What bends is what sways: Foliage by its **Sway**, and any Mesh Renderer with **Wind Sway** above 0. Stiff plants
+with a low Sway give way less; a Sway of 0 does not move at all. Plants only give way to something at about their
+own height, so someone on a bridge does not part the grass below.
+
+In multiplayer nothing is sent for this. Each machine bends its own plants round the objects it has, and it has
+every player, so other players part the grass on your screen as they do on their own. The eight nearest the camera
+take part.
+
+## Plants and sculpting
+
+Plants on a terrain follow its ground when it is sculpted, in the editor and in the game (on every machine in
+multiplayer, since every machine applies the same strokes):
+
+- ground that rises or sinks carries its plants with it;
+- a plant that ends up buried deeper than the stroke could have raised the ground is removed;
+- so is one left with no ground under it within the brush's reach.
+
+So nothing is left where nobody can reach it. Each plant is judged from where it stands: the ground is looked for
+straight up or down from its own foot, not from the sky. Grass on a cave floor stays on the cave floor when the
+hill above it is reshaped, and goes only when its own floor moves away or the cave is filled in. The Paint brush,
+which only colours the ground, moves nothing.
+
+Undoing a sculpting stroke puts the ground back and the plants back on it. Plants the stroke removed come back
+with one more **Ctrl+Z**, which undoes the change to the plants themselves.
+
 ## Limits
 
 - Plants do not collide and cannot be walked into; put colliders on trees that must block the player.
-- Plants do not follow ground that is sculpted afterwards: erase and repaint there.
 - Custom shaders made before this version bend only after they are compiled again.
 
 Tests: `BeefBuild -workspace=Tests/Foliage -config=Debug -run`.

@@ -128,3 +128,90 @@ static class Wind
 		global = .(wind.x, wind.y, wind.z, gusts);
 	}
 }
+
+/// Pushes Foliage (and anything else with Wind Sway) out of the way round this object: grass parts round a player's
+/// feet and closes again behind them. Put it on whatever should move through plants: a creature, a vehicle, a
+/// rolling boulder.
+///
+/// Characters need nothing: every object with a Character Controller pushes plants aside by itself, sized from the
+/// controller. Add this component to one only to change how far it reaches or how hard it pushes, or set Strength to
+/// 0 to stop it.
+///
+/// Nothing is sent over the network. Each machine bends its own plants round the objects it has, and it has every
+/// player, so other players part the grass on your screen as they do on theirs. The eight nearest the camera take
+/// part.
+[Component]
+class FoliageBender : Component
+{
+	/// How far from the object plants are pushed.
+	public float radius = 0.9f;
+	/// How hard: 1 lays grass well over, 0.3 only brushes it, 0 does nothing.
+	[Range(0, 2)]
+	public float strength = 1;
+	/// Where the pushing is centred, in the object's own space: its feet, as a rule.
+	public Vector3 offset = .Zero;
+
+	static List<FoliageBender> sAll = new .() ~ delete _;
+	public static List<FoliageBender> All => sAll;
+
+	public override void OnRegister() => sAll.Add(this);
+	public override void OnUnregister() => sAll.Remove(this);
+
+	public override void OnDrawGizmos(bool selected)
+	{
+		if (selected)
+			DebugDraw.Sphere(Transform.TransformPoint(offset), radius, .(0.45f, 0.95f, 0.4f, 1));
+	}
+
+	/// What the renderer hands the graphics card: the eight pushers nearest a point, nearest first (xyz place, w
+	/// reach; x strength). Character Controllers count without a component of their own.
+	public static void Gather(Scene scene, Vector3 near, ref Vector4[8] places, ref Vector4[8] push)
+	{
+		float[8] distance = ?;
+		for (int i < 8)
+		{
+			distance[i] = float.MaxValue;
+			places[i] = default;
+			push[i] = default;
+		}
+		void Take(Vector3 at, float reach, float strength, ref Vector4[8] places, ref Vector4[8] push)
+		{
+			if (reach <= 0 || strength <= 0)
+				return;
+			let away = (at - near).LengthSquared;
+			for (int slot < 8)
+			{
+				if (away >= distance[slot])
+					continue;
+				for (int move = 7; move > slot; move--)
+				{
+					distance[move] = distance[move - 1];
+					places[move] = places[move - 1];
+					push[move] = push[move - 1];
+				}
+				distance[slot] = away;
+				places[slot] = .(at.x, at.y, at.z, reach);
+				push[slot] = .(strength, 0, 0, 0);
+				return;
+			}
+		}
+		for (let bender in sAll)
+		{
+			if (bender.GameObject == null || bender.GameObject.IsDestroyed || bender.Scene != scene || !bender.IsActiveAndEnabled)
+				continue;
+			let scale = bender.Transform.LocalToWorld.Right.Length;
+			Take(bender.Transform.TransformPoint(bender.offset), bender.radius * scale, bender.strength, ref places, ref push);
+		}
+		for (let component in scene.Components)
+		{
+			let controller = component as CharacterController;
+			if (controller == null || controller.GameObject.IsDestroyed || !controller.IsActiveAndEnabled)
+				continue;
+			// One with a Foliage Bender of its own has said how it wants to push.
+			if (controller.GetComponent<FoliageBender>() != null)
+				continue;
+			let feet = controller.Transform.TransformPoint(controller.center - Vector3(0, controller.height * 0.5f, 0));
+			Take(feet, Math.Max(controller.radius * 2.2f, 0.6f), 1, ref places, ref push);
+		}
+	}
+}
