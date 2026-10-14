@@ -241,6 +241,10 @@ extension EditorApp
 				if(component is NavigationSurface) DrawNavigationTools((NavigationSurface)component);
 				if(component is AudioSource) DrawAudioTools((AudioSource)component);
 				if (component is ViewmodelPose) DrawViewmodelPoseTools((ViewmodelPose)component);
+				if (component is LimbIK) DrawLimbIKTools((LimbIK)component);
+				if (component is Foliage) DrawFoliageTools((Foliage)component);
+				if (component is HandPose) DrawHandPoseTools((HandPose)component);
+				if (component is FootPlacement) DrawFootPlacementTools((FootPlacement)component);
 				if (component is VoxelTerrain)
 					DrawTerrainTools((VoxelTerrain)component);
 				else if (component is VoxelObject)

@@ -82,6 +82,11 @@ class Program
     static VoxelTerrain MakeTerrain(Scene scene)
     {
         let terrain = scene.CreateGameObject("Terrain").AddComponent<VoxelTerrain>();
+        terrain.voxelSize = 1;
+        terrain.tileSize = 4;
+        terrain.sizeX = 4;
+        terrain.sizeZ = 4;
+        terrain.style = .Smooth;
         terrain.generateColliders = false;
         terrain.lodDistance = 0;
         terrain.OnValidate();
@@ -96,6 +101,15 @@ class Program
         for (let entry in Directory.EnumerateFiles(edits))
             File.Delete(entry.GetFilePath(.. scope .())).IgnoreError();
         VoxelTerrain.Viewers.Clear();
+
+        // ---- what a terrain is when nothing has been set ----
+        {
+            let scene = scope Scene();
+            let fresh = scene.CreateGameObject("Terrain").AddComponent<VoxelTerrain>();
+            fresh.OnValidate();
+            Check(fresh.mode == .Fixed && fresh.style == .Contoured && fresh.voxelSize == 0.5f && fresh.TileCount == 1 && fresh.AreaSize.x == 128,
+                scope $"a new terrain is one flat 128 m tile of half-metre cells, contoured (mode {fresh.mode}, style {fresh.style}, voxel {fresh.voxelSize}, tiles {fresh.TileCount}, tile size {fresh.tileSize}, area {fresh.AreaSize.x})");
+        }
 
         // ---- one tile, placed by hand ----
         {
@@ -241,7 +255,7 @@ class Program
         // ---- level of detail with collision ----
         {
             let scene = scope Scene();
-            let terrain = scene.CreateGameObject("Terrain").AddComponent<VoxelTerrain>();
+            let terrain = scene.CreateGameObject("Terrain").AddComponent<VoxelTerrain>(); terrain.voxelSize = 1; terrain.tileSize = 4; terrain.sizeX = 4; terrain.sizeZ = 4; terrain.style = .Smooth;
             terrain.lodDistance = 1;
             for (int32 x = 1; x < 4; x++)
                 terrain.AddTile(x, 0);
@@ -278,7 +292,7 @@ class Program
         {
             // The bytes a game keeps itself (in a map file, say), for a terrain made in code from the old size fields.
             let scene = scope Scene();
-            let terrain = scene.CreateGameObject("Terrain").AddComponent<VoxelTerrain>();
+            let terrain = scene.CreateGameObject("Terrain").AddComponent<VoxelTerrain>(); terrain.voxelSize = 1; terrain.tileSize = 4; terrain.sizeX = 4; terrain.sizeZ = 4; terrain.style = .Smooth;
             terrain.generateColliders = false;
             terrain.sizeX = 8;
             terrain.sizeZ = 4;
@@ -323,7 +337,7 @@ class Program
         {
             // A scene from before tiles: a rectangle of chunks and one file of sculpting.
             let scene = scope Scene();
-            let made = scene.CreateGameObject("Terrain").AddComponent<VoxelTerrain>();
+            let made = scene.CreateGameObject("Terrain").AddComponent<VoxelTerrain>(); made.voxelSize = 1; made.tileSize = 4; made.sizeX = 4; made.sizeZ = 4; made.style = .Smooth;
             made.sizeX = 8;
             made.sizeZ = 4;
             SaveScene(scene, scope $"{folder}/rect.tscene");
@@ -368,6 +382,109 @@ class Program
         }
 
         Scene.Active = null;
+        // ---- contoured ground (dual contouring) ----
+        {
+            let scene = scope Scene();
+            let terrain = scene.CreateGameObject("Terrain").AddComponent<VoxelTerrain>(); terrain.voxelSize = 1; terrain.tileSize = 4; terrain.sizeX = 4; terrain.sizeZ = 4;
+            terrain.generateColliders = false;
+            terrain.lodDistance = 0;
+            terrain.style = .Contoured;
+            terrain.OnValidate();
+            scene.StartPlay();
+            VoxelTerrain.ViewerPosition = .(64, 0, 64);
+            Settle(scene, terrain);
+            Check(Flat(terrain, 64, 64) && Flat(terrain, 3, 3) && Flat(terrain, 120, 125), "contoured: flat ground is flat at height 0");
+            {
+                let flatMesh = terrain.ChunkMesh(.(1, -1, 1));
+                bool level = flatMesh != null && flatMesh.Vertices.Count > 900;
+                if (flatMesh != null)
+                    for (let v in flatMesh.Vertices)
+                        level &= Math.Abs(v.position.y) < 0.01f && v.normal.y > 0.999f;
+                Check(level, scope $"contoured: the mesh of flat ground is level, facing up ({flatMesh != null ? flatMesh.Vertices.Count : 0} points in a chunk)");
+            }
+            // A hill and a pit that both straddle chunk edges (chunks are 32 m), and a flattened shelf.
+            terrain.ModifySphere(.(64, 0, 64), 9, 6);
+            terrain.ModifySphere(.(32, 0, 96), 7, -6);
+            terrain.Brush(.(96, 0, 32), 8, 1, .Flatten, 0, 3);
+            Settle(scene, terrain);
+            Check(Ground(terrain, 64, 64) > 2 && Ground(terrain, 32, 96) < -1.5f, scope $"contoured: sculpting raises and digs ({Ground(terrain, 64, 64):0.0} and {Ground(terrain, 32, 96):0.0})");
+            Check(Math.Abs(Ground(terrain, 61, 64) - Ground(terrain, 67, 64)) < 0.3f, "contoured: a hill on the corner of four chunks is one hill");
+            // Every edge of every triangle, over all the chunks together, by the places of its two ends: an edge used
+            // only once is a hole, unless it is on the rim of the ground (its sides and its underside).
+            Dictionary<uint64, int32> places = scope .();
+            List<Vector3> placeAt = scope .();
+            Dictionary<uint64, int32> uses = scope .();
+            int triangles = 0;
+            int32 Place(Vector3 p)
+            {
+                let key = ((uint64)(int64)(Math.Round(p.x * 200) + 100000) << 42) | ((uint64)(int64)(Math.Round(p.y * 200) + 100000) << 21) | (uint64)(int64)(Math.Round(p.z * 200) + 100000);
+                if (places.TryGetValue(key, let id)) return id;
+                places[key] = (int32)placeAt.Count;
+                placeAt.Add(p);
+                return (int32)placeAt.Count - 1;
+            }
+            for (int32 cz = 0; cz < 4; cz++) for (int32 cy = -1; cy <= 2; cy++) for (int32 cx = 0; cx < 4; cx++)
+            {
+                let mesh = terrain.ChunkMesh(.(cx, cy, cz));
+                if (mesh == null) continue;
+                triangles += mesh.Indices.Count / 3;
+                for (int i = 0; i + 2 < mesh.Indices.Count; i += 3)
+                {
+                    for (int e < 3)
+                    {
+                        let ia = Place(mesh.Vertices[(int)mesh.Indices[i + e]].position), ib = Place(mesh.Vertices[(int)mesh.Indices[i + (e + 1) % 3]].position);
+                        let key = ia < ib ? ((uint64)ia << 32) | (uint64)ib : ((uint64)ib << 32) | (uint64)ia;
+                        if (uses.TryGetValue(key, let count)) uses[key] = count + 1; else uses[key] = 1;
+                    }
+                }
+            }
+            int holes = 0, doubled = 0;
+            for (let entry in uses)
+            {
+                let a = placeAt[(int)(entry.key >> 32)], b = placeAt[(int)(entry.key & 0xFFFFFFFF)];
+                let mx = (a.x + b.x) * 0.5f, my = (a.y + b.y) * 0.5f, mz = (a.z + b.z) * 0.5f;
+                let inner = mx > 2 && mx < 126 && mz > 2 && mz < 126 && my > -20;
+                if (entry.value == 1 && inner) holes++;
+                if (entry.value > 2) doubled++;
+            }
+            Check(triangles > 20000, scope $"contoured: the ground is built ({triangles} triangles)");
+            Check(holes == 0, scope $"contoured: chunks meet with no holes, across faces, edges and corners ({holes} open edges inside the ground)");
+            Check(doubled == 0, scope $"contoured: no quad is made twice by neighbouring chunks ({doubled} edges used more than twice)");
+            // With detail falling off with distance, each chunk gets a skirt round its rim.
+            let before = triangles;
+            terrain.lodDistance = 1;
+            terrain.OnValidate();
+            VoxelTerrain.ViewerPosition = .(16, 0, 16);
+            Settle(scene, terrain);
+            int far = 0;
+            let farMesh = terrain.ChunkMesh(.(3, -1, 3)), nearMesh = terrain.ChunkMesh(.(0, -1, 0));
+            if (farMesh != null) far = farMesh.Indices.Count / 3;
+            Check(farMesh != null && nearMesh != null && far > 0 && far < nearMesh.Indices.Count / 3 && before > 0, scope $"contoured: far chunks are drawn with fewer triangles ({far} against {nearMesh != null ? nearMesh.Indices.Count / 3 : 0})");
+            Check(Flat(terrain, 120, 125) && Ground(terrain, 64, 64) > 2, "contoured: the ground is where it was at lower detail");
+            // The same ground as marching cubes makes of the same samples, to within part of a voxel, at any sharpness.
+            terrain.lodDistance = 0;
+            float[5] xs = .(64, 60, 32, 96, 100), zs = .(64, 70, 96, 32, 30);
+            float[5] soft = default, sharp = default, marched = default;
+            terrain.OnValidate();
+            Settle(scene, terrain);
+            for (int i < 5) soft[i] = Ground(terrain, xs[i], zs[i]);
+            terrain.contourSharpness = 1;
+            terrain.OnValidate();
+            Settle(scene, terrain);
+            for (int i < 5) sharp[i] = Ground(terrain, xs[i], zs[i]);
+            terrain.style = .Smooth;
+            terrain.OnValidate();
+            Settle(scene, terrain);
+            float worst = 0;
+            for (int i < 5)
+            {
+                marched[i] = Ground(terrain, xs[i], zs[i]);
+                worst = Math.Max(worst, Math.Max(Math.Abs(soft[i] - marched[i]), Math.Abs(sharp[i] - marched[i])));
+            }
+            Check(worst < 0.5f, scope $"contoured: the ground is within half a voxel of the marching cubes ground, soft or sharp (furthest {worst:0.00})");
+            scene.StopPlay();
+        }
+
         Console.WriteLine(scope $"{sFailures} failed");
         return sFailures == 0 ? 0 : 1;
     }

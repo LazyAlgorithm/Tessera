@@ -74,10 +74,29 @@ Work agreed and queued, in order (see *How to use this page* above for what "don
   ids. `docs/post-processing.md`, `Tests/PostProcessing`. Website: Manual > Screen effects.
 - [ ] E9 async scene and asset loading
 - [ ] E4 animation layers and blend trees
-- [ ] E5 inverse kinematics, built in: two-bone limbs (arms, legs) with a pole target, look-at for heads and spines,
-  foot placement on uneven ground, hands on a held weapon; an IK component edited in the Inspector with handles in
-  the Scene view; works with the Animator (after the clip, per layer weight) and over the network (targets that
-  matter for others synced, the rest worked out on each machine)
+- [x] E5 inverse kinematics (2026-10-13, in the working folder on the development machine, not yet committed):
+  Limb IK (two-bone arms and legs with a pole, the hand locked to a target's rotation with an offset and a grip
+  point, `LetGo` / `Grab` / `SetTarget` so that each arm is freed and returned by itself), Look At IK (head, neck
+  and spine sharing the turn, within a limit), Foot Placement (feet on uneven ground, hips lowered, feet tilted),
+  Hand Pose (a curl slider for each finger, spread, trigger, ready-made shapes), and `IKSolver` for code (two-bone,
+  chains of any length, look-at). A layer over the Animator's pose with a weight, solved after every LateUpdate and
+  in the editor; `Expose Bones` on the Skinned Mesh Renderer makes bone objects so that rigged models take part.
+  Inspector tools (find hands and feet, Make Target And Pole, Keep Hand's Rotation, shape buttons), Scene view
+  gizmos, **Key IK** in the Animation window and recording that ignores IK. Networking: weights and hand shapes
+  follow the owner; targets are ordinary objects; the rest is worked out on each machine. `docs/ik.md`, `Tests/IK`.
+  Website: the Manual section is still to be written (it lives on `gh-pages`).
+  Not yet: joint limits, stretch, a component for chains longer than two bones, fingers wrapping round a shape.
+- [x] Terrain: dual contouring, finer ground, brush preview (2026-10-13): Style **Contoured** (one point a cell,
+  quads between; seamless across chunks, with level of detail and full-detail collision) and **Contour Sharpness**;
+  new terrains are contoured, half-metre voxels, smoothly shaded, with **Flat Shading** for the faceted look and
+  Style Smooth for marching cubes; a preview mesh under the brush in the Scene view; generation settings taken out
+  of the editor (a terrain there is its tiles; generators are the game's code). `docs/terrain.md`, `Tests/Terrain`.
+- [x] Foliage and wind (2026-10-13): the Foliage component (painted, instanced plants; built-in grass, bush, tree
+  and pine) with its brush in the Inspector, Wind Zone components (global and sphere), `Wind Sway` on Mesh
+  Renderers, bending in the mesh vertex shader. `docs/foliage.md`, `Tests/Foliage`. Networking: scene data, the
+  same everywhere; `Wind.At` for code. Not yet: undo for the brush, shadows that sway, plants with colliders.
+- [x] Editor: number fields can be typed into (click, or double-click a slider); the UI tab shows the whole document
+  scaled to fit, with named placeholders for canvases (`preview`, `preview-src`).
 - [ ] E5b animation retargeting: play clips made for one rig on another (a shared humanoid bone map, matched by
   name with an editor to fix the matches, bone lengths and rest poses allowed to differ, root motion scaled to the
   target's size); the Animator plays any retargeted clip, and networking already sends clip and state, not bones

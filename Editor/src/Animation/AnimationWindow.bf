@@ -620,6 +620,11 @@ extension EditorApp
 		if (AnimIconButton("##addkey", 6, false, "Add a key at the time marker for the selected child,\nor for every animated child when the Animator's object is selected."))
 			KeySelectedChild(animator);
 		ImGui.SameLine();
+		if (ImGui.Button("Key IK", .(58, ImGui.GetFrameHeight())))
+			KeyIK(animator);
+		if (ImGui.IsItemHovered())
+			ImGui.SetTooltip("Writes the pose IK is making now into the clip, as keys at the time marker on every bone IK moves:\na hand held on a target, curled fingers, a turned head. The clip then plays that pose without the IK.");
+		ImGui.SameLine();
 		if (mClipAutoKey)
 			ImGui.PushStyleColor(ImGui.Col.Button, .(0.75f, 0.45f, 0.10f, 1));
 		let wasAutoKey = mClipAutoKey;
@@ -713,8 +718,18 @@ extension EditorApp
 				let expectedPosition = restPosition + position;
 				let expectedRotation = (restRotation * rotation).Normalized;
 				let expectedScale = Vector3(restScale.x * scale.x, restScale.y * scale.y, restScale.z * scale.z);
-				let turned = Math.Abs(Quaternion.Dot(expectedRotation, child.LocalRotation)) < 0.99999f;
-				if ((child.LocalPosition - expectedPosition).Length > 0.0005f || (child.LocalScale - expectedScale).Length > 0.0005f || turned)
+				// A bone that IK moves is judged by the pose under the IK: only moving it by hand makes a key, not IK
+				// bending it. (Key IK writes what IK makes of it, when that is what is wanted.)
+				var nowPosition = child.LocalPosition;
+				var nowRotation = child.LocalRotation;
+				Vector3 underPosition; Quaternion underRotation;
+				if (IKSystem.InputPose(child, out underPosition, out underRotation))
+				{
+					nowPosition = underPosition;
+					nowRotation = underRotation;
+				}
+				let turned = Math.Abs(Quaternion.Dot(expectedRotation, nowRotation)) < 0.99999f;
+				if ((nowPosition - expectedPosition).Length > 0.0005f || (child.LocalScale - expectedScale).Length > 0.0005f || turned)
 					KeyChild(animator, child);
 			}
 		}
@@ -723,6 +738,8 @@ extension EditorApp
 		if (editing && !mClipPreviewOff && (mClipPosedTime != mClipTime || !mClipPreview))
 		{
 			animator.SampleClip(clip, mClipTime);
+			// IK on top of the clip's pose at once, so that the view never shows a frame without it.
+			IKSystem.Solve(mScene);
 			mClipPosedTime = mClipTime;
 			mClipPreview = true;
 		}
@@ -990,16 +1007,46 @@ extension EditorApp
 			SaveClip();
 	}
 
-	/// Writes a key at the marker from where a child is now.
-	void KeyChild(Animator animator, Transform child)
+	/// Key IK: a key at the marker on every bone below the Animator that an IK component moves, holding the pose IK
+	/// gives it now.
+	void KeyIK(Animator animator)
+	{
+		if (mClip == null)
+			return;
+		IKSystem.Solve(mScene);
+		List<Transform> children = scope .();
+		Descendants(animator.Transform, children);
+		int keyed = 0;
+		for (let child in children)
+		{
+			if (!IKSystem.Drives(child))
+				continue;
+			KeyChild(animator, child, true);
+			keyed++;
+		}
+		if (keyed == 0)
+			Log.Warning("Key IK: no bone below the Animator is moved by an enabled IK component.");
+	}
+
+	/// Writes a key at the marker from where a child is now. A bone IK moves is keyed with its own pose, from under
+	/// the IK, unless solved is set, which keys the pose IK has given it.
+	void KeyChild(Animator animator, Transform child, bool solved = false)
 	{
 		if (mClip == null)
 			return;
 		Vector3 restPosition, restScale; Quaternion restRotation;
 		if (!animator.RestPose(child, out restPosition, out restRotation, out restScale))
 			return;
-		let position = child.LocalPosition - restPosition;
-		let euler = (restRotation.Conjugate * child.LocalRotation).Normalized.EulerAngles;
+		var localPosition = child.LocalPosition;
+		var localRotation = child.LocalRotation;
+		Vector3 underPosition; Quaternion underRotation;
+		if (!solved && IKSystem.InputPose(child, out underPosition, out underRotation))
+		{
+			localPosition = underPosition;
+			localRotation = underRotation;
+		}
+		let position = localPosition - restPosition;
+		let euler = (restRotation.Conjugate * localRotation).Normalized.EulerAngles;
 		let scale = Vector3(restScale.x != 0 ? child.LocalScale.x / restScale.x : 1, restScale.y != 0 ? child.LocalScale.y / restScale.y : 1, restScale.z != 0 ? child.LocalScale.z / restScale.z : 1);
 		int index;
 		let track = mClip.AutoKey(child.GameObject.Name, mClipTime, position, euler, scale, out index);

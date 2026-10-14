@@ -13,7 +13,7 @@ static class Assets
 	static Dictionary<String, Mesh> sMeshes = new .() ~ DeleteDictionaryAndKeysAndValues!(_);
 	static Dictionary<String, uint16> sTextures = new .() ~ DeleteDictionaryAndKeys!(_);
 
-	public static readonly StringView[?] BuiltinMeshes = .("builtin:cube", "builtin:sphere", "builtin:capsule", "builtin:cylinder", "builtin:cone", "builtin:plane", "builtin:quad");
+	public static readonly StringView[?] BuiltinMeshes = .("builtin:cube", "builtin:sphere", "builtin:capsule", "builtin:cylinder", "builtin:cone", "builtin:plane", "builtin:quad", "builtin:grass", "builtin:bush", "builtin:tree", "builtin:pine");
 
 	public static void Clear()
 	{
@@ -136,6 +136,10 @@ static class Assets
 			case "builtin:cone": mesh = Primitives.CreateCylinder(16, 0);
 			case "builtin:plane": mesh = Primitives.CreatePlane();
 			case "builtin:quad": mesh = Primitives.CreateQuad();
+			case "builtin:grass": mesh = Primitives.CreateGrass();
+			case "builtin:bush": mesh = Primitives.CreateBush();
+			case "builtin:tree": mesh = Primitives.CreateTree(false);
+			case "builtin:pine": mesh = Primitives.CreateTree(true);
 			default:
 			}
 		}

@@ -977,15 +977,88 @@ class UIDocumentData
 				binder.Invoke(handler, element);
 		}
 		else if (element.tag == "canvas")
-		{
-			// Nothing to call (the editor's preview): mark out where the game will draw.
-			ImGui.DrawRect(min, max, .(0.45f, 0.75f, 1, 0.6f), 0, 1);
-			let name = scope String();
-			name.AppendF("{}  ({})", element.Id, element.attributes.Get("ondraw"));
-			ImGui.DrawText(.(min.x + 4, min.y + 2), .(0.45f, 0.75f, 1, 0.8f), name.CStr());
-		}
+			DrawCanvasPlaceholder(element, min, max);
 		for (let child in element.children)
 			DrawElement(child, origin, binder, interactive);
+	}
+
+	/// What the editor's preview shows where the game will draw (there is nothing to call there): a tinted box
+	/// named by the canvas's preview="..." attribute, else by its id, or the picture named by preview-src="...".
+	/// Neither attribute does anything while the game runs: the ondraw handler takes the placeholder's place.
+	void DrawCanvasPlaceholder(UIElement element, ImGui.Vec2 min, ImGui.Vec2 max)
+	{
+		let width = max.x - min.x, height = max.y - min.y;
+		if (width < 2 || height < 2)
+			return;
+		// A tint of its own for each canvas, taken from its name, so that neighbours can be told apart.
+		uint32 hash = 2166136261;
+		for (let c in element.Id.RawChars)
+			hash = (hash ^ (uint32)c) * 16777619;
+		let hue = (float)(hash % 360) / 60.0f;
+		let part = hue - Math.Floor(hue);
+		float r = 0, g = 0, b = 0;
+		switch ((int)hue)
+		{
+		case 0: r = 1; g = part;
+		case 1: r = 1 - part; g = 1;
+		case 2: g = 1; b = part;
+		case 3: g = 1 - part; b = 1;
+		case 4: r = part; b = 1;
+		default: r = 1; b = 1 - part;
+		}
+		// Softened towards white so that the label reads on any tint.
+		r = 0.45f + r * 0.55f; g = 0.45f + g * 0.55f; b = 0.45f + b * 0.55f;
+		let picture = element.attributes.Get("preview-src");
+		// A canvas over the whole view (cross-hairs, name tags) would tint everything under it: it gets a frame only.
+		let covers = element.width >= mViewWidth * 0.9f && element.height >= mViewHeight * 0.9f;
+		if (!picture.IsEmpty)
+			ImGui.DrawImage(Assets.GetTexture(picture).idx, min, max, false);
+		else if (!covers)
+			ImGui.DrawRectFilled(min, max, .(r, g, b, 0.16f));
+		ImGui.DrawRect(min, max, .(r, g, b, covers ? 0.45f : 0.9f), 0, 1);
+
+		let title = scope String(element.attributes.Get("preview"));
+		if (title.IsEmpty)
+			title.Set(element.Id.IsEmpty ? "canvas" : element.Id);
+		let detail = scope String();
+		detail.AppendF("{} x {}", (int)Math.Round(element.width), (int)Math.Round(element.height));
+		let handler = element.attributes.Get("ondraw");
+		if (!handler.IsEmpty)
+			detail.AppendF("  {}", handler);
+		// Editor lettering, so it is sized for the screen and not with the document; smaller in a box too small for it.
+		ImGui.PushClipRect(min, max);
+		var size = 14.0f;
+		ImGui.PushFontSize(size);
+		var titleSize = ImGui.CalcTextSize(title.CStr());
+		ImGui.PopFont();
+		if (titleSize.x > width - 8 || titleSize.y > height - 2)
+		{
+			size = Math.Max(Math.Min(size * (width - 8) / Math.Max(titleSize.x, 1), height - 2), 9);
+			ImGui.PushFontSize(size);
+			titleSize = ImGui.CalcTextSize(title.CStr());
+			ImGui.PopFont();
+		}
+		let detailSize = size * 0.8f;
+		ImGui.PushFontSize(detailSize);
+		let detailExtent = ImGui.CalcTextSize(detail.CStr());
+		ImGui.PopFont();
+		let twoLines = detailSize >= 9 && titleSize.y + detailExtent.y + 6 <= height && detailExtent.x <= width - 8;
+		let blockHeight = titleSize.y + (twoLines ? detailExtent.y + 2 : 0);
+		// In the middle of its box; a canvas over the whole view is named along its bottom edge, where the least is.
+		let tx = min.x + (width - titleSize.x) * 0.5f;
+		let ty = covers ? max.y - blockHeight - 6 : min.y + (height - blockHeight) * 0.5f;
+		if (!picture.IsEmpty || covers)
+			ImGui.DrawRectFilled(.(tx - 4, ty - 2), .(tx + titleSize.x + 4, ty + blockHeight + 2), .(0, 0, 0, 0.55f), 3);
+		ImGui.PushFontSize(size);
+		ImGui.DrawText(.(Math.Max(tx, min.x + 2), ty), .(r, g, b, 1), title.CStr());
+		ImGui.PopFont();
+		if (twoLines)
+		{
+			ImGui.PushFontSize(detailSize);
+			ImGui.DrawText(.(min.x + (width - detailExtent.x) * 0.5f, ty + titleSize.y + 2), .(r, g, b, 0.7f), detail.CStr());
+			ImGui.PopFont();
+		}
+		ImGui.PopClipRect();
 	}
 
 	// ---- writing back to markup ----

@@ -228,6 +228,21 @@ class EditorApp : Application
 			Assets.ResolvePath(openScript, full);
 			OpenScript(full);
 		}
+		// Test switches for the terrain brush: --brush <0-4> picks a tool, --brush-preview "x,z" or "x,z,size" shows its preview there.
+		let brushArg = scope String();
+		if (GetArg("--brush", brushArg) && (int32.Parse(brushArg) case .Ok(let tool)))
+			mBrushTool = Math.Clamp(tool, 0, 4);
+		if (GetArg("--brush-preview", brushArg))
+		{
+			var parts = brushArg.Split(',');
+			if ((parts.GetNext() case .Ok(let xText)) && (parts.GetNext() case .Ok(let zText)) && (float.Parse(xText) case .Ok(let x)) && (float.Parse(zText) case .Ok(let z)))
+			{
+				mBrushTestPoint = .(x, 0, z);
+				mBrushTest = true;
+				if ((parts.GetNext() case .Ok(let sizeText)) && (float.Parse(sizeText) case .Ok(let brushSize)))
+					mBrushSize = Math.Clamp(brushSize, 1, 40);
+			}
+		}
 		let selectName = scope String();
 		if (GetArg("--select", selectName))
 		{

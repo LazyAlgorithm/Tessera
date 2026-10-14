@@ -72,7 +72,10 @@ static class SceneTemplates
 
 		let terrain = scene.CreateGameObject("Terrain");
 		// This sample is an open world to roam and dig in, so it uses generated terrain without end.
-		terrain.AddComponent<VoxelTerrain>().mode = .Endless;
+		let endless = terrain.AddComponent<VoxelTerrain>();
+		endless.mode = .Endless;
+		// An endless world is seen a long way off: coarser cells keep that affordable.
+		endless.voxelSize = 1;
 
 		let platform = scene.CreateGameObject("Spawn Platform");
 		let platformRenderer = platform.AddComponent<MeshRenderer>();

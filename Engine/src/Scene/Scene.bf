@@ -503,6 +503,10 @@ class Scene
 					{ Watchdog.Running = component; component.LateUpdate(); Watchdog.Running = null; }
 			}
 		}
+		// Inverse kinematics goes on top of whatever clips and scripts made of the pose this frame, and rigged models
+		// whose bones are objects are skinned from the result.
+		IKSystem.Solve(this);
+		SkinnedMeshRenderer.SkinFromBones(this);
 		while (mDestroyQueue.Count > 0)
 		{
 			let gameObject = mDestroyQueue.PopBack();

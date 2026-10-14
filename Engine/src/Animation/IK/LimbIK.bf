@@ -1,0 +1,188 @@
+using System;
+using System.Collections;
+
+namespace Tessera;
+
+/// Holds the end of an arm or a leg on a target: a hand on a weapon's grip, a hand on a door handle, a foot on a
+/// pedal. One component is one limb, so a character holding a rifle has two (one for each hand), and each can let go
+/// and take hold again by itself: LetGo on the left hand while it throws a grenade, Grab when it comes back.
+///
+/// Tip is the hand or foot. The two bones above it are bent to reach (Middle and Upper name them when they are not
+/// simply its parents). Target is any object: put empty objects on a weapon where the hands belong. Pole is an object
+/// the elbow or knee points towards; without one the limb keeps bending the way the clip bends it.
+///
+/// IK runs after the Animator and after every script's LateUpdate, so a clip plays underneath and the hands stay on a
+/// weapon that sways or recoils. Weight blends between the clip's pose (0) and the target (1). It is worked out on
+/// each machine; in multiplayer LetGo, Grab and FadeWeight called by the object's owner are followed everywhere, and
+/// a target moves on other machines if it is shared like any other object.
+[Component]
+class LimbIK : IKComponent
+{
+	/// The hand or foot: the bone that goes to the target.
+	public Transform tip;
+	/// Where the tip should be. Its rotation is used too when Rotation Weight is above 0.
+	public Transform target;
+	/// The elbow or knee points towards this. Empty: it bends the way it already does.
+	public Transform pole;
+	/// 0 leaves the limb to its animation, 1 puts the tip on the target.
+	[Range(0, 1)] public float weight = 1;
+	/// How much the tip takes the target's rotation: 1 for a hand locked to a grip, 0 to leave the wrist to the clip.
+	[Range(0, 1)] public float rotationWeight = 1;
+	/// Turns the tip relative to the target, in degrees, for a hand whose bone does not point the way the target does.
+	/// "Keep Hand's Rotation" in the Inspector fills it in from the pose in front of you.
+	public Vector3 rotationOffset = .Zero;
+	/// The point of the tip that lands on the target, in the tip's own space: the palm rather than the wrist.
+	public Vector3 gripPoint = .Zero;
+	/// The elbow or knee, when it is not the tip's parent.
+	public Transform middle;
+	/// The shoulder or hip bone, when it is not the middle's parent.
+	public Transform upper;
+
+	Transform mFromTarget;
+	Vector3 mFromPosition;
+	Quaternion mFromRotation = .Identity;
+	float mSwitchTime = -1, mSwitchLength;
+	Vector3 mGoalPosition;
+	Quaternion mGoalRotation = .Identity;
+	bool mHasGoal;
+	float mHeldWeight = 1;
+
+	public override float Weight { get => weight; set => weight = value; }
+	public override int32 Order => 20;
+
+	public Transform Middle => middle != null ? middle : (tip != null ? tip.Parent : null);
+	public Transform Upper => upper != null ? upper : (Middle != null ? Middle.Parent : null);
+	/// True while the limb is held on a target (weight above 0 and a target set).
+	public bool IsHolding => weight > 0 && target != null;
+	/// How far the target is along the limb's reach: 1 and over is out of reach, and the limb is straight.
+	public float Reach
+	{
+		get
+		{
+			let top = Upper, mid = Middle;
+			if (top == null || mid == null || tip == null || target == null)
+				return 0;
+			let length = (mid.Position - top.Position).Length + (tip.Position - mid.Position).Length;
+			return length > 0 ? (target.Position - top.Position).Length / length : 0;
+		}
+	}
+
+	/// Takes the limb off its target over some seconds, back to its animation: to throw, wave, reload or climb.
+	/// The other limbs stay where they are. Followed on every machine when the object's owner calls it.
+	public void LetGo(float seconds = 0.15f)
+	{
+		if (weight > 0)
+			mHeldWeight = weight;
+		FadeWeight(0, seconds);
+	}
+
+	/// Puts the limb back on its target over some seconds. Followed on every machine when the object's owner calls it.
+	public void Grab(float seconds = 0.15f) => FadeWeight(mHeldWeight > 0 ? mHeldWeight : 1, seconds);
+
+	/// Moves to another target over some seconds, without a jump: the next weapon's grip, a ledge. Call it on every
+	/// machine (where the weapon is equipped, say): which object is the target is not sent over the network.
+	public void SetTarget(Transform next, float seconds = 0.15f)
+	{
+		if (next == target)
+			return;
+		if (mHasGoal && seconds > 0)
+		{
+			mFromPosition = mGoalPosition;
+			mFromRotation = mGoalRotation;
+			mSwitchTime = 0;
+			mSwitchLength = seconds;
+		}
+		mFromTarget = target;
+		target = next;
+	}
+
+	/// Sets Rotation Offset so that the tip keeps the rotation it has now while it follows the target.
+	public void KeepCurrentRotation()
+	{
+		if (tip == null || target == null)
+			return;
+		Vector3 position; Quaternion rotation;
+		// Measured on the pose from before IK, which is the one being looked at when the weight is 0.
+		let saved = tip.LocalRotation;
+		if (InputPose(tip, out position, out rotation))
+			tip.LocalRotation = rotation;
+		rotationOffset = (target.Rotation.Conjugate * tip.Rotation).Normalized.EulerAngles;
+		tip.LocalRotation = saved;
+	}
+
+	/// Moves the target (and turns it) to where the tip is now, so that turning IK on changes nothing until the
+	/// target is moved.
+	public void TargetToTip()
+	{
+		if (tip == null || target == null)
+			return;
+		target.SetPositionAndRotation(tip.TransformPoint(gripPoint), tip.Rotation);
+		rotationOffset = .Zero;
+	}
+
+	protected override void CollectBones(List<Transform> bones)
+	{
+		let top = Upper, mid = Middle;
+		if (tip == null || mid == null || top == null)
+			return;
+		bones.Add(top);
+		bones.Add(mid);
+		bones.Add(tip);
+	}
+
+	protected override void Solve()
+	{
+		let top = Upper, mid = Middle;
+		if (tip == null || mid == null || top == null || target == null || target.GameObject.IsDestroyed)
+			return;
+		var position = target.Position;
+		var rotation = (target.Rotation * Quaternion.Euler(rotationOffset)).Normalized;
+		if (mSwitchTime >= 0)
+		{
+			// Changing targets: from where the hand was held to the new place.
+			mSwitchTime += Time.DeltaTime;
+			let t = mSwitchLength > 0 ? Mathf.Clamp01(mSwitchTime / mSwitchLength) : 1;
+			let eased = Mathf.SmoothStep(0, 1, t);
+			position = Vector3.Lerp(mFromPosition, position, eased);
+			rotation = Quaternion.Slerp(mFromRotation, rotation, eased);
+			if (t >= 1)
+				mSwitchTime = -1;
+		}
+		mGoalPosition = position;
+		mGoalRotation = rotation;
+		mHasGoal = true;
+		// The rotation the tip ends with decides where the wrist must be for the grip point to land on the target.
+		let turn = Mathf.Clamp01(rotationWeight);
+		let before = tip.Rotation;
+		let final = turn > 0 ? Quaternion.Slerp(before, rotation, turn) : before;
+		var wrist = position;
+		if (gripPoint != .Zero)
+			wrist = position - final * (before.Conjugate * (tip.TransformPoint(gripPoint) - tip.Position));
+		IKSolver.TwoBone(top, mid, tip, wrist, pole != null && !pole.GameObject.IsDestroyed, pole != null ? pole.Position : .Zero);
+		if (turn > 0)
+			tip.Rotation = Quaternion.Slerp(tip.Rotation, rotation, turn);
+		else
+			tip.Rotation = before;
+	}
+
+	public override void OnDrawGizmos(bool selected)
+	{
+		let top = Upper, mid = Middle;
+		if (tip == null || mid == null || top == null)
+			return;
+		let color = Color(0.25f, 0.85f, 1.0f, selected ? 1.0f : 0.45f);
+		DebugDraw.Line(top.Position, mid.Position, color);
+		DebugDraw.Line(mid.Position, tip.Position, color);
+		if (target != null)
+		{
+			DebugDraw.Sphere(target.Position, 0.025f, .(1.0f, 0.62f, 0.15f, 1));
+			if (selected)
+				DebugDraw.Line(tip.Position, target.Position, .(1.0f, 0.62f, 0.15f, 0.6f));
+		}
+		if (pole != null && selected)
+		{
+			DebugDraw.Line(mid.Position, pole.Position, .(0.6f, 1.0f, 0.4f, 0.7f));
+			DebugDraw.Sphere(pole.Position, 0.02f, .(0.6f, 1.0f, 0.4f, 1));
+		}
+	}
+}

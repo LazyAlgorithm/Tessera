@@ -16,7 +16,9 @@ extension EditorApp
 	/// The terrain a stroke is being recorded on, for undo.
 	uint32 mStrokeTerrain;
 	int32 mSelectedTile;
-	String mBakeGenerator = new .() ~ delete _;
+	bool mBrushPreview = true;
+	bool mBrushTest;
+	Vector3 mBrushTestPoint;
 
 	const int32 cTilesTool = 5;
 	static readonly char8*[?] cBrushNames = .("Raise", "Lower", "Smooth", "Flatten", "Paint", "Tiles");
@@ -33,37 +35,6 @@ extension EditorApp
 				ImGui.SameLine();
 			if (ToolButton(cBrushNames[i], mBrushTool == i, width))
 				mBrushTool = mBrushTool == i ? -1 : i;
-		}
-
-		// What shapes ground nobody has sculpted.
-		if (BeginPropertyTable("terraingen"))
-		{
-			BeginProperty("Generator");
-			if (ImGui.BeginCombo("##generator", terrain.generator.IsEmpty ? (terrain.mode == .Endless ? "Sample noise" : "Flat") : terrain.generator.CStr()))
-			{
-				if (ImGui.Selectable(terrain.mode == .Endless ? "Sample noise" : "Flat", terrain.generator.IsEmpty))
-				{
-					terrain.generator.Clear();
-					terrain.OnValidate();
-					MarkDirty();
-				}
-				List<Type> types = scope .();
-				TerrainGenerator.Types(types);
-				for (let type in types)
-				{
-					let name = type.GetFullName(.. scope .());
-					if (type == typeof(NoiseTerrainGenerator))
-						continue;
-					if (ImGui.Selectable(type.GetName(.. scope .()), terrain.generator == name))
-					{
-						terrain.generator.Set(name);
-						terrain.OnValidate();
-						MarkDirty();
-					}
-				}
-				ImGui.EndCombo();
-			}
-			ImGui.EndTable();
 		}
 
 		if (mBrushTool == cTilesTool)
@@ -95,6 +66,10 @@ extension EditorApp
 				BeginProperty("Height");
 				ImGui.DragFloat("##height", ref mFlattenHeight, 0.1f);
 			}
+			BeginProperty("Preview");
+			ImGui.Checkbox("##preview", ref mBrushPreview);
+			if (ImGui.IsItemHovered())
+				ImGui.SetTooltip("Shows, under the mouse, the ground the brush covers and the shape it is about to make of it.");
 			ImGui.EndTable();
 		}
 		if (mBrushTool >= 0)
@@ -105,8 +80,10 @@ extension EditorApp
 		let status = scope String();
 		status.AppendF("{} tiles, {} chunks, {} pending{}", terrain.TileCount, terrain.ChunkCount, terrain.PendingChunks, terrain.HasUnsavedEdits ? ", unsaved edits" : "");
 		ImGui.TextDisabled(status.CStr());
-		if (ImGui.Button("Regenerate"))
+		if (ImGui.Button("Rebuild"))
 			terrain.Regenerate();
+		if (ImGui.IsItemHovered())
+			ImGui.SetTooltip("Builds every piece of the ground again from its sculpting.");
 		ImGui.SameLine();
 		ImGui.TextDisabled(terrain.editsFolder.IsEmpty ? "Sculpting is saved with the scene" : terrain.editsFolder.CStr());
 	}
@@ -156,38 +133,6 @@ extension EditorApp
 		ImGui.SameLine();
 		ImGui.TextDisabled("leaves a hole; undo brings it back");
 
-		ImGui.Spacing();
-		List<Type> types = scope .();
-		TerrainGenerator.Types(types);
-		if (mBakeGenerator.IsEmpty && types.Count > 0)
-			types[0].GetFullName(mBakeGenerator);
-		ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().x * 0.55f);
-		if (ImGui.BeginCombo("##bake", mBakeGenerator.IsEmpty ? "(no generators)" : mBakeGenerator.CStr()))
-		{
-			for (let type in types)
-			{
-				let name = type.GetFullName(.. scope .());
-				if (ImGui.Selectable(name, mBakeGenerator == name))
-					mBakeGenerator.Set(name);
-			}
-			ImGui.EndCombo();
-		}
-		ImGui.SameLine();
-		ImGui.BeginDisabled(mBakeGenerator.IsEmpty);
-		if (ImGui.Button("Apply Generator"))
-		{
-			let generator = TerrainGenerator.Create(mBakeGenerator);
-			if (generator != null)
-			{
-				terrain.BeginEditRecord();
-				terrain.ApplyGenerator(generator, tile.id);
-				PushTerrainUndo(terrain, terrain.EndEditRecord());
-				delete generator;
-				MarkDirty();
-			}
-		}
-		ImGui.EndDisabled();
-		ImGui.TextDisabled("replaces this tile's ground with the generator's, as if sculpted");
 	}
 
 	/// Finishes the brush stroke in progress, keeping it as one undo step.
@@ -321,9 +266,159 @@ extension EditorApp
 		ImGui.TextWrapped("At runtime call Carve(point, radius) from a script; loose pieces break off and fall.");
 	}
 
+	/// The brush's preview in the Scene view: the patch of ground inside the brush, lying on the ground as it is, with a
+	/// see-through mesh over it of the shape the brush is about to give it (higher, lower, levelled, evened out, or
+	/// tinted with the paint layer). It is a guide to where and which way, not an exact forecast: how far the ground
+	/// moves depends on how long the brush is held. Returns false when the ground under the brush could not be read.
+	bool DrawBrushPreview(VoxelTerrain terrain, Vector3 center, VoxelBrush mode, float flattenHeight)
+	{
+		let radius = mBrushSize;
+		let cells = (int)Math.Clamp(Math.Round(radius * 2 / Math.Max(terrain.voxelSize, 0.1f)), 10, 32);
+		let side = cells + 1;
+		float[] ground = scope float[side * side];
+		float[] after = scope float[side * side];
+		float[] weight = scope float[side * side];
+		let top = center.y + radius + 2;
+		let spacing = radius * 2 / cells;
+		int found = 0;
+		for (int j < side)
+		{
+			for (int i < side)
+			{
+				let at = i + j * side;
+				let x = center.x - radius + i * spacing, z = center.z - radius + j * spacing;
+				let away = Math.Sqrt((x - center.x) * (x - center.x) + (z - center.z) * (z - center.z));
+				weight[at] = Math.Max(1 - away / radius, 0);
+				ground[at] = float.NaN;
+				// A little beyond the brush too, so that the patch has a clean round edge to be cut to.
+				if (away > radius + spacing * 1.5f)
+					continue;
+				Vector3 hit;
+				if (terrain.Raycast(Ray(.(x, top, z), .(0, -1, 0)), (radius + 2) * 2, out hit))
+				{
+					ground[at] = hit.y;
+					found++;
+				}
+			}
+		}
+		if (found < 4)
+			return false;
+		// What the brush makes of each point. Raise and Lower move the ground by about what a second of holding does.
+		let push = Math.Clamp(mBrushStrength, 0.05f, 2) * Math.Min(radius * 0.35f, 4);
+		for (int j < side)
+		{
+			for (int i < side)
+			{
+				let at = i + j * side;
+				let height = ground[at];
+				if (height.IsNaN)
+				{
+					after[at] = float.NaN;
+					continue;
+				}
+				let w = weight[at];
+				switch (mode)
+				{
+				case .Raise: after[at] = height + push * w;
+				case .Lower: after[at] = height - push * w;
+				case .Flatten: after[at] = Mathf.Lerp(height, flattenHeight, Math.Min(w * 2.5f, 1));
+				case .Smooth:
+					float sum = 0;
+					int count = 0;
+					for (int dj = -2; dj <= 2; dj++)
+						for (int di = -2; di <= 2; di++)
+						{
+							let ni = i + di, nj = j + dj;
+							if (ni < 0 || nj < 0 || ni >= side || nj >= side || ground[ni + nj * side].IsNaN)
+								continue;
+							sum += ground[ni + nj * side];
+							count++;
+						}
+					after[at] = Mathf.Lerp(height, count > 0 ? sum / count : height, Math.Min(w * 2, 1));
+				default: after[at] = height;
+				}
+			}
+		}
+		Color tint;
+		switch (mode)
+		{
+		case .Raise: tint = .(0.35f, 0.9f, 0.45f, 1);
+		case .Lower: tint = .(1.0f, 0.45f, 0.3f, 1);
+		case .Flatten: tint = .(0.35f, 0.7f, 1.0f, 1);
+		case .Smooth: tint = .(0.8f, 0.6f, 1.0f, 1);
+		default:
+			// Paint: the colour of the layer that is about to go on.
+			float[6][3] layers = .(.(1, 1, 1), .(0.41f, 0.62f, 0.29f), .(0.5f, 0.48f, 0.45f), .(0.84f, 0.77f, 0.56f), .(0.93f, 0.94f, 0.96f), .(0.49f, 0.36f, 0.24f));
+			let layer = layers[Math.Clamp(mPaintLayer, 0, 5)];
+			tint = .(layer[0], layer[1], layer[2], 1);
+		}
+		let lift = Math.Max(terrain.voxelSize * 0.04f, 0.03f);
+		Vector3 On(int i, int j, float[] heights) => .(center.x - radius + i * spacing, heights[i + j * side] + lift, center.z - radius + j * spacing);
+		for (int j < cells)
+		{
+			for (int i < cells)
+			{
+				let a = i + j * side, b = a + 1, c = a + side + 1, d = a + side;
+				if (ground[a].IsNaN || ground[b].IsNaN || ground[c].IsNaN || ground[d].IsNaN)
+					continue;
+				let w = (weight[a] + weight[b] + weight[c] + weight[d]) * 0.25f;
+				if (w <= 0)
+					continue;
+				// The shape to come: stronger in the middle, fading to nothing at the brush's edge.
+				let fill = Color(tint.r * 0.75f, tint.g * 0.75f, tint.b * 0.75f, 0.3f + 0.45f * Math.Min(w * 1.6f, 1));
+				Gizmos.Triangles.Quad(On(i, j, after), On(i + 1, j, after), On(i + 1, j + 1, after), On(i, j + 1, after), fill);
+				// Its lines, every other cell, so that the slope reads.
+				if (i % 2 == 0)
+					Gizmos.Lines.Line(On(i, j, after), On(i, j + 1, after), .(tint.r * 0.35f, tint.g * 0.35f, tint.b * 0.35f, 0.9f * Math.Min(w * 3, 1)));
+				if (j % 2 == 0)
+					Gizmos.Lines.Line(On(i, j, after), On(i + 1, j, after), .(tint.r * 0.35f, tint.g * 0.35f, tint.b * 0.35f, 0.9f * Math.Min(w * 3, 1)));
+			}
+		}
+		// The brush's edge, lying on the ground as it is now, and on the shape to come.
+		let ringColor = Color(1.0f, 0.45f, 0.05f, 1);
+		float Height(float x, float z, float[] heights)
+		{
+			let fi = Math.Clamp((x - (center.x - radius)) / spacing, 0, cells - 0.001f), fj = Math.Clamp((z - (center.z - radius)) / spacing, 0, cells - 0.001f);
+			let i = (int)fi, j = (int)fj;
+			let h00 = heights[i + j * side], h10 = heights[i + 1 + j * side], h01 = heights[i + (j + 1) * side], h11 = heights[i + 1 + (j + 1) * side];
+			if (h00.IsNaN || h10.IsNaN || h01.IsNaN || h11.IsNaN)
+				return center.y;
+			let tx = fi - i, tz = fj - j;
+			return Mathf.Lerp(Mathf.Lerp(h00, h10, tx), Mathf.Lerp(h01, h11, tx), tz);
+		}
+		Vector3 previous = default;
+		for (int s <= 64)
+		{
+			let angle = s * (Mathf.PI * 2 / 64);
+			let x = center.x + Math.Cos(angle) * radius, z = center.z + Math.Sin(angle) * radius;
+			let point = Vector3(x, Height(x, z, ground) + lift * 2, z);
+			if (s > 0)
+				Gizmos.Lines.Line(previous, point, ringColor);
+			previous = point;
+		}
+		// A post from the ground to the shape to come, in the middle: how far and which way.
+		let middle = side / 2 + (side / 2) * side;
+		if (!ground[middle].IsNaN)
+			Gizmos.Lines.Line(.(center.x, ground[middle] + lift, center.z), .(center.x, after[middle] + lift, center.z), ringColor);
+		return true;
+	}
+
 	/// Runs the active brush under the mouse. Returns true when the brush is in control of the mouse.
 	bool UpdateBrush(GameObject selected, ImGui.Vec2 origin, ImGui.Vec2 size)
 	{
+		if (mBrushTest && selected != null)
+		{
+			// --brush-preview: the preview at a fixed place, for screenshots taken with nobody at the mouse.
+			let tested = selected.GetComponent<VoxelTerrain>();
+			Vector3 ground;
+			if (tested != null && mBrushTool >= 0 && mBrushTool < cTilesTool && tested.Raycast(Ray(mBrushTestPoint + Vector3(0, 300, 0), .(0, -1, 0)), 800, out ground))
+				DrawBrushPreview(tested, ground, (VoxelBrush)mBrushTool, ground.y + 2);
+		}
+		if (UpdateFoliageBrush(selected, origin, size))
+		{
+			EndBrushStroke();
+			return true;
+		}
 		if (mBrushTool < 0 || selected == null)
 		{
 			EndBrushStroke();
@@ -361,8 +456,17 @@ extension EditorApp
 					EndBrushStroke();
 				return true;
 			}
-			Gizmos.Lines.Circle(point, .Up, mBrushSize, color, 48);
-			Gizmos.Lines.Line(point, point + Vector3(0, mBrushSize * 0.5f, 0), color);
+			var previewMode = (VoxelBrush)mBrushTool;
+			if (ImGui.IsKeyDown(ImGui.Key.LeftShift))
+			{
+				if (previewMode == .Raise) previewMode = .Lower;
+				else if (previewMode == .Lower) previewMode = .Raise;
+			}
+			if (!mBrushPreview || !DrawBrushPreview(terrain, point, previewMode, mBrushStroke ? mFlattenHeight : point.y))
+			{
+				Gizmos.Lines.Circle(point, .Up, mBrushSize, color, 48);
+				Gizmos.Lines.Line(point, point + Vector3(0, mBrushSize * 0.5f, 0), color);
+			}
 			if (down)
 			{
 				var mode = (VoxelBrush)mBrushTool;

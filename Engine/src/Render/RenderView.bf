@@ -29,6 +29,7 @@ static class RenderResources
 	public static bgfx.ProgramHandle LineProgram;
 
 	public static bgfx.UniformHandle sAlbedo, sShadowMap, sColor;
+	public static bgfx.UniformHandle uWind, uWindZone, uWindPush, uSway;
 	public static bgfx.UniformHandle uCamPos, uSunDir, uSunColor, uAmbientSky, uAmbientGround, uFogColor;
 	public static bgfx.UniformHandle uMaterial, uEmissive, uUvTransform, uSurface, uParams, uPbr, sTexture1, sTexture2, sNormalMap, sMetalRoughMap, sOcclusionMap, sEmissiveMap;
 	public static bgfx.UniformHandle uLightPosRange, uLightColor, uLightDirSpot, uLightParams, uLightCount;
@@ -87,6 +88,10 @@ static class RenderResources
 		uEmissive = bgfx.create_uniform("u_emissive", .Vec4, 1);
 		uUvTransform = bgfx.create_uniform("u_uvTransform", .Vec4, 1);
 		uSurface = bgfx.create_uniform("u_surface", .Vec4, 1);
+		uWind = bgfx.create_uniform("u_wind", .Vec4, 1);
+		uWindZone = bgfx.create_uniform("u_windZone", .Vec4, 4);
+		uWindPush = bgfx.create_uniform("u_windPush", .Vec4, 4);
+		uSway = bgfx.create_uniform("u_sway", .Vec4, 1);
 		uParams = bgfx.create_uniform("u_params", .Vec4, ShaderAsset.MaxValues);
 		sTexture1 = bgfx.create_uniform("s_texture1", .Sampler, 1);
 		sTexture2 = bgfx.create_uniform("s_texture2", .Sampler, 1);
@@ -158,6 +163,8 @@ class RenderView
 		public Matrix4 world;
 		public Vector3 center;
 		public float radius;
+		/// Multiplies the renderer's colour for this one item (Foliage gives each plant a shade of its own).
+		public Color tint;
 	}
 
 	[CRepr]
@@ -231,6 +238,11 @@ class RenderView
 	List<RenderItem> mItems = new .() ~ delete _;
 	List<RenderItem> mShadowItems = new .() ~ delete _;
 	List<RenderItem> mTransparentItems = new .() ~ delete _;
+	/// Foliage, in runs of one kind of plant: drawn like mItems, but already in order and far too many to sort.
+	List<RenderItem> mFoliageItems = new .() ~ delete _;
+	List<int32> mFoliageVisible = new .() ~ delete _;
+	Vector4 mWind;
+	Vector4[4] mWindZone, mWindPush;
 	// The viewmodel's (Camera.viewmodelLayer): solid, and see-through.
 	List<RenderItem> mViewmodelItems = new .() ~ delete _;
 	List<RenderItem> mViewmodelTransparent = new .() ~ delete _;
@@ -460,6 +472,7 @@ class RenderView
 				if (mesh == null || !mesh.HasGpuData)
 					continue;
 				RenderItem item;
+				item.tint = .White;
 				item.mesh = mesh;
 				item.renderer = renderer;
 				item.material = (parts != null && parts.Count > 0 && parts[partIndex].material != null) ? parts[partIndex].material : renderer.ActiveMaterial;
@@ -493,6 +506,43 @@ class RenderView
 					mShadowItems.Add(item);
 			}
 		}
+		// ---- foliage: every plant near enough and in view, one item each ----
+		mFoliageItems.Clear();
+		for (let foliage in Foliage.All)
+		{
+			if (foliage.GameObject == null || foliage.GameObject.IsDestroyed || foliage.Scene != scene || !foliage.IsActiveAndEnabled || !foliage.GameObject.InActiveWorld)
+				continue;
+			let mesh = foliage.Mesh;
+			if (mesh == null || !mesh.HasGpuData)
+				continue;
+			mFoliageVisible.Clear();
+			foliage.Visible(camera.position, frustum, mFoliageVisible);
+			if (mFoliageVisible.Count == 0)
+				continue;
+			let proxy = foliage.Proxy;
+			let material = foliage.ActiveMaterial;
+			let key = MakeKey(proxy, mesh, material);
+			let meshRadius = mesh.Bounds.Extents.Length;
+			let shadows = castShadows && foliage.castShadows;
+			for (let index in mFoliageVisible)
+			{
+				RenderItem item;
+				item.key = key;
+				item.mesh = mesh;
+				item.renderer = proxy;
+				item.material = material;
+				Color tint;
+				float scale;
+				item.world = foliage.WorldOf(index, out tint, out scale);
+				item.tint = tint;
+				item.center = .(item.world.m[12], item.world.m[13] + mesh.Bounds.Center.y * scale, item.world.m[14]);
+				item.radius = meshRadius * scale;
+				mFoliageItems.Add(item);
+				if (shadows && (item.center - camera.position).Length - item.radius < shadowRange)
+					mShadowItems.Add(item);
+			}
+		}
+		Wind.Gather(scene, camera.position, out mWind, ref mWindZone, ref mWindPush);
 		VisibleRenderers = (int32)(mItems.Count + mViewmodelItems.Count);
 		mItems.Sort(scope (a, b) => a.key <=> b.key);
 		mViewmodelItems.Sort(scope (a, b) => a.key <=> b.key);
@@ -535,6 +585,7 @@ class RenderView
 
 		SubmitSky(sceneView, env);
 		SubmitMeshes(sceneView, mItems);
+		SubmitMeshes(sceneView, mFoliageItems);
 		SubmitParticles(sceneView, scene, frustum);
 		SubmitLines(sceneView, DebugDraw.Lines);
 		if (DrawGizmos)
@@ -740,16 +791,16 @@ class RenderView
 		bgfx.touch(view);
 		let worldViewProj = projMatrix * viewMatrix;
 		let viewmodelViewProj = camera.viewmodelProjection * viewMatrix;
-		for (int pass < 2)
+		for (int pass < 3)
 		{
-			let items = pass == 0 ? mItems : mViewmodelItems;
+			let items = pass == 0 ? mItems : (pass == 1 ? mViewmodelItems : mFoliageItems);
 			int start = 0;
 			while (start < items.Count)
 			{
 				int end = start + 1;
 				while (end < items.Count && items[end].mesh == items[start].mesh && items[end].material == items[start].material)
 					end++;
-				SubmitDepthBatch(view, items, start, end - start, pass == 0 ? worldViewProj : viewmodelViewProj, pass == 1);
+				SubmitDepthBatch(view, items, start, end - start, pass == 1 ? viewmodelViewProj : worldViewProj, pass == 1);
 				start = end;
 			}
 		}
@@ -803,6 +854,7 @@ class RenderView
 		// With a material, the material is what draws differ by.
 		let shared = material;
 		key = key * 1099511628211 ^ (uint64)renderer.TextureOverride.idx;
+		key = key * 1099511628211 ^ (uint64)(uint32)(renderer.windSway * 100.0f);
 		if (shared != null)
 		{
 			key = key * 1099511628211 ^ (uint64)(int)Internal.UnsafeCastToPtr(shared);
@@ -984,7 +1036,7 @@ class RenderView
 		{
 			let item = items[start + i];
 			data[i].world = item.world;
-			data[i].color = item.renderer.color;
+			data[i].color = .(item.renderer.color.r * item.tint.r, item.renderer.color.g * item.tint.g, item.renderer.color.b * item.tint.b, item.renderer.color.a * item.tint.a);
 			let tint = item.material;
 			if (tint != null)
 				data[i].color = .(data[i].color.r * tint.color.r, data[i].color.g * tint.color.g, data[i].color.b * tint.color.b, data[i].color.a * tint.color.a);
@@ -1053,6 +1105,8 @@ class RenderView
 		bgfx.set_uniform(RenderResources.uEmissive, &emissive, 1);
 		bgfx.set_uniform(RenderResources.uUvTransform, &uvTransform, 1);
 		bgfx.set_uniform(RenderResources.uSurface, &surface, 1);
+		Vector4 sway = .(renderer.windSway, 0, 0, 0);
+		bgfx.set_uniform(RenderResources.uSway, &sway, 1);
 		bgfx.set_uniform(RenderResources.uParams, &values, ShaderAsset.MaxValues);
 		bgfx.set_texture(0, RenderResources.sAlbedo, texture, uint32.MaxValue);
 		bgfx.set_texture(1, RenderResources.sShadowMap, RenderResources.ShadowMap, uint32.MaxValue);
@@ -1130,6 +1184,9 @@ class RenderView
 		bgfx.set_uniform(RenderResources.uAmbientSky, &mAmbientSky, 1);
 		bgfx.set_uniform(RenderResources.uAmbientGround, &mAmbientGround, 1);
 		bgfx.set_uniform(RenderResources.uFogColor, &mFogColor, 1);
+		bgfx.set_uniform(RenderResources.uWind, &mWind, 1);
+		bgfx.set_uniform(RenderResources.uWindZone, &mWindZone, 4);
+		bgfx.set_uniform(RenderResources.uWindPush, &mWindPush, 4);
 		bgfx.set_uniform(RenderResources.uLightPosRange, &mLightPosRange, RenderResources.MaxLights);
 		bgfx.set_uniform(RenderResources.uLightColor, &mLightColor, RenderResources.MaxLights);
 		bgfx.set_uniform(RenderResources.uLightDirSpot, &mLightDirSpot, RenderResources.MaxLights);
