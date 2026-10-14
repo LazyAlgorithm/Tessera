@@ -102,6 +102,11 @@ Work agreed and queued, in order (see *How to use this page* above for what "don
   the inside an Interior Material or one made from the outside's. `docs/voxel-objects.md`, `Tests/VoxelObject`.
 - [x] Foliage follow-ups (2026-10-13): a Foliage tool in the Terrain Tools, undo and redo for brush strokes (applied
   in place), shadows and the depth pass bending in the wind with the plants.
+- [x] Foliage: parting round players and following sculpting (2026-10-13): plants bend away from every Character
+  Controller and from Foliage Bender components (eight nearest the camera, in the shared wind shader; nothing sent
+  over the network), and plants on a terrain ride sculpted ground up and down, removed when buried or left with
+  nothing under them, each judged from its own foot so that caves are left alone. `docs/foliage.md`,
+  `Tests/Foliage`, `Tests/Terrain`.
 - [ ] E5b animation retargeting: play clips made for one rig on another (a shared humanoid bone map, matched by
   name with an editor to fix the matches, bone lengths and rest poses allowed to differ, root motion scaled to the
   target's size); the Animator plays any retargeted clip, and networking already sends clip and state, not bones

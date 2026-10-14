@@ -29,7 +29,7 @@ static class RenderResources
 	public static bgfx.ProgramHandle LineProgram;
 
 	public static bgfx.UniformHandle sAlbedo, sShadowMap, sColor;
-	public static bgfx.UniformHandle uWind, uWindZone, uWindPush, uSway;
+	public static bgfx.UniformHandle uWind, uWindZone, uWindPush, uSway, uBender, uBenderPush;
 	public static bgfx.UniformHandle uCamPos, uSunDir, uSunColor, uAmbientSky, uAmbientGround, uFogColor;
 	public static bgfx.UniformHandle uMaterial, uEmissive, uUvTransform, uSurface, uParams, uPbr, sTexture1, sTexture2, sNormalMap, sMetalRoughMap, sOcclusionMap, sEmissiveMap;
 	public static bgfx.UniformHandle uLightPosRange, uLightColor, uLightDirSpot, uLightParams, uLightCount;
@@ -92,6 +92,8 @@ static class RenderResources
 		uWindZone = bgfx.create_uniform("u_windZone", .Vec4, 4);
 		uWindPush = bgfx.create_uniform("u_windPush", .Vec4, 4);
 		uSway = bgfx.create_uniform("u_sway", .Vec4, 1);
+		uBender = bgfx.create_uniform("u_bender", .Vec4, 8);
+		uBenderPush = bgfx.create_uniform("u_benderPush", .Vec4, 8);
 		uParams = bgfx.create_uniform("u_params", .Vec4, ShaderAsset.MaxValues);
 		sTexture1 = bgfx.create_uniform("s_texture1", .Sampler, 1);
 		sTexture2 = bgfx.create_uniform("s_texture2", .Sampler, 1);
@@ -243,6 +245,7 @@ class RenderView
 	List<int32> mFoliageVisible = new .() ~ delete _;
 	Vector4 mWind;
 	Vector4[4] mWindZone, mWindPush;
+	Vector4[8] mBender, mBenderPush;
 	// The viewmodel's (Camera.viewmodelLayer): solid, and see-through.
 	List<RenderItem> mViewmodelItems = new .() ~ delete _;
 	List<RenderItem> mViewmodelTransparent = new .() ~ delete _;
@@ -543,6 +546,7 @@ class RenderView
 			}
 		}
 		Wind.Gather(scene, camera.position, out mWind, ref mWindZone, ref mWindPush);
+		FoliageBender.Gather(scene, camera.position, ref mBender, ref mBenderPush);
 		VisibleRenderers = (int32)(mItems.Count + mViewmodelItems.Count);
 		mItems.Sort(scope (a, b) => a.key <=> b.key);
 		mViewmodelItems.Sort(scope (a, b) => a.key <=> b.key);
@@ -1189,6 +1193,8 @@ class RenderView
 		bgfx.set_uniform(RenderResources.uWind, &mWind, 1);
 		bgfx.set_uniform(RenderResources.uWindZone, &mWindZone, 4);
 		bgfx.set_uniform(RenderResources.uWindPush, &mWindPush, 4);
+		bgfx.set_uniform(RenderResources.uBender, &mBender, 8);
+		bgfx.set_uniform(RenderResources.uBenderPush, &mBenderPush, 8);
 	}
 
 	void SetFrameUniforms()
@@ -1202,6 +1208,8 @@ class RenderView
 		bgfx.set_uniform(RenderResources.uWind, &mWind, 1);
 		bgfx.set_uniform(RenderResources.uWindZone, &mWindZone, 4);
 		bgfx.set_uniform(RenderResources.uWindPush, &mWindPush, 4);
+		bgfx.set_uniform(RenderResources.uBender, &mBender, 8);
+		bgfx.set_uniform(RenderResources.uBenderPush, &mBenderPush, 8);
 		bgfx.set_uniform(RenderResources.uLightPosRange, &mLightPosRange, RenderResources.MaxLights);
 		bgfx.set_uniform(RenderResources.uLightColor, &mLightColor, RenderResources.MaxLights);
 		bgfx.set_uniform(RenderResources.uLightDirSpot, &mLightDirSpot, RenderResources.MaxLights);

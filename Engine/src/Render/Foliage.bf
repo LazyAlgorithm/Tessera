@@ -319,6 +319,125 @@ class Foliage : Component
 		return removed;
 	}
 
+	/// Called by a terrain when its ground has been sculpted inside a sphere (radius below 0: anywhere): every
+	/// Foliage standing on that terrain follows the ground.
+	public static void GroundChanged(VoxelTerrain terrain, Vector3 worldCenter, float radius)
+	{
+		for (let foliage in sAll)
+		{
+			if (foliage.GameObject == null || foliage.GameObject.IsDestroyed || foliage.Scene != terrain.Scene || foliage.mPlants.Count == 0)
+				continue;
+			// Its ground is this terrain when it sits on the terrain's object, or on an object with no terrain of
+			// its own in a scene whose terrain this is.
+			let own = foliage.GameObject.GetComponent<VoxelTerrain>();
+			if (own != terrain && (own != null || foliage.Scene.FindComponent<VoxelTerrain>() != terrain))
+				continue;
+			foliage.FollowGround(terrain, worldCenter, radius);
+		}
+	}
+
+	/// Puts the plants inside a sphere (radius below 0: all of them) back on the ground after it has been sculpted.
+	/// A plant whose ground rose or sank goes with it. One that ends up buried deeper than the sculpting could have
+	/// raised the ground, or with nothing under it, is removed, so that none is left where nobody can reach it.
+	///
+	/// Each plant is judged from where it stands: the ground is looked for straight up or down from its own foot,
+	/// not from the sky. So grass on a cave floor stays on the cave floor when the hill above is reshaped, and is
+	/// only touched when its own floor moves or the cave is filled in. Returns how many moved or went.
+	public int32 FollowGround(VoxelTerrain terrain, Vector3 worldCenter, float radius)
+	{
+		let everywhere = radius < 0;
+		let voxel = Math.Max(terrain.voxelSize, 0.05f);
+		let step = voxel * 0.5f;
+		// How far ground can have moved: about as far as the brush reaches, and a little.
+		let limit = everywhere ? 12.0f : radius + voxel * 2;
+		let reach = radius + voxel * 2;
+		int32 changed = 0;
+		bool Solid(Vector3 at, out bool known)
+		{
+			float density;
+			known = terrain.DensityAt(at, out density);
+			return known && density > 0;
+		}
+		for (int i = mPlants.Count - 1; i >= 0; i--)
+		{
+			let world = Transform.TransformPoint(mPlants[i].position);
+			if (!everywhere)
+			{
+				let dx = world.x - worldCenter.x, dy = world.y - worldCenter.y, dz = world.z - worldCenter.z;
+				if (dx * dx + dz * dz > reach * reach || Math.Abs(dy) > reach + limit)
+					continue;
+			}
+			bool known;
+			let buried = Solid(world + Vector3(0, voxel * 0.05f, 0), out known);
+			if (!known)
+				continue;   // that part of the terrain is not loaded: leave the plant be
+			float air = 0, ground = 0;
+			bool found = false;
+			if (buried)
+			{
+				// The ground has risen over it: up to the surface, if that is near enough.
+				for (float up = step; up <= limit; up += step)
+				{
+					if (!Solid(world + Vector3(0, up, 0), out known))
+					{
+						if (!known)
+							break;
+						air = up;
+						ground = up - step;
+						found = true;
+						break;
+					}
+				}
+			}
+			else
+			{
+				// Standing in air: down to the ground, if there is any near enough.
+				for (float down = 0; down <= limit; down += step)
+				{
+					if (Solid(world - Vector3(0, down + step, 0), out known))
+					{
+						air = -down;
+						ground = -(down + step);
+						found = true;
+						break;
+					}
+					if (!known)
+						break;
+				}
+			}
+			if (!found)
+			{
+				mPlants.RemoveAtFast(i);
+				mLocal.RemoveAtFast(i);
+				changed++;
+				continue;
+			}
+			// The surface is between the last air and the first ground: halve the gap a few times.
+			for (int pass < 6)
+			{
+				let middle = (air + ground) * 0.5f;
+				if (Solid(world + Vector3(0, middle, 0), out known))
+					ground = middle;
+				else
+					air = middle;
+			}
+			let moved = (air + ground) * 0.5f;
+			if (Math.Abs(moved) < voxel * 0.02f)
+				continue;
+			var plant = mPlants[i];
+			plant.position = Transform.InverseTransformPoint(world + Vector3(0, moved, 0));
+			mPlants[i] = plant;
+			mLocal[i] = Matrix4.TRS(plant.position, Quaternion.AngleAxis(plant.yaw * Mathf.Rad2Deg, .Up), .(plant.scale));
+			changed++;
+		}
+		if (changed > 0)
+		{
+			mCellsStale = true;
+			mChanged = true;
+		}
+		return changed;
+	}
+
 	/// Where a plant is, in the world.
 	public Vector3 PositionOf(int index) => Transform.TransformPoint(mPlants[index].position);
 

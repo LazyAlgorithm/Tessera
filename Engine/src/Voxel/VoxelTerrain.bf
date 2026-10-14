@@ -303,6 +303,8 @@ class VoxelTerrain : Component
 	// Copies of the settings read by worker threads.
 	VoxelStyle mStyle;
 	float mSharpness;
+	/// Frames to wait, once nothing is being built, before plants are put back on ground that undo or redo moved.
+	int32 mFoliageStale;
 	bool mFlat;
 	float mVoxelSize = 1, mTerrainHeight, mSeaLevel;
 	bool mLodOn, mColliders;
@@ -1564,6 +1566,8 @@ class VoxelTerrain : Component
 	{
 		if (!Streaming)
 			return;
+		if (mFoliageStale > 0 && PendingChunks == 0 && --mFoliageStale == 0)
+			Foliage.GroundChanged(this, .Zero, -1);
 		// The mode was changed from code without OnValidate.
 		if (mode != mSnap.mode)
 			Regenerate();
@@ -1895,6 +1899,8 @@ class VoxelTerrain : Component
 		{
 			for (let chunk in touched)
 				CatchUp(chunk);
+			if (mode != .Paint)
+				Foliage.GroundChanged(this, worldCenter, radius);
 			return;
 		}
 		// Smoothing reads the neighbours of each sample, across chunk edges: every chunk reads the ground as it was
@@ -1919,6 +1925,9 @@ class VoxelTerrain : Component
 		defer { if (before != null) for (let entry in before) delete entry.value; }
 		for (let chunk in touched)
 			ApplyStroke(chunk, stroke, before);
+		// Plants standing on the ground go with it, or go altogether if it buries them or leaves them in the air.
+		if (mode != .Paint)
+			Foliage.GroundChanged(this, worldCenter, radius);
 	}
 
 	/// Applies the session strokes a chunk has not had yet, in order.
@@ -2174,6 +2183,9 @@ class VoxelTerrain : Component
 		for (let chunk in remesh)
 			QueueEdited(chunk);
 		HasUnsavedEdits = true;
+		// Undo and redo move ground anywhere a stroke did: every plant on this terrain finds its footing again, once
+		// the chunks that were put back have been made again (OnFrame).
+		mFoliageStale = 3;
 	}
 
 	/// The sculpting this terrain holds, loaded or not, taken out of it: the editor keeps it while undo makes the
