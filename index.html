@@ -754,6 +754,7 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
       <a href="#manual" data-sec="manual-terrain">Terrain</a>
       <a href="#manual" data-sec="manual-foliage">Foliage and wind</a>
       <a href="#manual" data-sec="manual-destructible">Destructible objects</a>
+      <a href="#manual" data-sec="manual-loading">Loading in the background</a>
       <a href="#manual" data-sec="manual-audio">Audio and voice</a>
       <a href="#manual" data-sec="manual-ui">Interfaces</a>
       <a href="#manual" data-sec="manual-responsive">Phones and tablets</a>
@@ -920,6 +921,11 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
       <p><strong>Any model can be one.</strong> Select an object drawn with a model, add a Voxel Object and press <strong>Make This Model Destructible</strong>: Shape becomes <strong>Mesh</strong>, and the model is filled in as solid material, keeping its size, colours and texture coordinates. The model must be closed, like a real object, with no open sides. It is re-made from a grid of <strong>Resolution</strong> cells (8 to 48) along its longest side, so parts thinner than a cell are lost and sharp edges soften a little. Sphere, Box and Cylinder are built in.</p>
       <p><strong>Materials.</strong> The outside is drawn with the object's Mesh Renderer material. The surfaces carving exposes are drawn with <strong>Interior Material</strong> when you name one (the wood inside a painted crate); otherwise with an inside made from the outside's material, the same textures carried through the solid, tinted by <strong>Interior Color</strong> and a little rougher; otherwise with plain Interior Color. <strong>Interior Tiling</strong> is how often the inside's texture repeats. Pieces that break off are made of the same stuff.</p>
       <p><strong>Anchored</strong> keeps an object in place (a wall, a cliff) so that only cut-off pieces fall; otherwise it becomes a physics body the first time it is carved.</p>
+
+      <h2 id="manual-loading">Loading in the background</h2>
+      <p>Scenes, models and textures can be loaded while the game keeps running: behind a loading screen, or a part of the world brought in as the player nears it. Files are read and decoded on loading threads; sending them to the graphics card is done a little each frame (<code>AssetLoader.UploadBudget</code>, 4 ms), so the frame rate holds.</p>
+      <p><strong>Without code:</strong> add a <strong>Scene Loader</strong>, pick its <strong>Scene</strong>, and choose <strong>Additive</strong> (add it to the running scene) or not (change to it once loaded). Its <code>progress</code> field goes from 0 to 1, so a UI Document <code>&lt;bar bind="progress" /&gt;</code> on the same object is a loading bar. With <strong>Activate When Ready</strong> off it waits at 0.9 until <code>Activate()</code>, for "press any key to continue".</p>
+      <p><strong>From code:</strong> <code>SceneManager.LoadAsync(path)</code> and <code>LoadAdditiveAsync(scene, path)</code> return a <code>SceneLoad</code> with <code>Progress</code>, <code>CurrentStage</code>, <code>allowActivation</code> and, for an additive load, <code>Group</code>. Every model and texture a scene names, through its prefabs and materials too, is loaded before it appears. <code>AssetLoader.Preload("Models/launcher.glb", "Textures/launcher.png")</code> gets anything else ready ahead of time. Every machine loads scenes for itself; nothing about loading is sent over the network.</p>
 
       <h2 id="manual-audio">Audio and voice</h2>
       <p>miniaudio is built in. Put an <code>AudioSource</code> on anything that makes sound and an <code>AudioListener</code> on the ears. Stereo panning or HRTF for headphones, distance rolloff, Doppler, occlusion behind colliders, reverb zones and six mixer groups. WAV, OGG, MP3 and FLAC.</p>
