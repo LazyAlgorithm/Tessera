@@ -41,6 +41,15 @@ class Program
         let many=scope Scene();
         for(int i=0;i<80;i++) AddBox(many,.(i*0.1f,0,0),.One,let go);
         ok &= Check(many.Physics.OverlapSphere(.(4,0,0),10,hits)==80 && hits.Count==80,"overlap buffer grows without truncating results");
+        let miniature=scope Scene();miniature.Physics.LengthScale=0.002f;miniature.Physics.MinimumShapeExtent=0.0001f;miniature.Physics.Gravity=.Zero;
+        let toy=miniature.CreateGameObject("Miniature inertia probe");toy.AddComponent<BoxCollider>().size=.(0.01f);
+        let body=toy.AddComponent<Rigidbody>();body.mass=0.012f;body.useGravity=false;body.linearDamping=0;body.angularDamping=0;body.EnsureBody();
+        body.Sleep();ok &= Check(body.IsSleeping,"authored resting dynamic bodies can sleep without becoming kinematic");
+        body.AddForceAtPosition(.(0,0,0.001f),.(0.005f,0,0));miniature.Physics.Step(1.0f/60);
+        // Solid 1 cm cube: I_y=m*(x*x+z*z)/12=2e-7 kg m^2; torque=5e-6 N m.
+        ok &= Check(Math.Abs(body.Velocity.z-0.001f/0.012f/60)<0.0001f,"miniature inertia conditioning preserves the assigned physical mass");
+        ok &= Check(Math.Abs(body.AngularVelocity.y+0.4166667f)<0.03f,"off-centre force uses actual toy inertia rather than a metre-sphere fallback");
+        ok &= Check(!body.IsSleeping && !body.isKinematic,"physical force wakes a resting dynamic prop");
         return ok ? 0 : 1;
     }
 }

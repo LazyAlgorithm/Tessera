@@ -316,6 +316,8 @@ class PhysicsWorld
 			motion = Jolt.MotionStatic;
 		let debris = rigidbody != null && rigidbody.debris && motion != Jolt.MotionStatic;
 
+		// Keep the inertia eigensolve away from Jolt's absolute near-zero fallback in miniature worlds.
+		let massScale = Math.Min(100000000.0f,Math.Max(1.0f,1.0f/(LengthScale*LengthScale)));
 		let settings = Jolt.JPH_BodyCreationSettings_Create3(shape, &position, &rotation, motion, ObjectLayer(motion == Jolt.MotionStatic ? LayerStatic : (debris ? LayerDebris : LayerMoving), transform));
 		Jolt.JPH_BodyCreationSettings_SetUserData(settings, (uint64)transform.GameObject.Id);
 		if (rigidbody != null)
@@ -333,13 +335,15 @@ class PhysicsWorld
 			if (motion == Jolt.MotionDynamic)
 			{
 				Jolt.MassProperties mass = default;
-				mass.mass = Math.Max(rigidbody.mass, 0.001f);
+				mass.mass = Math.Max(rigidbody.mass, 0.001f)*massScale;
 				Jolt.JPH_BodyCreationSettings_SetOverrideMassProperties(settings, 1);
 				Jolt.JPH_BodyCreationSettings_SetMassPropertiesOverride(settings, &mass);
 			}
 		}
 		let bodyId = Jolt.JPH_BodyInterface_CreateAndAddBody(mBodyInterface, settings, Jolt.Activate);
 		Jolt.JPH_BodyCreationSettings_Destroy(settings);
+		if (motion == Jolt.MotionDynamic && massScale > 1 && bodyId != uint32.MaxValue)
+			Jolt.tn_physics_rescale_body_mass(mSystem,bodyId,Math.Max(rigidbody.mass,0.001f));
 
 		let entry = new Entry();
 		entry.bodyId = bodyId;
@@ -687,6 +691,17 @@ class PhysicsWorld
 		entry.transform.SetPositionAndRotation(state.position, state.rotation);
 		entry.lastVersion = entry.transform.Version;
 	}
+
+	/// Let an authored resting prop wait for a real contact to wake it, without making it kinematic.
+	public void Sleep(uint32 bodyId)
+	{
+		if (!mByBody.TryGetValue(bodyId, let entry) || !entry.dynamic || entry.outOfWorld)
+			return;
+		Flush(bodyId);
+		Jolt.JPH_BodyInterface_DeactivateBody(mBodyInterface, bodyId);
+	}
+
+	public bool IsSleeping(uint32 bodyId) => mByBody.ContainsKey(bodyId) && !Jolt.JPH_BodyInterface_IsActive(mBodyInterface, bodyId);
 
 	public Vector3 GetLinearVelocity(uint32 bodyId)
 	{

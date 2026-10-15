@@ -109,6 +109,7 @@ static class Jolt
 	[CLink] public static extern void* JPH_PhysicsSystem_GetNarrowPhaseQuery(void* system);
 	[CLink] public static extern void JPH_PhysicsSystem_SetGravity(void* system, Vector3* gravity);
 	[CLink] public static extern void tn_physics_scale_tolerances(void* system, float ratio);
+	[CLink] public static extern void tn_physics_rescale_body_mass(void* system, uint32 bodyId, float mass);
 	[CLink] public static extern void JPH_Shape_Destroy(void* shape);
 	[CLink] public static extern void JPH_ShapeSettings_Destroy(void* settings);
 	[CLink] public static extern void* JPH_BoxShape_Create(Vector3* halfExtent, float convexRadius);
@@ -153,6 +154,7 @@ static class Jolt
 	[CLink] public static extern void JPH_BodyInterface_AddTorque(void* bodyInterface, uint32 bodyId, Vector3* torque);
 	[CLink] public static extern void JPH_BodyInterface_MoveKinematic(void* bodyInterface, uint32 bodyId, Vector3* position, Quaternion* rotation, float deltaTime);
 	[CLink] public static extern void JPH_BodyInterface_ActivateBody(void* bodyInterface, uint32 bodyId);
+	[CLink] public static extern void JPH_BodyInterface_DeactivateBody(void* bodyInterface, uint32 bodyId);
 	[CLink] public static extern bool JPH_BodyInterface_IsActive(void* bodyInterface, uint32 bodyId);
 	[CLink] public static extern uint64 JPH_BodyInterface_GetUserData(void* bodyInterface, uint32 bodyId);
 	[CLink] public static extern bool JPH_NarrowPhaseQuery_CastRay(void* query, Vector3* origin, Vector3* direction, RayCastResult* hit, void* bpFilter, void* layerFilter, void* bodyFilter);

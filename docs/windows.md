@@ -78,3 +78,9 @@ The launcher also supports `Tessera.exe --build-project <folder>` to compile a p
 Windows launchers and generated editor executables use the GUI subsystem, so starting the editor does not create an external command-prompt window. Compiler/build shells use `CreateNoWindow`; their output stays in the project build log and the editor's built-in Console remains available. Command-line launcher checks preserve redirected diagnostics and may attach to an existing caller console.
 
 Engine CI starts on pushes to `dev` and `main`: both build platform packages and run the native Windows project-open regression. `main` publishes Windows/Linux ZIPs and checksums as a `build-` release in `LazyAlgorithm/Tessera`, which is the repository/tag prefix Tessera Hub checks for engine updates. `dev` retains packages as Actions artifacts. No Hub application release is needed for an engine-only update.
+
+## Miniature dynamic worlds
+
+`PhysicsWorld.LengthScale` now conditions body inertia calculations as well as contact tolerances. For small scales, body creation computes inertia with a larger temporary calculation mass, then restores the assigned physical mass and rescales inverse inertia before simulation. This avoids Jolt's near-zero inertia fallback to a one-metre sphere; contacts on toy aircraft can produce the expected rotation without artificial angular impulses. `Rigidbody.Sleep()` keeps authored resting props dynamic and wakes them through normal contacts or forces.
+
+The `Tests/ShapeQueries` regression checks a 1 cm, 12 g cube against its analytical torque response and linear acceleration, plus sleep/wake behavior.

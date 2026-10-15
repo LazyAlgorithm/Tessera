@@ -108,6 +108,9 @@ class Rigidbody : Component
 	public void AddForceAtPosition(Vector3 force, Vector3 worldPoint) => Scene.Physics.AddForceAtPosition(mBody, force, worldPoint);
 	public Vector3 GetPointVelocity(Vector3 worldPoint) => Scene.Physics.GetPointVelocity(mBody, worldPoint);
 	public void AddImpulse(Vector3 impulse) => Scene.Physics.AddImpulse(mBody, impulse);
+	/// Sleep until disturbed by physics; the body stays dynamic and collision-enabled.
+	public void Sleep() => Scene.Physics.Sleep(mBody);
+	public bool IsSleeping => HasBody && Scene.Physics.IsSleeping(mBody);
 	public BodyState State => Scene.Physics.GetState(mBody);
 	public void SetState(BodyState state) => Scene.Physics.SetState(mBody, state);
 }

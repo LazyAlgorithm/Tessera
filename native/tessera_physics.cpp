@@ -306,3 +306,18 @@ extern "C" void tn_physics_scale_tolerances(JPH_PhysicsSystem* system, float rat
     settings.deterministicSimulation = true;
     JPH_PhysicsSystem_SetPhysicsSettings(system, &settings);
 }
+
+// Jolt falls back to a one-metre sphere when a toy-sized inertia tensor is numerically near zero.
+// Create the body with a larger calculation mass, then rescale mass and inverse inertia together before stepping.
+extern "C" void tn_physics_rescale_body_mass(JPH_PhysicsSystem* system, uint32_t bodyId, float mass) {
+    if (!system || !std::isfinite(mass) || mass <= 0) return;
+    const auto* locks = JPH_PhysicsSystem_GetBodyLockInterface(system);
+    JPH_BodyLockWrite lock{};
+    JPH_BodyLockInterface_LockWrite(locks, bodyId, &lock);
+    if (lock.body && JPH_Body_GetMotionType(lock.body) == JPH_MotionType_Dynamic) {
+        auto* properties = JPH_Body_GetMotionProperties(lock.body);
+        if (properties && JPH_MotionProperties_GetInverseMassUnchecked(properties) > 0)
+            JPH_MotionProperties_ScaleToMass(properties, mass);
+    }
+    JPH_BodyLockInterface_UnlockWrite(locks, &lock);
+}
