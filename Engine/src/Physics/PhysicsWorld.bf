@@ -265,7 +265,9 @@ class PhysicsWorld
 			let mesh = desc.mesh;
 			if (mesh == null || mesh.Indices.Count < 3)
 				return null;
-			Vector3[] vertices = scope .[mesh.Vertices.Count];
+			// Imported room meshes can exceed the default 1 MB Windows thread stack.
+			Vector3[] vertices = new .[mesh.Vertices.Count];
+			defer delete vertices;
 			for (int i < mesh.Vertices.Count)
 				vertices[i] = mesh.Vertices[i].position * desc.meshScale;
 			let triangleCount = mesh.Indices.Count / 3;

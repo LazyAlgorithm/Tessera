@@ -50,6 +50,17 @@ class Program
         ok &= Check(Math.Abs(body.Velocity.z-0.001f/0.012f/60)<0.0001f,"miniature inertia conditioning preserves the assigned physical mass");
         ok &= Check(Math.Abs(body.AngularVelocity.y+0.4166667f)<0.03f,"off-centre force uses actual toy inertia rather than a metre-sphere fallback");
         ok &= Check(!body.IsSleeping && !body.isKinematic,"physical force wakes a resting dynamic prop");
+        // More than 1 MB of vertices must not depend on the Windows thread-stack reserve.
+        let largeScene=scope Scene();let largeMesh=scope Mesh();
+        for(int i=0;i<100000;i++)
+        {
+            MeshVertex vertex=default;vertex.position=.((float)(i%300),0,(float)(i/300));largeMesh.Vertices.Add(vertex);
+        }
+        largeMesh.Indices.Add(0);largeMesh.Indices.Add(300);largeMesh.Indices.Add(1);
+        let largeObject=largeScene.CreateGameObject("Large imported room mesh");
+        ShapeDesc largeShape=default;largeShape.kind=.Mesh;largeShape.mesh=largeMesh;largeShape.meshScale=.One;
+        let largeBody=largeScene.Physics.CreateBody(largeObject.Transform,largeShape,null);
+        ok &= Check(largeBody!=uint32.MaxValue && largeScene.Physics.SphereCast(.(0.2f,1,0.2f),0.05f,-Vector3.Up,2,out hit) && hit.gameObject==largeObject,"large imported mesh builds and collides without a mesh-sized stack allocation");
         return ok ? 0 : 1;
     }
 }
