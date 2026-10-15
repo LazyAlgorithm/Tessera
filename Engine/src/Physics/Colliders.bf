@@ -202,11 +202,40 @@ class CompoundCollider : Collider
 [Component]
 class ConvexCollider : Collider
 {
+    /// Wrap the model hierarchy when the body is on a parent rather than the mesh object.
+    public bool includeChildren = false;
+    Mesh mHierarchyMesh ~ delete _;
+    void CollectHull(GameObject object)
+    {
+        let renderer=object.GetComponent<MeshRenderer>();
+        let mesh=renderer?.ActiveMesh;
+        if(mesh!=null)
+        {
+            let relative=Transform.WorldToLocal*object.Transform.LocalToWorld;
+            let step=Math.Max(1,mesh.Vertices.Count/256);
+            for(int i=0;i<mesh.Vertices.Count;i+=step)
+            {
+                MeshVertex vertex=default;vertex.position=relative.TransformPoint(mesh.Vertices[i].position);
+                mHierarchyMesh.Vertices.Add(vertex);
+            }
+        }
+        for(let child in object.Transform.Children)
+        {
+            let childMesh=child.GameObject.GetComponent<MeshRenderer>();
+            if(mesh!=null && childMesh!=null && childMesh.mesh.Contains('#')) continue;
+            CollectHull(child.GameObject);
+        }
+    }
 	public override ShapeDesc GetShape()
 	{
 		ShapeDesc desc = default;
 		desc.kind = .ConvexHull;
 		desc.meshScale = WorldScale;
+        if(includeChildren)
+        {
+            if(mHierarchyMesh==null) { mHierarchyMesh=new Mesh();CollectHull(GameObject); }
+            desc.mesh=mHierarchyMesh;return desc;
+        }
 		let renderer = GetComponent<MeshRenderer>();
 		if (renderer != null)
 			desc.mesh = renderer.ActiveMesh;

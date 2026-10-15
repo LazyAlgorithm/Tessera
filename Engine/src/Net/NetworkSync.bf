@@ -84,6 +84,7 @@ static class NetworkSync
 		List<GameObject> wanted = scope .();
 		for (let object in network.Scene.Objects)
 		{
+			if (!object.ActiveInHierarchy) continue;
 			if (object.GetComponent<NetworkIdentity>() != null)
 				continue;
 			let body = object.GetComponent<Rigidbody>();

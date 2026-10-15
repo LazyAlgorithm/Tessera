@@ -32,6 +32,7 @@ static class RenderResources
 	public static bgfx.UniformHandle uWind, uWindZone, uWindPush, uSway, uBender, uBenderPush;
 	public static bgfx.UniformHandle uCamPos, uSunDir, uSunColor, uAmbientSky, uAmbientGround, uFogColor;
 	public static bgfx.UniformHandle uMaterial, uEmissive, uUvTransform, uSurface, uParams, uPbr, sTexture1, sTexture2, sNormalMap, sMetalRoughMap, sOcclusionMap, sEmissiveMap;
+	public static bgfx.UniformHandle sLightmap, sLightmapDirection, sLightmapShadowmask, uLightmapTransform, uLightmapDecode;
 	public static bgfx.UniformHandle uLightPosRange, uLightColor, uLightDirSpot, uLightParams, uLightCount;
 	public static bgfx.UniformHandle uShadowMtx, uCascadeSplits, uShadowParams;
 	public static bgfx.UniformHandle uSkyZenith, uSkyHorizon, uSkyGround, uPostParams;
@@ -98,6 +99,11 @@ static class RenderResources
 		sTexture1 = bgfx.create_uniform("s_texture1", .Sampler, 1);
 		sTexture2 = bgfx.create_uniform("s_texture2", .Sampler, 1);
 		uPbr = bgfx.create_uniform("u_pbr", .Vec4, 1);
+		sLightmap = bgfx.create_uniform("s_lightmap", .Sampler, 1);
+		sLightmapDirection = bgfx.create_uniform("s_lightmapDirection", .Sampler, 1);
+		sLightmapShadowmask = bgfx.create_uniform("s_lightmapShadowmask", .Sampler, 1);
+		uLightmapTransform = bgfx.create_uniform("u_lightmapTransform", .Vec4, 1);
+		uLightmapDecode = bgfx.create_uniform("u_lightmapDecode", .Vec4, 1);
 		sNormalMap = bgfx.create_uniform("s_normalMap", .Sampler, 1);
 		sMetalRoughMap = bgfx.create_uniform("s_metalRoughMap", .Sampler, 1);
 		sOcclusionMap = bgfx.create_uniform("s_occlusionMap", .Sampler, 1);
@@ -126,6 +132,11 @@ static class RenderResources
 	{
 		if (!Ready)
 			return;
+		bgfx.destroy_uniform(sLightmap);
+		bgfx.destroy_uniform(sLightmapDirection);
+		bgfx.destroy_uniform(sLightmapShadowmask);
+		bgfx.destroy_uniform(uLightmapTransform);
+		bgfx.destroy_uniform(uLightmapDecode);
 		bgfx.destroy_program(MeshProgram);
 		bgfx.destroy_program(ShadowProgram);
 		bgfx.destroy_program(SkyProgram);
@@ -407,30 +418,30 @@ class RenderView
 
 		// ---- gather lights ----
 		Light sun = null;
-		int lightCount = 0;
-		for (let light in scene.Lights)
-		{
-			if (!light.IsActiveAndEnabled || !light.GameObject.InActiveWorld)
-				continue;
-			if (light.type == .Directional)
-			{
-				if (sun == null)
-					sun = light;
-				continue;
-			}
-			if (lightCount >= RenderResources.MaxLights)
-				continue;
-			let position = light.Transform.Position;
-			let color = Linear(light.color, light.intensity);
-			mLightPosRange[lightCount] = .(position, light.range);
-			mLightColor[lightCount] = .(color.x, color.y, color.z, light.type == .Spot ? 1.0f : 0.0f);
-			let outer = Math.Cos(light.spotAngle * 0.5f * Mathf.Deg2Rad);
-			let inner = Math.Cos(light.spotAngle * 0.5f * 0.8f * Mathf.Deg2Rad);
-			mLightDirSpot[lightCount] = .(light.Transform.Forward, outer);
-			mLightParams[lightCount] = .(inner, 0, 0, 0);
-			lightCount++;
-		}
-		mLightCount = .(lightCount, 0, 0, 0);
+		// Prefer a shadow-casting directional as the sun. Additional directional lights
+        // use the regular light array, so fill lights are no longer silently dropped.
+        for (let light in scene.Lights)
+        {
+            if (!light.IsActiveAndEnabled || !light.GameObject.InActiveWorld || light.type != .Directional) continue;
+            if (sun == null || (!sun.castShadows && light.castShadows)) sun = light;
+        }
+        int lightCount = 0;
+        for (let light in scene.Lights)
+        {
+            if (!light.IsActiveAndEnabled || !light.GameObject.InActiveWorld || light == sun) continue;
+            if (lightCount >= RenderResources.MaxLights) continue;
+            let position = light.Transform.Position;
+            let color = Linear(light.color, light.intensity);
+            mLightPosRange[lightCount] = .(position, light.range);
+            mLightColor[lightCount] = .(color.x,color.y,color.z,light.type == .Directional ? 2 : (light.type == .Spot ? 1 : 0));
+            let outer = Math.Cos(light.spotAngle * 0.5f * Mathf.Deg2Rad);
+            let innerAngle = light.innerSpotAngle < 0 ? light.spotAngle * 0.8f : Math.Clamp(light.innerSpotAngle,0,light.spotAngle);
+            let inner = Math.Cos(innerAngle * 0.5f * Mathf.Deg2Rad);
+            mLightDirSpot[lightCount] = .(light.Transform.Forward,outer);
+            mLightParams[lightCount] = .(inner,light.inverseSquare ? 1 : 0,light.shadowMaskChannel+1,light.bakedOnly ? 1 : 0);
+            lightCount++;
+        }
+		mLightCount = .(lightCount, sun!=null ? sun.shadowMaskChannel+1 : 0, 0, 0);
 
 		mHasSun = sun != null;
 		var lightDirection = Vector3(0.3f, -1.0f, 0.2f).Normalized;
@@ -486,7 +497,7 @@ class RenderView
 				let bounds = mesh.Bounds.Transformed(item.world);
 				item.center = bounds.Center;
 				item.radius = bounds.Extents.Length;
-				item.key = MakeKey(renderer, mesh, item.material);
+				item.key = MakeKey(renderer, mesh, item.material) * 2 + (Mirrored(item.world) ? 1u : 0u);
 				// A color alpha below 1, or a Transparent material, makes the object see-through: it is drawn after
 				// everything solid, blended, and (being glass-like) does not cast a shadow.
 				let itemMaterial = item.material;
@@ -537,6 +548,7 @@ class RenderView
 				Color tint;
 				float scale;
 				item.world = foliage.WorldOf(index, out tint, out scale);
+				item.key = key * 2 + (Mirrored(item.world) ? 1u : 0u);
 				item.tint = tint;
 				item.center = .(item.world.m[12], item.world.m[13] + mesh.Bounds.Center.y * scale, item.world.m[14]);
 				item.radius = meshRadius * scale;
@@ -802,7 +814,7 @@ class RenderView
 			while (start < items.Count)
 			{
 				int end = start + 1;
-				while (end < items.Count && items[end].mesh == items[start].mesh && items[end].material == items[start].material && items[end].renderer.windSway == items[start].renderer.windSway)
+				while (end < items.Count && items[end].mesh == items[start].mesh && items[end].material == items[start].material && items[end].renderer.windSway == items[start].renderer.windSway && Mirrored(items[end].world) == Mirrored(items[start].world))
 					end++;
 				SubmitDepthBatch(view, items, start, end - start, pass == 1 ? viewmodelViewProj : worldViewProj, pass == 1);
 				start = end;
@@ -839,7 +851,7 @@ class RenderView
 		SetWindUniforms(first.renderer.windSway);
 		bgfx.set_uniform(RenderResources.uDepthViewProj, &matrix, 1);
 		bgfx.set_uniform(RenderResources.uDepthParams, &depthParams, 1);
-		uint64 cull = Gfx.StateCullCcw;
+		uint64 cull = Mirrored(first.world) ? Gfx.StateCullCw : Gfx.StateCullCcw;
 		if (first.material != null && first.material.doubleSided)
 			cull = 0;
 		// The viewmodel is over everything, so it is not depth tested.
@@ -853,9 +865,12 @@ class RenderView
 	/// Whether an object is drawn in the viewmodel pass for this camera (Camera.viewmodelLayer) rather than with the world.
 	public static bool DrawsAsViewmodel(CameraData camera, GameObject gameObject) => camera.hasViewmodel && gameObject != null && gameObject.Layer == camera.viewmodelLayer;
 
+	public static bool Mirrored(Matrix4 world) => Vector3.Dot(world.Right, Vector3.Cross(world.Up, world.Forward)) < 0;
+
 	static uint64 MakeKey(MeshRenderer renderer, Mesh mesh, Material material)
 	{
 		uint64 key = (uint64)(int)Internal.UnsafeCastToPtr(mesh);
+		if (!renderer.lightmap.IsEmpty) key = key * 1099511628211 ^ (uint64)(int)Internal.UnsafeCastToPtr(renderer);
 		// With a material, the material is what draws differ by.
 		let shared = material;
 		key = key * 1099511628211 ^ (uint64)renderer.TextureOverride.idx;
@@ -1078,7 +1093,7 @@ class RenderView
 		StringView normalMap = "", metalRoughMap = "", occlusionMap = "", emissiveMap = "";
 		var texture = Gfx.WhiteTexture;
 		var program = RenderResources.MeshProgram;
-		uint64 cull = Gfx.StateCullCcw;
+		uint64 cull = Mirrored(first.world) ? Gfx.StateCullCw : Gfx.StateCullCcw;
 		if (shared != null)
 		{
 			material = .(shared.metallic, shared.roughness, shared.flatShading ? 1 : 0, shared.unlit ? 1 : 0);
@@ -1107,7 +1122,15 @@ class RenderView
 			texture = renderer.ActiveTexture;
 		if (renderer.TextureOverride.idx != uint16.MaxValue)
 			texture = renderer.TextureOverride;
-		bgfx.set_uniform(RenderResources.uMaterial, &material, 1);
+		Vector4 bakedTransform = renderer.lightmapScaleOffset;
+        Vector4 bakedDecode = renderer.lightmapDecode;
+        bakedDecode.w = renderer.lightmap.IsEmpty ? 0 : (1+(renderer.lightmapDirection.IsEmpty ? 0 : 1)+(renderer.lightmapShadowmask.IsEmpty ? 0 : 2));
+        bgfx.set_uniform(RenderResources.uLightmapTransform, &bakedTransform, 1);
+        bgfx.set_uniform(RenderResources.uLightmapDecode, &bakedDecode, 1);
+        bgfx.set_texture(8, RenderResources.sLightmap, Assets.GetTexture(renderer.lightmap), uint32.MaxValue);
+        bgfx.set_texture(9, RenderResources.sLightmapDirection, Assets.GetTexture(renderer.lightmapDirection), uint32.MaxValue);
+        bgfx.set_texture(10, RenderResources.sLightmapShadowmask, Assets.GetTexture(renderer.lightmapShadowmask), uint32.MaxValue);
+        bgfx.set_uniform(RenderResources.uMaterial, &material, 1);
 		bgfx.set_uniform(RenderResources.uEmissive, &emissive, 1);
 		bgfx.set_uniform(RenderResources.uUvTransform, &uvTransform, 1);
 		bgfx.set_uniform(RenderResources.uSurface, &surface, 1);
@@ -1157,9 +1180,15 @@ class RenderView
 			bgfx.set_instance_data_buffer(&buffer, 0, (uint32)count);
 			SetFrameUniforms();
 			Vector4 material = .(0, 0.9f, 1, system.unlit ? 1 : 0);
-			Vector4 emissive = .(0, 0, 0, 0);
-			bgfx.set_uniform(RenderResources.uMaterial, &material, 1);
-			bgfx.set_uniform(RenderResources.uEmissive, &emissive, 1);
+            Vector4 emissive = .(0,0,0,0);
+            Vector4 bakedTransform = .(1,1,0,0), bakedDecode = .(1,0,0,0);
+            bgfx.set_uniform(RenderResources.uLightmapTransform, &bakedTransform, 1);
+            bgfx.set_uniform(RenderResources.uLightmapDecode, &bakedDecode, 1);
+            bgfx.set_texture(8, RenderResources.sLightmap, Gfx.WhiteTexture, uint32.MaxValue);
+            bgfx.set_texture(9, RenderResources.sLightmapDirection, Gfx.WhiteTexture, uint32.MaxValue);
+            bgfx.set_texture(10, RenderResources.sLightmapShadowmask, Gfx.WhiteTexture, uint32.MaxValue);
+            bgfx.set_uniform(RenderResources.uMaterial, &material, 1);
+            bgfx.set_uniform(RenderResources.uEmissive, &emissive, 1);
 			Vector4 uvTransform = .(1, 1, 0, 0);
 			Vector4 surface = .(0, Time.RealTime, 0, 0);
 			Vector4[ShaderAsset.MaxValues] values = default;

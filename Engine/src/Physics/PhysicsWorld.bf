@@ -11,6 +11,8 @@ struct BodyState
 	public Quaternion rotation;
 	public Vector3 linearVelocity;
 	public Vector3 angularVelocity;
+    // Motor state is separate from physical velocity, including during rigidbody handoffs.
+    public Vector4 prediction0, prediction1;
 }
 
 struct RaycastHit
@@ -56,6 +58,20 @@ struct ShapeDesc
 /// state gives the same result, which is what client-side prediction relies on.
 class PhysicsWorld
 {
+    /// Smallest collision half extent, in world units; lower for miniature scenes.
+    public float MinimumShapeExtent=0.01f;
+    float mLengthScale=1;
+    /// Scale contact and sleeping distances/velocities while leaving seconds and angular tolerances alone.
+    public float LengthScale
+    {
+        get => mLengthScale;
+        set
+        {
+            let next=Math.Max(value,0.00001f);
+            if(mSystem!=null) Jolt.tn_physics_scale_tolerances(mSystem,next/mLengthScale);
+            mLengthScale=next;
+        }
+    }
 	/// Whether bodies of objects outside the scene's world state are left out (true for a scene's own world). A
 	/// world made to bake navigation for a chosen state turns it off and picks its objects itself.
 	public bool FollowsWorldStates = true;
@@ -178,6 +194,7 @@ class PhysicsWorld
 		settings.objectLayerPairFilter = pairFilter;
 		settings.objectVsBroadPhaseLayerFilter = objectVsBroadPhase;
 		mSystem = Jolt.JPH_PhysicsSystem_Create(&settings);
+        Jolt.tn_physics_scale_tolerances(mSystem,mLengthScale);
 		mBodyInterface = Jolt.JPH_PhysicsSystem_GetBodyInterface(mSystem);
 	}
 
@@ -208,14 +225,14 @@ class PhysicsWorld
 		switch (desc.kind)
 		{
 		case .Box:
-			var half = Vector3.Max(desc.halfExtents, .(0.01f));
+			var half = Vector3.Max(desc.halfExtents, .(MinimumShapeExtent));
 			let smallest = Math.Min(half.x, Math.Min(half.y, half.z));
 			let convex = desc.convexRadius > 0 ? Math.Min(desc.convexRadius, smallest) : Math.Min(0.05f, smallest * 0.5f);
 			shape = Jolt.JPH_BoxShape_Create(&half, convex);
 		case .Sphere:
-			shape = Jolt.JPH_SphereShape_Create(Math.Max(desc.radius, 0.01f));
+			shape = Jolt.JPH_SphereShape_Create(Math.Max(desc.radius, MinimumShapeExtent));
 		case .Capsule:
-			shape = Jolt.JPH_CapsuleShape_Create(Math.Max(desc.halfHeight, 0.01f), Math.Max(desc.radius, 0.01f));
+			shape = Jolt.JPH_CapsuleShape_Create(Math.Max(desc.halfHeight, MinimumShapeExtent), Math.Max(desc.radius, MinimumShapeExtent));
 		case .Compound:
 			if (desc.boxCount <= 0)
 				return null;
@@ -224,8 +241,8 @@ class PhysicsWorld
 			for (int i < desc.boxCount)
 			{
 				var boxCenter = desc.boxes[i * 2];
-				var boxHalf = Vector3.Max(desc.boxes[i * 2 + 1], .(0.01f));
-				let boxShape = Jolt.JPH_BoxShape_Create(&boxHalf, 0.02f);
+				var boxHalf = Vector3.Max(desc.boxes[i * 2 + 1], .(MinimumShapeExtent));
+				let boxShape = Jolt.JPH_BoxShape_Create(&boxHalf, Math.Min(0.02f,Math.Min(boxHalf.x,Math.Min(boxHalf.y,boxHalf.z))*0.5f));
 				Jolt.JPH_CompoundShapeSettings_AddShape2(compound, &boxCenter, &identity, boxShape, (uint32)i);
 				// The compound keeps its own reference to each part.
 				Jolt.JPH_Shape_Destroy(boxShape);
@@ -295,7 +312,7 @@ class PhysicsWorld
 		if (rigidbody != null)
 			motion = rigidbody.isKinematic ? Jolt.MotionKinematic : Jolt.MotionDynamic;
 		// Mesh shapes cannot be dynamic in Jolt.
-		if (desc.kind == .Mesh)
+		if (desc.kind == .Mesh && motion == Jolt.MotionDynamic)
 			motion = Jolt.MotionStatic;
 		let debris = rigidbody != null && rigidbody.debris && motion != Jolt.MotionStatic;
 

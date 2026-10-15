@@ -289,3 +289,20 @@ extern "C" void tn_joint_destroy(JPH_PhysicsSystem* system, JPH_Constraint* cons
     JPH_PhysicsSystem_RemoveConstraint(system, constraint);
     JPH_Constraint_Destroy(constraint);
 }
+
+// Scale dimensional contact/sleep tolerances with miniature worlds; time and angular ratios stay unchanged.
+extern "C" void tn_physics_scale_tolerances(JPH_PhysicsSystem* system, float ratio) {
+    if (!system || !std::isfinite(ratio) || ratio <= 0) return;
+    JPH_PhysicsSettings settings{};
+    JPH_PhysicsSystem_GetPhysicsSettings(system, &settings);
+    settings.speculativeContactDistance *= ratio;
+    settings.penetrationSlop *= ratio;
+    settings.manifoldTolerance *= ratio;
+    settings.maxPenetrationDistance *= ratio;
+    settings.bodyPairCacheMaxDeltaPositionSq *= ratio * ratio;
+    settings.contactPointPreserveLambdaMaxDistSq *= ratio * ratio;
+    settings.minVelocityForRestitution *= ratio;
+    settings.pointVelocitySleepThreshold *= ratio;
+    settings.deterministicSimulation = true;
+    JPH_PhysicsSystem_SetPhysicsSettings(system, &settings);
+}

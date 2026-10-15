@@ -785,8 +785,9 @@ class UIDocumentData
 		}
 	}
 
-	void DrawElement(UIElement element, ImGui.Vec2 origin, UIDocument binder, bool interactive)
+	void DrawElement(UIElement element, ImGui.Vec2 origin, UIDocument binder, bool canInteract)
 	{
+        let interactive=canInteract && element.attributes.Get("disabled") != "true";
 		if (!element.visible || element.computed.Get("display") == "none")
 			return;
 		let min = ImGui.Vec2(origin.x + element.x * scale, origin.y + element.y * scale);
@@ -811,7 +812,8 @@ class UIDocumentData
 			GUI.MouseOverControl = true;
 			// Hover and press feedback without needing extra style rules.
 			let shift = (mFocusMode ? mFocusDown : ImGui.IsMouseDown(0)) ? -0.06f : 0.08f;
-			background = .(Mathf.Clamp01(background.r + shift), Mathf.Clamp01(background.g + shift), Mathf.Clamp01(background.b + shift), Math.Max(background.a, 0.25f));
+            if(element.attributes.Get("feedback") != "none")
+				background = .(Mathf.Clamp01(background.r + shift), Mathf.Clamp01(background.g + shift), Mathf.Clamp01(background.b + shift), Math.Max(background.a, 0.25f));
 			if (pressed)
 				clicked = element;
 		}
@@ -844,7 +846,7 @@ class UIDocumentData
 			let bound = scope String();
 			if (binder != null && !bind.IsEmpty && binder.ReadBinding(bind, bound) && float.Parse(bound) case .Ok(let number))
 				element.value = number;
-			let knob = element.screenHeight * 0.5f;
+			let knob = element.Number("slider-thumb-size", element.height) * scale * 0.5f;
 			let left = min.x + knob, right = max.x - knob;
 			if (interactive && !mFocusMode && ((over && ImGui.IsMouseClicked(0)) || mDragging == element))
 			{
@@ -866,8 +868,24 @@ class UIDocumentData
 			let fraction = high > low ? Mathf.Clamp01((element.value - low) / (high - low)) : 0;
 			let middle = (min.y + max.y) * 0.5f;
 			let thickness = Math.Max(element.screenHeight * 0.16f, 2);
-			ImGui.DrawRectFilled(.(left, middle - thickness), .(left + (right - left) * fraction, middle + thickness), color, thickness);
-			ImGui.DrawCircleFilled(.(left + (right - left) * fraction, middle), knob * (over || mDragging == element ? 1.0f : 0.82f), .(1, 1, 1, 1));
+			let trackSource = element.attributes.Get("track-src");
+			if (!trackSource.IsEmpty)
+			{
+				let halfTrack = element.Number("slider-track-height", element.height * 0.32f) * scale * 0.5f;
+				let thumbX = left + (right - left) * fraction;
+				ImGui.DrawImage(Assets.GetTexture(trackSource).idx, .(min.x, middle - halfTrack), .(max.x, middle + halfTrack), false);
+				let fillSource = element.attributes.Get("fill-src");
+				if (!fillSource.IsEmpty && thumbX > min.x)
+					ImGui.DrawImage(Assets.GetTexture(fillSource).idx, .(min.x, middle - halfTrack), .(thumbX, middle + halfTrack), false);
+				let thumbSource = element.attributes.Get("thumb-src");
+				if (!thumbSource.IsEmpty)
+					ImGui.DrawImage(Assets.GetTexture(thumbSource).idx, .(thumbX - knob, middle - knob), .(thumbX + knob, middle + knob), false);
+			}
+			else
+			{
+				ImGui.DrawRectFilled(.(left, middle - thickness), .(left + (right - left) * fraction, middle + thickness), color, thickness);
+				ImGui.DrawCircleFilled(.(left + (right - left) * fraction, middle), knob * (over || mDragging == element ? 1.0f : 0.82f), .(1, 1, 1, 1));
+			}
 		}
 		else if (element.tag == "toggle")
 		{
@@ -890,9 +908,16 @@ class UIDocumentData
 			}
 			let on = element.value > 0.5f;
 			let half = element.screenHeight * 0.5f;
-			if (on)
-				ImGui.DrawRectFilled(min, max, color, half);
-			ImGui.DrawCircleFilled(.(on ? max.x - half : min.x + half, min.y + half), half * 0.78f, .(1, 1, 1, 1));
+			if (element.computed.Get("toggle-style") == "button")
+			{
+				let fill = over ? Color(0.86f,0.84f,0.12f,1) : (on ? Color(0.95f,0.59f,0.05f,1) : Color(0.18f,0.35f,0.76f,1));
+				ImGui.DrawRectFilled(min, max, fill, 3*scale);
+			}
+			else
+			{
+				if (on) ImGui.DrawRectFilled(min, max, color, half);
+				ImGui.DrawCircleFilled(.(on ? max.x - half : min.x + half, min.y + half), half * 0.78f, .(1, 1, 1, 1));
+			}
 		}
 		else if (element.tag == "bar")
 		{

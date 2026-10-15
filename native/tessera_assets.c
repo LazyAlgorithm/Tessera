@@ -69,6 +69,7 @@ typedef struct tn_gltf_prim
 	int32_t alphaMode;          // 0 opaque, 1 cut out (mask), 2 blended
 	float alphaCutoff;
 	int32_t doubleSided;
+	float* uv2s; // Owned, two floats per vertex when TEXCOORD_1 is present.
 } tn_gltf_prim;
 
 typedef struct tn_gltf_image
@@ -381,6 +382,7 @@ tn_gltf_scene* tn_gltf_load(const char* path)
 			const cgltf_accessor* position = NULL;
 			const cgltf_accessor* normal = NULL;
 			const cgltf_accessor* uv = NULL;
+			const cgltf_accessor* uv2 = NULL;
 			const cgltf_accessor* color = NULL;
 			const cgltf_accessor* joints = NULL;
 			const cgltf_accessor* weights = NULL;
@@ -390,6 +392,7 @@ tn_gltf_scene* tn_gltf_load(const char* path)
 				if (attribute->type == cgltf_attribute_type_position) position = attribute->data;
 				else if (attribute->type == cgltf_attribute_type_normal) normal = attribute->data;
 				else if (attribute->type == cgltf_attribute_type_texcoord && attribute->index == 0) uv = attribute->data;
+				else if (attribute->type == cgltf_attribute_type_texcoord && attribute->index == 1) uv2 = attribute->data;
 				else if (attribute->type == cgltf_attribute_type_color && attribute->index == 0) color = attribute->data;
 				else if (attribute->type == cgltf_attribute_type_joints && attribute->index == 0) joints = attribute->data;
 				else if (attribute->type == cgltf_attribute_type_weights && attribute->index == 0) weights = attribute->data;
@@ -401,6 +404,7 @@ tn_gltf_scene* tn_gltf_load(const char* path)
 			dst->positions = tn_read_floats(position, 3);
 			if (normal != NULL) dst->normals = tn_read_floats(normal, 3);
 			if (uv != NULL) dst->uvs = tn_read_floats(uv, 2);
+			if (uv2 != NULL) dst->uv2s = tn_read_floats(uv2, 2);
 			if (color != NULL) dst->colors = tn_read_floats(color, 4);
 			if (node->skin != NULL && joints != NULL && weights != NULL)
 			{
@@ -508,6 +512,7 @@ void tn_gltf_free(tn_gltf_scene* scene)
 		free(scene->prims[i].positions);
 		free(scene->prims[i].normals);
 		free(scene->prims[i].uvs);
+		free(scene->prims[i].uv2s);
 		free(scene->prims[i].colors);
 		free(scene->prims[i].indices);
 		free(scene->prims[i].joints);

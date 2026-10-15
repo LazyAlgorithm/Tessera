@@ -12,6 +12,7 @@ struct MeshVertex
 	public Vector3 normal;
 	public uint32 color; // 0xAABBGGRR
 	public Vector2 uv;
+	public Vector2 uv2; // Optional second texture coordinates for baked lighting.
 
 	public this(Vector3 position, Vector3 normal, uint32 color, Vector2 uv)
 	{
@@ -19,6 +20,7 @@ struct MeshVertex
 		this.normal = normal;
 		this.color = color;
 		this.uv = uv;
+		this.uv2 = default;
 	}
 }
 
@@ -115,6 +117,7 @@ static class Gfx
 		bgfx.vertex_layout_add(&MeshLayout, .Normal, 3, .Float, false, false);
 		bgfx.vertex_layout_add(&MeshLayout, .Color0, 4, .Uint8, true, false);
 		bgfx.vertex_layout_add(&MeshLayout, .TexCoord0, 2, .Float, false, false);
+		bgfx.vertex_layout_add(&MeshLayout, .TexCoord1, 2, .Float, false, false);
 		bgfx.vertex_layout_end(&MeshLayout);
 
 		bgfx.vertex_layout_begin(&ScreenLayout, .Noop);
@@ -126,6 +129,14 @@ static class Gfx
 		bgfx.vertex_layout_add(&LineLayout, .Position, 3, .Float, false, false);
 		bgfx.vertex_layout_add(&LineLayout, .Color0, 4, .Uint8, true, false);
 		bgfx.vertex_layout_end(&LineLayout);
+
+		// Transient buffers are allocated by GPU stride and written through these CPU structs.
+		// Refuse a mismatched layout before any fullscreen or geometry write can overflow it.
+		if (MeshLayout.stride != sizeof(MeshVertex) || ScreenLayout.stride != sizeof(ScreenVertex) || LineLayout.stride != sizeof(LineVertex))
+		{
+			Log.Error("CPU vertex sizes do not match the GPU vertex layouts");
+			return false;
+		}
 
 		uint32 white = 0xffffffff;
 		WhiteTexture = bgfx.create_texture_2d(1, 1, false, 1, .RGBA8, 0, bgfx.copy(&white, 4), 0);

@@ -240,6 +240,7 @@ static class Assets
 				if (prim.uvs != null)
 					uv = .(prim.uvs[v * 2], prim.uvs[v * 2 + 1]); // glTF and Tessera both put V = 0 at the top of the image
 				mesh.AddVertex(world.TransformPoint(position), world.TransformDirection(normal).Normalized, color, uv);
+				if (prim.uv2s != null) mesh.Vertices.Back.uv2 = .(prim.uv2s[v * 2], prim.uv2s[v * 2 + 1]);
 			}
 			// Mirroring Z turns every triangle inside out, so swap two corners to face it outwards again.
 			for (uint32 i = 0; i + 2 < prim.indexCount; i += 3)

@@ -17,6 +17,8 @@ class AudioSource : Component
 	/// Sound file, relative to the project's asset folder: WAV, OGG, MP3 or FLAC.
 	public String audioClip = new .() ~ delete _;
 	public AudioGroup group = .Effects;
+	/// Music and other per-player audio can opt out of network playback events.
+	public bool localOnly = false;
 	[Range(0, 1)] public float volume = 1;
 	[Range(0.1f, 3)] public float pitch = 1;
 	public bool loop = false;
@@ -105,7 +107,7 @@ class AudioSource : Component
 	/// who controls the object is heard by everyone.
 	public void Play()
 	{
-		NetworkSync.AudioPlayed(this, 0, "", 1);
+		if (!localOnly) NetworkSync.AudioPlayed(this, 0, "", 1);
 		if (!Load())
 			return;
 		// The first frame must already be in the right place, not at the origin.
@@ -123,7 +125,7 @@ class AudioSource : Component
 
 	public void Stop()
 	{
-		NetworkSync.AudioPlayed(this, 1, "", 1);
+		if (!localOnly) NetworkSync.AudioPlayed(this, 1, "", 1);
 		if (mSource != null)
 			Audio.tn_audio_source_stop(mSource);
 	}
@@ -145,7 +147,7 @@ class AudioSource : Component
 	/// interrupting what it is already playing. Any number can overlap: footsteps, shots, impacts.
 	public void PlayOneShot(StringView clip, float volumeScale = 1)
 	{
-		NetworkSync.AudioPlayed(this, 2, clip, volumeScale);
+		if (!localOnly) NetworkSync.AudioPlayed(this, 2, clip, volumeScale);
 		if (spatial)
 			Audio.PlayOneShot(clip, Transform.Position, volume * volumeScale, group, minDistance, maxDistance);
 		else

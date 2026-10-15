@@ -1,4 +1,4 @@
-$input v_wpos, v_normal, v_color0, v_texcoord0, v_depth
+$input v_wpos, v_normal, v_color0, v_texcoord0, v_depth, v_texcoord1
 
 // Forward lit surface: metallic/roughness BRDF, one shadowed directional light with four
 // cascades, up to 16 point/spot lights, hemisphere ambient and distance fog. Output is linear HDR.
@@ -15,6 +15,11 @@ SAMPLER2D(s_normalMap, 4);
 SAMPLER2D(s_metalRoughMap, 5);
 SAMPLER2D(s_occlusionMap, 6);
 SAMPLER2D(s_emissiveMap, 7);
+SAMPLER2D(s_lightmap, 8);
+SAMPLER2D(s_lightmapDirection, 9);
+SAMPLER2D(s_lightmapShadowmask, 10);
+uniform vec4 u_lightmapTransform;
+uniform vec4 u_lightmapDecode;
 
 uniform vec4 u_camPos;
 uniform vec4 u_sunDir;        // xyz: direction towards the sun, w: shadow strength
@@ -158,7 +163,7 @@ void main()
 	{
 		emissive *= toLinear3(texture2D(s_emissiveMap, uv).rgb);
 	}
-	if (u_surface.x > 0.0 && alpha < u_surface.x)
+	if (u_surface.x > 0.0 && alpha < u_surface.x - 0.00001)
 	{
 		discard;
 	}
@@ -207,7 +212,18 @@ void main()
 	roughness = clamp(roughness, 0.045, 1.0);
 
 	vec3 ambient = mix(u_ambientGround.rgb, u_ambientSky.rgb, n.y * 0.5 + 0.5);
-	vec3 color = ambient * albedo * (1.0 - metallic * 0.5) * occlusion;
+	if (u_lightmapDecode.w > 0.5)
+    {
+        vec4 baked = texture2D(s_lightmap, v_texcoord1 * u_lightmapTransform.xy + u_lightmapTransform.zw);
+        vec3 irradiance = u_lightmapDecode.z > 0.5 ? toLinear3(baked.rgb) : baked.rgb;
+        ambient = irradiance * u_lightmapDecode.x * pow(max(baked.a, 0.0), u_lightmapDecode.y);
+        if (mod(u_lightmapDecode.w - 1.0,2.0) > 0.5)
+        {
+            vec4 direction = texture2D(s_lightmapDirection, v_texcoord1 * u_lightmapTransform.xy + u_lightmapTransform.zw);
+            ambient *= (dot(n, direction.xyz - vec3_splat(0.5)) + 0.5) / max(direction.w, 0.0001);
+        }
+    }
+    vec3 color = ambient * albedo * (1.0 - metallic * 0.5) * occlusion;
 	// What the surface mirrors of its surroundings: there is no environment map, so the sky and ground colours
 	// stand in for one. It is what keeps a smooth metal from looking black where no light shines on it directly.
 	vec3 mirrored = reflect(-v, n);
@@ -217,7 +233,15 @@ void main()
 	vec3 reflectance = f0 + (max(vec3_splat(1.0 - roughness), f0) - f0) * grazing;
 	color += surroundings * reflectance * (1.0 - roughness * 0.75) * metallic * occlusion;
 
-	float shadow = sunShadow(v_wpos, n, v_depth);
+	vec4 bakedMask = vec4_splat(1.0);
+    if (u_lightmapDecode.w > 2.5)
+        bakedMask = texture2D(s_lightmapShadowmask, v_texcoord1 * u_lightmapTransform.xy + u_lightmapTransform.zw);
+    float shadow = sunShadow(v_wpos, n, v_depth);
+    if (u_lightCount.y > 0.5)
+    {
+        int channel = int(u_lightCount.y - 1.0);
+        shadow = min(shadow,bakedMask[channel]);
+    }
 	color += brdf(n, v, u_sunDir.xyz, albedo, metallic, roughness) * u_sunColor.rgb * shadow * PI;
 
 	for (int i = 0; i < MAX_LIGHTS; i++)
@@ -226,21 +250,31 @@ void main()
 		{
 			break;
 		}
+		if (u_lightParams[i].w > 0.5 && u_lightmapDecode.w > 0.5) continue;
 		vec3 toLight = u_lightPosRange[i].xyz - v_wpos;
-		float dist = length(toLight);
-		float range = u_lightPosRange[i].w;
-		if (dist < range)
-		{
-			vec3 l = toLight / max(dist, 1.0e-4);
-			float falloff = clamp(1.0 - dist / range, 0.0, 1.0);
-			float atten = falloff * falloff / (1.0 + dist * dist * 0.1);
-			if (u_lightColor[i].w > 0.5)
-			{
-				float cosAngle = dot(-l, u_lightDirSpot[i].xyz);
-				atten *= smoothstep(u_lightDirSpot[i].w, u_lightParams[i].x, cosAngle);
-			}
-			color += brdf(n, v, l, albedo, metallic, roughness) * u_lightColor[i].rgb * atten * PI;
-		}
+        float dist = length(toLight);
+        float range = u_lightPosRange[i].w;
+        bool directional = u_lightColor[i].w > 1.5;
+        if (directional || dist < range)
+        {
+            vec3 l = directional ? -u_lightDirSpot[i].xyz : toLight / max(dist,1.0e-4);
+            float falloff = clamp(1.0 - dist / max(range,1.0e-4),0.0,1.0);
+            float atten = falloff * falloff / (1.0 + dist * dist * 0.1);
+            if (u_lightParams[i].y > 0.5)
+            {
+                float ratio = dist * dist / max(range * range,1.0e-8);
+                float fade = max(1.0 - ratio * ratio,0.0);
+                atten = fade * fade / max(dist * dist,1.0e-6);
+            }
+            if (directional) atten = 1.0;
+            else if (u_lightColor[i].w > 0.5)
+            {
+                float cosAngle = dot(-l,u_lightDirSpot[i].xyz);
+                atten *= smoothstep(u_lightDirSpot[i].w,u_lightParams[i].x,cosAngle);
+            }
+            if (u_lightParams[i].z > 0.5) atten *= bakedMask[int(u_lightParams[i].z - 1.0)];
+            color += brdf(n,v,l,albedo,metallic,roughness) * u_lightColor[i].rgb * atten * PI;
+        }
 	}
 
 	color += emissive;

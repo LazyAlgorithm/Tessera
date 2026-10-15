@@ -24,6 +24,13 @@ class MeshRenderer : Component
 	public bool flatShading = true;
 	public bool unlit = false;
 	public bool castShadows = true;
+    /// Baked diffuse irradiance, sampled using the mesh's second UV set.
+    public String lightmap = new .() ~ delete _;
+    public String lightmapDirection = new .() ~ delete _;
+    public String lightmapShadowmask = new .() ~ delete _;
+    public Vector4 lightmapScaleOffset = .(1,1,0,0);
+    /// RGBM multiplier/exponent and whether RGB needs sRGB decoding. Linear maps use (1,0,0,0).
+    public Vector4 lightmapDecode = .(1,0,0,0);
 	/// How far the object bends in the wind (Wind Zone components): 0 not at all, 1 like grass. It bends about its own
 	/// origin, more the higher up, so put the origin at the foot of a tree, a flag pole or a reed.
 	[Range(0, 2)]

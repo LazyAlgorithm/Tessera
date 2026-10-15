@@ -382,6 +382,7 @@ static class ImGui
 	[CLink] static extern void ImDrawList_AddRect(void* list, Vec2 min, Vec2 max, uint32 color, float rounding, float thickness, int32 flags);
 	[CLink] static extern void ImDrawList_AddRectFilled(void* list, Vec2 min, Vec2 max, uint32 color, float rounding, int32 flags);
 	[CLink] static extern void ImDrawList_AddImage(void* list, TextureRef texture, Vec2 min, Vec2 max, Vec2 uv0, Vec2 uv1, uint32 color);
+	[CLink] static extern void ImDrawList_AddImageQuad(void* list, TextureRef texture, Vec2 p1, Vec2 p2, Vec2 p3, Vec2 p4, Vec2 uv1, Vec2 uv2, Vec2 uv3, Vec2 uv4, uint32 color);
 	[CLink] static extern void ImDrawList_AddTriangleFilled(void* list, Vec2 a, Vec2 b, Vec2 c, uint32 color);
 	[CLink] static extern void ImDrawList_AddQuadFilled(void* list, Vec2 a, Vec2 b, Vec2 c, Vec2 d, uint32 color);
 	[CLink] static extern void ImDrawList_AddCircleFilled(void* list, Vec2 center, float radius, uint32 color, int32 segments);
@@ -502,6 +503,20 @@ static class ImGui
 		if (opaque)
 			texture.texId |= (uint64)1 << 32;
 		ImDrawList_AddImage(igGetWindowDrawList(), texture, min, max, .(0, 0), .(1, 1), 0xFFFFFFFF);
+	}
+
+	/// Rotated textured quad, with angle in radians about its centre.
+	public static void DrawImageRotated(uint16 textureIndex, Vec2 center, Vec2 size, float angle)
+	{
+		TextureRef texture = default;
+		texture.texId = (uint64)textureIndex + 1;
+		let c = Math.Cos(angle); let s = Math.Sin(angle);
+		let x = Vec2(c * size.x * 0.5f, s * size.x * 0.5f);
+		let y = Vec2(-s * size.y * 0.5f, c * size.y * 0.5f);
+		ImDrawList_AddImageQuad(igGetWindowDrawList(), texture,
+			.(center.x-x.x-y.x,center.y-x.y-y.y), .(center.x+x.x-y.x,center.y+x.y-y.y),
+			.(center.x+x.x+y.x,center.y+x.y+y.y), .(center.x-x.x+y.x,center.y-x.y+y.y),
+			.(0,0),.(1,0),.(1,1),.(0,1),0xffffffff);
 	}
 
 	public static Vec2 GetContentRegionAvail() => igGetContentRegionAvail();

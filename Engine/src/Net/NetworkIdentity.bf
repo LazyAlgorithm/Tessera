@@ -8,6 +8,9 @@ namespace Tessera;
 class NetworkIdentity : Component
 {
 	public const int HistorySize = 128;
+    /// Send exact transform/body snapshots for small or precision-sensitive objects.
+    public bool fullPrecision;
+    BodyState mSentFull;
 
 	/// 0 means owned by the server; otherwise the id of the controlling client.
 	[HideInInspector]
@@ -98,7 +101,13 @@ class NetworkIdentity : Component
 	public void NoteSnapshot(uint32 number)
 	{
 		let now = NetPack.Pack(Transform.Position, Transform.Rotation);
-		if (mSentOnce && now.Same(Sent))
+        if(fullPrecision)
+        {
+            let exact=CaptureState();
+            if(mSentOnce && (exact.position-mSentFull.position).LengthSquared<1.0e-12f && Math.Abs(Quaternion.Dot(exact.rotation,mSentFull.rotation))>0.9999999f && exact.prediction0.w==mSentFull.prediction0.w) return;
+            mSentFull=exact;
+        }
+		else if (mSentOnce && now.Same(Sent))
 			return;
 		mSentOnce = true;
 		Sent = now;
@@ -210,7 +219,12 @@ class NetworkIdentity : Component
 	{
 		let body = GetComponent<Rigidbody>();
 		if (body != null && body.HasBody)
-			return body.State;
+        {
+            var bodyState=body.State;
+            for(let component in GameObject.Components)
+                if(let behaviour=component as NetworkBehaviour) behaviour.CaptureBodyPredictionState(ref bodyState);
+            return bodyState;
+        }
 		BodyState state = default;
 		state.position = Transform.Position;
 		state.rotation = Transform.Rotation;
@@ -222,11 +236,16 @@ class NetworkIdentity : Component
 			// A character does not spin, so the unused slot carries how long it has been airborne (for the jump grace).
 			state.angularVelocity = .(Math.Min(controller.AirTime, 1000), 0, 0);
 		}
+		for (let component in GameObject.Components)
+			if (let behaviour = component as NetworkBehaviour) behaviour.CapturePredictionState(ref state);
 		return state;
 	}
 
 	public void ApplyState(BodyState state)
 	{
+        // A hybrid motor may need to create/disable its body before this state's velocities are applied.
+        for(let component in GameObject.Components)
+            if(let behaviour=component as NetworkBehaviour) behaviour.PreparePredictionState(state);
 		let body = GetComponent<Rigidbody>();
 		if (body != null && body.HasBody)
 			body.SetState(state);
@@ -235,6 +254,8 @@ class NetworkIdentity : Component
 			Transform.SetPositionAndRotation(state.position, state.rotation);
 			GetComponent<CharacterController>()?.Teleport(state.position, state.linearVelocity, state.angularVelocity.x);
 		}
+		for (let component in GameObject.Components)
+			if (let behaviour = component as NetworkBehaviour) behaviour.RestorePredictionState(state);
 	}
 }
 
@@ -263,6 +284,15 @@ abstract class NetworkBehaviour : Component
 	/// Returns false and does nothing where it does not apply (no session, a client, the host's own player).
 	public bool BeginLagCompensation() => Scene.Network != null && Scene.Network.BeginLagCompensation(Identity);
 	public void EndLagCompensation() => Scene.Network?.EndLagCompensation();
+
+	/// Custom transform-based motors can store rewindable simulation state in the unused velocity slots.
+	/// Do not override slots owned by a Rigidbody or CharacterController on the same object.
+	public virtual void CapturePredictionState(ref BodyState state) { }
+    /// Extra motor metadata alongside an active body's actual velocities.
+    public virtual void CaptureBodyPredictionState(ref BodyState state) { }
+    /// Restore a motor/body mode before the transform and velocities are applied.
+    public virtual void PreparePredictionState(BodyState state) { }
+	public virtual void RestorePredictionState(BodyState state) { }
 
 	/// Called once per tick on the owning client to sample the local controls.
 	public virtual void GatherInput(ref NetInput input) { }

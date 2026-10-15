@@ -108,6 +108,7 @@ static class Jolt
 	[CLink] public static extern void* JPH_PhysicsSystem_GetBodyInterface(void* system);
 	[CLink] public static extern void* JPH_PhysicsSystem_GetNarrowPhaseQuery(void* system);
 	[CLink] public static extern void JPH_PhysicsSystem_SetGravity(void* system, Vector3* gravity);
+	[CLink] public static extern void tn_physics_scale_tolerances(void* system, float ratio);
 	[CLink] public static extern void JPH_Shape_Destroy(void* shape);
 	[CLink] public static extern void JPH_ShapeSettings_Destroy(void* settings);
 	[CLink] public static extern void* JPH_BoxShape_Create(Vector3* halfExtent, float convexRadius);

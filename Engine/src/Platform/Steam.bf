@@ -136,6 +136,8 @@ static class Steam
 	static function int32(void* friends, int32 flags) sGetFriendCount;
 	static function uint64(void* friends, int32 index, int32 flags) sGetFriendByIndex;
 	static function char8*(void* friends, uint64 id) sGetFriendPersonaName;
+	static function char8*(void* friends, uint64 id) sGetPlayerNickname;
+	static function bool(void* friends, uint64 id, bool nameOnly) sRequestUserInformation;
 	static function int32(void* friends, uint64 id) sGetFriendPersonaState;
 	static function bool(void* friends, char8* key, char8* value) sSetRichPresence;
 	static function void(void* friends) sClearRichPresence;
@@ -157,6 +159,20 @@ static class Steam
 		let text = sGetFriendPersonaName(sFriends, id);
 		if (text != null)
 			name.Append(text);
+	}
+
+	/// Prefer this viewer's private friend nickname, falling back to the Steam display name.
+	public static void PlayerName(uint64 id, String name)
+	{
+		if (!sReady || sFriends == null || id == 0) return;
+		if (sGetPlayerNickname != null)
+		{
+			let nickname = sGetPlayerNickname(sFriends,id);
+			if (nickname != null && nickname[0] != 0) { name.Append(nickname);return; }
+		}
+		if (id == UserId) { name.Append(UserName);return; }
+		if (sRequestUserInformation != null) sRequestUserInformation(sFriends,id,true);
+		FriendName(id,name);
 	}
 
 	/// Whether a Steam ID belongs to one of the signed-in user's friends. False without Steam.
@@ -333,6 +349,8 @@ static class Steam
 		sGetFriendCount = (.)Symbol("SteamAPI_ISteamFriends_GetFriendCount");
 		sGetFriendByIndex = (.)Symbol("SteamAPI_ISteamFriends_GetFriendByIndex");
 		sGetFriendPersonaName = (.)Symbol("SteamAPI_ISteamFriends_GetFriendPersonaName");
+		sGetPlayerNickname = (.)Symbol("SteamAPI_ISteamFriends_GetPlayerNickname");
+		sRequestUserInformation = (.)Symbol("SteamAPI_ISteamFriends_RequestUserInformation");
 		sGetFriendPersonaState = (.)Symbol("SteamAPI_ISteamFriends_GetFriendPersonaState");
 		sSetRichPresence = (.)Symbol("SteamAPI_ISteamFriends_SetRichPresence");
 		sClearRichPresence = (.)Symbol("SteamAPI_ISteamFriends_ClearRichPresence");

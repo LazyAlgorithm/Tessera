@@ -20,6 +20,13 @@ class Light : Component
 	public Color color = .(1.0f, 0.96f, 0.88f);
 	public float intensity = 1.0f;
 	public float range = 10.0f;
+    /// Physical inverse-square distance attenuation; intensity is then measured per square metre.
+    public bool inverseSquare = false;
+    /// Baked diffuse already supplies this light on surfaces with a lightmap.
+    public bool bakedOnly = false;
+    public int32 shadowMaskChannel = -1;
+    /// Negative keeps the engine default, 80% of Spot Angle.
+    public float innerSpotAngle = -1;
 	[Range(1, 170)]
 	public float spotAngle = 45.0f;
 	public bool castShadows = true;

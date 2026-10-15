@@ -1,5 +1,5 @@
-$input a_position, a_normal, a_color0, a_texcoord0, i_data0, i_data1, i_data2, i_data3, i_data4
-$output v_wpos, v_normal, v_color0, v_texcoord0, v_depth
+$input a_position, a_normal, a_color0, a_texcoord0, a_texcoord1, i_data0, i_data1, i_data2, i_data3, i_data4
+$output v_wpos, v_normal, v_color0, v_texcoord0, v_depth, v_texcoord1
 
 // Lit mesh vertex shader. Every draw is instanced: i_data0..3 is the model matrix,
 // i_data4 a per-instance tint, so identical meshes batch into one call.
@@ -23,8 +23,14 @@ void main()
 	wpos.xyz = tw_bend(wpos.xyz, i_data3.xyz, time);
 	gl_Position = mul(u_viewProj, wpos);
 	v_wpos = wpos.xyz;
-	v_normal = mul(model, vec4(normal, 0.0)).xyz;
+	// Inverse-transpose normal transform: direct multiplication breaks nonuniform scale.
+    vec3 co0 = cross(i_data1.xyz, i_data2.xyz);
+    vec3 co1 = cross(i_data2.xyz, i_data0.xyz);
+    vec3 co2 = cross(i_data0.xyz, i_data1.xyz);
+    float orientation = dot(i_data0.xyz, co0) < 0.0 ? -1.0 : 1.0;
+    v_normal = (co0 * normal.x + co1 * normal.y + co2 * normal.z) * orientation;
 	v_color0 = a_color0 * i_data4;
 	v_texcoord0 = a_texcoord0;
+	v_texcoord1 = a_texcoord1;
 	v_depth = gl_Position.w;
 }

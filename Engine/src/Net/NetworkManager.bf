@@ -37,6 +37,10 @@ class NetworkManager
 	/// Give scene objects that move on their own (physics bodies, AI, character controllers) a Network Identity
 	/// when the session starts, if they do not have one. Set by Network Session.
 	public bool AutoReplicate = true;
+	/// Game scene selection, delivered before spawned objects in the welcome packet.
+	public String SessionContext = new .() ~ delete _;
+	public delegate void SessionContextHandler(StringView context);
+	public SessionContextHandler OnSessionContext ~ delete _;
 	/// True while ticks are being run again after a correction from the server.
 	public bool Replaying;
 	public Scene Scene => mScene;
@@ -786,6 +790,7 @@ class NetworkManager
 		mWriter.Write(MsgWelcome);
 		mWriter.Write(client.id);
 		mWriter.Write(mTick);
+		mWriter.WriteString(SessionContext);
 		Send(peer, true);
 		// Bring the newcomer up to date with everything spawned so far, then add their player.
 		for (let identity in mIdentities)
@@ -1087,7 +1092,7 @@ class NetworkManager
 				if (!everything && mSnapshotNumber - identity.ChangedAt >= SnapshotRepeats && (mSnapshotNumber + identity.NetId) % RefreshEvery != 0)
 					continue;
 				WriteId(identity.NetId);
-				if (identity.ownerId == client.id)
+				if (identity.ownerId == client.id || identity.fullPrecision)
 				{
 					// Their own objects go exactly, velocity and all: this is what their prediction is checked against.
 					mWriter.Write(NetPack.FlagFull);
@@ -1129,6 +1134,8 @@ class NetworkManager
 	{
 		LocalClientId = reader.Read<int32>();
 		reader.Read<uint32>();
+		let context=scope String();reader.ReadString(context);
+		if(reader.Ok && OnSessionContext!=null) OnSessionContext(context);
 		mConnected = reader.Ok;
 		mTick = 0;
 		mHaveSnapshot = false;
@@ -1376,6 +1383,7 @@ class NetworkManager
 			for (let entry in owned)
 			{
 				let predicted = entry.identity.History[ackTick % NetworkIdentity.HistorySize];
+                if(predicted.prediction0.w != entry.state.prediction0.w) worst=Math.Max(worst,1);
 				worst = Math.Max(worst, (predicted.position - entry.state.position).Length);
 				worst = Math.Max(worst, (1.0f - Mathf.Abs(Quaternion.Dot(predicted.rotation, entry.state.rotation))) * 2.0f);
 			}
@@ -1425,6 +1433,16 @@ class NetworkManager
 		for (uint32 tick = ackTick + 1; tick <= mTick; tick++)
 		{
 			SimulateOwned(LocalClientId, mInputs[tick % InputHistory]);
+            // A replayed contact can hand a transform motor to a body during this tick.
+            if(!stepPhysics)
+            {
+                for(let entry in owned)
+                    if(entry.identity.GetComponent<Rigidbody>()?.HasBody == true) stepPhysics=true;
+                if(stepPhysics)
+                    for(let identity in mIdentities)
+                        if(identity.ownerId != LocalClientId && identity.GetComponent<Rigidbody>()?.HasBody == true)
+                            others.Add((identity,identity.CaptureState()));
+            }
 			if (stepPhysics)
 				mScene.Physics.Step(Time.FixedDeltaTime);
 			for (let entry in owned)

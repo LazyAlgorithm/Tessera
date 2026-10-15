@@ -149,6 +149,7 @@ static class Native
 		public int32 alphaMode;
 		public float alphaCutoff;
 		public int32 doubleSided;
+		public float* uv2s;
 	}
 
 	[CRepr]
