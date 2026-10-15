@@ -275,7 +275,12 @@ class Project
 		proj.Append("FileVersion = 1\nDependencies = {corlib = \"*\", Tessera = \"*\", TesseraEditor = \"*\"");
 		for (let library in libraries)
 			proj.AppendF(", {} = \"*\"", library.name);
-		proj.AppendF("}}\n\n[Project]\nName = \"{0}\"\nTargetType = \"BeefConsoleApplication\"\nStartupObject = \"{0}.Program\"\n", Name);
+#if BF_PLATFORM_WINDOWS
+		let targetType = "BeefGUIApplication";
+#else
+		let targetType = "BeefConsoleApplication";
+#endif
+		proj.AppendF("}}\n\n[Project]\nName = \"{0}\"\nTargetType = \"{1}\"\nStartupObject = \"{0}.Program\"\n", Name, targetType);
 		proj.AppendF("\n[Configs.Debug.Linux64]\nOtherLinkFlags = \"$(LinkFlags) -rdynamic {0}\"\n\n[Configs.Release.Linux64]\nCLibType = \"Dynamic\"\nOtherLinkFlags = \"$(LinkFlags) {0}\"\n", link);
 		// The same libraries as built for Windows (build/native-win), and the Windows libraries they call into. The
 		// native libraries use the static C runtime, so the game must too. The project's own link flags are written

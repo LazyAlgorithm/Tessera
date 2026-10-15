@@ -158,3 +158,11 @@ What to know:
 - The Workshop has no editor window yet; publishing is a call from your own game or tool.
 - A client needs the host's Steam ID; there is no in-game friend list or invite yet.
 - Tested on Linux with the Steam client running: start-up, reading the test app's achievements, and a full game session between two sessions on one account. Browsing and searching the Workshop were checked against the test app's real items. Unlocking an achievement on Steam, subscribing to or publishing a Workshop item, and play between two different accounts have not been tried.
+
+## Editor runtime location
+
+Download the Steamworks runtime from Valve's SDK: <https://partner.steamgames.com/doc/sdk>. Linux x86_64 uses `sdk/redistributable_bin/linux64/libsteam_api.so`; Windows x64 uses `sdk/redistributable_bin/win64/steam_api64.dll`. Installing the Steam client alone does not place this library inside a Tessera project.
+
+Put the platform library in `<project>/Libraries/` (or the project root). The editor searches that location, and game packaging copies the library beside the executable. Restart the editor after adding a previously missing library. Live achievements also require a running Steam client, the correct App ID and achievements configured/published in Steamworks. Local achievements can be edited without a connected Steam session.
+
+Regression: build `Tests/Achievements`, then run `python3 tools/test_steam_library_lookup.py <AchievementTests executable>`. It uses a fake local runtime and does not connect to Steam or change account achievements.

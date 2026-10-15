@@ -3,7 +3,7 @@ Dependencies = {corlib = "*", Tessera = "*", TesseraEditor = "*"}
 
 [Project]
 Name = "TesseraLauncher"
-TargetType = "BeefConsoleApplication"
+TargetType = "BeefGUIApplication"
 StartupObject = "Tessera.Launcher.Program"
 
 [Configs.Debug.Linux64]

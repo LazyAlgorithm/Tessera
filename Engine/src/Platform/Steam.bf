@@ -9,7 +9,7 @@ namespace Tessera;
 ///   if (Steam.Init(480))                       // your App ID; 480 is Valve's public test app
 ///       Log.Info(scope $"Hello {Steam.UserName}");
 ///
-/// The library is looked for in TESSERA_STEAM_LIB, beside the executable, in the project folder, and in a local
+/// The library is looked for in TESSERA_STEAM_LIB, beside the executable, in the project folder or its Libraries folder, and in a local
 /// Steam installation. Ship the libsteam_api file from the Steamworks SDK beside your game. The Steam client must
 /// be running and the user must own the app (everyone owns 480).
 ///
@@ -327,6 +327,9 @@ static class Steam
 		{
 			candidates.Add(new $"{Assets.ProjectPath}/{fileName}");
 			candidates.Add(new $"{Assets.ProjectPath}/../{fileName}");
+			// Editor assets live in <project>/src; game packaging also accepts <project>/Libraries.
+			candidates.Add(new $"{Assets.ProjectPath}/Libraries/{fileName}");
+			candidates.Add(new $"{Assets.ProjectPath}/../Libraries/{fileName}");
 		}
 		let home = scope String();
 		if (Environment.GetEnvironmentVariable("HOME", home) case .Ok && !home.IsEmpty)
@@ -341,7 +344,7 @@ static class Steam
 		}
 		if (sLibrary == null)
 		{
-			sError.Set(scope $"{fileName} was not found. Put the file from the Steamworks SDK beside the game.");
+			sError.Set(scope $"{fileName} was not found. Put the file from the Steamworks SDK in the project Libraries folder or beside the executable.");
 			return false;
 		}
 		sInitFlat = (.)Symbol("SteamAPI_InitFlat");

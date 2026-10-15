@@ -297,14 +297,35 @@ class LauncherApp : Application
 
 class Program
 {
+#if BF_PLATFORM_WINDOWS
+	[CLink, CallingConvention(.Stdcall)] static extern int32 AttachConsole(uint32 processId);
+	[CLink, CallingConvention(.Stdcall)] static extern void* GetStdHandle(uint32 handle);
+
+	static void UseCommandConsole()
+	{
+		// CLI commands may reuse their caller's console; GUI startup never allocates one.
+		// Preserve explicitly redirected output (the build regression captures it through a pipe).
+		let output = GetStdHandle(0xFFFFFFF5);
+		if ((output == null || (int)output == -1) && AttachConsole(0xFFFFFFFF) != 0)
+			Console.ReopenHandles();
+	}
+#endif
 	public static int Main(String[] args)
 	{
 		for (int i < args.Count)
 		{
 			if (args[i] == "--create" && i + 1 < args.Count)
+			{
+#if BF_PLATFORM_WINDOWS
+				UseCommandConsole();
+#endif
 				return CreateFromCommandLine(args[i + 1], args);
+			}
 			if ((args[i] == "--open" || args[i] == "--build-project") && i + 1 < args.Count)
 			{
+#if BF_PLATFORM_WINDOWS
+				UseCommandConsole();
+#endif
 				Gfx.LocateEngineAssets();
 				let error = scope String();
 				if (!LauncherApp.OpenProject(args[i + 1], error, args[i] == "--build-project"))

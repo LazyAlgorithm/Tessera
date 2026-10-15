@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import struct
 import tempfile
 import tomllib
 
@@ -45,12 +46,21 @@ def main():
     environment.pop('TESSERA_ROOT', None)
     launcher = (['wine'] if args.wine else []) + [str(package / 'Tessera.exe')]
 
-    def run(arguments, name):
+    def assert_gui(executable):
+        data = executable.read_bytes()
+        assert data[:2] == b'MZ', f'Not a Windows executable: {executable}'
+        pe = struct.unpack_from('<I', data, 0x3C)[0]
+        assert struct.unpack_from('<H', data, pe + 24 + 68)[0] == 2, f'External console subsystem: {executable}'
+
+    assert_gui(package / 'Tessera.exe')
+
+    def run(arguments, name, success=True):
         result = subprocess.run(launcher + arguments, env=environment, text=True, capture_output=True, timeout=600)
         (work / (name + '.log')).write_text(result.stdout + result.stderr)
-        if result.returncode:
+        if (result.returncode == 0) != success:
             print(result.stdout + result.stderr)
-            raise RuntimeError(f'{name} failed ({result.returncode}); evidence: {work}')
+            raise RuntimeError(f'{name} had unexpected exit status {result.returncode}; evidence: {work}')
+        return result
 
     run(['--create', target(project)], 'create')
     # A moved project remembers an engine from another computer. Opening must relocate it.
@@ -59,14 +69,23 @@ def main():
                                   for line in settings.read_text().splitlines()) + '\n')
     run(['--build-project', target(project)], 'compile')
     executable = project / 'build/Debug_Win64/OpenProjectSmoke/OpenProjectSmoke.exe'
-    assert executable.read_bytes()[:2] == b'MZ', 'Project did not produce a Windows editor executable'
+    assert_gui(executable)
     flags = tomllib.loads((project / 'BeefProj.toml').read_text())['Configs']['Debug']['Win64']['OtherLinkFlags']
     assert '"' in flags and 'Tessera Hub' in flags, flags
     assert 'missing-engine' not in settings.read_text(), 'Moved project did not relocate its engine'
     # The existing executable is moved aside during rebuild. Verify the second build succeeds too.
     run(['--build-project', target(project)], 'rebuild')
     assert executable.is_file()
-    print(f'PASS: packaged Windows project create, relocation, compile and rebuild with spaces; evidence: {work}')
+    # Failed compilation must keep both its log and the last working editor executable.
+    previous = executable.read_bytes()
+    broken = project / 'src/Scripts/IntentionallyBroken.bf'
+    broken.write_text('this is deliberately invalid Beef source;\n')
+    result = run(['--build-project', target(project)], 'compile-failure', success=False)
+    assert 'The project did not compile:' in result.stdout, 'GUI launcher lost redirected CLI errors'
+    assert 'ERROR' in (project / 'build/build.log').read_text(), 'Compiler failure log was lost'
+    assert executable.read_bytes() == previous, 'Failed rebuild lost the working executable'
+    broken.unlink()
+    print(f'PASS: GUI subsystem, packaged Windows create/relocate/compile/rebuild with spaces, failure output and executable recovery; evidence: {work}')
 
 
 if __name__ == '__main__':

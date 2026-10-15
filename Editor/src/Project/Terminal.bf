@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Diagnostics;
 using System.IO;
 using Tessera;
 
@@ -24,8 +25,17 @@ static class Terminal
 	public static int32 Run(StringView command)
 	{
 #if BF_PLATFORM_WINDOWS
-		// cmd strips the first and last quote of a line that starts with one, so give it a pair to strip.
-		return system(scope $"\"{command}\"".CStr());
+		// Run the compiler/build shell without creating an external Windows console.
+		// /s strips the outer quotes, preserving quoted executable paths and redirection inside.
+		let start = scope ProcessStartInfo();
+		start.SetFileName("cmd.exe");
+		start.SetArguments(scope $"/d /s /c \"{command}\"");
+		start.UseShellExecute = false;
+		start.CreateNoWindow = true;
+		let process = scope SpawnedProcess();
+		if (process.Start(start) case .Err)
+			return -1;
+		return (int32)process.ExitCode;
 #else
 		return system(scope String(command).CStr());
 #endif
@@ -40,7 +50,11 @@ static class Terminal
 #else
 		line.AppendF("({}) >/dev/null 2>&1 &", command);
 #endif
+#if BF_PLATFORM_WINDOWS
+		Run(line);
+#else
 		system(line.CStr());
+#endif
 	}
 
 	/// Wraps a path in quotes for the command interpreter.

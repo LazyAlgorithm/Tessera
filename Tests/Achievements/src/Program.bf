@@ -8,6 +8,14 @@ class Program
     static bool Check(bool pass, StringView label) { Console.WriteLine(scope $"{pass ? "PASS" : "FAIL"}: {label}"); return pass; }
     public static int Main(String[] args)
     {
+        if (args.Count == 2 && args[0] == "--steam-library-check")
+        {
+            // This mode is used only with a local fake API, never a real Steam account.
+            Assets.ProjectPath.Set(args[1]);
+            let initialized = Steam.Init(0);
+            let loaded = !initialized && Steam.Library != null && Steam.Error.Contains("library lookup fixture");
+            return Check(loaded, "Steam loads the project Libraries runtime from the editor asset path") ? 0 : 1;
+        }
         let folder = "/tmp/tessera-achievement-test";
         Directory.CreateDirectory(folder).IgnoreError();
         Assets.ProjectPath.Set(folder);
