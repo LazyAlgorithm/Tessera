@@ -12,6 +12,7 @@ namespace Tessera.Launcher;
 ///
 /// Command line: --create <folder> [--sample]   create a project without the window
 ///               --open <folder>                build and open a project's editor directly
+///               --build-project <folder>       compile without opening a window
 class LauncherApp : Application
 {
 	String mName = new .("MyGame") ~ delete _;
@@ -95,8 +96,9 @@ class LauncherApp : Application
 	}
 
 	/// Builds the project and starts its editor. Returns false with the compiler output on failure.
-	public static bool OpenProject(StringView path, String error)
+	public static bool OpenProject(StringView path, String error, bool buildOnly = false)
 	{
+		Toolchain.Apply();
 		let project = scope Project();
 		if (!project.Load(path))
 		{
@@ -109,6 +111,8 @@ class LauncherApp : Application
 			project.ReadBuildLog(error);
 			return false;
 		}
+		if (buildOnly)
+			return true;
 		RecentProjects.Add(project.Path);
 		let command = scope String();
 		let exe = scope String();
@@ -147,7 +151,7 @@ class LauncherApp : Application
 		let busy = mOpenCountdown > 0;
 		ImGui.BeginDisabled(busy);
 		let total = ImGui.GetContentRegionAvail();
-		let footer = 64.0f;
+		let footer = mMessageIsError && !mMessage.IsEmpty ? Math.Min(260.0f, Math.Max(total.y * 0.4f, 120.0f)) : 64.0f;
 
 		// Left: recent projects.
 		ImGui.BeginChild("recent", .(total.x * 0.56f, total.y - footer), ImGui.ChildBorders);
@@ -223,8 +227,22 @@ class LauncherApp : Application
 
 		if (!mMessage.IsEmpty)
 		{
-			ImGui.SameLine(0, 18);
-			ImGui.BeginChild("message", .(0, 40));
+			if (mMessageIsError)
+			{
+				ImGui.Spacing();
+				if (ImGui.Button("Copy error"))
+					ImGui.SetClipboardText(mMessage.CStr());
+				let logPath = scope $"{mPendingOpen}/build/build.log";
+				if (!mPendingOpen.IsEmpty && File.Exists(logPath))
+				{
+					ImGui.SameLine();
+					if (ImGui.Button("Open build log"))
+						Terminal.Open(logPath);
+				}
+			}
+			else
+				ImGui.SameLine(0, 18);
+			ImGui.BeginChild("message", .(0, mMessageIsError ? 0 : 40), 0, ImGui.WindowFlags.HorizontalScrollbar);
 			if (mMessageIsError)
 				ImGui.TextColored(.(1.0f, 0.45f, 0.4f, 1), mMessage.CStr());
 			else
@@ -285,10 +303,11 @@ class Program
 		{
 			if (args[i] == "--create" && i + 1 < args.Count)
 				return CreateFromCommandLine(args[i + 1], args);
-			if (args[i] == "--open" && i + 1 < args.Count)
+			if ((args[i] == "--open" || args[i] == "--build-project") && i + 1 < args.Count)
 			{
+				Gfx.LocateEngineAssets();
 				let error = scope String();
-				if (!LauncherApp.OpenProject(args[i + 1], error))
+				if (!LauncherApp.OpenProject(args[i + 1], error, args[i] == "--build-project"))
 				{
 					Console.WriteLine(error);
 					return 1;

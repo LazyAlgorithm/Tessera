@@ -281,7 +281,13 @@ class Project
 		// native libraries use the static C runtime, so the game must too. The project's own link flags are written
 		// for Linux's linker and are left out.
 		let nativeWin = scope $"{EngineRoot}/build/native-win";
-		let linkWin = scope $"{nativeWin}/tessera_native.lib {nativeWin}/bgfx/cmake/bgfx/bgfx.lib {nativeWin}/bgfx/cmake/bimg/bimg.lib {nativeWin}/bgfx/cmake/bimg/bimg_decode.lib {nativeWin}/bgfx/cmake/bx/bx.lib {nativeWin}/SDL/SDL3-static.lib {nativeWin}/joltc/joltc.lib {nativeWin}/_deps/joltphysics-build/Jolt.lib {nativeWin}/enet/enet.lib user32.lib gdi32.lib shell32.lib winmm.lib imm32.lib ole32.lib oleaut32.lib version.lib setupapi.lib advapi32.lib ws2_32.lib psapi.lib uuid.lib cfgmgr32.lib";
+		let linkWin = scope String();
+		for (let archive in StringView[?]("tessera_native.lib", "bgfx/cmake/bgfx/bgfx.lib", "bgfx/cmake/bimg/bimg.lib", "bgfx/cmake/bimg/bimg_decode.lib", "bgfx/cmake/bx/bx.lib", "SDL/SDL3-static.lib", "joltc/joltc.lib", "_deps/joltphysics-build/Jolt.lib", "enet/enet.lib"))
+		{
+			// These quotes survive TOML parsing and keep Hub/user folders with spaces intact for lld-link.
+			linkWin.AppendF("\\\"{}/{}\\\" ", nativeWin, archive);
+		}
+		linkWin.Append("user32.lib gdi32.lib shell32.lib winmm.lib imm32.lib ole32.lib oleaut32.lib version.lib setupapi.lib advapi32.lib ws2_32.lib psapi.lib uuid.lib cfgmgr32.lib");
 		// The debug build also writes a map of where everything in it is: script reload links against that.
 		proj.AppendF("\n[Configs.Debug.Win64]\nCLibType = \"Static\"\nOtherLinkFlags = \"$(LinkFlags) {0} /MAP\"\n\n[Configs.Release.Win64]\nCLibType = \"Static\"\nOtherLinkFlags = \"$(LinkFlags) {0}\"\n", linkWin);
 		File.WriteAllText(scope $"{Path}/BeefProj.toml", proj).IgnoreError();
@@ -323,7 +329,8 @@ class Project
 		if (!(Environment.GetEnvironmentVariable("BEEFBUILD", beef) case .Ok) || beef.IsEmpty)
 			beef.Set("BeefBuild");
 		Directory.CreateDirectory(scope $"{Path}/build").IgnoreError();
-		command.AppendF("{} -workspace=", beef);
+		Terminal.Quote(beef, command);
+		command.Append(" -workspace=");
 		Terminal.Quote(Path, command);
 		command.AppendF(" -config={} -verbosity=minimal > ", release ? "Release" : "Debug");
 		Terminal.Quote(scope $"{Path}/build/build.log", command);

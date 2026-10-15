@@ -164,7 +164,7 @@ def main():
                                                + (f'[Configs.{args.config}.wasm32]\nToolset = "GNU"\n' + ('EmitDebugInfo = "No"\n' if args.config == 'Release' else '') if web else ''))
         if windows:
             # The project's own settings are for Linux; a Windows player links the same libraries as built for Windows.
-            config = {'OtherLinkFlags': '$(LinkFlags) ' + ' '.join([(wine_path(natives / lib) if cross else str(natives / lib)) for lib in WINDOWS_NATIVE_LIBS] + [lib + '.lib' for lib in WINDOWS_SYSTEM_LIBS])}
+            config = {'OtherLinkFlags': '$(LinkFlags) ' + ' '.join([f'"{wine_path(natives / lib) if cross else natives / lib}"' for lib in WINDOWS_NATIVE_LIBS] + [lib + '.lib' for lib in WINDOWS_SYSTEM_LIBS])}
         elif web:
             config = {'OtherLinkFlags': '$(LinkFlags) ' + ' '.join([str(natives / lib) for lib in WEB_NATIVE_LIBS] + list(WEB_LINK_FLAGS))}
         else:

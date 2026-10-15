@@ -214,6 +214,7 @@ jobs:
           export BEEFBUILD="$(cygpath -w "$PWD/beef-win/bin/BeefBuild.exe")"
           cd tessera
           python tools/package_engine.py --platform windows --folder ../out/Tessera-Windows
+          python tools/test_windows_project_open.py --package ../out/Tessera-Windows --beef "$BEEFBUILD" --work ../project-open-test
           cd ../out && 7z a -tzip -mx=9 Tessera-Windows.zip Tessera-Windows > /dev/null
 
       - name: Keep the zip
