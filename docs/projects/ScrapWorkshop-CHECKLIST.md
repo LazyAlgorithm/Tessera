@@ -66,3 +66,14 @@ Next milestone: complete non-block catalog occupancy, attachment rules and rotat
 [Selected gameplay screenshots and validation notes](https://github.com/LazyAlgorithm/Tessera/blob/main/docs/projects/ScrapWorkshop-PROGRESS.md).
 
 The original baked texture conversion described above is retained as an opaque fallback/editor history. Runtime blocks now use separate original DIF/ASG/normal maps, original default paint and creation-local tiling. Actual-scene backup recovery and rejection of both invalid primary/backup saves were checked in an isolated save folder.
+
+## Continuation: non-block geometry checkpoint
+
+- [x] Shared multi-cell occupancy, grid rotations, attachment masks and whole-item selection/removal implemented.
+- [x] Split/weld operations preserve oriented item geometry; archive version 3 preserves item rotations and occupied-cell budgets while accepting earlier archives.
+- [x] Six original item candidates imported with source UUID, dimensions, sticky faces, mass and independent art corrections; reimport preserves editor overrides.
+- [x] Geometry/catalog checkpoint: 69 automated checks and actual-scene placement of all six candidates, seat rotation and item-layout save/reload.
+- [ ] Complete the remaining original item families and source hull collision.
+- [ ] Validate actual placed-part mechanics and controls separately from catalog placement.
+
+Mechanics continuation is in progress: native hinge/motor and round cylinder collision are implemented locally; physics integration checks exercise motor rotation, axle retention, assembly lift/recovery and graph persistence. Full driving/play validation is still underway. The original fixed rig remains in Main.tscene, with a separate MechanicalCar scene for the placed-part example.
