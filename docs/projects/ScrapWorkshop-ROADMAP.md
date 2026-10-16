@@ -69,3 +69,15 @@ Actual-scene input verifies I inversion, X clearing and Ctrl+Z/Y undo/redo. The 
 Actual isolated-scene playtesting confirms controller seat entry, arm playback, pause/reverse, recovery and save/reload. Recovery exposed quaternion-norm drift during repeated lift movement; normalized assembly rotations fix it, with 600 subsequent frames checked automatically. Nonfinite live archives now fail before primary/backup replacement. All example scenes have isolated save folders, and playtest.sh isolates user-data paths as well as enabling reliable scoped X11 automation.
 
 Wheel definitions now expose a mounting point so actual bearing-output placement aligns the axle with the bearing rather than a footprint corner. This is checked automatically and through actual from-scratch placement. The complete user-built car, remaining item families/source hulls, extended handling, original character/tools/HUD and animated lift/suspension art remain open.
+
+## From-scratch vehicle checkpoint — 2026-10-16
+
+- [x] Build a complete working vehicle through actual catalog, keyboard and mouse input in an initially empty workshop.
+- [x] Place 20 wood items, four bearings, four wheels, a driver seat and an engine; mount each wheel as a separate rigidbody group.
+- [x] Wire seat→engine and engine→all four bearings through Connect; invert both left wheels through I.
+- [x] Release, enter the seat, drive at 7.3m/s, brake, recover, save/reload and drive again.
+- [x] Validate the saved result through the native read-only archive checker: five welded groups, 30 items and four mechanical links.
+
+The saved construction and evidence remain in Validation/FromScratch/. No scene-authored creation or direct state injection was used for this build. The authored suspended car separately covers steering/spring behavior; controller programs have their own bench. Full manual steering/suspension assembly and every connection combination remain broader playtests.
+
+Latest automated suite: 126 checks, both shaders and a 180-frame Main smoke run. The servo now wraps orientation error so a 270° target settles at its equivalent orientation instead of spinning indefinitely. The CLI `--check-construction-save PATH` checks archive checksum, catalog, topology, graph and program data without changing the scene or saves; it correctly rejects the preserved nonfinite incident sample.
