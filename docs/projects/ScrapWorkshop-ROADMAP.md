@@ -45,3 +45,7 @@ The running gear remains a fixed prototype and the GUI uses temporary engine tex
 - [ ] Original player, tool animation and HUD integration.
 
 The temporary starter vehicle is retained as an editable preview, not a substitute for the mechanical-assembly milestone. Welding currently moves block-only sources with compatible grid sizes/orientations and rejects overlaps atomically. Supported sources must be released first; anchored sources cannot be moved by welding.
+
+## Non-block catalog increment
+
+Six mechanical candidates now have original dimensions, sticky attachment faces, source identity and editable art corrections. Shared oriented occupancy drives actual placement, topology and persistence. This checkpoint has 69 automated checks plus graphical placement/rotation/save-load evidence. General item families and exact hull collision remain open. Native bearing motors, round collision, control wiring and whole-assembly recovery are the next implementation/validation increment; they are not yet marked fully play-validated.
