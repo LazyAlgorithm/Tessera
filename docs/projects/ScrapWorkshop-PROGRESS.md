@@ -51,3 +51,21 @@ The next catalog increment is implemented and has 69 automated checks plus actua
 ![Six original item candidates placed in the actual scene](screenshots/ScrapWorkshop-six-items-gallery.png)
 
 Placement is separate from working mechanics. Native hinge motors, round cylinder collision, connected-group recovery and mechanical control wiring are under the next physics/play validation increment; the entire mechanical-assembly milestone is still open. Exact source hull collision and remaining item families also remain open.
+
+## Placed-part driving, steering and suspension
+
+The latest checkpoint passes 98 automated construction/physics checks, both shader compilations and a 180-frame complete-scene smoke run. Separate editor-authored car examples now use ordinary placed seats, engines, bearing hinges and round wheel bodies, without a prototype vehicle component. The suspension example adds four spring sliders and two front steering bearings. Graph archives retain links, control wires, neutral frames and suspension anchors. Tuning and art corrections remain editable in Tessera.
+
+![Placed-part suspension car supported before release](screenshots/ScrapWorkshop-suspension-car-supported.png)
+
+Direct input in the actual Vulkan scene confirms lift release, E seat entry, W throttle, W+D turning, Space braking and R whole-car recovery. The speed HUD reached 7.3m/s. Recovery now brings the camera back to the car. Automated tests independently check compression under weight, steering target angles, forward/right motion and restoration of all ten joints.
+
+![Actual placed-part driving and steering](screenshots/ScrapWorkshop-suspension-car-driving-turn.png)
+
+![Whole-car lift recovery with camera focus retained](screenshots/ScrapWorkshop-suspension-car-recovered.png)
+
+The Connect tool also successfully wires a placed seat to its engine through actual clicks.
+
+![Seat to engine connection through the actual tool](screenshots/ScrapWorkshop-mechanical-wire-seat-engine.png)
+
+This is a verified mechanical increment. A complete car built from scratch through input, every wiring/edit combination, controller sequences, remaining item families, source hull collision, extended terrain handling, original suspension/lift animation and character/tools/HUD remain open. Main retains its original editable prototype. Imported game files and all gameplay/engine code remain local; this publication contains only documentation and selected rendered screenshots.
