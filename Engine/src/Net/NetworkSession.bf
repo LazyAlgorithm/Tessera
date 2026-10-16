@@ -20,6 +20,16 @@ class NetworkSession : Component
 	/// Name passed to NetworkManager.RegisterPrefab; spawned once per player.
 	public String playerPrefab = new .("Player") ~ delete _;
 	public int32 snapshotInterval = 3;
+    /// Optional remote snapshot batching and per-identity bandwidth controls.
+    public bool optimizeSnapshots;
+    public int32 snapshotPacketBytes = 1100;
+    /// Per-client snapshot application payload budget; zero is unlimited.
+    public int32 snapshotBytesPerSecond;
+    /// Only distanceFiltered identities use this radius. Zero disables relevance filtering.
+    public float snapshotRelevanceRadius;
+    /// Lossless packet compression. Direct ENet requires it on every peer; Steam/WebRTC use message frames.
+    public bool losslessCompression;
+    public bool messageCompression;
 	/// Share joining players out among this many teams, each going to the smallest. 0 for no teams. A player's
 	/// team is on their Network Identity, and they appear at Spawn Points for that team.
 	public int32 teamCount = 0;
@@ -42,6 +52,12 @@ class NetworkSession : Component
 		let network = new NetworkManager(Scene);
 		network.PlayerPrefab.Set(playerPrefab);
 		network.SnapshotInterval = snapshotInterval;
+        network.OptimizeSnapshots=optimizeSnapshots;
+        network.SnapshotPacketBytes=snapshotPacketBytes;
+        network.SnapshotBytesPerSecond=snapshotBytesPerSecond;
+        network.SnapshotRelevanceRadius=snapshotRelevanceRadius;
+        network.LosslessCompression=losslessCompression;
+        network.MessageCompression=messageCompression;
 		network.TeamCount = teamCount;
 		network.Transport = transport;
 		SteamTransport.AppId = (uint32)Math.Max(steamAppId, 0);

@@ -306,6 +306,12 @@ class NetworkManager
 	Dictionary<uint32, NetworkIdentity> mByNetId = new .() ~ delete _;
 	static Dictionary<String, PrefabFactory> mPrefabs = new .() ~ DeleteDictionaryAndKeysAndValues!(_);
 	NetWriter mWriter = new .() ~ delete _;
+    NetCompression mCompression ~ delete _;
+    List<uint8> mCompressed=new .() ~ delete _;
+    List<uint8> mDecompressed=new .() ~ delete _;
+    int32 mStatTransportSent;
+    /// Encoded application bytes offered to the transport before simulated loss (not physical wire bytes).
+    public int32 TransportBytesSentPerSecond;
 	int32 mNextClientId = 1;
 	uint32 mNextSpawnId = SpawnedIdBase;
 	uint32 mTick;
@@ -323,14 +329,16 @@ class NetworkManager
     public bool ProfileSnapshots;
     public uint64 SnapshotBuildNanoseconds,SnapshotReadNanoseconds,SnapshotBuildWorstNs,SnapshotReadWorstNs;
     public int64 SnapshotBuildCalls,SnapshotReadCalls;
-    /// Snapshot payload limit; clamped to 256..1200 to avoid UDP fragmentation.
+    /// Remote snapshot payload limit; clamped to 256..1200. Owned corrections stay together and may exceed it.
     public int32 SnapshotPacketBytes = 1100;
     /// Per-client snapshot payload budget in bytes/second; zero means unlimited. Own prediction is reserved first.
     public int32 SnapshotBytesPerSecond;
     /// World-unit radius around each client's player, for distanceFiltered identities. Zero disables.
     public float SnapshotRelevanceRadius;
-    /// ENet range coder: lossless, optional, must be set on both endpoints before starting.
+    /// Lossless compression: native ENet coder for Direct; independent message frames for Steam/WebRTC.
     public bool LosslessCompression;
+    /// Force transport-independent lossless frames (also useful for testing Steam's message path over Direct).
+    public bool MessageCompression;
     /// ENet UDP payload totals, including transport headers, retransmissions and compression.
     public uint32 WireBytesSent => mTransport?.WireSent ?? 0;
     public uint32 WireBytesReceived => mTransport?.WireReceived ?? 0;
@@ -386,6 +394,7 @@ class NetworkManager
 		if (++mStatTicks < Time.TickRate)
 			return;
 		BytesSentPerSecond = mStatSent;
+        TransportBytesSentPerSecond=mStatTransportSent;mStatTransportSent=0;
 		BytesReceivedPerSecond = mStatReceived;
 		if (LogStats && IsServer)
 		{
@@ -681,6 +690,13 @@ class NetworkManager
 	{
 		mStatSent += (int32)mWriter.Data.Count;
 		mStatPacketsSent++;
+        Span<uint8> payload=mWriter.Data;
+        if(MessageCompression || LosslessCompression && Transport!=.Direct)
+        {
+            if(mCompression==null)mCompression=new .();
+            if(mCompression.Encode(payload,mCompressed))payload=mCompressed;
+        }
+        mStatTransportSent+=(int32)payload.Length;
 		if (SimulatedLossPercent > 0 && !reliable)
 		{
 			if ((NextRandom() % 10000) < (uint32)(SimulatedLossPercent * 100))
@@ -694,11 +710,11 @@ class NetworkManager
 			// Reliable packets keep the plain delay, so that they stay in order.
 			let extra = reliable || SimulatedJitterMs <= 0 ? 0 : NextRandom() % (uint32)(SimulatedJitterMs * 1000);
 			delayed.dueTime = SDL.SDL_GetTicksNS() + (uint64)SimulatedLagMs * 1000000 + (uint64)extra * 1000;
-			delayed.data.AddRange(mWriter.Data);
+			delayed.data.AddRange(payload);
 			mDelayed.Add(delayed);
 			return;
 		}
-		mTransport?.Send(peer, mWriter.Data, reliable);
+		mTransport?.Send(peer, payload, reliable);
 	}
 
 	/// Sends the simulated-lag packets whose delay has passed.
@@ -770,7 +786,14 @@ class NetworkManager
 				}
 			case .Data:
 				mStatReceived += (int32)event.length;
-				var reader = NetReader(event.data, event.length);
+				Span<uint8> payload=.(event.data,event.length);
+                if(event.length>0 && event.data[0]==NetCompression.MessageType)
+                {
+                    if(mCompression==null)mCompression=new .();
+                    if(!mCompression.Decode(payload,mDecompressed))continue;
+                    payload=mDecompressed;
+                }
+                var reader = NetReader(payload.Ptr, payload.Length);
 				let type = reader.Read<uint8>();
 				if (IsServer)
 				{
@@ -1128,7 +1151,7 @@ class NetworkManager
     void SendOptimizedSnapshots()
     {
         mSnapshotNumber++;
-        for(let identity in mIdentities)identity.NoteSnapshot(mSnapshotNumber);
+        for(let identity in mIdentities)identity.NoteSnapshot(mSnapshotNumber,true);
         let record=scope NetWriter();
         let candidates=scope List<NetworkIdentity>();
         for(let client in mClients)
@@ -1156,18 +1179,21 @@ class NetworkManager
                 SnapshotDelivery sa=default,sb=default;client.delivered.TryGetValue(a.NetId,out sa);client.delivered.TryGetValue(b.NetId,out sb);
                 return sa.tick!=sb.tick ? sa.tick<=>sb.tick : a.NetId<=>b.NetId;
             });
-            BeginSnapshotPacket(client);int count=0,spent=0;bool reliable=false;
+            BeginSnapshotPacket(client);int count=0,spent=0;bool reliable=false,containsOwned=false;
             let limit=Math.Clamp(SnapshotPacketBytes,256,1200);
             let budget=SnapshotBytesPerSecond>0 ? Math.Max(128,(int)((int64)SnapshotBytesPerSecond*Math.Max(SnapshotInterval,1)/Math.Max(Time.TickRate,1))) : int.MaxValue;
             for(let identity in candidates)
             {
                 record.Clear();WriteSnapshotRecord(record,identity,client.id);
                 let dormant=identity.ownerId!=client.id && identity.SnapshotSleeping;
-                let flush=count>0 && (mWriter.Data.Count+record.Data.Count>limit || reliable!=dormant);
+                let own=identity.ownerId==client.id;
+                // One coherent correction for all owned objects: replay must not advance them once per chunk.
+                // Exceptional large ownership groups retain legacy fragmentation rather than replaying twice.
+                let flush=count>0 && (!own && (containsOwned || mWriter.Data.Count+record.Data.Count>limit) || reliable!=dormant);
                 let cost=record.Data.Count+((count==0 || flush) ? 13 : 0);
                 if(identity.ownerId!=client.id && spent+cost>budget)continue;
-                if(flush) { FlushSnapshotPacket(client,count,reliable);BeginSnapshotPacket(client);count=0; }
-                reliable=dormant;mWriter.Data.AddRange(record.Data);count++;spent+=cost;
+                if(flush) { FlushSnapshotPacket(client,count,reliable);BeginSnapshotPacket(client);count=0;containsOwned=false; }
+                reliable=dormant;containsOwned |= own;mWriter.Data.AddRange(record.Data);count++;spent+=cost;
                 SnapshotDelivery sent=default;client.delivered.TryGetValue(identity.NetId,out sent);
                 let same=sent.change==identity.ChangedAt && sent.dormant==dormant;
                 sent.repeats=dormant ? (int32)SnapshotRepeats : (same ? sent.repeats+1 : 1);

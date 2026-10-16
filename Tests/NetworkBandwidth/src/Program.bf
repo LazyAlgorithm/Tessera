@@ -61,6 +61,24 @@ class Program
         { var shortReader=NetReader(writer.Data.Ptr,size);let f=shortReader.Read<uint8>();NetPack.ReadTransform(ref shortReader,f,out decoded,out turn);if(shortReader.Ok)ok=false; }
         Check(ok,"all truncated transform records are rejected");
     }
+    static void Compression()
+    {
+        let codec=scope NetCompression();let source=scope NetWriter();let encoded=scope List<uint8>();let decoded=scope List<uint8>();
+        for(int i<1000) { source.Write((uint32)(i%16));source.Write(1.234567f);source.Write((uint32)0x7FC01234); }
+        bool lossless=codec.Encode(source.Data,encoded) && encoded.Count<source.Data.Count && codec.Decode(encoded,decoded) && decoded.Count==source.Data.Count;
+        if(lossless)for(int i<decoded.Count)lossless &= decoded[i]==source.Data[i];
+        Check(lossless,"transport-independent compression preserves every float and NaN payload bit exactly");
+        let invalid=scope List<uint8>();invalid.AddRange(encoded);invalid[1]=255;invalid[2]=255;invalid[3]=255;invalid[4]=127;
+        Check(!codec.Decode(invalid,decoded) && decoded.Count==0,"compressed message output is bounded before allocation");
+        let tiny=scope NetWriter();tiny.Write((uint32)123);
+        Check(!codec.Encode(tiny.Data,encoded) && encoded.Count==0,"small messages keep their original representation");
+        let scene=scope Scene();let net=Setup(scene,true);net.Transport=.Steam;net.LosslessCompression=true;
+        let capture=new CaptureTransport();net.[Friend]mTransport=capture;
+        net.[Friend]mWriter.Data.AddRange(source.Data);net.[Friend]Send((void*)1,false);
+        Check(capture.last.Count<source.Data.Count && capture.last[0]==NetCompression.MessageType && codec.Decode(capture.last,decoded),"Steam-configured manager sends compressed application frames without ENet transport compression");
+        bool exact=decoded.Count==source.Data.Count;if(exact)for(int i<decoded.Count)exact &= decoded[i]==source.Data[i];
+        Check(exact,"shared transport frame restores the complete original message");
+    }
     static void Delivery()
     {
         let scene=scope Scene();let remote=scope Scene();
@@ -141,10 +159,13 @@ class Program
         let copy=copies[0];copy.PushKey(1000,.(1,0,0),.Identity);copy.PushKey(1003,.(2,0,0),.Identity,true);
         BodyState state;copy.Sample(1006,3,out state);
         Check(state.position==Vector3(2,0,0) && state.linearVelocity==.Zero,"reliable sleep key stops extrapolation exactly");
+        for(let identity in net.Identities)identity.ownerId=1;
+        transport.Reset();Step(net);
+        Check(transport.packets==1 && transport.maxPacket>1100,"large ownership groups stay in one coherent correction instead of replaying once per chunk");
     }
     public static int Main()
     {
-        Time.DeltaTime=Time.FixedDeltaTime;Codec();Delivery();Dormancy();BatchingAndBudget();
+        Time.DeltaTime=Time.FixedDeltaTime;Codec();Compression();Delivery();Dormancy();BatchingAndBudget();
         Console.WriteLine(ok ? "NETWORK BANDWIDTH TESTS PASSED" : "NETWORK BANDWIDTH TESTS FAILED");return ok ? 0 : 1;
     }
 }

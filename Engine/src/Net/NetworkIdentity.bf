@@ -113,13 +113,13 @@ class NetworkIdentity : Component
 	bool mSentOnce;
 
 	/// Server, once per snapshot: packs where the object is now and notes whether that is news.
-	public void NoteSnapshot(uint32 number)
+	public void NoteSnapshot(uint32 number, bool includeFullState = false)
 	{
 		let now = NetPack.Pack(Transform.Position, Transform.Rotation);
         if(fullPrecision)
         {
             let exact=CaptureState();
-            if(mSentOnce && (exact.linearVelocity-mSentFull.linearVelocity).LengthSquared<1.0e-12f && (exact.angularVelocity-mSentFull.angularVelocity).LengthSquared<1.0e-12f && exact.prediction0==mSentFull.prediction0 && exact.prediction1==mSentFull.prediction1 && (exact.position-mSentFull.position).LengthSquared<1.0e-12f && Math.Abs(Quaternion.Dot(exact.rotation,mSentFull.rotation))>0.9999999f && exact.prediction0.w==mSentFull.prediction0.w) return;
+            if(mSentOnce && (!includeFullState || (exact.linearVelocity-mSentFull.linearVelocity).LengthSquared<1.0e-12f && (exact.angularVelocity-mSentFull.angularVelocity).LengthSquared<1.0e-12f && exact.prediction0==mSentFull.prediction0 && exact.prediction1==mSentFull.prediction1) && (exact.position-mSentFull.position).LengthSquared<1.0e-12f && Math.Abs(Quaternion.Dot(exact.rotation,mSentFull.rotation))>0.9999999f && exact.prediction0.w==mSentFull.prediction0.w) return;
             mSentFull=exact;
         }
 		else if (mSentOnce && now.Same(Sent))
