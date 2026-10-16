@@ -10,9 +10,9 @@ This file is the durable progress record. A checked item means its stated eviden
 - [x] Implement assembly lift/release, height adjustment and recovery.
 - [x] Implement initial raycast suspension, throttle, steering and brake.
 - [x] Compile and resolve all errors (BeefBuild Debug completed successfully).
-- [ ] Run and visually inspect workshop.
-- [ ] Validate block add/remove, lift and driving behavior.
-- [ ] Add construction save/load so player edits survive restarts.
+- [x] Run and visually inspect workshop (actual Vulkan/X11 scene; screenshots recorded).
+- [x] Smoke-playtest block add/remove, lift release/recovery and starter driving; extended handling tuning remains.
+- [x] Add versioned construction save/load; verify an actual process restart restores edits.
 - [ ] Import and integrate original character, skeleton and movement animations.
 - [ ] Import and integrate original tools and tool animations.
 - [ ] Integrate original HUD artwork (current controls use temporary engine text).
@@ -43,17 +43,21 @@ Source and imports are saved on disk. Local execution pauses during system sleep
 - [x] Add per-block paint and a configurable six-color palette.
 - [x] Pass 25 construction/physics integration checks and a 180-frame complete-scene headless smoke test.
 - [x] Add editor/game launchers, validation script and editor workflow documentation.
-- [ ] Graphically validate pointer placement, tool UI, lift appearance and driving feel.
-- [ ] Add undo/redo and durable construction save/load.
+- [x] Graphically smoke-test pointer placement, tool UI, split/weld/paint and starter driving.
+- [x] Correct block paint-mask conversion, lift scale and rotation, seat forward direction and wheel axle orientation.
+- [ ] Extended driving feel and original lift extension animation playtesting.
+- [x] Implement and verify bounded undo/redo, validated saves, autosave, backup recovery and named blueprint save/import.
 - [ ] Expand from the three block definitions to the original item catalog, attachment faces and rotations.
 - [ ] Replace temporary vehicle running gear with placeable, connected mechanical parts.
 
 Full ordered roadmap: [ScrapWorkshop roadmap](https://github.com/LazyAlgorithm/Tessera/blob/main/docs/projects/ScrapWorkshop-ROADMAP.md).
 
-## Latest checkpoint
+## Latest checkpoint (2026-10-16)
 
-Creation foundation, splitting, initial welding and painting are implemented. Debug compilation passes without warnings. All 25 construction/physics integration checks pass; the complete authored workshop also runs headlessly for 180 frames. Tests exercise the same operations used by the building tools. The starter chassis, catalog definitions and vehicle tuning are editable in the scene.
+Actual scene now runs graphically through X11 and Wayland using Vulkan. Screenshots and direct input exercise ground placement/removal, split groups, grounded-weld rejection, successful welding, painting, lift release/recovery and starter driving. Extended handling evaluation remains pending. Local imported block diffuse maps now bake their original default color and alpha paint mask into an opaque texture, with provenance in asset-manifest.json. Lift scale corrected from 100 to 1; sideways lift rotation removed. Seat faces +Z; wheel art axles face outward consistently while supported and rolling. Art rotation/scale remain Inspector-editable.
 
-Graphical verification remains pending: SDL cannot access X11 or Wayland from this execution environment. Mouse/keyboard feel, appearance and driving are not yet play-validated. Welding currently supports compatible block grids; supported sources must be released, grounded sources cannot be dragged, and the starter car's temporary running gear cannot move as a weld source. General placeable mechanics follow later. Original character, tool animations and HUD remain pending. Runtime edits are not yet saved between game launches.
+Persistence milestone implemented: versioned checksum construction archives, complete-load validation before mutation, atomic Linux file replacement with previous-save backup, 30-second configurable autosave, startup recovery, named blueprints and bounded undo/redo transactions. Save/load, process restart, blueprint import and paint undo/redo have been exercised in the actual scene. Automated checks cover topology/paint/tuning round-trips, damaged and invalid saves, undo/redo splits, disk backups and wheel orientation. See README.md for controls and Validation/ for logs and screenshots. Headless validation does not read or write player saves.
 
-Next milestone: construction persistence/recovery and undo/redo, followed by the original placeable item catalog and actual mechanical assemblies. No survival/game-mode work is planned.
+Next milestone: expand the original placeable item catalog, including attachment and art-axis metadata, before actual mechanical assemblies. Original character, tools, HUD and lift extension animation remain pending. Imported game assets stay local; only progress documentation and selected gameplay screenshots are published.
+
+[Selected gameplay screenshots and validation notes](https://github.com/LazyAlgorithm/Tessera/blob/main/docs/projects/ScrapWorkshop-PROGRESS.md).
