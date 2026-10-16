@@ -55,3 +55,9 @@ Six mechanical candidates now have original dimensions, sticky attachment faces,
 98 integration checks, both shaders and the 180-frame Main smoke run pass. Separate MechanicalCar and MechanicalSuspensionCar scenes use placed seats/engines, real driven bearing hinges and round wheels; the latter has four spring sliders and two front steering hinges. Whole-assembly support, recovery and graph persistence are checked. Direct input in the actual Vulkan scene confirms seat entry, throttle, steering, braking, recovery/camera follow and seat→engine tool wiring.
 
 Definitions expose motor speed/torque, angle limits/servo response, suspension travel/stiffness/damping and independent art correction. Version-4 archives preserve the mechanical graph and neutral frames. A full user-built car, every connection-edit path, controller sequencing, original suspension deformation and endurance playtesting remain open. Complete remaining item families/tooling before marking milestones 5–6 complete; the original character and HUD remain later roadmap work.
+
+## Connection editing checkpoint — 2026-10-16
+
+105 automated checks, both shaders and the 180-frame Main smoke run pass. In Connect mode, aim at a mounted bearing and press I to reverse it; X clears an item's incoming control wires. The HUD identifies the incoming mode/direction. A new mode replaces competing bearing controls. Tests cover a placed controller reaching +22.5°, inversion reaching −22.5°, clearing wires and rejection across unrelated assemblies.
+
+Actual-scene input verifies I inversion, X clearing and Ctrl+Z/Y undo/redo. The playtest exposed a stale HUD hover reference after undo replaced creations; selection/hover are now cleared during restore and the repeated graphical test passes. Controller sequencing and complete from-scratch vehicle assembly remain open.
