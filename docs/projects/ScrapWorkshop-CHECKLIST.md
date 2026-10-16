@@ -61,7 +61,7 @@ Actual scene now runs graphically through X11 and Wayland using Vulkan. Screensh
 
 Persistence milestone implemented: versioned checksum construction archives, complete-load validation before mutation, atomic Linux file replacement with previous-save backup, 30-second configurable autosave, startup recovery, named blueprints and bounded undo/redo transactions. Save/load, process restart, blueprint import and paint undo/redo have been exercised in the actual scene. Automated checks cover topology/paint/tuning round-trips, damaged and invalid saves, undo/redo splits, disk backups and wheel orientation. See README.md for controls and Validation/ for logs and screenshots. Headless validation does not read or write player saves.
 
-Next milestone: complete non-block catalog occupancy, attachment rules and rotations before actual mechanical assemblies. The 47-block catalog and reconstructed material path are implemented and checked as incremental catalog work; full catalog/mechanical milestones remain open. Latest validation: 55 automated checks, shader compilation and a 180-frame headless scene run. See MATERIALS.md for the shader/material investigation and exact fidelity limits. Original character, tools, HUD and lift extension animation remain pending. Imported game assets stay local; only progress documentation and selected gameplay screenshots are published.
+Current continuation: oriented non-block geometry is implemented; placed-part mechanical examples now run, while remaining item families and extended mechanics tooling remain open. The 47-block catalog and reconstructed material path are implemented and checked as incremental catalog work; full catalog/mechanical milestones remain open. Latest validation: 55 automated checks, shader compilation and a 180-frame headless scene run. See MATERIALS.md for the shader/material investigation and exact fidelity limits. Original character, tools, HUD and lift extension animation remain pending. Imported game assets stay local; only progress documentation and selected gameplay screenshots are published.
 
 [Selected gameplay screenshots and validation notes](https://github.com/LazyAlgorithm/Tessera/blob/main/docs/projects/ScrapWorkshop-PROGRESS.md).
 
@@ -77,3 +77,16 @@ The original baked texture conversion described above is retained as an opaque f
 - [ ] Validate actual placed-part mechanics and controls separately from catalog placement.
 
 Mechanics continuation is in progress: native hinge/motor and round cylinder collision are implemented locally; physics integration checks exercise motor rotation, axle retention, assembly lift/recovery and graph persistence. Full driving/play validation is still underway. The original fixed rig remains in Main.tscene, with a separate MechanicalCar scene for the placed-part example.
+
+## Placed-part mechanics checkpoint — 2026-10-16
+
+- [x] Implement separate welded bodies across real bearing hinges, editable engine motors, round wheel collision and four spring suspension sliders.
+- [x] Implement placed-seat throttle/brake/steering, seat→engine/controller and engine/seat/controller→bearing connections, and a single target-angle controller.
+- [x] Preserve complete mechanical assemblies through lift/recovery, validated saves, blueprints and undo/redo.
+- [x] Verify 98 automated integration checks, shader compilation and 180-frame Main scene smoke run.
+- [x] Graphically smoke-playtest the separate suspended car: seat entry, throttle, steering, braking, recovery/camera follow and seat→engine tool wiring.
+- [ ] Build an entire working car from scratch through actual tool input; check every wire/edit combination.
+- [ ] Add controller sequencing, connection editing/inversion UI, remaining item families and source hull collision.
+- [ ] Extended handling, rough-terrain endurance, original suspension/lift deformation, character/tools/HUD and packaging.
+
+Main retains the editable fixed prototype. MechanicalCar and MechanicalSuspensionCar are ordinary placed-part examples without PrototypeVehicle components. This checkpoint verifies a working mechanical increment, not the entire catalog or presentation roadmap. Details and local evidence: Validation/MECHANICS-2026-10-16.md.
