@@ -34,6 +34,8 @@ abstract class NetTransport
 {
 	/// Starts accepting connections.
 	public abstract bool Host(uint16 port);
+    public virtual uint32 WireSent => 0;
+    public virtual uint32 WireReceived => 0;
 	/// Starts connecting to a host. A Connected event follows when it succeeds.
 	public abstract bool Connect(StringView address, uint16 port, out void* server);
 	/// Next thing that happened, or false when there is nothing more for now.
@@ -67,6 +69,12 @@ abstract class NetTransport
 class ENetTransport : NetTransport
 {
 	static bool sReady;
+    public bool LosslessCompression;
+    [CLink] static extern uint32 tessera_net_sent(void* host);
+    [CLink] static extern uint32 tessera_net_received(void* host);
+    public override uint32 WireSent => tessera_net_sent(mHost);
+    public override uint32 WireReceived => tessera_net_received(mHost);
+    bool ConfigureCompression() => !LosslessCompression || ENet.enet_host_compress_with_range_coder(mHost)==0;
 	void* mHost;
 	ENet.Packet* mHeld;
 
@@ -90,6 +98,7 @@ class ENetTransport : NetTransport
 		mHost = ENet.enet_host_create(&address, 32, 2, 0, 0);
 		if (mHost == null)
 			Log.Error(scope $"Could not open UDP port {port}.");
+		if (mHost != null && !ConfigureCompression()) { Close();return false; }
 		return mHost != null;
 	}
 
@@ -100,6 +109,7 @@ class ENetTransport : NetTransport
 		mHost = ENet.enet_host_create(null, 1, 2, 0, 0);
 		if (mHost == null)
 			return false;
+		if (!ConfigureCompression()) { Close();return false; }
 		ENet.Address target = default;
 		ENet.enet_address_set_host(&target, scope String(address).CStr());
 		target.port = port;

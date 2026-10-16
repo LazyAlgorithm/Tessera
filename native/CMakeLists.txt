@@ -114,10 +114,12 @@ add_library(tessera_native STATIC
 	tessera_audio.c
 	tessera_web.c
 	tessera_http.c
+	tessera_network.c
 	$<TARGET_OBJECTS:opus>
 )
 target_compile_features(tessera_native PRIVATE cxx_std_20)
 target_include_directories(tessera_native PRIVATE
+	${TP}/enet/include
 	${TP}/cimgui
 	${TP}/cimgui/imgui
 	${TP}/cimgui/imgui/backends

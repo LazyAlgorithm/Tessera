@@ -143,6 +143,38 @@ static class NetPack
 	public const uint8 FlagWide = 2;
 	/// Everything, unpacked: for the machine that predicts this object and must compare exactly.
 	public const uint8 FlagFull = 4;
+    public const uint8 FlagExactTransform = 8;
+    public const uint8 FlagFineTransform = 16;
+    public const uint8 FlagSleeping = 32;
+    /// 0.1 millimetre position steps in metre-based worlds. Outside +/-838m, use exact floats.
+    public const float FinePositionScale = 10000;
+
+    public static void WriteTransform(NetWriter writer, Vector3 position, Quaternion rotation, bool quantized)
+    {
+        let limit = 8388607 / FinePositionScale;
+        if (quantized && position.x.IsFinite && position.y.IsFinite && position.z.IsFinite && Math.Abs(position.x)<limit && Math.Abs(position.y)<limit && Math.Abs(position.z)<limit)
+        {
+            writer.Write(FlagFineTransform);
+            writer.Write24((int32)Math.Round(position.x*FinePositionScale));
+            writer.Write24((int32)Math.Round(position.y*FinePositionScale));
+            writer.Write24((int32)Math.Round(position.z*FinePositionScale));
+            writer.Write(PackRotation(rotation));
+        }
+        else
+        {
+            writer.Write(FlagExactTransform);writer.Write(position);writer.Write(rotation);
+        }
+    }
+
+    public static void ReadTransform(ref NetReader reader, uint8 flags, out Vector3 position, out Quaternion rotation)
+    {
+        if ((flags & FlagFineTransform)!=0)
+        {
+            position=.(reader.Read24()/FinePositionScale,reader.Read24()/FinePositionScale,reader.Read24()/FinePositionScale);
+            rotation=UnpackRotation(reader.Read<uint32>());
+        }
+        else { position=reader.Read<Vector3>();rotation=reader.Read<Quaternion>(); }
+    }
 
 	/// What a snapshot says about an object nobody on the receiving machine controls.
 	public struct Packed

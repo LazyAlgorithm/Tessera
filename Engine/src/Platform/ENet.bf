@@ -37,6 +37,7 @@ static class ENet
 	public const uint32 FlagReliable = 1;
 
 	[CLink] public static extern int32 enet_initialize();
+	[CLink] public static extern int32 enet_host_compress_with_range_coder(void* host);
 	[CLink] public static extern int32 enet_address_set_host(Address* address, char8* hostName);
 	[CLink] public static extern void* enet_host_create(Address* address, uint peerCount, uint channelLimit, uint32 incomingBandwidth, uint32 outgoingBandwidth);
 	[CLink] public static extern void enet_host_destroy(void* host);

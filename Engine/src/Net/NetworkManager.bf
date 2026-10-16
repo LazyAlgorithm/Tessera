@@ -252,7 +252,14 @@ class NetworkManager
 			Send(client.peer, true);
 	}
 
-	class ClientInfo
+	struct SnapshotDelivery
+    {
+        public uint32 tick, change;
+        public int32 repeats;
+        public bool dormant;
+    }
+
+    class ClientInfo
 	{
 		public int32 id;
 		public void* peer;
@@ -263,6 +270,8 @@ class NetworkManager
 		public uint32 lastProcessedTick;
 		public uint32 lastReceivedTick;
 		public int32 snapshotsSent;
+        public int cursor;
+        public Dictionary<uint32, SnapshotDelivery> delivered = new .() ~ delete _;
 		/// Ticks since the last snapshot for which no controls had arrived.
 		public int32 starved;
 	}
@@ -274,6 +283,7 @@ class NetworkManager
 	const uint8 MsgSnapshot = 5;
 	const uint8 MsgCustom = 6;
 	const uint8 MsgOwner = 7;
+    const uint8 MsgSnapshotPart = 8;
 	// Each packet of controls repeats the ticks before it, so that a lost packet costs nothing.
 	const int InputRedundancy = 3;
 	// More controls than this waiting on the server means the client has run ahead; the oldest are dropped.
@@ -307,6 +317,23 @@ class NetworkManager
 	public String PlayerPrefab = new .() ~ delete _;
 	/// Server ticks between snapshots: 3 gives 20 snapshots per second at 60 ticks.
 	public int32 SnapshotInterval = 3;
+    /// Optional packet batching, remote formats, rates, dormancy and relevance. Legacy behaviour by default.
+    public bool OptimizeSnapshots;
+    /// Optional CPU timing of snapshot encoding and decoding, independent of frame pacing.
+    public bool ProfileSnapshots;
+    public uint64 SnapshotBuildNanoseconds,SnapshotReadNanoseconds,SnapshotBuildWorstNs,SnapshotReadWorstNs;
+    public int64 SnapshotBuildCalls,SnapshotReadCalls;
+    /// Snapshot payload limit; clamped to 256..1200 to avoid UDP fragmentation.
+    public int32 SnapshotPacketBytes = 1100;
+    /// Per-client snapshot payload budget in bytes/second; zero means unlimited. Own prediction is reserved first.
+    public int32 SnapshotBytesPerSecond;
+    /// World-unit radius around each client's player, for distanceFiltered identities. Zero disables.
+    public float SnapshotRelevanceRadius;
+    /// ENet range coder: lossless, optional, must be set on both endpoints before starting.
+    public bool LosslessCompression;
+    /// ENet UDP payload totals, including transport headers, retransmissions and compression.
+    public uint32 WireBytesSent => mTransport?.WireSent ?? 0;
+    public uint32 WireBytesReceived => mTransport?.WireReceived ?? 0;
 	/// Position error in world units that triggers a rollback.
 	public float CorrectionThreshold = 0.03f;
 	/// How far in the past, in ticks, a client shows the objects it does not control. 0 picks two snapshots'
@@ -431,6 +458,7 @@ class NetworkManager
 	{
 		Stop();
 		mTransport = NetTransport.Create(Transport);
+        if (let direct=mTransport as ENetTransport)direct.LosslessCompression=LosslessCompression;
 		if (!mTransport.Host(port))
 		{
 			Stop();
@@ -451,6 +479,7 @@ class NetworkManager
 	{
 		Stop();
 		mTransport = NetTransport.Create(Transport);
+        if (let direct=mTransport as ENetTransport)direct.LosslessCompression=LosslessCompression;
 		if (!mTransport.Connect(address, port, out mServerPeer))
 		{
 			Stop();
@@ -508,6 +537,7 @@ class NetworkManager
 
 	void Unregister(NetworkIdentity identity)
 	{
+        for(let client in mClients)client.delivered.Remove(identity.NetId);
 		if (mIdentities.Remove(identity))
 			mByNetId.Remove(identity.NetId);
 	}
@@ -762,6 +792,7 @@ class NetworkManager
 					case MsgSpawn: ReadSpawn(ref reader);
 					case MsgDespawn: ReadDespawn(ref reader);
 					case MsgSnapshot: ReadSnapshot(ref reader);
+                        case MsgSnapshotPart: ReadSnapshot(ref reader, true);
 					case MsgCustom: Dispatch(reader.Read<uint8>(), 0, ref reader);
 					case MsgOwner:
 						let ownedId = reader.Read<uint32>();
@@ -1067,8 +1098,93 @@ class NetworkManager
 		}
 	}
 
+    void BeginSnapshotPacket(ClientInfo client)
+    {
+        mWriter.Clear();mWriter.Write(MsgSnapshotPart);mWriter.Write(mTick);mWriter.Write(client.lastProcessedTick);
+        mWriter.Write((uint8)Math.Clamp(SnapshotInterval,1,255));
+        mWriter.Write((int8)(client.starved>0 ? -Math.Min(client.starved,100) : Math.Min(client.queue.Count,100)));
+        mWriter.Write((uint16)0);
+    }
+
+    void FlushSnapshotPacket(ClientInfo client, int count, bool reliable)
+    {
+        if(count==0)return;
+        var written=(uint16)count;Internal.MemCpy(mWriter.Data.Ptr+11,&written,2);
+        Send(client.peer,reliable);
+    }
+
+    void WriteSnapshotRecord(NetWriter writer, NetworkIdentity identity, int32 clientId)
+    {
+        WriteNetId(writer,identity.NetId);
+        let flagsAt=writer.Data.Count;
+        if(identity.ownerId==clientId || identity.remoteFormat==.Legacy && identity.fullPrecision)
+        { writer.Write(NetPack.FlagFull);writer.Write(identity.CaptureState()); }
+        else if(identity.remoteFormat!=.Legacy)
+            NetPack.WriteTransform(writer,identity.Transform.Position,identity.Transform.Rotation,identity.remoteFormat==.QuantizedTransform);
+        else NetPack.Write(writer,identity.Sent);
+        if(identity.ownerId!=clientId && identity.SnapshotSleeping)writer.Data[flagsAt]|=NetPack.FlagSleeping;
+    }
+
+    void SendOptimizedSnapshots()
+    {
+        mSnapshotNumber++;
+        for(let identity in mIdentities)identity.NoteSnapshot(mSnapshotNumber);
+        let record=scope NetWriter();
+        let candidates=scope List<NetworkIdentity>();
+        for(let client in mClients)
+        {
+            let player=PlayerObject(client.id);
+            candidates.Clear();
+            for(let identity in mIdentities)
+            {
+                let own=identity.ownerId==client.id;
+                if(!own && identity.distanceFiltered && SnapshotRelevanceRadius>0 && player!=null &&
+                    (identity.Transform.Position-player.Transform.Position).LengthSquared>SnapshotRelevanceRadius*SnapshotRelevanceRadius)
+                { client.delivered.Remove(identity.NetId);continue; }
+                SnapshotDelivery sent=default;let known=client.delivered.TryGetValue(identity.NetId,out sent);
+                if(own) { candidates.Add(identity);continue; }
+                if(known && mTick-sent.tick<(uint32)Math.Max(identity.remoteIntervalTicks,SnapshotInterval))continue;
+                let changed=!known || sent.change!=identity.ChangedAt || sent.dormant!=identity.SnapshotSleeping;
+                let refresh=!identity.SnapshotSleeping && mTick-sent.tick>=(uint32)(Math.Max(SnapshotInterval,1)*(int32)RefreshEvery);
+                if(changed || sent.repeats<(int32)SnapshotRepeats || refresh)candidates.Add(identity);
+            }
+            // Ownership, explicit priority, then age. Stable id breaks ties so every client is deterministic.
+            candidates.Sort(scope (a,b) =>
+            {
+                if((a.ownerId==client.id)!=(b.ownerId==client.id))return a.ownerId==client.id ? -1 : 1;
+                if(a.snapshotPriority!=b.snapshotPriority)return b.snapshotPriority<=>a.snapshotPriority;
+                SnapshotDelivery sa=default,sb=default;client.delivered.TryGetValue(a.NetId,out sa);client.delivered.TryGetValue(b.NetId,out sb);
+                return sa.tick!=sb.tick ? sa.tick<=>sb.tick : a.NetId<=>b.NetId;
+            });
+            BeginSnapshotPacket(client);int count=0,spent=0;bool reliable=false;
+            let limit=Math.Clamp(SnapshotPacketBytes,256,1200);
+            let budget=SnapshotBytesPerSecond>0 ? Math.Max(128,(int)((int64)SnapshotBytesPerSecond*Math.Max(SnapshotInterval,1)/Math.Max(Time.TickRate,1))) : int.MaxValue;
+            for(let identity in candidates)
+            {
+                record.Clear();WriteSnapshotRecord(record,identity,client.id);
+                let dormant=identity.ownerId!=client.id && identity.SnapshotSleeping;
+                let flush=count>0 && (mWriter.Data.Count+record.Data.Count>limit || reliable!=dormant);
+                let cost=record.Data.Count+((count==0 || flush) ? 13 : 0);
+                if(identity.ownerId!=client.id && spent+cost>budget)continue;
+                if(flush) { FlushSnapshotPacket(client,count,reliable);BeginSnapshotPacket(client);count=0; }
+                reliable=dormant;mWriter.Data.AddRange(record.Data);count++;spent+=cost;
+                SnapshotDelivery sent=default;client.delivered.TryGetValue(identity.NetId,out sent);
+                let same=sent.change==identity.ChangedAt && sent.dormant==dormant;
+                sent.repeats=dormant ? (int32)SnapshotRepeats : (same ? sent.repeats+1 : 1);
+                sent.tick=mTick;sent.change=identity.ChangedAt;sent.dormant=dormant;
+                client.delivered[identity.NetId]=sent;
+            }
+            FlushSnapshotPacket(client,count,reliable);
+            if(count==0 && spent==0) { BeginSnapshotPacket(client);Send(client.peer,false); }
+            client.snapshotsSent++;client.starved=0;
+        }
+    }
+
 	void SendSnapshots()
-	{
+    {
+        let began=ProfileSnapshots ? SDL.SDL_GetTicksNS() : 0;
+        defer { if(ProfileSnapshots) { let ns=SDL.SDL_GetTicksNS()-began;SnapshotBuildNanoseconds+=ns;SnapshotBuildWorstNs=Math.Max(SnapshotBuildWorstNs,ns);SnapshotBuildCalls++; } }
+        if (OptimizeSnapshots) { SendOptimizedSnapshots();return; }
 		mSnapshotNumber++;
 		for (let identity in mIdentities)
 			identity.NoteSnapshot(mSnapshotNumber);
@@ -1170,8 +1286,10 @@ class NetworkManager
 		}
 	}
 
-	void ReadSnapshot(ref NetReader reader)
-	{
+	void ReadSnapshot(ref NetReader reader, bool part = false)
+    {
+        let began=ProfileSnapshots ? SDL.SDL_GetTicksNS() : 0;
+        defer { if(ProfileSnapshots) { let ns=SDL.SDL_GetTicksNS()-began;SnapshotReadNanoseconds+=ns;SnapshotReadWorstNs=Math.Max(SnapshotReadWorstNs,ns);SnapshotReadCalls++; } }
 		let serverTick = reader.Read<uint32>();
 		let ackTick = reader.Read<uint32>();
 		uint32 interval = (uint32)Math.Max((int32)reader.Read<uint8>(), 1);
@@ -1182,8 +1300,8 @@ class NetworkManager
 		SnapshotsReceived++;
 		mStatSnapshots++;
 		// Snapshots can overtake one another on the way; one older than the last has nothing to add.
-		if (mHaveSnapshot && (int32)(serverTick - mLastSnapshotTick) <= 0)
-			return;
+		let fresh = !mHaveSnapshot || (int32)(serverTick-mLastSnapshotTick)>0;
+        if (!part && !fresh)return;
 		// With the snapshot before this one in hand, an object it left out is known to have been still then.
 		let sawPrevious = mHaveSnapshot && serverTick - mLastSnapshotTick == interval;
 
@@ -1195,7 +1313,9 @@ class NetworkManager
 			BodyState state = default;
 			if ((flags & NetPack.FlagFull) != 0)
 				state = reader.Read<BodyState>();
-			else
+			else if ((flags & (NetPack.FlagExactTransform | NetPack.FlagFineTransform))!=0)
+                NetPack.ReadTransform(ref reader,flags,out state.position,out state.rotation);
+            else
 				NetPack.Unpack(NetPack.Read(ref reader, flags), out state.position, out state.rotation);
 			if (!reader.Ok)
 				return;
@@ -1203,19 +1323,20 @@ class NetworkManager
 				continue;
 			if (identity.ownerId == LocalClientId)
 			{
-				if ((flags & NetPack.FlagFull) != 0)
+				if ((flags & NetPack.FlagFull) != 0 && (!part || fresh || serverTick==mLastSnapshotTick))
 					owned.Add((identity, state));
 				continue;
 			}
-			if (sawPrevious && identity.HasKeys && serverTick - identity.NewestKeyTick > interval)
+			if (!part && sawPrevious && identity.HasKeys && serverTick - identity.NewestKeyTick > interval)
 				identity.HoldKey((uint32)(serverTick - interval));
-			identity.PushKey(serverTick, state.position, state.rotation);
+			identity.PushKey(serverTick, state.position, state.rotation, (flags & NetPack.FlagSleeping)!=0);
 		}
-		mLastSnapshotTick = serverTick;
-		mHaveSnapshot = true;
-		mServerInterval = (int32)interval;
-		FollowServerClock(serverTick, depth);
-		Reconcile(ackTick, owned);
+		if (fresh)
+        {
+            mLastSnapshotTick=serverTick;mHaveSnapshot=true;mServerInterval=(int32)interval;
+            FollowServerClock(serverTick,depth);
+        }
+        if (owned.Count>0)Reconcile(ackTick,owned);
 	}
 
 	/// Client: keeps track of what tick the server is on, and runs this machine's ticks a little faster or slower

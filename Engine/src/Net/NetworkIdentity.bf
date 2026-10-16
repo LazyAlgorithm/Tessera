@@ -3,6 +3,9 @@ using System.Collections;
 
 namespace Tessera;
 
+[Reflect(.All)]
+enum RemoteSnapshotFormat : int32 { Legacy, ExactTransform, QuantizedTransform }
+
 /// Marks an object as replicated. The server owns its state; clients predict it locally and are corrected.
 [Component]
 class NetworkIdentity : Component
@@ -11,6 +14,18 @@ class NetworkIdentity : Component
     /// Send exact transform/body snapshots for small or precision-sensitive objects.
     public bool fullPrecision;
     BodyState mSentFull;
+    /// Remote snapshot format only; the owning client's prediction always receives exact BodyState.
+    public RemoteSnapshotFormat remoteFormat = .Legacy;
+    /// Minimum server ticks between remote updates; zero uses the session snapshot interval.
+    public int32 remoteIntervalTicks;
+    /// Suppress periodic sleeping refreshes after a reliable final transform. Off by default.
+    public bool dormantWhenSleeping;
+    /// Distance filtering applies only to objects opting in. Zero session radius disables it.
+    public bool distanceFiltered;
+    /// Higher values are serviced first when a session has a bandwidth budget.
+    public int32 snapshotPriority;
+    public bool SnapshotSleeping => dormantWhenSleeping && GetComponent<Rigidbody>()?.IsSleeping == true;
+
 
 	/// 0 means owned by the server; otherwise the id of the controlling client.
 	[HideInInspector]
@@ -104,7 +119,7 @@ class NetworkIdentity : Component
         if(fullPrecision)
         {
             let exact=CaptureState();
-            if(mSentOnce && (exact.position-mSentFull.position).LengthSquared<1.0e-12f && Math.Abs(Quaternion.Dot(exact.rotation,mSentFull.rotation))>0.9999999f && exact.prediction0.w==mSentFull.prediction0.w) return;
+            if(mSentOnce && (exact.linearVelocity-mSentFull.linearVelocity).LengthSquared<1.0e-12f && (exact.angularVelocity-mSentFull.angularVelocity).LengthSquared<1.0e-12f && exact.prediction0==mSentFull.prediction0 && exact.prediction1==mSentFull.prediction1 && (exact.position-mSentFull.position).LengthSquared<1.0e-12f && Math.Abs(Quaternion.Dot(exact.rotation,mSentFull.rotation))>0.9999999f && exact.prediction0.w==mSentFull.prediction0.w) return;
             mSentFull=exact;
         }
 		else if (mSentOnce && now.Same(Sent))
@@ -122,6 +137,7 @@ class NetworkIdentity : Component
 		public uint32 tick;
 		public Vector3 position;
 		public Quaternion rotation;
+        public bool stationary;
 	}
 
 	// Enough for the server to look back half a second, which is what lag compensation uses them for there.
@@ -134,7 +150,7 @@ class NetworkIdentity : Component
 	public void ClearKeys() { mKeyCount = 0; }
 
 	/// Adds what the server said the object was doing at one of its ticks. Old news is ignored.
-	public void PushKey(uint32 tick, Vector3 position, Quaternion rotation)
+	public void PushKey(uint32 tick, Vector3 position, Quaternion rotation, bool stationary = false)
 	{
 		if (mKeyCount > 0 && (int32)(tick - mKeys[mKeyCount - 1].tick) <= 0)
 			return;
@@ -144,7 +160,7 @@ class NetworkIdentity : Component
 				mKeys[i - 1] = mKeys[i];
 			mKeyCount--;
 		}
-		mKeys[mKeyCount++] = .() { tick = tick, position = position, rotation = rotation };
+		mKeys[mKeyCount++] = .() { tick = tick, position = position, rotation = rotation, stationary = stationary };
 	}
 
 	/// Says again, at a later tick, what the newest key said: the server sends nothing while an object is still.
@@ -164,7 +180,7 @@ class NetworkIdentity : Component
 		let newest = mKeys[mKeyCount - 1];
 		state.position = newest.position;
 		state.rotation = newest.rotation;
-		if (mKeyCount == 1)
+		if (mKeyCount == 1 || newest.stationary && tick >= newest.tick)
 			return true;
 		if (tick >= (double)newest.tick)
 		{
