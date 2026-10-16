@@ -328,7 +328,7 @@ class PhysicsWorld
 			Jolt.JPH_BodyCreationSettings_SetRestitution(settings, rigidbody.bounciness);
 			Jolt.JPH_BodyCreationSettings_SetLinearDamping(settings, rigidbody.linearDamping);
 			Jolt.JPH_BodyCreationSettings_SetAngularDamping(settings, rigidbody.angularDamping);
-			Jolt.JPH_BodyCreationSettings_SetGravityFactor(settings, rigidbody.useGravity ? 1.0f : 0.0f);
+			Jolt.JPH_BodyCreationSettings_SetGravityFactor(settings, rigidbody.useGravity ? Math.Max(0,rigidbody.gravityScale) : 0.0f);
 			Jolt.JPH_BodyCreationSettings_SetAllowSleeping(settings, rigidbody.allowSleeping);
 			if (rigidbody.continuousCollision)
 				Jolt.JPH_BodyCreationSettings_SetMotionQuality(settings, 1);

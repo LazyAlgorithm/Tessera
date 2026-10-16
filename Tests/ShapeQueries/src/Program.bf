@@ -61,6 +61,13 @@ class Program
         ShapeDesc largeShape=default;largeShape.kind=.Mesh;largeShape.mesh=largeMesh;largeShape.meshScale=.One;
         let largeBody=largeScene.Physics.CreateBody(largeObject.Transform,largeShape,null);
         ok &= Check(largeBody!=uint32.MaxValue && largeScene.Physics.SphereCast(.(0.2f,1,0.2f),0.05f,-Vector3.Up,2,out hit) && hit.gameObject==largeObject,"large imported mesh builds and collides without a mesh-sized stack allocation");
+        let gravityScene=scope Scene();gravityScene.Physics.Gravity=.(0,-0.01962f,0);gravityScene.Physics.LengthScale=0.002f;
+        let normalObject=gravityScene.CreateGameObject("Unchanged room gravity");normalObject.Transform.Position=.(0,5,0);normalObject.AddComponent<SphereCollider>().radius=0.02f;
+        let normalBody=normalObject.AddComponent<Rigidbody>();normalBody.linearDamping=0;normalBody.EnsureBody();
+        let fastObject=gravityScene.CreateGameObject("Ball-only gravity");fastObject.Transform.Position=.(1,5,0);fastObject.AddComponent<SphereCollider>().radius=0.02f;
+        let fastBody=fastObject.AddComponent<Rigidbody>();fastBody.gravityScale=4;fastBody.linearDamping=0;fastBody.EnsureBody();
+        for(int i=0;i<60;i++)gravityScene.Physics.Step(1.0f/60);
+        ok &= Check(normalBody.gravityScale==1 && Math.Abs(normalBody.Velocity.y+0.01962f)<0.0001f && Math.Abs(fastBody.Velocity.y-4*normalBody.Velocity.y)<0.0001f,"per-body gravity scaling accelerates only the selected body and preserves old defaults");
         return ok ? 0 : 1;
     }
 }

@@ -9,6 +9,9 @@ class Rigidbody : Component
 {
 	public float mass = 1.0f;
 	public bool useGravity = true;
+	/// Multiplies scene gravity for this body; useGravity=false still disables gravity.
+	[Range(0, 10)]
+	public float gravityScale = 1;
 	public bool isKinematic = false;
 	[Range(0, 2)]
 	public float friction = 0.5f;
