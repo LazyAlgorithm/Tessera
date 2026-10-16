@@ -178,6 +178,16 @@ class Program
         Check(sampled.linearVelocity==impact.linearVelocity,"stale body keys cannot replace authoritative impact velocities");
         id.PushBodyKey(16,impact,true);id.Sample(20,3,out sampled);
         Check(sampled.position==impact.position && sampled.linearVelocity==.Zero && sampled.angularVelocity==.Zero,"sleeping body keys stop both translation and spin");
+        let remote=scope Scene();let motor=remote.CreateGameObject("Transform motor").AddComponent<NetworkIdentity>();let net=Setup(remote,false);
+        for(uint32 tick=10;tick<=13;tick+=3)
+        {
+            let packet=scope NetWriter();packet.Write(tick);packet.Write((uint32)0);packet.Write((uint8)3);packet.Write((int8)2);packet.Write((uint16)1);
+            NetworkManager.WriteNetId(packet,motor.NetId);packet.Write(NetPack.FlagFull);packet.Write(impact);
+            var reader=NetReader(packet.Data.Ptr,packet.Data.Count);net.[Friend]ReadSnapshot(ref reader,true);
+        }
+        motor.Sample(14,3,out sampled);
+        Check(sampled.angularVelocity==.Zero && Math.Abs(Quaternion.Dot(sampled.rotation,impact.rotation))>0.999999f,"non-body motor metadata is never interpreted as physical angular velocity");
+
     }
     public static int Main()
     {
