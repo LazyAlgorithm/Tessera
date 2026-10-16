@@ -87,3 +87,18 @@ Wheel definitions now expose a mounting point so actual bearing-output placement
 ![Controller program driving a placed arm](screenshots/ScrapWorkshop-controller-program-isolated-verified.png)
 
 ![Controller bench recovered without transform drift](screenshots/ScrapWorkshop-controller-recovery-clean.png)
+
+## From-scratch vehicle checkpoint — 2026-10-16
+
+- [x] Build a complete working vehicle through actual catalog, keyboard and mouse input in an initially empty workshop.
+- [x] Place 20 wood items, four bearings, four wheels, a driver seat and an engine; mount each wheel as a separate rigidbody group.
+- [x] Wire seat→engine and engine→all four bearings through Connect; invert both left wheels through I.
+- [x] Release, enter the seat, drive at 7.3m/s, brake, recover, save/reload and drive again.
+- [x] Validate the saved result through the native read-only archive checker: five welded groups, 30 items and four mechanical links.
+
+The saved construction and evidence remain in Validation/FromScratch/. No scene-authored creation or direct state injection was used for this build. The authored suspended car separately covers steering/spring behavior; controller programs have their own bench. Full manual steering/suspension assembly and every connection combination remain broader playtests.
+
+Latest automated suite: 126 checks, both shaders and a 180-frame Main smoke run. The servo now wraps orientation error so a 270° target settles at its equivalent orientation instead of spinning indefinitely. The CLI `--check-construction-save PATH` checks archive checksum, catalog, topology, graph and program data without changing the scene or saves; it correctly rejects the preserved nonfinite incident sample.
+![Vehicle built entirely through tools, driving at 7.3m/s](screenshots/ScrapWorkshop-from-scratch-driving.png)
+
+![The same user-built assembly recovered on the lift](screenshots/ScrapWorkshop-from-scratch-recovered.png)
