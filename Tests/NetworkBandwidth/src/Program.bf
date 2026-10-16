@@ -86,6 +86,9 @@ class Program
         identity.ownerId=0;identity.remoteIntervalTicks=12;obj.Transform.Position=.(5,2,3);transport.Reset();Step(net);
         Check(transport.bytes==13,"remote rate limit sends only heartbeat before due tick");
         Step(net,12);Check(transport.bytes>26,"pending changed transform is delivered once rate permits");
+        identity.remoteIntervalTicks=0;transport.drop=true;obj.Transform.Position=.(6,2,3);Step(net);
+        let droppedAt=net.Tick;transport.drop=false;Step(net);
+        Check(other.NewestKeyTick>droppedAt,"unchanged record repeats recover a dropped update");
         // Add a player anchor and opt the prop into relevance.
         let player=scene.CreateGameObject("Player");let pi=player.AddComponent<NetworkIdentity>();pi.ownerId=1;pi.PrefabName.Set("anchor");pi.NetId=player.Id;net.[Friend]Register(pi);
         identity.distanceFiltered=true;net.SnapshotRelevanceRadius=1;transport.Reset();Step(net,12);
@@ -103,7 +106,11 @@ class Program
         body.EnsureBody();body.Sleep();Step(net);Check(transport.reliablePackets==1,"sleeping final transform uses reliable delivery");
         transport.Reset();for(int i<100)Step(net);
         Check(transport.bytes==1300 && transport.reliablePackets==0,"sleeping objects need only session heartbeats across refresh periods");
-        body.AddImpulse(.(0.01f,0,0));obj.Transform.Position=.(1,0,0);Step(net);Check(transport.bytes>1313,"wake resumes transform delivery");
+        net.[Friend]mClients.Add(new .());let newcomer=net.[Friend]mClients.Back;newcomer.id=2;newcomer.peer=(void*)2;
+        transport.Reset();Step(net);
+        Check(transport.reliablePackets==1,"late join gets sleeping transforms reliably even after refresh suppression");
+        net.[Friend]mClients.RemoveAt(net.[Friend]mClients.Count-1);delete newcomer;transport.Reset();
+        body.AddImpulse(.(0.01f,0,0));obj.Transform.Position=.(1,0,0);Step(net);Check(transport.bytes>13,"wake resumes transform delivery");
     }
     static void BatchingAndBudget()
     {
