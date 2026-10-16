@@ -13,6 +13,8 @@ class AchievementInfo
 	public String description = new .() ~ delete _;
 	/// Not shown to players until it is earned.
 	public bool hidden;
+	/// Keep this achievement local even when Steam is connected; never calls Steam for this ID.
+	public bool localOnly;
 }
 
 /// Achievements and simple counters, with one call each:
@@ -26,7 +28,7 @@ class AchievementInfo
 /// editor, in a build without Steam and in a Steam build.
 ///
 /// The list of achievements is edited in the editor (Window > Achievements) and saved as Achievements.tach in the
-/// project. On Steam each one must also be created on the Steamworks site with the same id.
+/// project. Steam-backed entries also need a Steamworks ID; local-only entries never do.
 static class Achievements
 {
 	static List<AchievementInfo> sDefinitions = new .() ~ DeleteContainerAndItems!(_);
@@ -88,7 +90,11 @@ static class Achievements
 			info.id.Set(tokens[1]);
 			info.name.Set(tokens.Count > 2 ? tokens[2] : tokens[1]);
 			if (tokens.Count > 3) info.description.Set(tokens[3]);
-			info.hidden = tokens.Count > 4 && tokens[4] == "hidden";
+			for (int i = 4; i < tokens.Count; i++)
+			{
+				if (tokens[i] == "hidden") info.hidden = true;
+				if (tokens[i] == "local-only") info.localOnly = true;
+			}
 			sDefinitions.Add(info);
 		}
 	}
@@ -98,7 +104,7 @@ static class Achievements
 	{
 		let text = scope String();
 		for (let info in Definitions)
-			text.AppendF("achievement {} {} {}{}\n", SceneSerializer.Quote(info.id, .. scope .()), SceneSerializer.Quote(info.name, .. scope .()), SceneSerializer.Quote(info.description, .. scope .()), info.hidden ? " hidden" : "");
+			text.AppendF("achievement {} {} {}{}{}\n", SceneSerializer.Quote(info.id, .. scope .()), SceneSerializer.Quote(info.name, .. scope .()), SceneSerializer.Quote(info.description, .. scope .()), info.hidden ? " hidden" : "", info.localOnly ? " local-only" : "");
 		let path = scope String();
 		Assets.ResolvePath(FileName, path);
 		return File.WriteAllText(path, text) case .Ok;
@@ -171,11 +177,14 @@ static class Achievements
 	/// True when Steam is keeping the achievements, false when they are kept locally.
 	public static bool OnSteam => Steam.Start() && Steam.HasStats;
 
+	/// Backend for one achievement. A local-only ID does not even start Steam.
+	public static bool UsesSteam(StringView id) => Find(id)?.localOnly != true && OnSteam;
+
 	// ---- the API ----
 
 	public static bool IsUnlocked(StringView id)
 	{
-		if (OnSteam)
+		if (UsesSteam(id))
 			return Steam.IsAchievementUnlocked(id);
 		LoadState();
 		return HasLocal(id);
@@ -189,7 +198,7 @@ static class Achievements
 		let info = Find(id);
 		if (info == null)
 			Log.Warning(scope $"Achievement '{id}' is not in the project's list (Window > Achievements).");
-		if (OnSteam)
+		if (UsesSteam(id))
 		{
 			if (!Steam.UnlockAchievement(id))
 			{
@@ -214,14 +223,14 @@ static class Achievements
 	{
 		if (current >= max)
 			Unlock(id);
-		else if (OnSteam && !IsUnlocked(id))
+		else if (UsesSteam(id) && !IsUnlocked(id))
 			Steam.ShowAchievementProgress(id, (uint32)Math.Max(current, 0), (uint32)Math.Max(max, 1));
 	}
 
 	/// Takes an achievement away again. For testing.
 	public static void Clear(StringView id)
 	{
-		if (OnSteam)
+		if (UsesSteam(id))
 		{
 			Steam.ClearAchievement(id);
 			return;
@@ -245,7 +254,6 @@ static class Achievements
 		if (OnSteam)
 		{
 			Steam.ResetAllStats(true);
-			return;
 		}
 		LoadState();
 		ClearAndDeleteItems!(sUnlocked);
@@ -256,9 +264,9 @@ static class Achievements
 
 	/// A whole-number counter kept with the player's progress, such as kills or games played. On Steam the stat
 	/// must exist on the Steamworks site with the same name.
-	public static int32 GetStat(StringView name)
+	public static int32 GetStat(StringView name, bool localOnly = false)
 	{
-		if (OnSteam)
+		if (!localOnly && OnSteam)
 		{
 			Steam.GetStat(name, let value);
 			return value;
@@ -267,9 +275,9 @@ static class Achievements
 		return sStats.TryGetValueAlt(name, let local) ? local : 0;
 	}
 
-	public static void SetStat(StringView name, int32 value)
+	public static void SetStat(StringView name, int32 value, bool localOnly = false)
 	{
-		if (OnSteam)
+		if (!localOnly && OnSteam)
 		{
 			Steam.SetStat(name, value);
 			return;
@@ -280,10 +288,10 @@ static class Achievements
 	}
 
 	/// Adds to a counter and returns the new value.
-	public static int32 AddStat(StringView name, int32 amount = 1)
+	public static int32 AddStat(StringView name, int32 amount = 1, bool localOnly = false)
 	{
-		let value = GetStat(name) + amount;
-		SetStat(name, value);
+		let value = GetStat(name, localOnly) + amount;
+		SetStat(name, value, localOnly);
 		return value;
 	}
 

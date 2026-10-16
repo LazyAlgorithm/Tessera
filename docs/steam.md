@@ -37,6 +37,18 @@ The same code works everywhere:
 - **Under Steam** the achievement goes to the player's Steam account and Steam shows its own pop-up.
 - **Without Steam** (in the editor, or a build with no App ID) progress is kept in a small file on the player's machine and the engine draws a pop-up in the game. Set `Achievements.ShowToasts = false` to draw your own.
 
+### Local-only achievements
+
+Each achievement can have **Local only** checked in Window > Achievements. These IDs always use local saves and the in-game popup, even while Steam is connected. Unlock, query, progress and per-ID reset do not call Steam. They never need a Steamworks entry. New editor entries default to Local only; existing files and Steam imports keep their previous behavior.
+
+The definition format accepts independent `hidden` and `local-only` flags:
+
+```text
+achievement "TOYBOX_TROUBLE" "Toybox Trouble" "Hit 25 physics props." local-only
+```
+
+For counters used only by local achievements, pass `localOnly: true` to `GetStat`, `SetStat` or `AddStat` (third parameter for AddStat). Otherwise counters retain their normal Steam/local backend behavior. Clearing Local only later does not upload previous local unlocks: create the matching Steamworks ID first, then a future unlock uses Steam. Global Lock All still resets both Steam and local progress when connected.
+
 ### The Achievements window
 
 **Window > Achievements** lists the project's achievements: an id, a name, a description and whether it is hidden until earned. **Save** writes them to `Achievements.tach` in the project, which ships with the game.

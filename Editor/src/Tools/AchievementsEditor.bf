@@ -40,7 +40,7 @@ extension EditorApp
 		if (project.SteamAppId == 0)
 			ImGui.TextDisabled("0: not using Steam. Achievements are kept in a local file and shown with an in-game pop-up.");
 		else if (Steam.IsReady)
-			ImGui.TextDisabled(scope String()..AppendF("Connected to Steam as {}. Unlocks here change that account.", Steam.UserName).CStr());
+			ImGui.TextDisabled(scope String()..AppendF("Connected to Steam as {}. Steam entries affect that account; Local only entries stay on this machine.", Steam.UserName).CStr());
 		else
 		{
 			ImGui.TextDisabled("Not connected to Steam; using the local file.");
@@ -57,6 +57,7 @@ extension EditorApp
 		if (ImGui.Button("+ Add"))
 		{
 			let info = new AchievementInfo();
+			info.localOnly = true;
 			info.id.Set("NEW_ACHIEVEMENT");
 			for (int suffix = 2; ; suffix++)
 			{
@@ -130,12 +131,13 @@ extension EditorApp
 
 		// ---- the list ----
 		AchievementInfo removed = null;
-		if (ImGui.BeginTable("achievements", 6, ImGui.TableFlags.RowBg | ImGui.TableFlags.BordersInnerV | ImGui.TableFlags.Resizable | ImGui.TableFlags.ScrollY, .(0, -44)))
+		if (ImGui.BeginTable("achievements", 7, ImGui.TableFlags.RowBg | ImGui.TableFlags.BordersInnerV | ImGui.TableFlags.Resizable | ImGui.TableFlags.ScrollY, .(0, -44)))
 		{
 			ImGui.TableSetupColumn("ID (used in code and on Steam)", ImGui.ColumnFlags.WidthStretch, 1.1f);
 			ImGui.TableSetupColumn("Name", ImGui.ColumnFlags.WidthStretch, 1.0f);
 			ImGui.TableSetupColumn("Description", ImGui.ColumnFlags.WidthStretch, 1.8f);
 			ImGui.TableSetupColumn("Hidden", ImGui.ColumnFlags.WidthFixed, 56);
+			ImGui.TableSetupColumn("Local only", ImGui.ColumnFlags.WidthFixed, 78);
 			ImGui.TableSetupColumn("Test", ImGui.ColumnFlags.WidthFixed, 96);
 			ImGui.TableSetupColumn("", ImGui.ColumnFlags.WidthFixed, 26);
 			ImGui.TableHeadersRow();
@@ -164,6 +166,8 @@ extension EditorApp
 				ImGui.TableNextColumn();
 				mAchievementsDirty |= ImGui.Checkbox("##hidden", ref info.hidden);
 				ImGui.TableNextColumn();
+				mAchievementsDirty |= ImGui.Checkbox("##localOnly", ref info.localOnly);
+				ImGui.TableNextColumn();
 				let unlocked = Achievements.IsUnlocked(info.id);
 				if (ImGui.SmallButton(unlocked ? "Lock" : "Unlock"))
 				{
@@ -191,7 +195,7 @@ extension EditorApp
 			mAchievementsDirty = true;
 		}
 		ImGui.TextDisabled("In code: Achievements.Unlock(\"ID\"). On Steam, create each achievement on the Steamworks site with the same ID;");
-		ImGui.TextDisabled("Steam keeps its own names, descriptions and icons. The names here are used for the pop-up when the game runs without Steam.");
+		ImGui.TextDisabled("Local only always saves on this machine, including with Steam connected. New achievements default to Local only.");
 		ImGui.End();
 	}
 }

@@ -5,6 +5,40 @@ namespace AchievementTests;
 /// Achievements without Steam: the project has no App ID here, so nothing in this test touches a Steam account.
 class Program
 {
+    static int steamCalls;
+    static bool FakeUnlock(void* stats,char8* id) { steamCalls++;return true; }
+    static bool FakeGet(void* stats,char8* id,bool* unlocked) { steamCalls++;*unlocked=false;return true; }
+    static bool FakeStore(void* stats) { steamCalls++;return true; }
+    static bool FakeClear(void* stats,char8* id) { steamCalls++;return true; }
+    static bool FakeProgress(void* stats,char8* id,uint32 current,uint32 max) { steamCalls++;return true; }
+    static bool TestLocalOnly()
+    {
+        let entry=new AchievementInfo();entry.id.Set("LOCAL_ONLY");entry.name.Set("Local test");entry.localOnly=true;entry.hidden=true;
+        Achievements.Definitions.Add(entry);Achievements.SaveDefinitions();Achievements.Reload();
+        bool ok=Check(Achievements.Find("LOCAL_ONLY").localOnly && Achievements.Find("LOCAL_ONLY").hidden && !Achievements.Find("FIRST_WIN").localOnly,"local-only and hidden flags round trip without changing existing definitions");
+        // A complete in-process fake backend: no Steam DLL is loaded and no account is contacted.
+        Steam.[Friend]sReady=true;Steam.[Friend]sStats=(void*)1;
+        Steam.[Friend]sSetAchievement= => FakeUnlock;Steam.[Friend]sGetAchievement= => FakeGet;
+        Steam.[Friend]sStoreStats= => FakeStore;Steam.[Friend]sClearAchievement= => FakeClear;Steam.[Friend]sIndicateProgress= => FakeProgress;
+        defer
+        {
+            Steam.[Friend]sReady=false;Steam.[Friend]sStats=null;
+            Steam.[Friend]sSetAchievement=null;Steam.[Friend]sGetAchievement=null;Steam.[Friend]sStoreStats=null;
+            Steam.[Friend]sClearAchievement=null;Steam.[Friend]sIndicateProgress=null;
+        }
+        steamCalls=0;
+        ok &= Check(Achievements.OnSteam && !Achievements.UsesSteam("LOCAL_ONLY"),"local-only routing is independent of an active Steam backend");
+        Achievements.Clear("LOCAL_ONLY");Achievements.SetProgress("LOCAL_ONLY",1,2);
+        ok &= Check(!Achievements.IsUnlocked("LOCAL_ONLY") && Achievements.Unlock("LOCAL_ONLY") && Achievements.IsUnlocked("LOCAL_ONLY"),"local-only unlock and query work while Steam is connected");
+        Achievements.Clear("LOCAL_ONLY");Achievements.SetProgress("LOCAL_ONLY",2,2);
+        ok &= Check(Achievements.IsUnlocked("LOCAL_ONLY") && steamCalls==0,"local-only progress and reset never call Steam");
+        Achievements.SetStat("local_hits",0,true);Achievements.AddStat("local_hits",25,true);
+        ok &= Check(Achievements.GetStat("local_hits",true)==25 && steamCalls==0,"explicit local counters never call Steam");
+        Achievements.Find("LOCAL_ONLY").localOnly=false;
+        ok &= Check(!Achievements.IsUnlocked("LOCAL_ONLY") && steamCalls>0,"promoting an ID does not upload its old local unlock");
+        Achievements.Find("LOCAL_ONLY").localOnly=true;Achievements.Clear("LOCAL_ONLY");
+        return ok;
+    }
     static bool Check(bool pass, StringView label) { Console.WriteLine(scope $"{pass ? "PASS" : "FAIL"}: {label}"); return pass; }
     public static int Main(String[] args)
     {
@@ -41,6 +75,8 @@ class Program
         Achievements.SetProgress("SECRET", 5, 5);
         ok &= Check(!partway && Achievements.IsUnlocked("SECRET"), "progress unlocks when it reaches the goal");
         ok &= Check(Achievements.AddStat("kills") == 1 && Achievements.AddStat("kills", 4) == 5 && Achievements.GetStat("kills") == 5 && Achievements.GetStat("never") == 0, "counters add up");
+
+        ok &= TestLocalOnly();
 
         // A fresh start reads the same progress back from the player's machine.
         Achievements.[Friend]sStateLoaded = false;
