@@ -139,6 +139,15 @@ static class Steam
 	static function char8*(void* friends, uint64 id) sGetPlayerNickname;
 	static function bool(void* friends, uint64 id, bool nameOnly) sRequestUserInformation;
 	static function int32(void* friends, uint64 id) sGetFriendPersonaState;
+    // Steamworks FriendGameInfo_t: CGameID, IP, two ports, CSteamID (24 bytes).
+    public struct FriendGameInfo
+    {
+        public uint64 gameId;
+        public uint32 ip;
+        public uint16 gamePort,queryPort;
+        public uint64 lobby;
+    }
+    static function bool(void* friends,uint64 id,FriendGameInfo* game) sGetFriendGamePlayed;
 	static function bool(void* friends, char8* key, char8* value) sSetRichPresence;
 	static function void(void* friends) sClearRichPresence;
 	static function char8*(void* friends, uint64 id, char8* key) sGetFriendRichPresence;
@@ -180,6 +189,14 @@ static class Steam
 
 	/// Whether a friend is signed in to Steam at the moment (online, away, busy and so on: anything but offline).
 	public static bool FriendOnline(uint64 id) => sReady && sFriends != null && sGetFriendPersonaState != null && sGetFriendPersonaState(sFriends, id) != 0;
+
+    /// App ID of the game a friend is playing, or 0 when unavailable. Uses Steam's game state, not rich presence.
+    public static uint32 FriendAppId(uint64 id)
+    {
+        if(!sReady || sFriends==null || sGetFriendGamePlayed==null)return 0;
+        FriendGameInfo game=default;
+        return sGetFriendGamePlayed(sFriends,id,&game) ? (uint32)(game.gameId & 0xFFFFFF) : 0;
+    }
 
 	/// Publishes a named piece of text about what this player is doing; friends running the same game can read it
 	/// with FriendPresence. An empty value removes the key. Steam itself shows the "status" key in the friends list,
@@ -355,6 +372,7 @@ static class Steam
 		sGetPlayerNickname = (.)Symbol("SteamAPI_ISteamFriends_GetPlayerNickname");
 		sRequestUserInformation = (.)Symbol("SteamAPI_ISteamFriends_RequestUserInformation");
 		sGetFriendPersonaState = (.)Symbol("SteamAPI_ISteamFriends_GetFriendPersonaState");
+        sGetFriendGamePlayed = (.)Symbol("SteamAPI_ISteamFriends_GetFriendGamePlayed");
 		sSetRichPresence = (.)Symbol("SteamAPI_ISteamFriends_SetRichPresence");
 		sClearRichPresence = (.)Symbol("SteamAPI_ISteamFriends_ClearRichPresence");
 		sGetFriendRichPresence = (.)Symbol("SteamAPI_ISteamFriends_GetFriendRichPresence");

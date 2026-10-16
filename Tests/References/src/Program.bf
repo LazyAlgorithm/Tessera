@@ -18,6 +18,14 @@ class InspectorAttributes : Component
  [NonSerialized] public int32 transient=5;
  public float Shown => shown;
 }
+[Component]
+class ClearObserver : Component
+{
+    public GameObject other;
+    public static int destroyed;
+    public static bool invalid;
+    public override void OnDestroy() { destroyed++;invalid |= other==null || other.IsDestroyed || other.Name.IsEmpty; }
+}
 class Program
 {
     static bool Check(bool condition, StringView name)
@@ -68,6 +76,19 @@ class Program
         text.Clear();SceneSerializer.Save(scene,text);let attributeScene=scope Scene();SceneSerializer.Load(attributeScene,text);
         let restored=attributeScene.Find("Root").GetComponent<InspectorAttributes>();
         ok &= Check(restored!=null && restored.Shown==12 && restored.hidden==3,"shown private and hidden public fields survive scene serialization");
+        let bulk=scope Scene();
+        for(int i=0;i<2000;i++)
+        {
+            let object=bulk.CreateGameObject(scope $"Bulk {i}");let link=object.AddComponent<Links>();
+            link.target=object;link.pose=object.Transform;link.camera=object.AddComponent<Camera>();
+        }
+        let bulkStart=SDL.SDL_GetTicksNS();bulk.Clear();
+        Console.WriteLine(scope $"BULK CLEAR: {(SDL.SDL_GetTicksNS()-bulkStart)/1000000.0:0.000} ms for 2000 reference-bearing objects");
+        ok &= Check(bulk.Objects.Count==0 && bulk.Components.Count==0 && bulk.Cameras.Count==0,"bulk clear removes objects and all component indexes");
+        let playing=scope Scene();let anchor=playing.CreateGameObject("Anchor");
+        for(int index=0;index<64;index++)playing.CreateGameObject("Observer").AddComponent<ClearObserver>().other=anchor;
+        playing.StartPlay();playing.Clear();
+        ok &= Check(ClearObserver.destroyed==64 && !ClearObserver.invalid && playing.IsPlaying,"bulk clear invokes each destroy callback once with live references and preserves play mode");
         return ok ? 0 : 1;
     }
 }

@@ -11,6 +11,18 @@ class Program
     static bool FakeStore(void* stats) { steamCalls++;return true; }
     static bool FakeClear(void* stats,char8* id) { steamCalls++;return true; }
     static bool FakeProgress(void* stats,char8* id,uint32 current,uint32 max) { steamCalls++;return true; }
+    static bool FakeFriendGame(void* friends,uint64 id,Steam.FriendGameInfo* game)
+    { game.gameId=id==10 ? 1928210UL : 480UL;return id!=12; }
+    static bool TestFriendGame()
+    {
+        bool ok=Check(sizeof(Steam.FriendGameInfo)==24 && Steam.FriendAppId(10)==0,"Steam friend game layout is 24 bytes and unavailable queries return zero");
+        Steam.[Friend]sReady=true;Steam.[Friend]sFriends=(void*)1;Steam.[Friend]sGetFriendGamePlayed= => FakeFriendGame;
+        ok &= Check(Steam.FriendAppId(10)==1928210 && Steam.FriendAppId(11)==480 && Steam.FriendAppId(12)==0,"Steam game state distinguishes this game, another game and no game");
+        Steam.[Friend]sGetFriendGamePlayed=null;
+        ok &= Check(Steam.FriendAppId(10)==0,"Older Steam libraries without friend game queries remain supported");
+        Steam.[Friend]sReady=false;Steam.[Friend]sFriends=null;
+        return ok;
+    }
     static bool TestLocalOnly()
     {
         let entry=new AchievementInfo();entry.id.Set("LOCAL_ONLY");entry.name.Set("Local test");entry.localOnly=true;entry.hidden=true;
@@ -56,7 +68,8 @@ class Program
         File.Delete(scope $"{folder}/{Achievements.FileName}").IgnoreError(); // left behind if an earlier run was interrupted
         Achievements.SaveName.Set("TesseraAchievementTest");
         Steam.AppId = 0;
-        bool ok = Check(!Achievements.OnSteam && !Steam.IsReady, "with no App ID, Steam is never started");
+        bool ok = TestFriendGame();
+        ok &= Check(!Achievements.OnSteam && !Steam.IsReady, "with no App ID, Steam is never started");
         Achievements.ClearAll();
 
         let first = new AchievementInfo(); first.id.Set("FIRST_WIN"); first.name.Set("First \"Win\""); first.description.Set("Win a round.");

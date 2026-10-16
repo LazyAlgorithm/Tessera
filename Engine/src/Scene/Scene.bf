@@ -115,6 +115,7 @@ class Scene
 	List<GameObject> mDestroyQueue = new .() ~ delete _;
 	uint32 mNextId = 1;
 	bool mPlaying;
+    bool mClearing;
 
 	// Non-owning lists maintained by the components themselves in OnRegister / OnUnregister.
 	public List<MeshRenderer> Renderers = new .() ~ delete _;
@@ -236,6 +237,18 @@ class Scene
 	/// Removes every object. Components are unregistered without gameplay callbacks.
 	public void Clear()
 	{
+        // Stop callbacks while all referenced objects still exist, then clear borrowed links once.
+        // Per-object reference scans make a full level unload quadratic in reflected component fields.
+        let wasPlaying=mPlaying;
+        if(wasPlaying)StopPlay();
+        mClearing=true;
+        defer { mClearing=false;mPlaying=wasPlaying; }
+        List<FieldRef> fields=scope .();
+        for(let component in mComponents)
+        {
+            fields.Clear();ComponentRegistry.GetFields(component,fields);
+            for(let field in fields)if(field.kind==.ObjectReference)ComponentRegistry.AssignReference(field,null);
+        }
 		while (mRoots.Count > 0)
 			DestroyImmediate(mRoots.Back);
 		mDestroyQueue.Clear();
@@ -309,7 +322,7 @@ class Scene
 	{
 		// Clear non-owning references before freeing their targets.
 		List<FieldRef> referenceFields = scope .();
-		for (let component in mComponents)
+		if(!mClearing)for (let component in mComponents)
 		{
 			referenceFields.Clear();
 			ComponentRegistry.GetFields(component, referenceFields);
@@ -358,7 +371,7 @@ class Scene
 			component.OnDestroy();
 		}
 		List<FieldRef> referenceFields = scope .();
-		for (let owner in mComponents)
+		if(!mClearing)for (let owner in mComponents)
 		{
 			referenceFields.Clear(); ComponentRegistry.GetFields(owner, referenceFields);
 			for (let field in referenceFields)
