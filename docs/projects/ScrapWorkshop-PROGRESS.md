@@ -102,3 +102,11 @@ Latest automated suite: 126 checks, both shaders and a 180-frame Main smoke run.
 ![Vehicle built entirely through tools, driving at 7.3m/s](screenshots/ScrapWorkshop-from-scratch-driving.png)
 
 ![The same user-built assembly recovered on the lift](screenshots/ScrapWorkshop-from-scratch-recovered.png)
+
+## Original collision-shape checkpoint — 2026-10-16
+
+132 automated checks, both shaders and the Main smoke run pass. The imported driver seat now uses its original eight collision vertices as a convex child in the creation compound, replacing the full occupied-cell box approximation. Wheel/bearing/suspension definitions use round cylinders; engine/controller use their source box dimensions. Logical occupied cells and attachment rules remain separate from physical hull detail.
+
+Tests distinguish the seat's upper taper, upper center and wider lower volume, verify rotated collision, and confirm malformed/degenerate editable hulls fall back to cell collision. Definitions expose collisionHull, hullRotation, hullOffset and hullMargin. Reimport preserved Main's editable definitions byte for byte. This completes the six imported items' source primitive/hull path; it does not cover unimported families or every source compound-hull format.
+
+Actual scene: the saved from-scratch car loaded, the source seat was aimed/selected and entered after release, the car drove at 6.6m/s, braked/recovered and saved a valid five-group/four-joint archive. Source-hull logs and images remain local under Validation/. Imported collision data also stays local.
