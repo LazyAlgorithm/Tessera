@@ -41,3 +41,13 @@ The earlier baked textures shown above have now been superseded for runtime mate
 ![Paged original block catalog in the actual scene](screenshots/ScrapWorkshop-catalog-materials-final.png)
 
 Actual-scene recovery was additionally checked in an isolated save folder: a damaged primary successfully loaded its valid backup; two invalid copies left the live workshop intact and paused autosave. Version-2 saves preserve explicit white paint separately from an original default color; version-1 saves remain readable. Exact specular/gloss calibration, original normal convention, glass refraction and environment reflections remain open.
+
+## Oriented item geometry checkpoint
+
+The next catalog increment is implemented and has 69 automated checks plus actual-scene placement/rotation/save-load verification. Six original mechanical candidates now retain their source UUID, original dimensions and sticky attachment faces. Q turns and T tilts placed-item previews; selection and removal work from every cell of a larger item. Shared footprint rules also govern collision rebuilding, splitting, welding and save validation. Definitions and import corrections remain editable in Tessera.
+
+![Original seat placed with two grid orientations](screenshots/ScrapWorkshop-mechanical-seat-rotated.png)
+
+![Six original item candidates placed in the actual scene](screenshots/ScrapWorkshop-six-items-gallery.png)
+
+Placement is separate from working mechanics. Native hinge motors, round cylinder collision, connected-group recovery and mechanical control wiring are under the next physics/play validation increment; the entire mechanical-assembly milestone is still open. Exact source hull collision and remaining item families also remain open.
