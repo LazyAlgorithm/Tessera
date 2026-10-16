@@ -110,3 +110,14 @@ Latest automated suite: 126 checks, both shaders and a 180-frame Main smoke run.
 Tests distinguish the seat's upper taper, upper center and wider lower volume, verify rotated collision, and confirm malformed/degenerate editable hulls fall back to cell collision. Definitions expose collisionHull, hullRotation, hullOffset and hullMargin. Reimport preserved Main's editable definitions byte for byte. This completes the six imported items' source primitive/hull path; it does not cover unimported families or every source compound-hull format.
 
 Actual scene: the saved from-scratch car loaded, the source seat was aimed/selected and entered after release, the car drove at 6.6m/s, braked/recovered and saved a valid five-group/four-joint archive. Source-hull logs and images remain local under Validation/. Imported collision data also stays local.
+
+## Vehicle variants checkpoint — 2026-10-16
+
+The catalog now has 57 entries: 47 original blocks and ten mechanical items. New stable IDs 1006–1009 add the original large wheel, offroad suspension, electric engine and driver saddle, retaining source UUIDs, sizes, attachment masks, materials and collision data. Large-wheel axle mounting accounts for its five-cell diameter and two-cell depth. The longer suspension uses its third-cell output; the electric motor's initial speed/power come from a source gear. Tuning and separate art/collision corrections remain editable.
+
+142 automated checks, shader compilation and the Main smoke run pass. Checks cover all four placements with native bodies, FBX/Collada units/Y-up, wheel mounting, source saddle hull, the real offroad slider, large electric car movement and graph save/restore. Reimport and append-only catalog synchronization preserve existing scene overrides.
+
+Graphical validation: a separate gallery shows all four variants beside the original driver-seat forward reference. The driver saddle is upright and faces +Z consistently; a side-on wheel comparison confirmed both faces have the same hub detail, so no extra art flip is applied. The separate LargeWheelCar accepts saddle entry, drives at 3.9m/s, brakes/recovers and saves a valid five-group/four-link archive. Main and previously built creations remain available. Original suspension/lift deformation, extended handling and other item families remain open.
+![Four additional original vehicle variants with a driver-seat orientation reference](screenshots/ScrapWorkshop-vehicle-variants-gallery-verified.png)
+
+![Placed electric engine driving original large wheels through bearing joints](screenshots/ScrapWorkshop-large-wheel-electric-driving.png)
