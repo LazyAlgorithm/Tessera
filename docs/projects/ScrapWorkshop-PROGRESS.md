@@ -69,3 +69,10 @@ The Connect tool also successfully wires a placed seat to its engine through act
 ![Seat to engine connection through the actual tool](screenshots/ScrapWorkshop-mechanical-wire-seat-engine.png)
 
 This is a verified mechanical increment. A complete car built from scratch through input, every wiring/edit combination, controller sequences, remaining item families, source hull collision, extended terrain handling, original suspension/lift animation and character/tools/HUD remain open. Main retains its original editable prototype. Imported game files and all gameplay/engine code remain local; this publication contains only documentation and selected rendered screenshots.
+
+## Connection editing checkpoint — 2026-10-16
+
+105 automated checks, both shaders and the 180-frame Main smoke run pass. In Connect mode, aim at a mounted bearing and press I to reverse it; X clears an item's incoming control wires. The HUD identifies the incoming mode/direction. A new mode replaces competing bearing controls. Tests cover a placed controller reaching +22.5°, inversion reaching −22.5°, clearing wires and rejection across unrelated assemblies.
+
+Actual-scene input verifies I inversion, X clearing and Ctrl+Z/Y undo/redo. The playtest exposed a stale HUD hover reference after undo replaced creations; selection/hover are now cleared during restore and the repeated graphical test passes. Controller sequencing and complete from-scratch vehicle assembly remain open.
+![Undo restores a cleared bearing control wire](screenshots/ScrapWorkshop-connection-bearing-undo-fixed.png)
