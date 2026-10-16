@@ -32,14 +32,16 @@ The running gear remains a fixed prototype and the GUI uses temporary engine tex
 
 ## Verified implementation checkpoint
 
-- [x] Creation foundation and Inspector customization implemented; 25 CPU integration checks pass.
+- [x] Creation foundation and Inspector customization implemented; 55 CPU integration checks pass.
 - [x] Split groups preserve their own ground/lift attachment and world placement.
 - [x] Initial block weld and paint operations implemented and tested.
 - [x] Complete scene starts headlessly for 180 frames.
 - [x] Actual-scene graphical smoke playtest: building, removal/splitting, painting, welding, lift release/recovery and starter driving.
 - [ ] Extended driving and presentation playtesting.
 - [x] Persistence/recovery and undo/redo implemented, automatically checked and smoke-playtested, including a process restart.
-- [ ] Original item catalog and fully placeable mechanical assemblies.
+- [x] Incremental catalog step: 47 original block definitions, paged selection, editable materials and source identity.
+- [x] Reconstructed paint-mask/ASG/normal/tiling material path compiled and smoke-playtested; exact original fidelity remains open.
+- [ ] Non-block catalog occupancy/attachments/rotations and fully placeable mechanical assemblies.
 - [ ] Original player, tool animation and HUD integration.
 
 The temporary starter vehicle is retained as an editable preview, not a substitute for the mechanical-assembly milestone. Welding currently moves block-only sources with compatible grid sizes/orientations and rejects overlaps atomically. Supported sources must be released first; anchored sources cannot be moved by welding.
