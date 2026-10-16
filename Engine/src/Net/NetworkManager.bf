@@ -1355,7 +1355,8 @@ class NetworkManager
 			}
 			if (!part && sawPrevious && identity.HasKeys && serverTick - identity.NewestKeyTick > interval)
 				identity.HoldKey((uint32)(serverTick - interval));
-			identity.PushKey(serverTick, state.position, state.rotation, (flags & NetPack.FlagSleeping)!=0);
+            if ((flags & NetPack.FlagFull) != 0) identity.PushBodyKey(serverTick,state,(flags & NetPack.FlagSleeping)!=0);
+            else identity.PushKey(serverTick, state.position, state.rotation, (flags & NetPack.FlagSleeping)!=0);
 		}
 		if (fresh)
         {

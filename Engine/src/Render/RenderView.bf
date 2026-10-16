@@ -490,10 +490,7 @@ class RenderView
 				item.mesh = mesh;
 				item.renderer = renderer;
 				item.material = (parts != null && parts.Count > 0 && parts[partIndex].material != null) ? parts[partIndex].material : renderer.ActiveMaterial;
-				item.world = renderer.Transform.LocalToWorld;
-				item.world.m[12] += renderer.VisualOffset.x;
-				item.world.m[13] += renderer.VisualOffset.y;
-				item.world.m[14] += renderer.VisualOffset.z;
+				item.world = renderer.RenderMatrix;
 				let bounds = mesh.Bounds.Transformed(item.world);
 				item.center = bounds.Center;
 				item.radius = bounds.Extents.Length;

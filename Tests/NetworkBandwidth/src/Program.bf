@@ -163,9 +163,25 @@ class Program
         transport.Reset();Step(net);
         Check(transport.packets==1 && transport.maxPacket>1100,"large ownership groups stay in one coherent correction instead of replaying once per chunk");
     }
+    static void BodyKeys()
+    {
+        let scene=scope Scene();let id=scene.CreateGameObject("Body velocity keys").AddComponent<NetworkIdentity>();
+        BodyState first=default;first.rotation=.Identity;first.linearVelocity=.(0,0,0);
+        id.PushBodyKey(10,first);
+        var impact=first;impact.position=.(0.001f,0,0);impact.linearVelocity=.(0.4f,0,0);impact.angularVelocity=.(0,3,0);
+        id.PushBodyKey(13,impact);
+        BodyState sampled;id.Sample(13,3,out sampled);
+        Check(sampled.linearVelocity==impact.linearVelocity && sampled.angularVelocity==impact.angularVelocity,"full remote keys preserve real post-impact linear and angular velocities");
+        id.Sample(14,3,out sampled);
+        Check(Math.Abs(sampled.position.x-(impact.position.x+impact.linearVelocity.x*Time.FixedDeltaTime))<0.000001f && Math.Abs(Quaternion.Dot(sampled.rotation,Quaternion.AngleAxis(3*Time.FixedDeltaTime*Mathf.Rad2Deg,Vector3.Up)))>0.999999f,"remote body extrapolation follows authoritative velocity and spin");
+        id.PushBodyKey(12,first);id.Sample(13,3,out sampled);
+        Check(sampled.linearVelocity==impact.linearVelocity,"stale body keys cannot replace authoritative impact velocities");
+        id.PushBodyKey(16,impact,true);id.Sample(20,3,out sampled);
+        Check(sampled.position==impact.position && sampled.linearVelocity==.Zero && sampled.angularVelocity==.Zero,"sleeping body keys stop both translation and spin");
+    }
     public static int Main()
     {
-        Time.DeltaTime=Time.FixedDeltaTime;Codec();Compression();Delivery();Dormancy();BatchingAndBudget();
+        Time.DeltaTime=Time.FixedDeltaTime;Codec();Compression();Delivery();Dormancy();BatchingAndBudget();BodyKeys();
         Console.WriteLine(ok ? "NETWORK BANDWIDTH TESTS PASSED" : "NETWORK BANDWIDTH TESTS FAILED");return ok ? 0 : 1;
     }
 }
