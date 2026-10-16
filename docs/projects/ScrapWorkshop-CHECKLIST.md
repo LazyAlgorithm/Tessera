@@ -86,7 +86,15 @@ Mechanics continuation is in progress: native hinge/motor and round cylinder col
 - [x] Verify 98 automated integration checks, shader compilation and 180-frame Main scene smoke run.
 - [x] Graphically smoke-playtest the separate suspended car: seat entry, throttle, steering, braking, recovery/camera follow and seat→engine tool wiring.
 - [ ] Build an entire working car from scratch through actual tool input; check every wire/edit combination.
-- [ ] Add controller sequencing, connection editing/inversion UI, remaining item families and source hull collision.
+- [ ] Add controller sequencing, remaining item families and source hull collision.
 - [ ] Extended handling, rough-terrain endurance, original suspension/lift deformation, character/tools/HUD and packaging.
 
 Main retains the editable fixed prototype. MechanicalCar and MechanicalSuspensionCar are ordinary placed-part examples without PrototypeVehicle components. This checkpoint verifies a working mechanical increment, not the entire catalog or presentation roadmap. Details and local evidence: Validation/MECHANICS-2026-10-16.md.
+
+## Connection editing checkpoint — 2026-10-16
+
+105 automated checks, both shaders and the 180-frame Main smoke run pass. In Connect mode, aim at a mounted bearing and press I to reverse it; X clears an item's incoming control wires. The HUD identifies the incoming mode/direction. A new mode replaces competing bearing controls. Tests cover a placed controller reaching +22.5°, inversion reaching −22.5°, clearing wires and rejection across unrelated assemblies.
+
+Actual-scene input verifies I inversion, X clearing and Ctrl+Z/Y undo/redo. The playtest exposed a stale HUD hover reference after undo replaced creations; selection/hover are now cleared during restore and the repeated graphical test passes. Controller sequencing and complete from-scratch vehicle assembly remain open.
+
+- [x] Connection editing/inversion implemented, automatically checked and graphically verified with undo/redo.
