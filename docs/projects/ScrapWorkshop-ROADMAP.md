@@ -28,7 +28,7 @@ Each milestone is implemented and checked before expanding the next one. Subtask
 
 ## Current limits
 
-The running gear remains a fixed prototype and the GUI uses temporary engine text. The actual Vulkan scene now runs through X11 and Wayland. Construction and driving have received a graphical smoke playtest; extended driving evaluation, original lift animation and fully placeable mechanics remain pending.
+Main retains the fixed prototype; separate editable placed-part car scenes now use real joints, motors and suspension. The GUI uses temporary engine text. The actual Vulkan scene now runs through X11 and Wayland. Construction and driving have received a graphical smoke playtest; extended driving evaluation, original lift animation and remaining mechanical tooling and extended handling remain pending.
 
 ## Verified implementation checkpoint
 
@@ -49,3 +49,9 @@ The temporary starter vehicle is retained as an editable preview, not a substitu
 ## Non-block catalog increment
 
 Six mechanical candidates now have original dimensions, sticky attachment faces, source identity and editable art corrections. Shared oriented occupancy drives actual placement, topology and persistence. This checkpoint has 69 automated checks plus graphical placement/rotation/save-load evidence. General item families and exact hull collision remain open. Native bearing motors, round collision, control wiring and whole-assembly recovery are the next implementation/validation increment; they are not yet marked fully play-validated.
+
+## Verified mechanical increment
+
+98 integration checks, both shaders and the 180-frame Main smoke run pass. Separate MechanicalCar and MechanicalSuspensionCar scenes use placed seats/engines, real driven bearing hinges and round wheels; the latter has four spring sliders and two front steering hinges. Whole-assembly support, recovery and graph persistence are checked. Direct input in the actual Vulkan scene confirms seat entry, throttle, steering, braking, recovery/camera follow and seat→engine tool wiring.
+
+Definitions expose motor speed/torque, angle limits/servo response, suspension travel/stiffness/damping and independent art correction. Version-4 archives preserve the mechanical graph and neutral frames. A full user-built car, every connection-edit path, controller sequencing, original suspension deformation and endurance playtesting remain open. Complete remaining item families/tooling before marking milestones 5–6 complete; the original character and HUD remain later roadmap work.
