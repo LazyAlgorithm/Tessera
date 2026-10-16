@@ -28,7 +28,7 @@ Each milestone is implemented and checked before expanding the next one. Subtask
 
 ## Current limits
 
-Initial prototype compiles, but its running gear is fixed and the initial GUI uses temporary engine text. SDL cannot access X11 or Wayland from the current execution environment, so graphical validation has not passed. CPU physics and construction validation will be used for the foundation, without claiming that it proves appearance or interactive feel.
+The running gear remains a fixed prototype and the GUI uses temporary engine text. The actual Vulkan scene now runs through X11 and Wayland. Construction and driving have received a graphical smoke playtest; extended driving evaluation, original lift animation and fully placeable mechanics remain pending.
 
 ## Verified implementation checkpoint
 
@@ -36,8 +36,9 @@ Initial prototype compiles, but its running gear is fixed and the initial GUI us
 - [x] Split groups preserve their own ground/lift attachment and world placement.
 - [x] Initial block weld and paint operations implemented and tested.
 - [x] Complete scene starts headlessly for 180 frames.
-- [ ] Graphical play validation remains pending because the current runner cannot access the desktop display.
-- [ ] Undo/redo, construction persistence and recovery.
+- [x] Actual-scene graphical smoke playtest: building, removal/splitting, painting, welding, lift release/recovery and starter driving.
+- [ ] Extended driving and presentation playtesting.
+- [x] Persistence/recovery and undo/redo implemented, automatically checked and smoke-playtested, including a process restart.
 - [ ] Original item catalog and fully placeable mechanical assemblies.
 - [ ] Original player, tool animation and HUD integration.
 
