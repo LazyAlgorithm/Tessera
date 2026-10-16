@@ -41,23 +41,28 @@ Source and imports are saved on disk. Local execution pauses during system sleep
 - [x] Split disconnected groups after removal, preserving individual ground/lift attachment state.
 - [x] Add transactional grid-compatible block welding with overlap rejection.
 - [x] Add per-block paint and a configurable six-color palette.
-- [x] Pass 25 construction/physics integration checks and a 180-frame complete-scene headless smoke test.
+- [x] Pass 55 construction/physics/material integration checks and a 180-frame complete-scene headless smoke test.
 - [x] Add editor/game launchers, validation script and editor workflow documentation.
 - [x] Graphically smoke-test pointer placement, tool UI, split/weld/paint and starter driving.
 - [x] Correct block paint-mask conversion, lift scale and rotation, seat forward direction and wheel axle orientation.
 - [ ] Extended driving feel and original lift extension animation playtesting.
 - [x] Implement and verify bounded undo/redo, validated saves, autosave, backup recovery and named blueprint save/import.
-- [ ] Expand from the three block definitions to the original item catalog, attachment faces and rotations.
+- [x] Import 47 original base/Survival block definitions with stable IDs, source UUIDs and paged selection; verify all placements automatically and several through actual input.
+- [x] Reconstruct local DIF paint-mask/ASG/normal/tiling materials; compile both shaders and inspect continuous planks and mask-preserving paint in the actual scene.
+- [ ] Match exact original glass/refraction, reflections, normal convention and material response through reference comparison.
+- [ ] Expand block-only occupancy into the original non-block item catalog, attachment rules and rotations.
 - [ ] Replace temporary vehicle running gear with placeable, connected mechanical parts.
 
 Full ordered roadmap: [ScrapWorkshop roadmap](https://github.com/LazyAlgorithm/Tessera/blob/main/docs/projects/ScrapWorkshop-ROADMAP.md).
 
 ## Latest checkpoint (2026-10-16)
 
-Actual scene now runs graphically through X11 and Wayland using Vulkan. Screenshots and direct input exercise ground placement/removal, split groups, grounded-weld rejection, successful welding, painting, lift release/recovery and starter driving. Extended handling evaluation remains pending. Local imported block diffuse maps now bake their original default color and alpha paint mask into an opaque texture, with provenance in asset-manifest.json. Lift scale corrected from 100 to 1; sideways lift rotation removed. Seat faces +Z; wheel art axles face outward consistently while supported and rolling. Art rotation/scale remain Inspector-editable.
+Actual scene now runs graphically through X11 and Wayland using Vulkan. Screenshots and direct input exercise ground placement/removal, split groups, grounded-weld rejection, successful welding, painting, lift release/recovery and starter driving. Extended handling evaluation remains pending. The local material path now samples separate original diffuse/ASG/normal maps, uses masked absolute paint and applies definition tiling across adjacent cells. The first opaque texture bake remains a fallback; provenance is recorded locally. Lift scale corrected from 100 to 1; sideways lift rotation removed. Seat faces +Z; wheel art axles face outward consistently while supported and rolling. Art rotation/scale remain Inspector-editable.
 
 Persistence milestone implemented: versioned checksum construction archives, complete-load validation before mutation, atomic Linux file replacement with previous-save backup, 30-second configurable autosave, startup recovery, named blueprints and bounded undo/redo transactions. Save/load, process restart, blueprint import and paint undo/redo have been exercised in the actual scene. Automated checks cover topology/paint/tuning round-trips, damaged and invalid saves, undo/redo splits, disk backups and wheel orientation. See README.md for controls and Validation/ for logs and screenshots. Headless validation does not read or write player saves.
 
-Next milestone: expand the original placeable item catalog, including attachment and art-axis metadata, before actual mechanical assemblies. Original character, tools, HUD and lift extension animation remain pending. Imported game assets stay local; only progress documentation and selected gameplay screenshots are published.
+Next milestone: complete non-block catalog occupancy, attachment rules and rotations before actual mechanical assemblies. The 47-block catalog and reconstructed material path are implemented and checked as incremental catalog work; full catalog/mechanical milestones remain open. Latest validation: 55 automated checks, shader compilation and a 180-frame headless scene run. See MATERIALS.md for the shader/material investigation and exact fidelity limits. Original character, tools, HUD and lift extension animation remain pending. Imported game assets stay local; only progress documentation and selected gameplay screenshots are published.
 
 [Selected gameplay screenshots and validation notes](https://github.com/LazyAlgorithm/Tessera/blob/main/docs/projects/ScrapWorkshop-PROGRESS.md).
+
+The original baked texture conversion described above is retained as an opaque fallback/editor history. Runtime blocks now use separate original DIF/ASG/normal maps, original default paint and creation-local tiling. Actual-scene backup recovery and rejection of both invalid primary/backup saves were checked in an isolated save folder.
