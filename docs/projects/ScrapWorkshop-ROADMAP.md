@@ -1,5 +1,18 @@
 # ScrapWorkshop sandbox roadmap
 
+## Drag building, catalog and mounting increment — 2026-10-16
+
+- [x] Drag-place and drag-remove rectangular surfaces up to 16×16 cells. Preview before release, preflight placement overlap/attachment/limits, rebuild once and record one undo transaction per gesture.
+- [x] Drag a continuous wedge with dimensions up to 16 per axis, rotated placement, true sloped convex collision, material tiling and version-eight dimension persistence. Wedge occupancy reserves its bounding grid.
+- [x] Verify actual mouse gestures in a separate nested display: 256-block floor, 256-block wall, one 16×1×16 wedge, 256-block removal, and undo/redo. All 16 captured archives validate (`Validation/drag-ui-validation.log`).
+- [x] Add 45 original wedge materials and 108 static parts, bringing the catalog and icons to 214 entries. Native checks load their geometry/materials and instantiate physics. Fourteen unsupported source candidates remain recorded in `References/build-import-pending.json`; static props do not acquire unimplemented interactive behavior.
+- [x] Restore switch/button source mount offsets so their bases sit flush against the host face. Require solid hosts on both sides of mechanical links and reject direct bearing-to-suspension mounting. Re-author the suspension example with solid carriers and a fresh `MechanicalSuspensionCar-v2` save profile.
+- [x] Add original building bindings: left-drag place, right-drag erase, Q/Shift+Q rotate, Q during drag changes plane, I inventory, wheel hotbar and Alt+wheel zoom. Tab/T remain aliases.
+- [ ] Complete original character first/third-person movement, camera and tool behavior, exact rotation-set ordering, full bearing face identity, and original-game comparison. Feature parity is not complete.
+- [ ] Resolve the suspension vehicle's directional steering integration check. The latest native run passes 293 checks but fails expected rightward displacement; forward propulsion and both steering target angles pass. Manual source build launched for testing while this is investigated.
+- [ ] Verify new static-part cutout/transparency materials and broader large articulated-map performance. Existing small-part and block-surface tests do not establish these limits.
+
+
 Development resumed at the user's request on 2026-10-16. Immediate priorities: correct the lift's ground contact and extension, implement the original-style controller matrix/behavior, and integrate original parts individually, while completing the creative work list below. Local RESUME.md retains the prior handoff; graphically verify and package each completed increment.
 
 Latest increment: shared-face bearing mounts, direct plate picking, right-click removal and chunked opaque block surface/collision merging pass 226 native checks. Editor regeneration retains its font link and compiles. Logic configuration and wiring now pass 269 native checks, including engine/controller activation and timer queues; an original-part Logic Workbench is available. Next: finish graphical logic verification, older mechanical layouts, full bearing face-attachment identity, remaining interactive parts and drag building.
