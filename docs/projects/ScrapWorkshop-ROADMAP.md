@@ -1,6 +1,6 @@
 # ScrapWorkshop sandbox roadmap
 
-Development paused at the user's request on 2026-10-16. Preserve the pending requirements below and resume only when asked. Local RESUME.md records unshipped bearing/indexing changes, 198 passing native checks, the limited 4,096-cube benchmark and the unresolved packaged-player UI crash. Graphical verification and a new package are pending.
+Development resumed at the user's request on 2026-10-16. Immediate priorities: correct the lift's ground contact and extension, implement the original-style controller matrix/behavior, and integrate original parts individually, while completing the creative work list below. Local RESUME.md retains the prior handoff; graphically verify and package each completed increment.
 
 ## Product target
 
