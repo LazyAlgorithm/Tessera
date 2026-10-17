@@ -1,5 +1,16 @@
 # ScrapWorkshop progress — 2026-10-16
 
+## Staged wedge placement — 2026-10-16
+
+This replaces the earlier hold-and-Q wedge workflow at the user's request.
+
+- [x] Hold left mouse and drag two axes. Release to freeze those dimensions and enter third-axis adjustment. Move the mouse without holding a button, then click once to place the finished wedge.
+- [x] Constrain the second stage to the remaining axis; sideways mouse motion and plane keys cannot alter the frozen base. Display the current stage and three dimensions; Escape/right-click cancel.
+- [x] Preserve preview-only state until final confirmation and keep one placement/history transaction with continuous ramp geometry, sloped collision and save/load dimensions.
+- [x] Compile after rebuilding the project's own stale Debug cache; no shared engine changes. Native stage-transition, axis-lock and undo/redo checks pass. Full native suite has 304 passes and the existing suspension rightward-steering failure (`Validation/staged-wedge-validation.log`).
+- [x] Verify actual mouse release, unheld third-axis motion and final click for 16×1×16 and 16×16×16 ramps. Both first-stage and third-stage snapshots contain no placed parts; final click places one ramp; undo/redo restores its dimensions. Evidence: Validation/staged-drag-ui-validation.log and Validation/DragUiSaves/*-third-axis.tsave. Block placement/removal gestures remain covered by the same suite.
+
+
 ## Three-axis ramps and suspension visuals — 2026-10-16
 
 - [x] Preserve wedge dimensions when switching drag planes with Q/Shift+Q. Keep holding left mouse to adjust width, height and depth in one placement; release once. Display all three dimensions, keep one continuous sloped collider and one undo transaction.
