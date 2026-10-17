@@ -1,5 +1,20 @@
 # ScrapWorkshop progress — 2026-10-16
 
+## Default mechanic, first/third person and item additions — 2026-10-16
+
+- [x] Start normal workshop sessions with a collision-based first-person mechanic. WASD walks, mouse looks, Shift sprints, Ctrl crouches and Space jumps. Use V to switch first/third person or Alt+wheel to zoom; menus release the cursor. Existing automated UI preview modes retain their explicit test camera.
+- [x] Import the default character definition's classic male head, chest, hands, feet, legs, hair and backpack with original textures, skin weights and twelve locomotion/hammer clips. Reconnect the head-local skeleton to the body's animated hierarchy; retain ancestors for small skin pieces. First person hides the full body; third person animates it. Native head-height verification and screenshots exist.
+- [x] Add collision-aware third-person camera positioning, crouch capsule resizing, jumping/gravity, built-wall collision and recovery below the flat world. Center aim drives construction, connect-tool targeting and interaction in both views.
+- [x] Entering a placed driver seat or legacy starter automatically switches to third person and suspends walking collision. Follow vehicle heading, clear the occupied body's camera collision, allow manual V changes and restore the prior on-foot distance after exit.
+- [x] Bind character and both driving paths directly to WASD. Arrow keys remain lift controls and do not move the character. Native input regression checks pass.
+- [x] Add eight original lamps (headlight, beam-frame, factory, packing-table, fluorescent, area and two poster spotlights), original collision/art/icons and actual spot illumination. E toggles, U opens settings, paint sets light color, and switch/gate/timer/seat connections drive activation. Brightness/range, enable state and wiring persist in saves and history. Catalog: 222 parts plus five selectable tools.
+- [x] Add the original sledgehammer mesh and icon to Tools; H also selects it. Timed clicks swing with cooldown, first-person viewmodel and third-person hand attachment/animation. Hits impart physical knockback to loose creations while lift-supported/anchored bodies stay fixed.
+- [x] Compile all four custom shaders and pass 333 native checks. The pre-existing suspended-car expected-rightward-displacement check still fails; it is the sole full-suite failure (`Validation/player-addons-final-validation.log`). All eight scenes separately pass 180-frame headless runs.
+- [x] Verify actual process-scoped input in a separate nested display: first/third-person switching, walking, inventory cursor release and hammer selection/swing. Lamp UI brightness/range/toggle, save and undo are verified; all three saved lamp archives validate. Evidence: Validation/character-ui-validation.log, Validation/lamp-ui-validation.log and character/lamp screenshots.
+- [ ] Finish exact original seated poses, first-person hands/tool animations for the remaining tools, footsteps, face animation, camera/movement tuning and original-game visual comparisons (including backpack details). Imported source assets and a working controller do not establish complete parity.
+- [ ] Calibrate lamp photometry/source glow poses and large numbers of lights; match remaining hammer sounds, impact effects, guarding, material-specific damage and original animation timing. Continue additional interactive parts individually. Customization is intentionally outside this default-character request.
+
+
 ## Staged wedge placement — 2026-10-16
 
 This replaces the earlier hold-and-Q wedge workflow at the user's request.
