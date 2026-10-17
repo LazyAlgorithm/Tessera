@@ -1,6 +1,8 @@
 # ScrapWorkshop progress — 2026-10-16
 
-Latest increment: editor regeneration now retains the project-local font library; the regenerated editor workspace compiles. Bearings mount at shared faces without a full spacer block, with direct thin-plate selection and right-click removal. The suspended car is the default test. 226 native construction checks pass. Opaque block surfaces now cull hidden faces and merge matching rectangles: the 4,096-block CPU benchmark uses 16 quads across four chunks and one collision box. Graphical bearing validation, older-layout migration, full face-attachment identity and large articulated-map stress tests remain open.
+Latest lift fix: ground spikes remain rigid with the base instead of stretching upward. All 208 spike vertices are checked at multiple platform heights; 228 native checks pass. Visual review remains pending.
+
+Previous increment: editor regeneration now retains the project-local font library; the regenerated editor workspace compiles. Bearings mount at shared faces without a full spacer block, with direct thin-plate selection and right-click removal. The suspended car is the default test. 226 native construction checks pass. Opaque block surfaces now cull hidden faces and merge matching rectangles: the 4,096-block CPU benchmark uses 16 quads across four chunks and one collision box. Graphical bearing validation, older-layout migration, full face-attachment identity and large articulated-map stress tests remain open.
 
 The actual Tessera scene now runs through X11 and Wayland with Vulkan. Building, lift release/recovery, splitting, welding, painting and starter driving received a direct-input graphical smoke test. Implementation, automated checks and playtesting remain distinct in the [checklist](ScrapWorkshop-CHECKLIST.md) and [roadmap](ScrapWorkshop-ROADMAP.md).
 
