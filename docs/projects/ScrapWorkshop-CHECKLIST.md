@@ -2,6 +2,17 @@
 
 This file is the durable progress record. A checked item means its stated evidence exists; implementation and play validation are separate.
 
+## Current creative priorities — user requests
+
+Keep the world flat and prioritize creative building before survival/challenge features. These items are requested work, not completed features.
+
+- [ ] Drag-build rectangular block surfaces, including a full 16×16 wall, with a placement preview, attachment/overlap validation and one undoable transaction per drag.
+- [ ] Add draggable wedges with rotation, correct attachment/collision geometry and save/load support; verify their drag behavior through actual building input.
+- [ ] Add usable logic parts and wiring: switches/buttons, configurable logic gates and signal propagation into supported interactive parts; preserve circuits in saves, blueprints and undo/redo.
+- [ ] Match original bearing behavior and interaction: face placement and moving-body attachment, free hinges, drag wiring, visible colored connection dots/lines/direction arrows, right-click reversal, engine drive/braking, seat steering and controller sequencing. Study original handbook and installed scripts; verify each behavior separately rather than claiming full parity from a working car.
+- [ ] Playtest these building tools together in the flat creative world and record evidence before marking them complete.
+
+
 - [x] Locate local Tessera engine and project format.
 - [x] Create isolated ScrapWorkshop project; leave Steam files unchanged.
 - [x] Import original wheel, driver seat, bearing, wood, metal, and concrete assets.
@@ -15,11 +26,11 @@ This file is the durable progress record. A checked item means its stated eviden
 - [x] Add versioned construction save/load; verify an actual process restart restores edits.
 - [ ] Import and integrate original character, skeleton and movement animations.
 - [ ] Import and integrate original tools and tool animations.
-- [ ] Integrate original HUD artwork (current controls use temporary engine text).
+- [x] Integrate original creative hotbar/inventory/palette/menu artwork, item icons and fonts; full-game screen parity remains open below.
 - [x] Import and display original lift asset in a fixed pose; extension animation remains pending.
-- [ ] Allow wheel, seat, bearing and engine placement with connectivity rules; current vehicle has fixed running gear.
+- [x] Allow wheel, seat, bearing and engine placement with connectivity rules; separate mechanical scenes and the from-scratch car validate this alongside Main's retained prototype.
 - [ ] Validate vehicle assembly, materials, collision and camera after full import.
-- [ ] Package local playable build and document remaining limitations.
+- [x] Package a local Linux standalone player and document limitations; headless package validation passes, graphical package validation remains pending.
 
 ## Resume
 
@@ -137,3 +148,48 @@ The catalog now has 57 entries: 47 original blocks and ten mechanical items. New
 142 automated checks, shader compilation and the Main smoke run pass. Checks cover all four placements with native bodies, FBX/Collada units/Y-up, wheel mounting, source saddle hull, the real offroad slider, large electric car movement and graph save/restore. Reimport and append-only catalog synchronization preserve existing scene overrides.
 
 Graphical validation: a separate gallery shows all four variants beside the original driver-seat forward reference. The driver saddle is upright and faces +Z consistently; a side-on wheel comparison confirmed both faces have the same hub detail, so no extra art flip is applied. The separate LargeWheelCar accepts saddle entry, drives at 3.9m/s, brakes/recovers and saves a valid five-group/four-link archive. Main and previously built creations remain available. Original suspension/lift deformation, extended handling and other item families remain open.
+
+## Blueprint occupied-space continuation — 2026-10-16
+
+- [x] Reject F8 blueprint imports overlapping active construction footprints before any live mutation.
+- [x] Cover arbitrary creation rotations, rotated multi-cell items, different grid sizes and exact face contact.
+- [x] Reject all groups atomically when any imported group is blocked; preserve full workshop load behavior.
+- [x] Build, compile both shaders, pass 163 native integration checks and run Main headlessly for 180 frames.
+- [ ] Graphically verify the new import rejection message and F8 interaction.
+
+This continuation stays within ScrapWorkshop and uses no desktop or Python control. Import reservations use logical item footprints rather than physical hull detail.
+
+## Local standalone player checkpoint — 2026-10-16
+
+- [x] Build an editor-free Linux Release player in an isolated temporary workspace.
+- [x] Bundle runtime art/materials/collision data, all seven scenes, compiled shaders and third-party library notices.
+- [x] Add main-workshop and suspended-car launchers, controls, save instructions and platform/presentation limitations.
+- [x] Preserve no-persistence/headless/server save safeguards in the standalone entry point.
+- [x] Separate packaged data from editable-project saves; give every example a portable independent save profile.
+- [x] Pass 169 native checks and source shader/headless checks; run each packaged scene for 180 headless frames after relocating through a path with spaces.
+- [x] Verify package file checksums and produce a local compressed archive with its own checksum.
+- [ ] Graphically validate the standalone player and its launchers.
+- [ ] Test older Linux distributions or produce/verify a Windows player.
+
+Build workflow: `./tools/package_local.sh`. Outputs remain under `Builds/`; details are in Distribution/README.md. This host build requires glibc 2.43. Original art stays local. No desktop control or changes to another game/shared-engine source were used.
+
+## Original creative UI checkpoint — 2026-10-16
+
+- [x] Replace the temporary text overlay with original hotbar, inventory, paint and menu artwork and Shentox fonts.
+- [x] Import source XML state/stretch metadata, text colors, all 57 available item icons/titles, five tool icons and 40 active paint colors; retain source hashes and layouts locally.
+- [x] Wire inventory categories/search, click assignment, drag/drop and all ten hotbar keys to actual construction tools.
+- [x] Add resume/save/load, blueprint, camera/autosave options, controls and workshop-selection pages.
+- [x] Add working per-item engine, suspension, bearing and controller dialogs with construction history and save persistence.
+- [x] Add version-six tuning archives while retaining old-save loading; persist hotbar/options separately with validation.
+- [x] Pass 192 native checks, shaders and Main headless smoke validation.
+- [x] Graphically verify category/search, hotbar click/drag assignment, original slider/palette behavior, modal menus, Escape and absence of construction click-through using only process-scoped X11 events.
+- [x] Verify actual part-dialog edits, native saved archives and engine undo/redo graphically in isolated save profiles.
+- [ ] Complete exact original UI layout/blur/animation parity and the original controller matrix.
+- [ ] Integrate original title/new-world, graphics/audio/key-binding options, character customization and handbook screens.
+- [ ] Integrate any additional game-mode screens if the sandbox scope expands; survival/challenge functionality is not implemented.
+
+The full-game UI is not marked complete. UI.md records the supported creative interface and remaining gaps. Input testing used a project-local C++ helper addressed only to its own process's window; no global pointer/focus control or Python desktop control was used. Steam files, shared-engine source and the other game were unchanged.
+
+Standalone UI follow-up: the updated Release package passes the same scoped graphical interaction tests, including drag/drop and numeric tool switching, plus all four part-dialog save checks and engine undo/redo. All seven packaged scenes also pass headless checks. `./play-local.sh` launches the current verified package. Full-game screen parity remains open as listed above.
+
+- [x] Clear part-dialog references when loading/replacing creations; verify F9 closes the suspension dialog safely in the standalone player. Latest native suite: 192 checks.
