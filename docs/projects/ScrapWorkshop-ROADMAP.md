@@ -2,6 +2,8 @@
 
 Development resumed at the user's request on 2026-10-16. Immediate priorities: correct the lift's ground contact and extension, implement the original-style controller matrix/behavior, and integrate original parts individually, while completing the creative work list below. Local RESUME.md retains the prior handoff; graphically verify and package each completed increment.
 
+Latest increment: shared-face bearing mounts, direct plate picking, right-click removal and chunked opaque block surface/collision merging pass 226 native checks. Editor regeneration retains its font link and compiles. Next: graphical verification, older mechanical layouts, full bearing face-attachment identity, then logic configuration/Connect Tool completion and drag building.
+
 ## Product target
 
 Open the Tessera project, press Play, and build freely in a flat world. No game modes, survival economy, progression or missions. Original Scrap Mechanic art is imported locally. Engine and gameplay are Tessera implementations.
