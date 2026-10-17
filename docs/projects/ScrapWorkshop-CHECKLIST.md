@@ -6,6 +6,18 @@ This file is the durable progress record. A checked item means its stated eviden
 
 The user resumed the creative port and requested completion of the work list. Prior pause/handoff details remain in local `RESUME.md`. At resume, bearing/connection and occupied-cell indexing changes pass 198 native checks and headless smoke validation but are not yet packaged or graphically verified. A 4,096-cube headless benchmark is recorded in Validation/scale-indexed.log; broader large-map and articulated physics support remains pending. Prior packaged-player crash in BuildCreation.At called by WorkshopUi.Draw requires a hover-reference regression fix before another manual-test package.
 
+## Latest verified increment — bearing faces, editor linking and block surfaces
+
+- [x] Persist the project-local UI font library in `project.tessera` so editor regeneration retains it. Regenerate through `Tessera.Editor.Project.WriteBuildFiles` and compile the regenerated workspace successfully (`Validation/editor-regenerated-build.log`). No shared engine edits.
+- [x] Make the suspended, placed-part car the default for source/editor and future packaged tests.
+- [x] Mount new bearings at a shared block face without a block-sized spacer; preserve separate bodies and native hinges. Use the actual thin plate collision, including bearing-only intermediate carriers. Correct the default suspension demo's wheel and steering offsets.
+- [x] Add direct thin-plate selection with rim tolerance, independent of rounded compound-collider cell picking; support right-click removal in Build mode, retaining right-drag orbit and X removal. Native ray hit/miss checks pass; actual pointer removal still needs play validation.
+- [x] Cull hidden opaque cube faces, greedily merge equal-paint surfaces in 16-cell chunks, preserve paint/material seams, reuse unchanged geometry, and merge box collision cells into exact cuboids. Dedicated checks cover adjacent blocks, paint, unchanged rebuilds and a 16×16 wall. Existing source hulls and mechanical tests pass.
+- [x] Pass 226 construction integration checks, custom shader compilation and headless smoke validation (`Validation/bearing-face-validation.log`).
+- [x] Benchmark 4,096 cubes: 25 ms placement, 6 ms rebuild, 16 rendered quads in 4 chunks, 1 collision box, 15 ms capture/validation, 600 stable physics ticks in 426 ms (`Validation/scale-meshed.log`). These CPU measurements do not establish graphical FPS or large articulated-map capacity.
+- [ ] Graphically verify bearing removal and flush wheel/steering mounts in the next build. Existing saved constructions and other older example layouts retain their authored body poses; migrate/re-author them without silently changing saved motion/anchors.
+- [ ] Complete separate face-attachment identity/occupancy for bearings, including several bearings on different faces of the same host block. The current archive still identifies a bearing by a logical grid address; physical spacing is corrected but data-model parity is unfinished.
+
 ## Current creative priorities — user requests
 
 Keep the world flat and prioritize creative building before survival/challenge features. These items are requested work, not completed features.
