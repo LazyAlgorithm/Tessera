@@ -11,6 +11,8 @@ Keep the world flat and prioritize creative building before survival/challenge f
 - [ ] Add usable logic parts and wiring: switches/buttons, configurable logic gates and signal propagation into supported interactive parts; preserve circuits in saves, blueprints and undo/redo.
 - [ ] Match original bearing behavior and interaction: face placement and moving-body attachment, free hinges, drag wiring, visible colored connection dots/lines/direction arrows, right-click reversal, engine drive/braking, seat steering and controller sequencing. Study original handbook and installed scripts; verify each behavior separately rather than claiming full parity from a working car.
 - [ ] Playtest these building tools together in the flat creative world and record evidence before marking them complete.
+- [ ] Support thousands of blocks and very large creative maps: benchmark placement/removal/drag batches, rendering, memory, save/load and spatial queries; improve limits and architecture based on measured bottlenecks.
+- [ ] Stress-test creation physics with large welded bodies, multiple moving creations and articulated vehicles; check collisions, joints, lift/recovery, splitting/welding and long-running simulation. Record actual block/body/joint counts, frame/tick timings and stability limits; do not claim issue-free physics from small examples.
 
 
 - [x] Locate local Tessera engine and project format.
