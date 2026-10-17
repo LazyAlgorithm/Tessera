@@ -2,13 +2,17 @@
 
 This file is the durable progress record. A checked item means its stated evidence exists; implementation and play validation are separate.
 
-## Development paused — user request, 2026-10-16
+## Development resumed — user request, 2026-10-16
 
-Resume only when requested. Local `RESUME.md` records the latest source changes, tests and unresolved manual-player crash. New bearing/connection and occupied-cell indexing changes pass 198 native checks and headless smoke validation; they are not yet packaged or graphically verified. A 4,096-cube headless benchmark is recorded in Validation/scale-indexed.log; broader large-map and articulated physics support remains pending. Previously packaged player crashed in BuildCreation.At called by WorkshopUi.Draw; suspected stale hover reference is unconfirmed and unfixed. Do not mark this continuation fully play-validated.
+The user resumed the creative port and requested completion of the work list. Prior pause/handoff details remain in local `RESUME.md`. At resume, bearing/connection and occupied-cell indexing changes pass 198 native checks and headless smoke validation but are not yet packaged or graphically verified. A 4,096-cube headless benchmark is recorded in Validation/scale-indexed.log; broader large-map and articulated physics support remains pending. Prior packaged-player crash in BuildCreation.At called by WorkshopUi.Draw requires a hover-reference regression fix before another manual-test package.
 
 ## Current creative priorities — user requests
 
 Keep the world flat and prioritize creative building before survival/challenge features. These items are requested work, not completed features.
+
+- [ ] Fix lift ground contact and original-style extension: base stays on the ground, moving platform and mechanism follow height changes, and support/collision/save/history agree.
+- [ ] Replace the simplified controller dialog/program with the original-style bearing matrix, connection ordering, frame zero plus ten steps, angle editing, speed, loop and activation behavior.
+- [ ] Add and integrate the original part catalog one part/family at a time, recording geometry, attachment rules, materials, behavior, UI and verification for each addition. Importing a model alone does not complete a part.
 
 - [ ] Import and integrate the original character with first/third-person movement: walking/running, jumping, grounded collision, camera switching/obstruction, tool use/animations and seat entry/exit. Compare original movement and camera behavior through actual play; keep the world flat.
 
