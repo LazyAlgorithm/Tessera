@@ -6,6 +6,18 @@ This file is the durable progress record. A checked item means its stated eviden
 
 The user resumed the creative port and requested completion of the work list. Prior pause/handoff details remain in local `RESUME.md`. At resume, bearing/connection and occupied-cell indexing changes pass 198 native checks and headless smoke validation but are not yet packaged or graphically verified. A 4,096-cube headless benchmark is recorded in Validation/scale-indexed.log; broader large-map and articulated physics support remains pending. Prior packaged-player crash in BuildCreation.At called by WorkshopUi.Draw requires a hover-reference regression fix before another manual-test package.
 
+## Drag building, catalog and mounting increment — 2026-10-16
+
+- [x] Drag-place and drag-remove rectangular surfaces up to 16×16 cells. Preview before release, preflight placement overlap/attachment/limits, rebuild once and record one undo transaction per gesture.
+- [x] Drag a continuous wedge with dimensions up to 16 per axis, rotated placement, true sloped convex collision, material tiling and version-eight dimension persistence. Wedge occupancy reserves its bounding grid.
+- [x] Verify actual mouse gestures in a separate nested display: 256-block floor, 256-block wall, one 16×1×16 wedge, 256-block removal, and undo/redo. All 16 captured archives validate (`Validation/drag-ui-validation.log`).
+- [x] Add 45 original wedge materials and 108 static parts, bringing the catalog and icons to 214 entries. Native checks load their geometry/materials and instantiate physics. Fourteen unsupported source candidates remain recorded in `References/build-import-pending.json`; static props do not acquire unimplemented interactive behavior.
+- [x] Restore switch/button source mount offsets so their bases sit flush against the host face. Require solid hosts on both sides of mechanical links and reject direct bearing-to-suspension mounting. Re-author the suspension example with solid carriers and a fresh `MechanicalSuspensionCar-v2` save profile.
+- [x] Add original building bindings: left-drag place, right-drag erase, Q/Shift+Q rotate, Q during drag changes plane, I inventory, wheel hotbar and Alt+wheel zoom. Tab/T remain aliases.
+- [ ] Complete original character first/third-person movement, camera and tool behavior, exact rotation-set ordering, full bearing face identity, and original-game comparison. Feature parity is not complete.
+- [ ] Resolve the suspension vehicle's directional steering integration check. The latest native run passes 293 checks but fails expected rightward displacement; forward propulsion and both steering target angles pass. Manual source build launched for testing while this is investigated.
+- [ ] Verify new static-part cutout/transparency materials and broader large articulated-map performance. Existing small-part and block-surface tests do not establish these limits.
+
 ## Logic system increment
 
 - [x] Open pointed gate/timer settings with E or U. Add the original six gate modes, original gate skins/icons, timer seconds/ticks sliders, single-tick adjustments and input-disconnect controls. Switch E toggles and button hold/release are live interactions.
@@ -47,9 +59,9 @@ Keep the world flat and prioritize creative building before survival/challenge f
 
 - [ ] Import and integrate the original character with first/third-person movement: walking/running, jumping, grounded collision, camera switching/obstruction, tool use/animations and seat entry/exit. Compare original movement and camera behavior through actual play; keep the world flat.
 
-- [ ] Drag-build rectangular block surfaces, including a full 16×16 wall, with a placement preview, attachment/overlap validation and one undoable transaction per drag.
-- [ ] Add draggable wedges with rotation, correct attachment/collision geometry and save/load support; verify their drag behavior through actual building input.
-- [ ] Add usable logic parts and wiring: switches/buttons, configurable logic gates and signal propagation into supported interactive parts; preserve circuits in saves, blueprints and undo/redo.
+- [x] Drag-build rectangular block surfaces, including a full 16×16 wall, with a placement preview, attachment/overlap validation and one undoable transaction per drag.
+- [x] Add draggable wedges with rotation, correct attachment/collision geometry and save/load support; verify their drag behavior through actual building input.
+- [x] Add usable logic parts and wiring: switches/buttons, configurable logic gates and signal propagation into supported interactive parts; preserve circuits in saves, blueprints and undo/redo.
 - [ ] Match original bearing behavior and interaction: face placement and moving-body attachment, free hinges, drag wiring, visible colored connection dots/lines/direction arrows, right-click reversal, engine drive/braking, seat steering and controller sequencing. Study original handbook and installed scripts; verify each behavior separately rather than claiming full parity from a working car.
 - [ ] Playtest these building tools together in the flat creative world and record evidence before marking them complete.
 - [ ] Support thousands of blocks and very large creative maps: benchmark placement/removal/drag batches, rendering, memory, save/load and spatial queries; improve limits and architecture based on measured bottlenecks.
