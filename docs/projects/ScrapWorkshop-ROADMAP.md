@@ -6,6 +6,10 @@ Open the Tessera project, press Play, and build freely in a flat world. No game 
 
 ## Order of work
 
+Current user priorities: keep the world flat; expand creative building with drag placement up to a 16×16 wall, draggable wedges and usable logic parts/circuits. Track implementation and actual-input verification in CHECKLIST.md under “Current creative priorities — user requests.” These features remain pending.
+
+Bearing fidelity is also a current priority: study the original handbook and locally installed scripts, then match placement, moving-body separation, connect-tool gestures and visual feedback, direction reversal, engine behavior, steering and controller programming. Maintain a behavior-by-behavior comparison; existing vehicle smoke tests do not establish original-game parity.
+
 1. **Creation foundation and editor workflow** — separate editable part definitions, construction state, interaction and vehicle simulation. Ground placement starts an anchored creation; a lift starts a supported creation. Quarter-meter grid, exact occupied-cell selection, no duplicate cells, collision rebuilt from placed blocks. Inspector-exposed settings and authored scene examples. Validate headlessly where possible; report graphical limits honestly.
 2. **Construction topology** — connected parts form a creation. Removing a bridge splits disconnected groups into new creations, retaining world poses, paint, anchors and physical motion. Ground anchors belong to individual blocks. Only the group attached to the lift stays supported.
 3. **Welding and paint** — select source and target faces, preview alignment, reject overlaps, merge connectivity, preserve world pose where compatible; controlled alignment for rotated creations. Paint individual parts with an editor-configurable palette. Undo/redo follows transactional edit commands.
@@ -28,7 +32,7 @@ Each milestone is implemented and checked before expanding the next one. Subtask
 
 ## Current limits
 
-Main retains the fixed prototype; separate editable placed-part car scenes now use real joints, motors and suspension. The GUI uses temporary engine text. The actual Vulkan scene now runs through X11 and Wayland. Construction and driving have received a graphical smoke playtest; extended driving evaluation, original lift animation and remaining mechanical tooling and extended handling remain pending.
+Main retains the fixed prototype; separate editable placed-part car scenes now use real joints, motors and suspension. The creative GUI now uses original imported artwork and fonts; full original screen/layout parity remains unfinished. The actual Vulkan scene now runs through X11 and Wayland. Construction and driving have received a graphical smoke playtest; extended driving evaluation, original lift animation and remaining mechanical tooling and extended handling remain pending.
 
 ## Verified implementation checkpoint
 
@@ -97,3 +101,23 @@ The catalog now has 57 entries: 47 original blocks and ten mechanical items. New
 142 automated checks, shader compilation and the Main smoke run pass. Checks cover all four placements with native bodies, FBX/Collada units/Y-up, wheel mounting, source saddle hull, the real offroad slider, large electric car movement and graph save/restore. Reimport and append-only catalog synchronization preserve existing scene overrides.
 
 Graphical validation: a separate gallery shows all four variants beside the original driver-seat forward reference. The driver saddle is upright and faces +Z consistently; a side-on wheel comparison confirmed both faces have the same hub detail, so no extra art flip is applied. The separate LargeWheelCar accepts saddle entry, drives at 3.9m/s, brakes/recovers and saves a valid five-group/four-link archive. Main and previously built creations remain available. Original suspension/lift deformation, extended handling and other item families remain open.
+
+## Blueprint occupied-space checkpoint — 2026-10-16
+
+F8 imports now reject logical-footprint penetration into active existing creations before spawning any incoming group. A separating-axis test handles arbitrary creation rotations, quarter-turn item rotations, multi-cell dimensions and differing grid sizes; exact face contact is permitted. Inactive/destroyed creations are ignored. Existing lift-conflict rejection remains in place, and F9/undo/redo replacement does not use import-space rejection. The tool message explains that space must be cleared or the lift released.
+
+Latest verification: 163 native integration checks, both custom shaders and the complete 180-frame headless Main scene pass. Twelve new checks cover atomic rejection, partial penetration, contact, rotated incoming/existing geometry, multi-cell extents, different grid sizes, inactive objects and full replacement. Collision policy deliberately follows logical footprints rather than detailed hulls, so wheel/seat empty corners still reserve space. Graphical testing of this increment remains pending. No desktop control, Python execution, shared-engine edits or other-project changes were used.
+
+## Local standalone player checkpoint — 2026-10-16
+
+The local packaging item now has an editor-free Linux Release player, seven included scenes, main/mechanical launchers, portable per-example save profiles, controls/limitations documentation and checksums. The project-owned shell packager builds in an isolated workspace and leaves shared-engine source and other projects unchanged. Automatic persistence policy is shared by development and packaged entry points; headless, server and no-persistence sessions disable automatic saves.
+
+169 native integration checks, both shaders and source Main smoke validation pass. All seven packaged scenes also run for 180 headless frames from a relocated directory containing spaces and an unrelated working directory, with no construction-save output. The package remains local under Builds/ with a compressed archive. The current binary requires glibc 2.43 and GLIBCXX_3.4.30; graphical package validation, older-host compatibility and Windows packaging are still open. See Distribution/README.md.
+
+## Original creative interface checkpoint — 2026-10-16
+
+Original hotbar/inventory/palette/menu skins, 57 item icons and English names, five tool icons, 40 primary colors and Shentox fonts now replace the temporary instruction overlay. A project-local MyGUI resource adapter respects source state UVs, stretch anchors and button text colors. Inventory tabs/search/pagination and click/drag hotbar assignment drive real tool selection. Escape menu pages provide saves, blueprints, options and workshop switching; U opens implemented part settings. Per-item engine/spring/steering changes survive version-six saves and undo/redo, while versions 1–5 remain readable. Interface preferences persist separately.
+
+192 native checks, shaders and source headless smoke checks pass. Graphical, process-scoped input verifies inventory/category/search, hotbar click/drag, menu/options/help, original sliders/palette, Escape and no click-through. All four mechanical dialogs produce valid native archives; engine UI undo/redo is verified through the actual saved files. Source files remain unchanged; imported UI provenance is recorded locally.
+
+This completes a functional original-art creative UI increment, not the entire original game interface. Original blur/full layout/animation parity, the original controller matrix, title/new-world menus, richer options, character customization and handbook are still open. Survival/challenge screens are outside the current free-build implementation. See UI.md for exact scope and evidence.
