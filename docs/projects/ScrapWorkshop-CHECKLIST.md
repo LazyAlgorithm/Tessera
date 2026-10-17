@@ -2,9 +2,15 @@
 
 This file is the durable progress record. A checked item means its stated evidence exists; implementation and play validation are separate.
 
+## Development paused — user request, 2026-10-16
+
+Resume only when requested. [RESUME.md](RESUME.md) records the latest source changes, tests and unresolved manual-player crash. New bearing/connection and occupied-cell indexing changes pass 198 native checks and headless smoke validation; they are not yet packaged or graphically verified. A 4,096-cube headless benchmark is recorded in Validation/scale-indexed.log; broader large-map and articulated physics support remains pending. Previously packaged player crashed in BuildCreation.At called by WorkshopUi.Draw; suspected stale hover reference is unconfirmed and unfixed. Do not mark this continuation fully play-validated.
+
 ## Current creative priorities — user requests
 
 Keep the world flat and prioritize creative building before survival/challenge features. These items are requested work, not completed features.
+
+- [ ] Import and integrate the original character with first/third-person movement: walking/running, jumping, grounded collision, camera switching/obstruction, tool use/animations and seat entry/exit. Compare original movement and camera behavior through actual play; keep the world flat.
 
 - [ ] Drag-build rectangular block surfaces, including a full 16×16 wall, with a placement preview, attachment/overlap validation and one undoable transaction per drag.
 - [ ] Add draggable wedges with rotation, correct attachment/collision geometry and save/load support; verify their drag behavior through actual building input.
