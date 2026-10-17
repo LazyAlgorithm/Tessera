@@ -6,6 +6,18 @@ This file is the durable progress record. A checked item means its stated eviden
 
 The user resumed the creative port and requested completion of the work list. Prior pause/handoff details remain in local `RESUME.md`. At resume, bearing/connection and occupied-cell indexing changes pass 198 native checks and headless smoke validation but are not yet packaged or graphically verified. A 4,096-cube headless benchmark is recorded in Validation/scale-indexed.log; broader large-map and articulated physics support remains pending. Prior packaged-player crash in BuildCreation.At called by WorkshopUi.Draw requires a hover-reference regression fix before another manual-test package.
 
+## Logic system increment
+
+- [x] Open pointed gate/timer settings with E or U. Add the original six gate modes, original gate skins/icons, timer seconds/ticks sliders, single-tick adjustments and input-disconnect controls. Switch E toggles and button hold/release are live interactions.
+- [x] Evaluate synchronous logic at 40 Hz independently of 60 Hz physics: each gate adds one tick, timers add their configured 0–2400 ticks plus the propagation stage. Preserve one-tick pulses, falling edges and feedback-loop timing; avoid same-tick cascades.
+- [x] Wire switches/buttons/gates/timers to gates, timers, engines and controllers. Repeating a wire removes it, right-click clears logic inputs, and active output rings/glow provide feedback. Reject duplicates, self-wires, extra timer inputs and unrelated assemblies; drop stale/split wires during evaluation.
+- [x] Preserve modes, delays, wiring, switch states and timer queues in saves, blueprints and history. Verify exact timer continuation after restore and gate-setting undo/redo.
+- [x] Add Logic Workbench to the workshop menu and package checks: two switches, button, AND/OR, timer, engine and independently driven wheel, with a controller available for further wiring.
+- [x] Pass 269 native construction checks, including real engine activation/stop and controller advance/return, plus custom shaders and headless smoke checks (`Validation/logic-validation.log`).
+- [x] Verify actual E settings interaction, gate-mode selection, timer adjustment and undo/redo through process-scoped X11 events inside a separate nested display. Five saved archives validate; screenshots are in Validation/ui-logic-settings.png, ui-timer-settings.png and ui-interact-settings.png. Evidence: Validation/logic-ui-validation.log.
+- [ ] Compare exact lift/reset behavior and native original timing with instrumented original-game play. The installed scripts verify 40 Hz; an independent simulator's primary documentation supports two-phase one-tick gate propagation. Documented tests validate the port's chosen behavior, not the original binary's internal implementation.
+- [ ] Import/integrate sensors and remaining interactive parts individually; measure dense large-circuit performance and original animation/display parity. See local LOGIC.md for current scope and controls.
+
 ## Lift ground-fastener correction
 
 - [x] Keep all eight original lowerpike ground spikes rigid with the grounded lower lift assembly. They were incorrectly treated as telescoping rods; remove their extension weights and normal stretching.
