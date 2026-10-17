@@ -1,5 +1,14 @@
 # ScrapWorkshop implementation checklist
 
+## Three-axis ramps and suspension visuals — 2026-10-16
+
+- [x] Preserve wedge dimensions when switching drag planes with Q/Shift+Q. Keep holding left mouse to adjust width, height and depth in one placement; release once. Display all three dimensions, keep one continuous sloped collider and one undo transaction.
+- [x] Test actual mouse input building a 16×16×16 ramp, save/load validation, complete undo/redo and no early placement; all 20 drag-test archives validate. Inspect `Validation/ui-drag-wedge-volume-placed.png`; evidence `Validation/volume-drag-ui-validation.log`.
+- [x] Import both original suspension compression poses from each renderable's pose0 mesh. Align pose vertices to rest topology, deform per-instance geometry/normals from measured native slider travel, and retain original materials. Correct suspension art orientation so the fixed end faces its host. Original Steam files are unchanged.
+- [x] Verify all four car suspension meshes move with actual slider travel and return exactly to rest; verify the offroad part uses its own longer compression pose. Compile, shaders and 304 native checks pass; the existing vehicle rightward-steering check still fails (`Validation/volume-suspension-final-validation.log`). Headless smoke run passes separately.
+- [ ] Compare suspension animation visually against original-game motion, including extreme travel and source-pose correspondence at seams. Exact original physics, damping and steering parity remain open. Updated source build is compiled; distribution packaging remains blocked by the recorded steering test.
+
+
 This file is the durable progress record. A checked item means its stated evidence exists; implementation and play validation are separate.
 
 ## Development resumed — user request, 2026-10-16
