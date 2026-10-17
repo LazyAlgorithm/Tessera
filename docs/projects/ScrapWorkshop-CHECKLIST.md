@@ -6,6 +6,13 @@ This file is the durable progress record. A checked item means its stated eviden
 
 The user resumed the creative port and requested completion of the work list. Prior pause/handoff details remain in local `RESUME.md`. At resume, bearing/connection and occupied-cell indexing changes pass 198 native checks and headless smoke validation but are not yet packaged or graphically verified. A 4,096-cube headless benchmark is recorded in Validation/scale-indexed.log; broader large-map and articulated physics support remains pending. Prior packaged-player crash in BuildCreation.At called by WorkshopUi.Draw requires a hover-reference regression fix before another manual-test package.
 
+## Lift ground-fastener correction
+
+- [x] Keep all eight original lowerpike ground spikes rigid with the grounded lower lift assembly. They were incorrectly treated as telescoping rods; remove their extension weights and normal stretching.
+- [x] Verify every one of the 208 spike vertices remains identical at rest, two meters of extension and five meters of extension. Platform motion, ground elevation and support-collider checks still pass.
+- [x] Compile and pass 228 native construction checks, both custom shaders and headless smoke validation (`Validation/lift-fasteners-validation.log`).
+- [ ] Confirm the corrected fasteners visually in the editor or next packaged manual session; exact original extension-animation fidelity remains open.
+
 ## Latest verified increment — bearing faces, editor linking and block surfaces
 
 - [x] Persist the project-local UI font library in `project.tessera` so editor regeneration retains it. Regenerate through `Tessera.Editor.Project.WriteBuildFiles` and compile the regenerated workspace successfully (`Validation/editor-regenerated-build.log`). No shared engine edits.
