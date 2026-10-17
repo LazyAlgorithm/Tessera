@@ -1,5 +1,7 @@
 # ScrapWorkshop sandbox roadmap
 
+Development paused at the user's request on 2026-10-16. Preserve the pending requirements below and resume only when asked. Local RESUME.md records unshipped bearing/indexing changes, 198 passing native checks, the limited 4,096-cube benchmark and the unresolved packaged-player UI crash. Graphical verification and a new package are pending.
+
 ## Product target
 
 Open the Tessera project, press Play, and build freely in a flat world. No game modes, survival economy, progression or missions. Original Scrap Mechanic art is imported locally. Engine and gameplay are Tessera implementations.
@@ -11,6 +13,8 @@ Current user priorities: keep the world flat; expand creative building with drag
 Bearing fidelity is also a current priority: study the original handbook and locally installed scripts, then match placement, moving-body separation, connect-tool gestures and visual feedback, direction reversal, engine behavior, steering and controller programming. Maintain a behavior-by-behavior comparison; existing vehicle smoke tests do not establish original-game parity.
 
 Scale requirement: support thousands of blocks and very large maps with stable creation physics. Benchmark large static builds, editing batches, saves, multiple dynamic creations and articulated assemblies. Track rendering, memory, spatial-query and physics costs independently. Current limits and small-scene checks are not proof of large-world support; publish measured capacities and remaining failures.
+
+The original character and first/third-person controller are explicitly requested: original character assets, locomotion, grounded collision, running/jumping, camera switching and obstruction, tool interaction/animation and seat transitions. Implement and play-compare these as part of the creative experience, rather than treating the current orbit/pan camera as finished player control.
 
 1. **Creation foundation and editor workflow** — separate editable part definitions, construction state, interaction and vehicle simulation. Ground placement starts an anchored creation; a lift starts a supported creation. Quarter-meter grid, exact occupied-cell selection, no duplicate cells, collision rebuilt from placed blocks. Inspector-exposed settings and authored scene examples. Validate headlessly where possible; report graphical limits honestly.
 2. **Construction topology** — connected parts form a creation. Removing a bridge splits disconnected groups into new creations, retaining world poses, paint, anchors and physical motion. Ground anchors belong to individual blocks. Only the group attached to the lift stays supported.
