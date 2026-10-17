@@ -4,7 +4,7 @@ This file is the durable progress record. A checked item means its stated eviden
 
 ## Development paused — user request, 2026-10-16
 
-Resume only when requested. [RESUME.md](RESUME.md) records the latest source changes, tests and unresolved manual-player crash. New bearing/connection and occupied-cell indexing changes pass 198 native checks and headless smoke validation; they are not yet packaged or graphically verified. A 4,096-cube headless benchmark is recorded in Validation/scale-indexed.log; broader large-map and articulated physics support remains pending. Previously packaged player crashed in BuildCreation.At called by WorkshopUi.Draw; suspected stale hover reference is unconfirmed and unfixed. Do not mark this continuation fully play-validated.
+Resume only when requested. Local `RESUME.md` records the latest source changes, tests and unresolved manual-player crash. New bearing/connection and occupied-cell indexing changes pass 198 native checks and headless smoke validation; they are not yet packaged or graphically verified. A 4,096-cube headless benchmark is recorded in Validation/scale-indexed.log; broader large-map and articulated physics support remains pending. Previously packaged player crashed in BuildCreation.At called by WorkshopUi.Draw; suspected stale hover reference is unconfirmed and unfixed. Do not mark this continuation fully play-validated.
 
 ## Current creative priorities — user requests
 
