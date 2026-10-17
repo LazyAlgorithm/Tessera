@@ -22,3 +22,7 @@ The actual Vulkan scene visibly shows continuous wood planks instead of a full t
 Glass is currently alpha blending, with an editable opacity approximation. Original refraction, exact specular/gloss calibration, metal profiles, normal-map handedness, matching environment reflections, original color grading and broader material-by-material comparisons remain pending. Original lift extension animation is also pending. Imported assets remain local.
 
 For background, [this original frame analysis](https://steamcommunity.com/sharedfiles/filedetails/?id=2097314062) directly examines the game's normal/ASG buffers and lighting/transparency passes. A newer [shader reconstruction toolchain](https://github.com/TechnologicNick/scrap-mechanic-shader-toolchain) documents recovering compiled shader behavior; its documented reconstruction workflow requires Windows. No recovered original shader source has been claimed or published here.
+
+## Expanded local build catalog
+
+45 original wedge materials and 108 static parts are imported locally, with original meshes, source collision data, texture maps and icons. The full catalog has 214 entries. Original source mount coordinates keep switches and buttons flush. Fourteen unsupported source candidates remain in References/build-import-pending.json. Cutout/transparency fidelity and full per-part visual comparison remain pending; imported static props do not imply interactive behavior. Original assets remain local and are excluded from progress publication.
