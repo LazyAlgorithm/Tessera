@@ -26,3 +26,5 @@ For background, [this original frame analysis](https://steamcommunity.com/shared
 ## Expanded local build catalog
 
 45 original wedge materials and 108 static parts are imported locally, with original meshes, source collision data, texture maps and icons. The full catalog has 214 entries. Original source mount coordinates keep switches and buttons flush. Fourteen unsupported source candidates remain in References/build-import-pending.json. Cutout/transparency fidelity and full per-part visual comparison remain pending; imported static props do not imply interactive behavior. Original assets remain local and are excluded from progress publication.
+
+Suspension visuals now blend original rest meshes with their original pose0 compression meshes using measured native joint travel. Local References/suspension-pose-manifest.json records source hashes and conversion details. Both sport and offroad source poses are retained; exact visual comparison with the original remains pending.
