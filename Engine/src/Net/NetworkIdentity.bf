@@ -137,6 +137,8 @@ class NetworkIdentity : Component
 		public uint32 tick;
 		public Vector3 position;
 		public Quaternion rotation;
+        public Vector3 linearVelocity, angularVelocity;
+        public bool hasVelocity;
         public bool stationary;
 	}
 
@@ -170,6 +172,16 @@ class NetworkIdentity : Component
 			PushKey(tick, mKeys[mKeyCount - 1].position, mKeys[mKeyCount - 1].rotation);
 	}
 
+    /// Preserve authoritative rigidbody velocities instead of estimating them across an impact.
+    public void PushBodyKey(uint32 tick, BodyState state, bool stationary = false)
+    {
+        if (mKeyCount > 0 && (int32)(tick - mKeys[mKeyCount - 1].tick) <= 0) return;
+        PushKey(tick, state.position, state.rotation, stationary);
+        mKeys[mKeyCount - 1].linearVelocity = stationary ? .Zero : state.linearVelocity;
+        mKeys[mKeyCount - 1].angularVelocity = stationary ? .Zero : state.angularVelocity;
+        mKeys[mKeyCount - 1].hasVelocity = true;
+    }
+
 	/// Where the object was at a (fractional) server tick. Past the newest key it carries on as it was going for
 	/// at most maxAhead ticks, then waits. False if the server has said nothing about it yet.
 	public bool Sample(double tick, float maxAhead, out BodyState state)
@@ -180,6 +192,10 @@ class NetworkIdentity : Component
 		let newest = mKeys[mKeyCount - 1];
 		state.position = newest.position;
 		state.rotation = newest.rotation;
+        if (newest.hasVelocity)
+        {
+            state.linearVelocity = newest.linearVelocity;state.angularVelocity = newest.angularVelocity;
+        }
 		if (mKeyCount == 1 || newest.stationary && tick >= newest.tick)
 			return true;
 		if (tick >= (double)newest.tick)
@@ -189,9 +205,17 @@ class NetworkIdentity : Component
 			// Carry on only from two keys close together in time and place: not across a pause or a respawn.
 			if (span <= maxAhead * 2 && (newest.position - before.position).LengthSquared < 25.0f)
 			{
-				state.linearVelocity = (newest.position - before.position) / (span * Time.FixedDeltaTime);
+				state.linearVelocity = newest.hasVelocity ? newest.linearVelocity : (newest.position - before.position) / (span * Time.FixedDeltaTime);
 				let ahead = Math.Min((float)(tick - (double)newest.tick), maxAhead);
 				state.position = newest.position + state.linearVelocity * (ahead * Time.FixedDeltaTime);
+                let angularSpeed = state.angularVelocity.Length;
+                if (newest.hasVelocity && angularSpeed > 0.000001f)
+                {
+                    let halfAngle = angularSpeed * ahead * Time.FixedDeltaTime * 0.5f;
+                    let axis = state.angularVelocity / angularSpeed;
+                    let sine = Math.Sin(halfAngle);
+                    state.rotation = Quaternion(axis.x*sine,axis.y*sine,axis.z*sine,Math.Cos(halfAngle)) * newest.rotation;
+                }
 			}
 			return true;
 		}
@@ -212,7 +236,8 @@ class NetworkIdentity : Component
 			}
 			state.position = Vector3.Lerp(from.position, to.position, amount);
 			state.rotation = Quaternion.Slerp(from.rotation, to.rotation, amount);
-			state.linearVelocity = (to.position - from.position) / (span * Time.FixedDeltaTime);
+            state.linearVelocity = from.hasVelocity && to.hasVelocity ? Vector3.Lerp(from.linearVelocity,to.linearVelocity,amount) : (to.position - from.position) / (span * Time.FixedDeltaTime);
+            if (from.hasVelocity && to.hasVelocity) state.angularVelocity = Vector3.Lerp(from.angularVelocity,to.angularVelocity,amount);
 			return true;
 		}
 		return true;

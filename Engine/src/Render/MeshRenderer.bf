@@ -129,6 +129,21 @@ class MeshRenderer : Component
 	/// World-space offset applied only when drawing. The network layer uses it to blend out corrections.
 	[NonSerialized]
 	public Vector3 VisualOffset;
+	/// Optional world-space presentation correction; never changes transforms or colliders.
+	[NonSerialized]
+	public bool UseVisualCorrection;
+	[NonSerialized]
+	public Matrix4 VisualCorrection = .Identity;
+	public Matrix4 RenderMatrix
+	{
+		get
+		{
+			var world = Transform.LocalToWorld;
+			if (UseVisualCorrection) world = VisualCorrection * world;
+			world.m[12] += VisualOffset.x;world.m[13] += VisualOffset.y;world.m[14] += VisualOffset.z;
+			return world;
+		}
+	}
 	/// A texture made at run time (a Compute Texture, say) to draw with instead of the one named by the
 	/// material or the Texture field. Set it invalid again to go back.
 	[NonSerialized]
