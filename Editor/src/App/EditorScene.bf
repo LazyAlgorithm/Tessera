@@ -84,11 +84,12 @@ extension EditorApp
 		for (let component in mScene.Components)
 			component.OnBeforeSave();
 		mPrePlaySelection = mSelectedId;
-        mPrePlayDirty = mDirty;
-        mSnapshot.Clear();
+		mPrePlayDirty = mDirty;
+		mSnapshot.Clear();
 		Foliage.SyncAll(mScene);
 		SceneSerializer.Save(mScene, mSnapshot);
 		mPlay = .Playing;
+		mStopPlayRequested = false;
 		mFocusGame = true;
 		// Each Play is a fresh run of the game: a save set to load at start is loaded again.
 		GamePaths.Game.Set(Project.Current.Name);
@@ -116,8 +117,8 @@ extension EditorApp
 		let path = scope String(mScene.Path);
 		SceneSerializer.Load(mScene, mSnapshot);
 		mScene.Path.Set(path);
-        mSelectedId = mPrePlaySelection;
-        mDirty = mPrePlayDirty;
+		mSelectedId = mPrePlaySelection;
+		mDirty = mPrePlayDirty;
 		mPlay = .Edit;
 		Time.TimeScale = 1;
 	}
@@ -150,7 +151,8 @@ extension EditorApp
 		let text = scope String();
 		SceneSerializer.SaveObjectTree(source, text);
 		let copy = SceneSerializer.Instantiate(mScene, text);
-		if (copy != null) copy.Transform.SetParent(parent, false);
+		if (copy != null)
+			copy.Transform.SetParent(parent, false);
 		return copy;
 	}
 

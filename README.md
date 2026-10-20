@@ -81,6 +81,10 @@ Callbacks: `Awake`, `OnEnable`, `Start`, `FixedUpdate` (60 Hz), `Update`, `LateU
 Field attributes: `[ShowInInspector]`, `[HideInInspector]`, `[NonSerialized]`, `[Range(min, max)]`.
 Supported field types: `float`, `int32`, `bool`, `Vector2`, `Vector3`, `Quaternion`, `Color`, `String`, and enums marked `[Reflect(.All)]`.
 
+A Quit button calls `Application.Quit()` (or sets `Application.Instance.Running = false`, which does the same): a built game closes, and in the editor Play stops and the editor stays open. Nothing in the game has to check which it is running in. `Application.Instance.Close()` always ends the program, editor included.
+
+Code style: see `docs/coding-style.md`; `python3 tools/format/format_code.py` formats the code.
+
 ## What is in the engine
 
 - **Rendering** (bgfx): forward HDR pipeline with 4x MSAA, a sun with four shadow cascades, up to 16 point and spot lights, metallic/roughness shading, per-triangle flat shading for the low-poly look, procedural sky, fog, bloom (a glow around bright and emissive things; set Bloom and Bloom Threshold in the scene's lighting settings, or `Scene.Environment.bloom` from code; off by default), tonemapping, see-through objects (give a Mesh Renderer a color alpha below 1), automatic instancing of identical mesh/material pairs, frustum culling, glTF/GLB models and textures.

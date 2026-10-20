@@ -70,8 +70,8 @@ class CheatViolation
 static class AntiCheat
 {
 	public const uint8 MsgAntiCheat = 247;
-	const uint8 cChallenge = 1, cAnswer = 2, cNotice = 3, cReport = 4;
-	const uint32 cFlagDebugger = 1, cFlagInjected = 2, cFlagClock = 4;
+	const uint8 MessageChallenge = 1, MessageAnswer = 2, MessageNotice = 3, MessageReport = 4;
+	const uint32 FlagDebugger = 1, FlagInjected = 2, FlagClock = 4;
 
 	[CLink] static extern uint32 tn_guard_environment();
 	[CLink] static extern void tn_guard_clocks(double* engine, double* independent);
@@ -327,7 +327,7 @@ static class AntiCheat
 			return;
 		}
 		let writer = scope NetWriter();
-		writer.Write(cReport);
+		writer.Write(MessageReport);
 		writer.Write((uint8)kind);
 		writer.WriteString(detail);
 		network.SendToServer(MsgAntiCheat, writer);
@@ -438,7 +438,7 @@ static class AntiCheat
 		if (action == .Kick && clientId != 0 && watched != null)
 		{
 			let writer = scope NetWriter();
-			writer.Write(cNotice);
+			writer.Write(MessageNotice);
 			writer.WriteString(scope $"Removed by anti-cheat: {Describe(kind)}.");
 			network.SendToClient(clientId, MsgAntiCheat, writer);
 			// A moment for the reason to arrive.
@@ -586,7 +586,7 @@ static class AntiCheat
 				watched.nonce = (uint32)sRandom.NextI32() | 1;
 				watched.asked = session.clock;
 				let writer = scope NetWriter();
-				writer.Write(cChallenge);
+				writer.Write(MessageChallenge);
 				writer.Write(watched.nonce);
 				network.SendToClient(watched.id, MsgAntiCheat, writer);
 			}
@@ -605,7 +605,10 @@ static class AntiCheat
 			return;
 		session.checkIn = 30;
 		let stageWas = Watchdog.Stage;
-		defer { Watchdog.Stage = stageWas; }
+		defer
+		{
+			Watchdog.Stage = stageWas;
+		}
 		Watchdog.Stage = "anti-cheat: looking for a debugger and comparing clocks";
 		var flags = TestFlags != 0 ? TestFlags : tn_guard_environment();
 		double engine = 0, other = 0;
@@ -625,7 +628,7 @@ static class AntiCheat
 			session.oddClocks = (ratio > 1.08 || ratio < 0.92) ? session.oddClocks + 1 : 0;
 		}
 		if (session.oddClocks >= 2)
-			flags |= cFlagClock;
+			flags |= FlagClock;
 		if (ProcessChecks)
 		{
 			// A library that was not here before, from somewhere neither the system's nor the game's come from.
@@ -654,7 +657,7 @@ static class AntiCheat
 		if (flags != 0)
 		{
 			let writer = scope NetWriter();
-			writer.Write(cAnswer);
+			writer.Write(MessageAnswer);
 			writer.Write((uint32)0);
 			writer.Write((uint32)0);
 			writer.Write(flags);
@@ -675,11 +678,11 @@ static class AntiCheat
 		if (watched != null)
 			watched.flags = flags;
 		let appeared = flags & ~before;
-		if ((appeared & cFlagDebugger) != 0)
+		if ((appeared & FlagDebugger) != 0)
 			Raise(network, clientId, .Debugger, "");
-		if ((appeared & cFlagInjected) != 0)
+		if ((appeared & FlagInjected) != 0)
 			Raise(network, clientId, .InjectedCode, "");
-		if ((appeared & cFlagClock) != 0)
+		if ((appeared & FlagClock) != 0)
 			Raise(network, clientId, .ClockTampering, "");
 	}
 
@@ -692,21 +695,21 @@ static class AntiCheat
 		if (!network.IsServer)
 		{
 			// A player's machine: the server's question, or the reason for being removed.
-			if (kind == cChallenge)
+			if (kind == MessageChallenge)
 			{
 				let nonce = reader.Read<uint32>();
 				if (!reader.Ok || !Enabled || TestSilent)
 					return;
 				let fingerprint = TestFingerprint != 0 ? TestFingerprint : Fingerprint;
 				let writer = scope NetWriter();
-				writer.Write(cAnswer);
+				writer.Write(MessageAnswer);
 				writer.Write(nonce);
 				// The fingerprint never travels: only what it makes of the server's number, and whether there is one.
 				writer.Write(fingerprint != 0 ? Proof(nonce, fingerprint) : (uint32)0);
 				writer.Write(network.AntiCheatState != null && network.AntiCheatState.sentFlags != uint32.MaxValue ? network.AntiCheatState.sentFlags : (TestFlags != 0 ? TestFlags : tn_guard_environment()));
 				network.SendToServer(MsgAntiCheat, writer);
 			}
-			else if (kind == cNotice)
+			else if (kind == MessageNotice)
 			{
 				let reason = scope String();
 				reader.ReadString(reason);
@@ -723,7 +726,7 @@ static class AntiCheat
 		let watched = Find(network, sender);
 		if (watched == null)
 			return;
-		if (kind == cAnswer)
+		if (kind == MessageAnswer)
 		{
 			let nonce = reader.Read<uint32>();
 			let proof = reader.Read<uint32>();
@@ -743,7 +746,7 @@ static class AntiCheat
 			else if (mine != 0 && proof == 0)
 				Raise(network, sender, .ModifiedFiles, "it is running from loose files, not the game's asset pack");
 		}
-		else if (kind == cReport)
+		else if (kind == MessageReport)
 		{
 			let reported = (int32)reader.Read<uint8>();
 			let detail = scope String();
@@ -772,12 +775,12 @@ struct GuardedInt
 
 	public this(int32 value)
 	{
-		mKey = (int32)(gKeySource = gKeySource * 1103515245 + 12345) | 0x10001;
+		mKey = (int32)(sKeySource = sKeySource * 1103515245 + 12345) | 0x10001;
 		mScrambled = value ^ mKey;
 		mCheck = ~(value * 31 + mKey);
 	}
 
-	static uint32 gKeySource = 0x6B8B4567;
+	static uint32 sKeySource = 0x6B8B4567;
 
 	public int32 Value
 	{

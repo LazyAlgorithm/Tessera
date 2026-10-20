@@ -101,7 +101,7 @@ extension EditorApp
 		ImGui.DockBuilderSplitNode(rest, ImGui.Dir.Down, 0.28f, out bottom, out center);
 		mAssetCenterDock = center;
 		mBottomDock = bottom;
-        ImGui.DockBuilderDockWindow("Hierarchy", left);
+		ImGui.DockBuilderDockWindow("Hierarchy", left);
 		ImGui.DockBuilderDockWindow("Inspector", right);
 		ImGui.DockBuilderDockWindow("Project", bottom);
 		ImGui.DockBuilderDockWindow("Console", bottom);
@@ -118,32 +118,50 @@ extension EditorApp
 			return;
 		if (ImGui.BeginMenu("File"))
 		{
-			if (ImGui.MenuItem("New Scene")) NewScene();
-			if (ImGui.MenuItem("Save Scene", "Ctrl+S")) SaveScene();
-			if (ImGui.MenuItem("Save Scene As...")) mOpenSaveAs = true;
+			if (ImGui.MenuItem("New Scene"))
+				NewScene();
+			if (ImGui.MenuItem("Save Scene", "Ctrl+S"))
+				SaveScene();
+			if (ImGui.MenuItem("Save Scene As..."))
+				mOpenSaveAs = true;
 			ImGui.Separator();
-			if (ImGui.MenuItem("Reload Scripts", "Ctrl+R")) RequestRebuild();
-            if (ImGui.MenuItem("Full Rebuild & Restart")) { SaveAllScripts(); mWantFullRestart=true; mBusyFrames=3; }
-			if (ImGui.MenuItem("Project Settings...")) mShowSettings = true;
-			if (ImGui.MenuItem("Build...")) OpenBuildWindow();
+			if (ImGui.MenuItem("Reload Scripts", "Ctrl+R"))
+				RequestRebuild();
+			if (ImGui.MenuItem("Full Rebuild & Restart"))
+			{
+				SaveAllScripts();
+				mWantFullRestart = true;
+				mBusyFrames = 3;
+			}
+			if (ImGui.MenuItem("Project Settings..."))
+				mShowSettings = true;
+			if (ImGui.MenuItem("Build..."))
+				OpenBuildWindow();
 			ImGui.Separator();
 			if (ImGui.MenuItem("Open Project Folder"))
 			{
 				Terminal.Open(Project.Current.Path);
 			}
-			if (ImGui.MenuItem("Exit")) Running = false;
+			if (ImGui.MenuItem("Exit"))
+				Close();
 			ImGui.EndMenu();
 		}
 		if (ImGui.BeginMenu("Edit"))
 		{
-			if (ImGui.MenuItem("Undo", "Ctrl+Z", false, CanUndo)) Undo();
-			if (ImGui.MenuItem("Redo", "Ctrl+Y", false, CanRedo)) Redo();
+			if (ImGui.MenuItem("Undo", "Ctrl+Z", false, CanUndo))
+				Undo();
+			if (ImGui.MenuItem("Redo", "Ctrl+Y", false, CanRedo))
+				Redo();
 			ImGui.Separator();
-			if (ImGui.MenuItem("Duplicate", "Ctrl+D", false, Selected != null)) DuplicateSelected();
-			if (ImGui.MenuItem("Delete", "Del", false, Selected != null)) DeleteSelected();
-			if (ImGui.MenuItem("Frame Selected", "F", false, Selected != null)) FocusSelected();
+			if (ImGui.MenuItem("Duplicate", "Ctrl+D", false, Selected != null))
+				DuplicateSelected();
+			if (ImGui.MenuItem("Delete", "Del", false, Selected != null))
+				DeleteSelected();
+			if (ImGui.MenuItem("Frame Selected", "F", false, Selected != null))
+				FocusSelected();
 			ImGui.Separator();
-			if (ImGui.MenuItem("Play / Stop", "Ctrl+P")) TogglePlay();
+			if (ImGui.MenuItem("Play / Stop", "Ctrl+P"))
+				TogglePlay();
 			ImGui.EndMenu();
 		}
 		if (ImGui.BeginMenu("GameObject"))
@@ -153,13 +171,23 @@ extension EditorApp
 		}
 		if (ImGui.BeginMenu("Window"))
 		{
-			if (ImGui.MenuItem("Achievements")) mShowAchievements = true;
-			if (ImGui.MenuItem("Input Actions")) mShowInputActions = true;
-			if (ImGui.MenuItem("Animator")) { mShowAnimator = true; mDockAnimator = true; }
-			if (ImGui.MenuItem("Animation")) mShowAnimation = true;
-			if (ImGui.MenuItem("Reset Layout")) mResetLayout = true;
-			if (ImGui.MenuItem("Scene Grid", null, mShowGrid)) mShowGrid = !mShowGrid;
-			if (ImGui.MenuItem("ImGui Demo")) mShowDemo = true;
+			if (ImGui.MenuItem("Achievements"))
+				mShowAchievements = true;
+			if (ImGui.MenuItem("Input Actions"))
+				mShowInputActions = true;
+			if (ImGui.MenuItem("Animator"))
+			{
+				mShowAnimator = true;
+				mDockAnimator = true;
+			}
+			if (ImGui.MenuItem("Animation"))
+				mShowAnimation = true;
+			if (ImGui.MenuItem("Reset Layout"))
+				mResetLayout = true;
+			if (ImGui.MenuItem("Scene Grid", null, mShowGrid))
+				mShowGrid = !mShowGrid;
+			if (ImGui.MenuItem("ImGui Demo"))
+				mShowDemo = true;
 			ImGui.EndMenu();
 		}
 		let label = scope String();
@@ -172,7 +200,8 @@ extension EditorApp
 
 	void DrawCreateMenu()
 	{
-		if (ImGui.MenuItem("Create Empty")) CreateObject("GameObject");
+		if (ImGui.MenuItem("Create Empty"))
+			CreateObject("GameObject");
 		if (ImGui.MenuItem("Spawn Point"))
 		{
 			CreateObject("Spawn Point").AddComponent<SpawnPoint>();
@@ -194,13 +223,20 @@ extension EditorApp
 		}
 		if (ImGui.BeginMenu("3D Object"))
 		{
-			if (ImGui.MenuItem("Cube")) CreateObject("Cube", "builtin:cube");
-			if (ImGui.MenuItem("Sphere")) CreateObject("Sphere", "builtin:sphere");
-			if (ImGui.MenuItem("Capsule")) CreateObject("Capsule", "builtin:capsule");
-			if (ImGui.MenuItem("Cylinder")) CreateObject("Cylinder", "builtin:cylinder");
-			if (ImGui.MenuItem("Cone")) CreateObject("Cone", "builtin:cone");
-			if (ImGui.MenuItem("Plane")) CreateObject("Plane", "builtin:plane");
-			if (ImGui.MenuItem("Quad")) CreateObject("Quad", "builtin:quad");
+			if (ImGui.MenuItem("Cube"))
+				CreateObject("Cube", "builtin:cube");
+			if (ImGui.MenuItem("Sphere"))
+				CreateObject("Sphere", "builtin:sphere");
+			if (ImGui.MenuItem("Capsule"))
+				CreateObject("Capsule", "builtin:capsule");
+			if (ImGui.MenuItem("Cylinder"))
+				CreateObject("Cylinder", "builtin:cylinder");
+			if (ImGui.MenuItem("Cone"))
+				CreateObject("Cone", "builtin:cone");
+			if (ImGui.MenuItem("Plane"))
+				CreateObject("Plane", "builtin:plane");
+			if (ImGui.MenuItem("Quad"))
+				CreateObject("Quad", "builtin:quad");
 			ImGui.EndMenu();
 		}
 		if (ImGui.BeginMenu("Light"))
@@ -227,8 +263,10 @@ extension EditorApp
 			}
 			ImGui.EndMenu();
 		}
-		if (ImGui.MenuItem("Camera")) CreateObject("Camera").AddComponent<Camera>();
-		if (ImGui.MenuItem("Particle System")) CreateObject("Particles").AddComponent<ParticleSystem>();
+		if (ImGui.MenuItem("Camera"))
+			CreateObject("Camera").AddComponent<Camera>();
+		if (ImGui.MenuItem("Particle System"))
+			CreateObject("Particles").AddComponent<ParticleSystem>();
 		if (ImGui.MenuItem("Destructible Voxel Object"))
 		{
 			let o = CreateObject("Voxel Object");
@@ -260,7 +298,10 @@ extension EditorApp
 
 	void TogglePlay()
 	{
-		if (mPlay == .Edit) StartPlay(); else StopPlay();
+		if (mPlay == .Edit)
+			StartPlay();
+		else
+			StopPlay();
 	}
 
 	void DuplicateSelected()
@@ -295,13 +336,17 @@ extension EditorApp
 			| ImGui.WindowFlags.NoSavedSettings | ImGui.WindowFlags.NoBringToFrontOnFocus | ImGui.WindowFlags.NoScrollWithMouse);
 		ImGui.PopStyleVar(2);
 
-		if (ToolButton("Move", mGizmoOperation == 0)) mGizmoOperation = 0;
+		if (ToolButton("Move", mGizmoOperation == 0))
+			mGizmoOperation = 0;
 		ImGui.SameLine();
-		if (ToolButton("Rotate", mGizmoOperation == 1)) mGizmoOperation = 1;
+		if (ToolButton("Rotate", mGizmoOperation == 1))
+			mGizmoOperation = 1;
 		ImGui.SameLine();
-		if (ToolButton("Scale", mGizmoOperation == 2)) mGizmoOperation = 2;
+		if (ToolButton("Scale", mGizmoOperation == 2))
+			mGizmoOperation = 2;
 		ImGui.SameLine(0, 16);
-		if (ImGui.Button(mGizmoLocal ? "Local" : "Global", .(64, 0))) mGizmoLocal = !mGizmoLocal;
+		if (ImGui.Button(mGizmoLocal ? "Local" : "Global", .(64, 0)))
+			mGizmoLocal = !mGizmoLocal;
 
 		// Which world state the Scene and Game views show (and, while playing, the game is in).
 		if (ProjectConfig.WorldStates.Count > 1)

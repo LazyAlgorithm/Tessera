@@ -235,7 +235,11 @@ static class ProjectConfig
 		sReady = true;
 		List<StringView> tokens = scope .();
 		List<String> storage = scope .();
-		defer { for (let s in storage) delete s; }
+		defer
+		{
+			for (let s in storage)
+				delete s;
+		}
 		bool firstState = true;
 		for (let line in text.Split('\n'))
 		{
@@ -274,9 +278,13 @@ static class ProjectConfig
 			sLayerNames[0].Set("Default");
 		// Collision is the same both ways, whatever the file says.
 		for (int32 a < MaxLayers)
+		{
 			for (int32 b < MaxLayers)
+			{
 				if ((sCollides[a] & (1u << b)) == 0)
 					sCollides[b] &= ~(1u << a);
+			}
+		}
 		Version++;
 	}
 

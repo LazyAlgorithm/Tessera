@@ -11,7 +11,11 @@ static class ImGui
 	{
 		public float x;
 		public float y;
-		public this(float x, float y) { this.x = x; this.y = y; }
+		public this(float x, float y)
+		{
+			this.x = x;
+			this.y = y;
+		}
 	}
 
 	[CRepr]
@@ -21,7 +25,13 @@ static class ImGui
 		public float y;
 		public float z;
 		public float w;
-		public this(float x, float y, float z, float w) { this.x = x; this.y = y; this.z = z; this.w = w; }
+		public this(float x, float y, float z, float w)
+		{
+			this.x = x;
+			this.y = y;
+			this.z = z;
+			this.w = w;
+		}
 	}
 
 	[CRepr]
@@ -300,8 +310,8 @@ static class ImGui
 	[CLink] static extern float igGetCursorPosY();
 	[CLink] static extern Vec2 igGetWindowPos();
 	[CLink] static extern Vec2 igGetWindowSize();
-    [CLink] static extern uint32 igGetWindowDockID();
-    [CLink] static extern void igSetNextWindowDockID(uint32 id, int32 condition);
+	[CLink] static extern uint32 igGetWindowDockID();
+	[CLink] static extern void igSetNextWindowDockID(uint32 id, int32 condition);
 	[CLink] static extern float igGetWindowWidth();
 	[CLink] static extern bool igIsWindowHovered(int32 flags);
 	[CLink] static extern bool igIsWindowFocused(int32 flags);
@@ -336,7 +346,7 @@ static class ImGui
 	[CLink] static extern void igSetNextItemWidth(float width);
 	[CLink] static extern void igSetNextWindowPos(Vec2 pos, int32 cond, Vec2 pivot);
 	[CLink] static extern void igSetNextWindowSize(Vec2 size, int32 cond);
-    [CLink] static extern void igSetNextWindowFocus();
+	[CLink] static extern void igSetNextWindowFocus();
 	[CLink] static extern void igSetNextWindowBgAlpha(float alpha);
 	[CLink] static extern uint32 igDockSpaceOverViewport(uint32 dockspaceId, Viewport* viewport, int32 flags, void* windowClass);
 	[CLink] static extern Viewport* igGetMainViewport();
@@ -366,10 +376,10 @@ static class ImGui
 	[CLink] static extern void igEndDragDropSource();
 	[CLink] static extern bool igSetDragDropPayload(char8* type, void* data, uint size, int32 cond);
 	[CRepr] struct DropRect { public Vec2 min; public Vec2 max; }
-    [CLink] static extern bool igBeginDragDropTargetCustom(DropRect rect, uint32 id);
-    [CLink] static extern Payload* igGetDragDropPayload();
-    [CLink] static extern bool ImGuiPayload_IsDataType(Payload* payload, char8* type);
-    [CLink] static extern bool igBeginDragDropTarget();
+	[CLink] static extern bool igBeginDragDropTargetCustom(DropRect rect, uint32 id);
+	[CLink] static extern Payload* igGetDragDropPayload();
+	[CLink] static extern bool ImGuiPayload_IsDataType(Payload* payload, char8* type);
+	[CLink] static extern bool igBeginDragDropTarget();
 	[CLink] static extern void igEndDragDropTarget();
 	[CLink] static extern Payload* igAcceptDragDropPayload(char8* type, int32 flags);
 	[CLink] static extern void igShowDemoWindow(bool* open);
@@ -510,13 +520,14 @@ static class ImGui
 	{
 		TextureRef texture = default;
 		texture.texId = (uint64)textureIndex + 1;
-		let c = Math.Cos(angle); let s = Math.Sin(angle);
+		let c = Math.Cos(angle);
+		let s = Math.Sin(angle);
 		let x = Vec2(c * size.x * 0.5f, s * size.x * 0.5f);
 		let y = Vec2(-s * size.y * 0.5f, c * size.y * 0.5f);
 		ImDrawList_AddImageQuad(igGetWindowDrawList(), texture,
-			.(center.x-x.x-y.x,center.y-x.y-y.y), .(center.x+x.x-y.x,center.y+x.y-y.y),
-			.(center.x+x.x+y.x,center.y+x.y+y.y), .(center.x-x.x+y.x,center.y-x.y+y.y),
-			.(0,0),.(1,0),.(1,1),.(0,1),0xffffffff);
+			.(center.x - x.x - y.x, center.y - x.y - y.y), .(center.x + x.x - y.x, center.y + x.y - y.y),
+			.(center.x + x.x + y.x, center.y + x.y + y.y), .(center.x - x.x + y.x, center.y - x.y + y.y),
+			.(0, 0), .(1, 0), .(1, 1), .(0, 1), 0xffffffff);
 	}
 
 	public static Vec2 GetContentRegionAvail() => igGetContentRegionAvail();
@@ -528,8 +539,8 @@ static class ImGui
 	public static float GetCursorPosY() => igGetCursorPosY();
 	public static Vec2 GetWindowPos() => igGetWindowPos();
 	public static Vec2 GetWindowSize() => igGetWindowSize();
-    public static uint32 GetWindowDockID() => igGetWindowDockID();
-    public static void SetNextWindowDockID(uint32 id) => igSetNextWindowDockID(id,1);
+	public static uint32 GetWindowDockID() => igGetWindowDockID();
+	public static void SetNextWindowDockID(uint32 id) => igSetNextWindowDockID(id, 1);
 	public static float GetWindowWidth() => igGetWindowWidth();
 	public static bool IsWindowHovered(int32 flags = 0) => igIsWindowHovered(flags);
 	public static bool IsWindowFocused(int32 flags = 0) => igIsWindowFocused(flags);
@@ -570,7 +581,7 @@ static class ImGui
 	public static void SetNextItemWidth(float width) => igSetNextItemWidth(width);
 	public static void SetNextWindowPos(Vec2 pos, int32 cond = 0, Vec2 pivot = .(0, 0)) => igSetNextWindowPos(pos, cond, pivot);
 	public static void SetNextWindowSize(Vec2 size, int32 cond = 0) => igSetNextWindowSize(size, cond);
-    public static void SetNextWindowFocus()=>igSetNextWindowFocus();
+	public static void SetNextWindowFocus() => igSetNextWindowFocus();
 	public static void SetNextWindowBgAlpha(float alpha) => igSetNextWindowBgAlpha(alpha);
 	public static uint32 DockSpaceOverViewport(uint32 id = 0, int32 flags = 0) => igDockSpaceOverViewport(id, igGetMainViewport(), flags, null);
 	public static Viewport* GetMainViewport() => igGetMainViewport();
@@ -583,6 +594,7 @@ static class ImGui
 		opposite = 0;
 		return igDockBuilderSplitNode(id, dir, ratio, &atDir, &opposite);
 	}
+
 	public static void DockBuilderDockWindow(char8* name, uint32 id) => igDockBuilderDockWindow(name, id);
 	public static void DockBuilderFinish(uint32 id) => igDockBuilderFinish(id);
 	public static bool DockBuilderHasNode(uint32 id) => igDockBuilderGetNode(id) != null;
@@ -613,9 +625,9 @@ static class ImGui
 	public static void EndDragDropSource() => igEndDragDropSource();
 	public static bool SetDragDropPayload(char8* type, void* data, int size) => igSetDragDropPayload(type, data, (uint)size, 0);
 	public static Payload* GetDragDropPayload() => igGetDragDropPayload();
-    public static bool PayloadIsType(Payload* payload, char8* type) => ImGuiPayload_IsDataType(payload,type);
-    public static bool BeginDragDropTargetCustom(Vec2 min, Vec2 max, uint32 id) => igBeginDragDropTargetCustom(.(){min=min,max=max},id);
-    public static bool BeginDragDropTarget() => igBeginDragDropTarget();
+	public static bool PayloadIsType(Payload* payload, char8* type) => ImGuiPayload_IsDataType(payload, type);
+	public static bool BeginDragDropTargetCustom(Vec2 min, Vec2 max, uint32 id) => igBeginDragDropTargetCustom(.() { min = min, max = max }, id);
+	public static bool BeginDragDropTarget() => igBeginDragDropTarget();
 	public static void EndDragDropTarget() => igEndDragDropTarget();
 	public static Payload* AcceptDragDropPayload(char8* type) => igAcceptDragDropPayload(type, 0);
 	public static void ShowDemoWindow(bool* open = null) => igShowDemoWindow(open);

@@ -30,7 +30,7 @@ void main()
     float orientation = dot(i_data0.xyz, co0) < 0.0 ? -1.0 : 1.0;
     v_normal = (co0 * normal.x + co1 * normal.y + co2 * normal.z) * orientation;
 	v_color0 = a_color0 * i_data4;
-	v_texcoord0 = a_texcoord0;
+	v_texcoord0 = uv;
 	v_texcoord1 = a_texcoord1;
 	v_depth = gl_Position.w;
 }

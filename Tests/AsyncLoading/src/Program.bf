@@ -3,6 +3,7 @@ using System.Collections;
 using System.IO;
 using System.Threading;
 using Tessera;
+
 namespace AsyncLoadingTests;
 
 class Program
@@ -33,12 +34,12 @@ class Program
 		let engine = scope String();
 		Path.GetDirectoryPath(scope String(Environment.GetExecutableFilePath(.. scope .())), engine);
 		let sample = "/home/zerker24/BeefProjects/Tessera/Samples/Sandbox/src";
-		File.Copy(scope $"{sample}/Models/rigged_sample.glb", scope $"{root}/Models/tentacle.glb", true).IgnoreError();
-		File.Copy(scope $"{sample}/Models/rigged_sample.glb", scope $"{root}/Models/statue.glb", true).IgnoreError();
-		File.Copy(scope $"{sample}/Textures/hammered_normal.png", scope $"{root}/Textures/bumps.png", true).IgnoreError();
-		File.Copy("/home/zerker24/BeefProjects/Tessera/icon.png", scope $"{root}/Textures/logo.png", true).IgnoreError();
-		File.WriteAllText(scope $"{root}/Materials/stone.tmat", "material 1\ncolor 1 1 1 1\nnormalMap \"Textures/bumps.png\"\n").IgnoreError();
-		File.WriteAllText(scope $"{root}/Prefabs/crate.tprefab", "object 1 parent 0 active 1 name \"Crate\"\ntransform 0 0 0 0 0 0 1 1 1 1\ncomponent Tessera.MeshRenderer enabled 1\nfield mesh \"Models/statue.glb\"\nfield texture \"Textures/logo.png\"\n").IgnoreError();
+		File.Copy(scope $"{sample}/Models/rigged_sample.glb" , scope $"{root}/Models/tentacle.glb" , true).IgnoreError();
+		File.Copy(scope $"{sample}/Models/rigged_sample.glb" , scope $"{root}/Models/statue.glb" , true).IgnoreError();
+		File.Copy(scope $"{sample}/Textures/hammered_normal.png" , scope $"{root}/Textures/bumps.png" , true).IgnoreError();
+		File.Copy("/home/zerker24/BeefProjects/Tessera/icon.png", scope $"{root}/Textures/logo.png" , true).IgnoreError();
+		File.WriteAllText(scope $"{root}/Materials/stone.tmat" , "material 1\ncolor 1 1 1 1\nnormalMap \"Textures/bumps.png\"\n").IgnoreError();
+		File.WriteAllText(scope $"{root}/Prefabs/crate.tprefab" , "object 1 parent 0 active 1 name \"Crate\"\ntransform 0 0 0 0 0 0 1 1 1 1\ncomponent Tessera.MeshRenderer enabled 1\nfield mesh \"Models/statue.glb\"\nfield texture \"Textures/logo.png\"\n").IgnoreError();
 		let level = """
 			scene "Level"
 			object 1 parent 0 active 1 name "Statue"
@@ -56,22 +57,28 @@ class Program
 			field scene "Prefabs/crate.tprefab"
 
 			""";
-		File.WriteAllText(scope $"{root}/Scenes/Level.tscene", level).IgnoreError();
-		File.WriteAllText(scope $"{root}/Scenes/Menu.tscene", "scene \"Menu\"\nobject 1 parent 0 active 1 name \"Title\"\ntransform 0 0 0 0 0 0 1 1 1 1\n").IgnoreError();
+		File.WriteAllText(scope $"{root}/Scenes/Level.tscene" , level).IgnoreError();
+		File.WriteAllText(scope $"{root}/Scenes/Menu.tscene" , "scene \"Menu\"\nobject 1 parent 0 active 1 name \"Title\"\ntransform 0 0 0 0 0 0 1 1 1 1\n").IgnoreError();
 		Assets.ProjectPath.Set(root);
 
 		// ---- what a scene names ----
 		List<(String path, AssetLoader.Kind kind)> found = scope .();
-		defer { for (let entry in found) delete entry.path; }
+		defer
+		{
+			for (let entry in found)
+				delete entry.path;
+		}
 		SceneManager.References(level, found);
 		bool Has(StringView path, AssetLoader.Kind kind)
 		{
 			for (let entry in found)
+			{
 				if (entry.path == path && entry.kind == kind) return true;
+			}
 			return false;
 		}
 		ok &= Check(found.Count == 4 && Has("Models/statue.glb", .Mesh) && Has("Models/tentacle.glb", .SkinnedModel) && Has("Textures/bumps.png", .Texture) && Has("Textures/logo.png", .Texture),
-			scope $"a scene's models and textures are found, through its materials and prefabs, rigged ones told apart ({found.Count})");
+scope $"a scene's models and textures are found, through its materials and prefabs, rigged ones told apart ({found.Count})");
 
 		// ---- an additive load, in the background ----
 		let scene = scope Scene();
@@ -113,8 +120,9 @@ class Program
 		ok &= Check(second.AssetCount == 4 && second.AssetsLoaded == 4, "things loaded already count as loaded at once");
 
 		// ---- a file that is not there ----
+		// Read as soon as it is done: a finished load is let go a frame later.
 		let missing = SceneManager.LoadAdditiveAsync(scene, "Scenes/Nowhere.tscene");
-		for (int i < 50)
+		for (int i = 0; i < 50 && !missing.IsDone; i++)
 			Frame(scene);
 		ok &= Check(missing.Failed && missing.IsDone, "a scene that is not there fails, and says so");
 

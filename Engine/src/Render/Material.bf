@@ -5,6 +5,7 @@ using Bgfx;
 
 namespace Tessera;
 
+/// How a material's alpha is used.
 enum MaterialBlend : int32
 {
 	/// Solid.
@@ -15,6 +16,7 @@ enum MaterialBlend : int32
 	Transparent
 }
 
+/// The kinds of value a custom shader can take.
 enum ShaderPropertyType : int32 { Float, Color, Vector, Texture }
 
 /// A custom shader: a .tshader file with the properties it declares. The editor compiles it for each graphics
@@ -33,6 +35,7 @@ enum ShaderPropertyType : int32 { Float, Color, Vector, Texture }
 /// Lighting, shadows and fog are applied to the result by the engine.
 class ShaderAsset
 {
+	/// One of a shader's properties: its name, kind, slot and default.
 	public class Property
 	{
 		public String name = new .() ~ delete _;
@@ -42,18 +45,25 @@ class ShaderAsset
 		public int32 slot;
 	}
 
+	/// The most number, colour and vector properties a shader can have.
 	public const int MaxValues = 8;
+	/// The most texture properties a shader can have.
 	public const int MaxTextures = 2;
 
+	/// The shader's file, relative to the project's assets.
 	public String path = new .() ~ delete _;
+	/// The properties the shader declares.
 	public List<Property> properties = new .() ~ DeleteContainerAndItems!(_);
+	/// The code of its surface { } block.
 	public String surface = new .() ~ delete _;
+	/// The code of its vertex { } block.
 	public String vertex = new .() ~ delete _;
 	/// A compute shader's code (.tcompute files have this block instead of surface and vertex).
 	public String compute = new .() ~ delete _;
 	/// A compute shader's "precision high" line: keep values as 16-bit floats instead of 8-bit colours, for
 	/// simulations that need numbers outside 0 to 1 or finer steps.
 	public bool highPrecision;
+	/// Whether it is a compute shader (it has a compute { } block).
 	public bool IsCompute => !compute.IsEmpty;
 	/// Anything in the file that could not be understood, one message per line. Empty when it is fine.
 	public String problems = new .() ~ delete _;
@@ -65,11 +75,14 @@ class ShaderAsset
 
 	static Dictionary<String, ShaderAsset> sCache = new .() ~ DeleteDictionaryAndKeysAndValues!(_);
 
+	/// A property by name, or null.
 	public Property Find(StringView name)
 	{
 		for (let property in properties)
+		{
 			if (property.name == name)
 				return property;
+		}
 		return null;
 	}
 
@@ -99,22 +112,16 @@ class ShaderAsset
 			if (block != null)
 			{
 				// Inside "surface { ... }" or "vertex { ... }": everything up to the brace that closes it is code.
-				for (let c in line.RawChars)
+				depth += BraceBalance(line);
+				if (depth > 0)
 				{
-					if (c == '{')
-						depth++;
-					else if (c == '}')
-						depth--;
-				}
-				if (depth <= 0)
-				{
-					let close = line.LastIndexOf('}');
-					if (close > 0)
-						block..Append(line.Substring(0, close)).Append('\n');
-					block = null;
+					block..Append(line).Append('\n');
 					continue;
 				}
-				block..Append(line).Append('\n');
+				let close = line.LastIndexOf('}');
+				if (close > 0)
+					block..Append(line.Substring(0, close)).Append('\n');
+				block = null;
 				continue;
 			}
 			var trimmed = line;
@@ -122,102 +129,117 @@ class ShaderAsset
 			if (trimmed.IsEmpty || trimmed.StartsWith("//"))
 				continue;
 			if (trimmed == "precision high")
-			{
 				highPrecision = true;
-				continue;
-			}
-			if (trimmed.StartsWith("surface") || trimmed.StartsWith("vertex") || trimmed.StartsWith("compute"))
-			{
-				let isSurface = trimmed.StartsWith("surface");
-				let isCompute = trimmed.StartsWith("compute");
-				let open = trimmed.IndexOf('{');
-				if (open < 0)
-				{
-					problems.AppendF("line {}: expected {{ after {}\n", lineNumber, isSurface ? "surface" : (isCompute ? "compute" : "vertex"));
-					continue;
-				}
-				block = isSurface ? surface : (isCompute ? compute : vertex);
-				block.Clear();
-				depth = 1;
-				// Code may follow the brace on the same line, and the block may close on it too.
-				var rest = trimmed.Substring(open + 1);
-				for (let c in rest.RawChars)
-				{
-					if (c == '{')
-						depth++;
-					else if (c == '}')
-						depth--;
-				}
-				if (depth <= 0)
-				{
-					let close = rest.LastIndexOf('}');
-					if (close >= 0)
-						rest = rest.Substring(0, close);
-					block..Append(rest).Append('\n');
-					block = null;
-				}
-				else if (!rest.IsEmpty)
-					block..Append(rest).Append('\n');
-				continue;
-			}
-			if (trimmed.StartsWith("property "))
-			{
-				// property <type> <name> [= values]
-				var declaration = trimmed.Substring(9);
-				var defaults = StringView();
-				let equals = declaration.IndexOf('=');
-				if (equals >= 0)
-				{
-					defaults = declaration.Substring(equals + 1);
-					declaration = declaration.Substring(0, equals);
-				}
-				var words = declaration.Split(' ', .RemoveEmptyEntries);
-				StringView typeName = "", name = "";
-				if (words.GetNext() case .Ok(let first)) typeName = first;
-				if (words.GetNext() case .Ok(let second)) name = second;
-				ShaderPropertyType type;
-				switch (typeName)
-				{
-				case "float": type = .Float;
-				case "color": type = .Color;
-				case "vector": type = .Vector;
-				case "texture": type = .Texture;
-				default:
-					problems.AppendF("line {}: unknown property type '{}' (use float, color, vector or texture)\n", lineNumber, typeName);
-					continue;
-				}
-				bool validName = !name.IsEmpty && !name[0].IsDigit;
-				for (let c in name.RawChars)
-					validName &= c.IsLetterOrDigit || c == '_';
-				if (!validName || Find(name) != null)
-				{
-					problems.AppendF("line {}: a property needs a name of its own made of letters, digits and underscores\n", lineNumber);
-					continue;
-				}
-				if (type == .Texture ? textures >= MaxTextures : values >= MaxValues)
-				{
-					problems.AppendF("line {}: too many properties (up to {} values and {} textures)\n", lineNumber, MaxValues, MaxTextures);
-					continue;
-				}
-				let property = new Property();
-				property.name.Set(name);
-				property.type = type;
-				property.slot = type == .Texture ? textures++ : values++;
-				property.defaultValue = type == .Color ? Vector4(1, 1, 1, 1) : Vector4(0, 0, 0, 0);
-				float* channels = &property.defaultValue.x;
-				int index = 0;
-				for (let part in defaults.Split(' ', .RemoveEmptyEntries))
-				{
-					if (index < 4)
-						channels[index++] = SceneSerializer.ParseFloat(part);
-				}
-				properties.Add(property);
-				continue;
-			}
-			problems.AppendF("line {}: expected 'property', 'surface {{', 'vertex {{' or 'compute {{'\n", lineNumber);
+			else if (trimmed.StartsWith("surface") || trimmed.StartsWith("vertex") || trimmed.StartsWith("compute"))
+				block = StartBlock(trimmed, lineNumber, out depth);
+			else if (trimmed.StartsWith("property "))
+				ParseProperty(trimmed.Substring(9), lineNumber, ref values, ref textures);
+			else
+				problems.AppendF("line {}: expected 'property', 'surface {{', 'vertex {{' or 'compute {{'\n", lineNumber);
 		}
 		if (block != null)
 			problems.Append("a block is missing its closing }\n");
+	}
+
+	/// How many more braces a line opens than it closes.
+	static int BraceBalance(StringView line)
+	{
+		int balance = 0;
+		for (let c in line.RawChars)
+		{
+			if (c == '{')
+				balance++;
+			else if (c == '}')
+				balance--;
+		}
+		return balance;
+	}
+
+	/// The start of a "surface {", "vertex {" or "compute {" block: returns the block to read code into, or null when
+	/// it closed on the same line (or is missing its brace). `depth` is how many braces are left open.
+	String StartBlock(StringView line, int lineNumber, out int depth)
+	{
+		depth = 0;
+		let isSurface = line.StartsWith("surface");
+		let isCompute = line.StartsWith("compute");
+		let open = line.IndexOf('{');
+		if (open < 0)
+		{
+			problems.AppendF("line {}: expected {{ after {}\n", lineNumber, isSurface ? "surface" : (isCompute ? "compute" : "vertex"));
+			return null;
+		}
+		let block = isSurface ? surface : (isCompute ? compute : vertex);
+		block.Clear();
+		// Code may follow the brace on the same line, and the block may close on it too.
+		var rest = line.Substring(open + 1);
+		depth = 1 + BraceBalance(rest);
+		if (depth <= 0)
+		{
+			let close = rest.LastIndexOf('}');
+			if (close >= 0)
+				rest = rest.Substring(0, close);
+			block..Append(rest).Append('\n');
+			return null;
+		}
+		if (!rest.IsEmpty)
+			block..Append(rest).Append('\n');
+		return block;
+	}
+
+	/// "property <type> <name> [= values]", the part after "property ".
+	void ParseProperty(StringView text, int lineNumber, ref int32 values, ref int32 textures)
+	{
+		var declaration = text;
+		var defaults = StringView();
+		let equals = declaration.IndexOf('=');
+		if (equals >= 0)
+		{
+			defaults = declaration.Substring(equals + 1);
+			declaration = declaration.Substring(0, equals);
+		}
+		var words = declaration.Split(' ', .RemoveEmptyEntries);
+		StringView typeName = "", name = "";
+		if (words.GetNext() case .Ok(let first))
+			typeName = first;
+		if (words.GetNext() case .Ok(let second))
+			name = second;
+		ShaderPropertyType type;
+		switch (typeName)
+		{
+		case "float": type = .Float;
+		case "color": type = .Color;
+		case "vector": type = .Vector;
+		case "texture": type = .Texture;
+		default:
+			problems.AppendF("line {}: unknown property type '{}' (use float, color, vector or texture)\n", lineNumber, typeName);
+			return;
+		}
+		bool validName = !name.IsEmpty && !name[0].IsDigit;
+		for (let c in name.RawChars)
+			validName &= c.IsLetterOrDigit || c == '_';
+		if (!validName || Find(name) != null)
+		{
+			problems.AppendF("line {}: a property needs a name of its own made of letters, digits and underscores\n", lineNumber);
+			return;
+		}
+		if (type == .Texture ? textures >= MaxTextures : values >= MaxValues)
+		{
+			problems.AppendF("line {}: too many properties (up to {} values and {} textures)\n", lineNumber, MaxValues, MaxTextures);
+			return;
+		}
+		let property = new Property();
+		property.name.Set(name);
+		property.type = type;
+		property.slot = type == .Texture ? textures++ : values++;
+		property.defaultValue = type == .Color ? Vector4(1, 1, 1, 1) : Vector4(0, 0, 0, 0);
+		float* channels = &property.defaultValue.x;
+		int index = 0;
+		for (let part in defaults.Split(' ', .RemoveEmptyEntries))
+		{
+			if (index < 4)
+				channels[index++] = SceneSerializer.ParseFloat(part);
+		}
+		properties.Add(property);
 	}
 
 	/// Reads the file again and forgets the compiled program, so that the next draw loads the new one.
@@ -251,13 +273,15 @@ class ShaderAsset
 			let name = scope String();
 			CompiledName(path, name);
 			let folder = scope String();
-			Assets.ResolvePath(scope $"Shaders/Compiled/{Gfx.ShaderFolder}", folder);
+			Assets.ResolvePath(scope $"Shaders/Compiled/{Gfx.ShaderFolder}" , folder);
 			let vs = Gfx.LoadShaderFile(scope $"{folder}/{name}_vs.bin");
 			let fs = Gfx.LoadShaderFile(scope $"{folder}/{name}_fs.bin");
 			if (vs.idx == uint16.MaxValue || fs.idx == uint16.MaxValue)
 			{
-				if (vs.idx != uint16.MaxValue) bgfx.destroy_shader(vs);
-				if (fs.idx != uint16.MaxValue) bgfx.destroy_shader(fs);
+				if (vs.idx != uint16.MaxValue)
+					bgfx.destroy_shader(vs);
+				if (fs.idx != uint16.MaxValue)
+					bgfx.destroy_shader(fs);
 				Log.Warning(scope $"Shader {path} has not been compiled for this graphics backend ({Gfx.ShaderFolder}); drawing with the standard shader. Open and save it in the editor.");
 				return mProgram;
 			}
@@ -277,7 +301,7 @@ class ShaderAsset
 			let name = scope String();
 			CompiledName(path, name);
 			let folder = scope String();
-			Assets.ResolvePath(scope $"Shaders/Compiled/{Gfx.ShaderFolder}", folder);
+			Assets.ResolvePath(scope $"Shaders/Compiled/{Gfx.ShaderFolder}" , folder);
 			let cs = Gfx.LoadShaderFile(scope $"{folder}/{name}_cs.bin");
 			if (cs.idx == uint16.MaxValue)
 			{
@@ -336,28 +360,39 @@ class Material
 {
 	/// A custom shader (.tshader), or empty for the standard one.
 	public String shader = new .() ~ delete _;
+	/// The colour the surface is, multiplied by the texture.
 	public Color color = .White;
+	/// How metal-like the surface is, 0 to 1.
 	public float metallic = 0.0f;
+	/// How rough the surface is: 0 is a mirror, 1 fully matt.
 	public float roughness = 0.85f;
+	/// Light the surface gives off itself.
 	public Color emissive = .Black;
+	/// How strong the emissive light is.
 	public float emissiveIntensity = 0.0f;
+	/// Lights each triangle evenly, for a faceted look; off, light is smoothed across them.
 	public bool flatShading = true;
+	/// Draws the colour and texture as they are, with no lighting.
 	public bool unlit = false;
 	/// The main texture, multiplied by the colour.
 	public String texture = new .() ~ delete _;
 	/// Bumps and grooves without more triangles: a tangent-space normal map (the blue-purple kind).
 	public String normalMap = new .() ~ delete _;
+	/// How strong the normal map's bumps are.
 	public float normalStrength = 1.0f;
 	/// Roughness in the green channel and metallic in the blue, as glTF stores them. Multiplied by the two sliders.
 	public String metallicRoughnessMap = new .() ~ delete _;
 	/// Darkens creases: ambient occlusion in the red channel.
 	public String occlusionMap = new .() ~ delete _;
+	/// How much the occlusion map darkens.
 	public float occlusionStrength = 1.0f;
 	/// Which parts glow. Multiplied by the emissive colour and intensity.
 	public String emissiveMap = new .() ~ delete _;
 	/// How many times the texture repeats across the mesh, and where it starts.
 	public Vector2 tiling = .(1, 1);
+	/// Where the texture starts (with tiling, how it repeats).
 	public Vector2 offset = .(0, 0);
+	/// Opaque, Cutout (holes where the alpha is below cutoff) or Transparent (see-through, blended).
 	public MaterialBlend blend = .Opaque;
 	/// Cutout: pixels whose alpha is below this are not drawn.
 	public float cutoff = 0.5f;
@@ -393,6 +428,7 @@ class Material
 		}
 	}
 
+	/// The main texture (white when there is none).
 	public bgfx.TextureHandle MainTexture
 	{
 		get
@@ -423,7 +459,10 @@ class Material
 			mValues[new String(name)] = value;
 		Revision++;
 	}
+
+	/// Sets a number property of the material's shader.
 	public void SetFloat(StringView name, float value) => SetVector(name, .(value, 0, 0, 0));
+	/// Sets a colour property of the material's shader.
 	public void SetColor(StringView name, Color value) => SetVector(name, .(value.r, value.g, value.b, value.a));
 
 	/// A property's value: what was set, otherwise the shader's default, otherwise zero.
@@ -434,12 +473,17 @@ class Material
 		let property = Shader?.Find(name);
 		return property != null ? property.defaultValue : .(0, 0, 0, 0);
 	}
+
+	/// A number property of the material's shader (its default if never set).
 	public float GetFloat(StringView name) => GetVector(name).x;
+	/// A colour property of the material's shader.
 	public Color GetColor(StringView name)
 	{
 		let value = GetVector(name);
 		return .(value.x, value.y, value.z, value.w);
 	}
+
+	/// Whether a shader property has been given a value on this material.
 	public bool HasValue(StringView name) => mValues.ContainsKeyAlt(name);
 
 	/// Sets a texture property of the shader to an image file in the project.
@@ -455,6 +499,8 @@ class Material
 			mTextures[new String(name)] = new String(texturePath);
 		Revision++;
 	}
+
+	/// The image a texture property of the material's shader names.
 	public void GetTexture(StringView name, String output)
 	{
 		if (mTextures.TryGetValueAlt(name, let existing))
@@ -513,6 +559,7 @@ class Material
 		return copy;
 	}
 
+	/// The material as the text of a .tmat file.
 	public void Write(String text)
 	{
 		text.Append("material 1\n");
@@ -558,11 +605,16 @@ class Material
 		}
 	}
 
+	/// Reads the text of a .tmat file into the material.
 	public void Read(StringView text)
 	{
 		List<StringView> tokens = scope .();
 		List<String> storage = scope .();
-		defer { for (let s in storage) delete s; }
+		defer
+		{
+			for (let s in storage)
+				delete s;
+		}
 		float F(int index) => index < tokens.Count ? SceneSerializer.ParseFloat(tokens[index]) : 0;
 		for (let line in text.Split('\n'))
 		{
@@ -603,6 +655,7 @@ class Material
 		Revision++;
 	}
 
+	/// Writes the material to a .tmat file. False if it could not be written.
 	public bool Save(StringView fullPath)
 	{
 		let text = scope String();

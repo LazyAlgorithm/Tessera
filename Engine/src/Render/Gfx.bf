@@ -53,6 +53,19 @@ static class Gfx
 	public const uint64 StateBlendAlpha = 0x0000000006565000;
 
 	public const uint32 ResetVsync = 0x00000080;
+	// Texture and sampler flags (BGFX_TEXTURE_* and BGFX_SAMPLER_*).
+	public const uint64 TextureRenderTarget = 0x0000001000000000;
+	public const uint64 TextureRenderTargetMsaa4 = 0x0000003000000000;
+	public const uint64 TextureWriteOnly = 0x0000008000000000;
+	/// Clamped to the edge in U, V and W.
+	public const uint64 SamplerClamp = 0x0000002a;
+	/// Nearest-pixel sampling, when shrunk and when enlarged.
+	public const uint64 SamplerPoint = 0x00000040 | 0x00000100;
+	/// A depth comparison sampler (shadow maps).
+	public const uint64 SamplerCompareLequal = 0x00020000;
+	// What a view clears (BGFX_CLEAR_*).
+	public const uint16 ClearColor = 0x0001;
+	public const uint16 ClearDepth = 0x0002;
 
 	public static bgfx.VertexLayout MeshLayout;
 	public static bgfx.VertexLayout ScreenLayout;
@@ -108,7 +121,7 @@ static class Gfx
 		case .OpenGLES: sShaderFolder.Set("essl");
 #endif
 		case .Metal: sShaderFolder.Set("metal");
-		case .Direct3D11, .Direct3D12: sShaderFolder.Set("dx11");
+		case .Direct3D11,.Direct3D12: sShaderFolder.Set("dx11");
 		default: sShaderFolder.Set("spirv");
 		}
 
@@ -168,7 +181,11 @@ static class Gfx
 	public static bool LocateEngineAssets(StringView hint = default)
 	{
 		List<String> candidates = scope .();
-		defer { for (let c in candidates) delete c; }
+		defer
+		{
+			for (let c in candidates)
+				delete c;
+		}
 		if (!hint.IsEmpty)
 			candidates.Add(new String(hint)..Append("/Engine/assets"));
 		let env = scope String();

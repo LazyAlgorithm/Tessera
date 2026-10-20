@@ -122,16 +122,26 @@ static class SceneSerializer
 		switch (field.kind)
 		{
 		case .Float: text.AppendF("{}", *(float*)field.ptr);
-		case .Double: (*(double*)field.ptr).ToString(text,"R",null);
-        case .Int,.Char:
-            if(FieldNumbers.Signed(field)) text.AppendF("{}",FieldNumbers.ReadSigned(field));
-            else text.AppendF("{}",FieldNumbers.ReadUnsigned(field));
-        case .Vector4:
-            let v=*(Vector4*)field.ptr;text.AppendF("{} {} {} {}",v.x,v.y,v.z,v.w);
-        case .Int3:
-            let v=*(Int3*)field.ptr;text.AppendF("{} {} {}",v.x,v.y,v.z);
-        case .Matrix4:
-            let matrix=(Matrix4*)field.ptr;for(int i<16) {if(i>0) text.Append(' ');text.AppendF("{}",matrix.m[i]);}
+		case .Double: (*(double*)field.ptr).ToString(text, "R", null);
+		case .Int,.Char:
+			if (FieldNumbers.Signed(field))
+				text.AppendF("{}", FieldNumbers.ReadSigned(field));
+			else
+				text.AppendF("{}", FieldNumbers.ReadUnsigned(field));
+		case .Vector4:
+			let v = *(Vector4*)field.ptr;
+			text.AppendF("{} {} {} {}", v.x, v.y, v.z, v.w);
+		case .Int3:
+			let v = *(Int3*)field.ptr;
+			text.AppendF("{} {} {}", v.x, v.y, v.z);
+		case .Matrix4:
+			let matrix = (Matrix4*)field.ptr;
+			for (int i < 16)
+			{
+				if (i > 0)
+					text.Append(' ');
+				text.AppendF("{}", matrix.m[i]);
+			}
 		case .Bool: text.Append(*(bool*)field.ptr ? "1" : "0");
 		case .Vector2:
 			let v = *(Vector2*)field.ptr;
@@ -154,10 +164,13 @@ static class SceneSerializer
 			if (let component = (*(Object*)field.ptr) as Component)
 				index = go.Components.IndexOf(component);
 			text.AppendF("{} {}", go != null ? go.Id : 0, index);
-        case .Enum:
-            let name=scope String();Enum.EnumToString(field.type,name,FieldNumbers.EnumValue(field));
-            if(!FieldNumbers.Signed(field) && (name.IsEmpty || name[0].IsDigit || name[0]=='-')) text.AppendF("{}",FieldNumbers.ReadUnsigned(field));
-            else text.Append(name);
+		case .Enum:
+			let name = scope String();
+			Enum.EnumToString(field.type, name, FieldNumbers.EnumValue(field));
+			if (!FieldNumbers.Signed(field) && (name.IsEmpty || name[0].IsDigit || name[0] == '-'))
+				text.AppendF("{}", FieldNumbers.ReadUnsigned(field));
+			else
+				text.Append(name);
 		}
 	}
 
@@ -168,11 +181,17 @@ static class SceneSerializer
 		switch (field.kind)
 		{
 		case .Float: *(float*)field.ptr = ParseFloat(tokens[0]);
-		case .Double: if(double.Parse(tokens[0]) case .Ok(let value)) *(double*)field.ptr=value;
-        case .Int,.Char: FieldNumbers.ReadText(field,tokens[0]);
-        case .Vector4:if(tokens.Length>=4) *(Vector4*)field.ptr=.(ParseFloat(tokens[0]),ParseFloat(tokens[1]),ParseFloat(tokens[2]),ParseFloat(tokens[3]));
-        case .Int3:if(tokens.Length>=3) *(Int3*)field.ptr=.(ParseInt(tokens[0]),ParseInt(tokens[1]),ParseInt(tokens[2]));
-        case .Matrix4:if(tokens.Length>=16) {let matrix=(Matrix4*)field.ptr;for(int i<16) matrix.m[i]=ParseFloat(tokens[i]);}
+		case .Double: if (double.Parse(tokens[0]) case .Ok(let value)) *(double*)field.ptr = value;
+		case .Int,.Char: FieldNumbers.ReadText(field, tokens[0]);
+		case .Vector4: if (tokens.Length >= 4) *(Vector4*)field.ptr = .(ParseFloat(tokens[0]), ParseFloat(tokens[1]), ParseFloat(tokens[2]), ParseFloat(tokens[3]));
+		case .Int3: if (tokens.Length >= 3) *(Int3*)field.ptr = .(ParseInt(tokens[0]), ParseInt(tokens[1]), ParseInt(tokens[2]));
+		case .Matrix4:
+			if (tokens.Length >= 16)
+			{
+				let matrix = (Matrix4*)field.ptr;
+				for (int i < 16)
+					matrix.m[i] = ParseFloat(tokens[i]);
+			}
 		case .Bool: *(bool*)field.ptr = tokens[0] == "1" || tokens[0] == "true";
 		case .Vector2:
 			if (tokens.Length >= 2)
@@ -188,15 +207,23 @@ static class SceneSerializer
 				*(Color*)field.ptr = .(ParseFloat(tokens[0]), ParseFloat(tokens[1]), ParseFloat(tokens[2]), ParseFloat(tokens[3]));
 		case .String:
 			let str = *(String*)field.ptr;
-			if(str!=null) str.Set(tokens[0]);
-            else *(String*)field.ptr=new String(tokens[0]);
+			if (str != null)
+				str.Set(tokens[0]);
+			else
+				*(String*)field.ptr = new String(tokens[0]);
 		case .ObjectReference:
 			let id = (uint32)ParseInt(tokens[0]);
 			ComponentRegistry.AssignReference(field, id == 0 ? null : Scene.Active?.FindById(id), tokens.Length > 1 ? ParseInt(tokens[1]) : -1);
-        case .Enum:
-            if(Enum.Parse(field.type,tokens[0]) case .Ok(let value))
-            {if(FieldNumbers.Signed(field)) FieldNumbers.WriteSigned(field,value);else FieldNumbers.WriteUnsigned(field,(uint64)value);}
-            else FieldNumbers.ReadText(field,tokens[0]);
+		case .Enum:
+			if (Enum.Parse(field.type, tokens[0]) case .Ok(let value))
+			{
+				if (FieldNumbers.Signed(field))
+					FieldNumbers.WriteSigned(field, value);
+				else
+					FieldNumbers.WriteUnsigned(field, (uint64)value);
+			}
+			else
+				FieldNumbers.ReadText(field, tokens[0]);
 		}
 	}
 
@@ -242,7 +269,11 @@ static class SceneSerializer
 	{
 		List<StringView> tokens = scope .();
 		List<String> storage = scope .();
-		defer { for (let s in storage) delete s; }
+		defer
+		{
+			for (let s in storage)
+				delete s;
+		}
 		for (let line in text.Split('\n'))
 		{
 			if (!line.StartsWith("env "))
@@ -269,7 +300,11 @@ static class SceneSerializer
 		List<FieldRef> fields = scope .();
 		List<StringView> tokens = scope .();
 		List<String> storage = scope .();
-		defer { for (let s in storage) delete s; }
+		defer
+		{
+			for (let s in storage)
+				delete s;
+		}
 		List<(GameObject object, uint32 parent)> parents = scope .();
 		List<Component> loaded = scope .();
 		List<(FieldRef field, uint32 id, int index)> references = scope .();
@@ -325,41 +360,63 @@ static class SceneSerializer
 			}
 			else if (key == "component" && current != null && tokens.Count >= 4)
 			{
-				component = null;
-				let info = ComponentRegistry.Find(tokens[1]);
-				if (info == null)
-				{
-					Log.Warning(scope $"Scene references unknown component type {tokens[1]}; it was skipped.");
-					continue;
-				}
-				component = current.AddComponent(info.type);
-				// Terrain saved before it had a mode was endless; a scene that says nothing keeps that. Scenes saved
-				// since always state the mode on the lines that follow.
-				if (let terrain = component as VoxelTerrain)
-					terrain.mode = .Endless;
+				component = AddSavedComponent(current, tokens);
 				if (component != null)
 				{
-					component.[Friend]mEnabled = tokens[3] == "1";
 					fields.Clear();
 					ComponentRegistry.GetFields(component, fields);
 					loaded.Add(component);
 				}
 			}
 			else if (key == "field" && component != null && tokens.Count >= 2)
-			{
-				for (let field in fields)
-				{
-					if (field.name == tokens[1])
-					{
-						if (field.kind == .ObjectReference && tokens.Count >= 3)
-							references.Add((field, (uint32)ParseInt(tokens[2]), (tokens.Count > 3 ? ParseInt(tokens[3]) : -1)));
-						else ReadValue(field, Span<StringView>(tokens.Ptr + 2, tokens.Count - 2));
-						break;
-					}
-				}
-			}
+				ReadSavedField(fields, tokens, references);
 		}
 
+		LinkParents(scene, parents, created, remap);
+		ResolveReferences(scene, references, created);
+		for (let c in loaded)
+			c.OnValidate();
+		return first;
+	}
+
+	/// A "component <type> <id> <enabled>" line: adds that component to the object, or warns that the type is unknown.
+	static Component AddSavedComponent(GameObject current, List<StringView> tokens)
+	{
+		let info = ComponentRegistry.Find(tokens[1]);
+		if (info == null)
+		{
+			Log.Warning(scope $"Scene references unknown component type {tokens[1]}; it was skipped.");
+			return null;
+		}
+		let component = current.AddComponent(info.type);
+		// Terrain saved before it had a mode was endless; a scene that says nothing keeps that. Scenes saved
+		// since always state the mode on the lines that follow.
+		if (let terrain = component as VoxelTerrain)
+			terrain.mode = .Endless;
+		if (component != null)
+			component.[Friend]mEnabled = tokens[3] == "1";
+		return component;
+	}
+
+	/// A "field <name> <values...>" line for the component being read. A reference to another object is kept to be
+	/// resolved once every object is made.
+	static void ReadSavedField(List<FieldRef> fields, List<StringView> tokens, List<(FieldRef field, uint32 id, int index)> references)
+	{
+		for (let field in fields)
+		{
+			if (field.name != tokens[1])
+				continue;
+			if (field.kind == .ObjectReference && tokens.Count >= 3)
+				references.Add((field, (uint32)ParseInt(tokens[2]), (tokens.Count > 3 ? ParseInt(tokens[3]) : -1)));
+			else
+				ReadValue(field, Span<StringView>(tokens.Ptr + 2, tokens.Count - 2));
+			return;
+		}
+	}
+
+	/// Puts each object read under its parent: one read with it, or (unless the objects are copies) one in the scene.
+	static void LinkParents(Scene scene, List<(GameObject object, uint32 parent)> parents, Dictionary<uint32, GameObject> created, bool remap)
+	{
 		for (let entry in parents)
 		{
 			if (entry.parent == 0)
@@ -370,16 +427,18 @@ static class SceneSerializer
 			if (parent != null)
 				entry.object.Transform.SetParent(parent.Transform, false);
 		}
+	}
+
+	/// Points each saved reference at its object: one read with it, else one already in the scene.
+	static void ResolveReferences(Scene scene, List<(FieldRef field, uint32 id, int index)> references, Dictionary<uint32, GameObject> created)
+	{
 		for (let reference in references)
 		{
 			GameObject target = null;
-			if (reference.id != 0 && !created.TryGetValue(reference.id, out target) )
+			if (reference.id != 0 && !created.TryGetValue(reference.id, out target))
 				target = scene.FindById(reference.id);
 			ComponentRegistry.AssignReference(reference.field, target, reference.index);
 		}
-		for (let c in loaded)
-			c.OnValidate();
-		return first;
 	}
 
 	static void ReadEnvironment(SceneEnvironment env, List<StringView> tokens)

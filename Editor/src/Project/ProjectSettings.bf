@@ -21,141 +21,9 @@ extension EditorApp
 		ImGui.SetNextWindowSize(.(620, 460), ImGui.Cond.FirstUseEver);
 		if (ImGui.Begin("Project Settings", &mShowSettings, ImGui.WindowFlags.NoDocking | ImGui.WindowFlags.NoCollapse))
 		{
-			ImGui.SeparatorText("General");
-			if (BeginPropertyTable("general"))
-			{
-				BeginProperty("Start Scene");
-				if (ImGui.InputText("##start", project.StartScene))
-					project.Save();
-				BeginProperty("Headphone 3D Audio");
-				if (ImGui.Checkbox("##hrtf", ref project.AudioHrtf))
-				{
-					Audio.Hrtf = project.AudioHrtf;
-					project.Save();
-				}
-				BeginProperty("Anti-Cheat");
-				if (ImGui.Checkbox("##anticheat", ref project.AntiCheat))
-					project.Save();
-				if (ImGui.IsItemHovered())
-					ImGui.SetTooltip("Watches network sessions for cheating: controls no honest game sends, speed hacks, message floods, changed game files, debuggers and injected libraries, edited memory and automated aim. What is found is logged, and players are removed for what only a changed game does. See the Anti-cheat page of the documentation.");
-				BeginProperty("Load Save At Start");
-				if (ImGui.Checkbox("##loadsave", ref project.LoadSaveAtStart))
-					project.Save();
-				if (ImGui.IsItemHovered())
-					ImGui.SetTooltip("When the game starts, the save in the slot below is put back before any script runs ([Saved] fields, objects made while playing, SavedTransform). See the Saving page of the documentation.");
-				if (project.LoadSaveAtStart)
-				{
-					BeginProperty("Save Slot");
-					ImGui.SetNextItemWidth(-1);
-					if (ImGui.InputText("##saveslot", project.SaveSlot))
-						project.Save();
-				}
-				BeginProperty("Voice Chat");
-				if (ImGui.Checkbox("##voice", ref project.VoiceChat))
-					project.Save();
-				if (project.VoiceChat)
-				{
-					BeginProperty("Push To Talk");
-					if (ImGui.Checkbox("##voiceptt", ref project.VoicePushToTalk))
-						project.Save();
-					if (project.VoicePushToTalk)
-					{
-						BeginProperty("Push To Talk Key");
-						let current = scope String();
-						project.VoiceKey.ToString(current);
-						ImGui.SetNextItemWidth(-1);
-						if (ImGui.BeginCombo("##voicekey", current.CStr()))
-						{
-							for (let (name, value) in Enum.GetEnumerator<KeyCode>())
-							{
-								if (value == .None)
-									continue;
-								if (ImGui.Selectable(scope String(name).CStr(), value == project.VoiceKey))
-								{
-									project.VoiceKey = value;
-									project.Save();
-								}
-							}
-							ImGui.EndCombo();
-						}
-					}
-					BeginProperty("Proximity Voice");
-					if (ImGui.Checkbox("##voicenear", ref project.VoiceProximity))
-						project.Save();
-					BeginProperty("Team Only Voice");
-					if (ImGui.Checkbox("##voiceteam", ref project.VoiceTeamOnly))
-						project.Save();
-				}
-				BeginProperty("Steam App ID");
-				if (ImGui.InputInt("##steam", ref project.SteamAppId))
-				{
-					project.SteamAppId = Math.Max(project.SteamAppId, 0);
-					Steam.AppId = (uint32)project.SteamAppId;
-					project.Save();
-				}
-				ImGui.EndTable();
-			}
-
+			DrawGeneralSettings(project);
 			DrawProjectConfigSettings();
-
-			ImGui.SeparatorText("Libraries");
-			ImGui.TextWrapped("Beef libraries your scripts can use. Paste a Git address to download one into the project's Libraries folder, or a folder path to reference a library that lives elsewhere.");
-			List<(String name, String path)> libraries = scope .();
-			defer { for (let l in libraries) { delete l.name; delete l.path; } }
-			project.CollectLibraries(libraries);
-			String removeReference = null;
-			String removeFolder = null;
-			if (libraries.Count == 0)
-				ImGui.TextDisabled("No libraries added.");
-			for (int32 i = 0; i < (int32)libraries.Count; i++)
-			{
-				let library = libraries[i];
-				ImGui.PushID(i);
-				if (ImGui.SmallButton("Remove"))
-				{
-					bool referenced = false;
-					for (let reference in project.Libraries)
-					{
-						if (reference == library.path)
-						{
-							removeReference = reference;
-							referenced = true;
-						}
-					}
-					if (!referenced)
-						removeFolder = library.path;
-				}
-				ImGui.SameLine();
-				ImGui.Text(library.name);
-				ImGui.SameLine();
-				ImGui.TextDisabled(library.path.CStr());
-				ImGui.PopID();
-			}
-			if (removeReference != null)
-			{
-				project.Libraries.Remove(removeReference);
-				delete removeReference;
-				project.Save();
-				mSettingsMessage.Set("Removed. Rebuild & Reload to apply.");
-			}
-			if (removeFolder != null)
-			{
-				// Downloaded libraries are moved aside rather than deleted outright.
-				let name = scope String();
-				Path.GetFileName(removeFolder, name);
-				Directory.CreateDirectory(scope $"{project.Path}/Libraries/.removed").IgnoreError();
-				if (Directory.Move(removeFolder, scope $"{project.Path}/Libraries/.removed/{name}") case .Ok)
-					mSettingsMessage.Set("Moved to Libraries/.removed. Rebuild & Reload to apply.");
-				else
-					mSettingsMessage.Set("Could not remove that library folder.");
-			}
-
-			ImGui.SetNextItemWidth(-90);
-			ImGui.InputText("##library", mLibraryInput, 0, "https://github.com/user/library  or  /path/to/library");
-			ImGui.SameLine();
-			if (ImGui.Button("Add", .(80, 0)))
-				AddLibrary(mLibraryInput);
-
+			DrawLibrarySettings(project);
 			ImGui.SeparatorText("Native libraries");
 			ImGui.TextWrapped("Extra linker arguments for C libraries, for example -lcurl or the path to a .a file.");
 			ImGui.SetNextItemWidth(-1);
@@ -169,6 +37,160 @@ extension EditorApp
 				RequestRebuild();
 		}
 		ImGui.End();
+	}
+
+	/// The start scene, audio, anti-cheat, saving, voice chat and Steam.
+	void DrawGeneralSettings(Project project)
+	{
+		ImGui.SeparatorText("General");
+		if (BeginPropertyTable("general"))
+		{
+			BeginProperty("Start Scene");
+			if (ImGui.InputText("##start", project.StartScene))
+				project.Save();
+			BeginProperty("Headphone 3D Audio");
+			if (ImGui.Checkbox("##hrtf", ref project.AudioHrtf))
+			{
+				Audio.Hrtf = project.AudioHrtf;
+				project.Save();
+			}
+			BeginProperty("Anti-Cheat");
+			if (ImGui.Checkbox("##anticheat", ref project.AntiCheat))
+				project.Save();
+			if (ImGui.IsItemHovered())
+				ImGui.SetTooltip("Watches network sessions for cheating: controls no honest game sends, speed hacks, message floods, changed game files, debuggers and injected libraries, edited memory and automated aim. What is found is logged, and players are removed for what only a changed game does. See the Anti-cheat page of the documentation.");
+			BeginProperty("Load Save At Start");
+			if (ImGui.Checkbox("##loadsave", ref project.LoadSaveAtStart))
+				project.Save();
+			if (ImGui.IsItemHovered())
+				ImGui.SetTooltip("When the game starts, the save in the slot below is put back before any script runs ([Saved] fields, objects made while playing, SavedTransform). See the Saving page of the documentation.");
+			if (project.LoadSaveAtStart)
+			{
+				BeginProperty("Save Slot");
+				ImGui.SetNextItemWidth(-1);
+				if (ImGui.InputText("##saveslot", project.SaveSlot))
+					project.Save();
+			}
+			DrawVoiceSettings(project);
+			BeginProperty("Steam App ID");
+			if (ImGui.InputInt("##steam", ref project.SteamAppId))
+			{
+				project.SteamAppId = Math.Max(project.SteamAppId, 0);
+				Steam.AppId = (uint32)project.SteamAppId;
+				project.Save();
+			}
+			ImGui.EndTable();
+		}
+	}
+
+	/// Voice chat, and with it on: push to talk (and its key), proximity and team-only voice. In a property table.
+	void DrawVoiceSettings(Project project)
+	{
+		BeginProperty("Voice Chat");
+		if (ImGui.Checkbox("##voice", ref project.VoiceChat))
+			project.Save();
+		if (project.VoiceChat)
+		{
+			BeginProperty("Push To Talk");
+			if (ImGui.Checkbox("##voiceptt", ref project.VoicePushToTalk))
+				project.Save();
+			if (project.VoicePushToTalk)
+			{
+				BeginProperty("Push To Talk Key");
+				let current = scope String();
+				project.VoiceKey.ToString(current);
+				ImGui.SetNextItemWidth(-1);
+				if (ImGui.BeginCombo("##voicekey", current.CStr()))
+				{
+					for (let (name, value) in Enum.GetEnumerator<KeyCode>())
+					{
+						if (value == .None)
+							continue;
+						if (ImGui.Selectable(scope String(name).CStr(), value == project.VoiceKey))
+						{
+							project.VoiceKey = value;
+							project.Save();
+						}
+					}
+					ImGui.EndCombo();
+				}
+			}
+			BeginProperty("Proximity Voice");
+			if (ImGui.Checkbox("##voicenear", ref project.VoiceProximity))
+				project.Save();
+			BeginProperty("Team Only Voice");
+			if (ImGui.Checkbox("##voiceteam", ref project.VoiceTeamOnly))
+				project.Save();
+		}
+	}
+
+	/// The Beef libraries the scripts can use: each with a Remove button, and a box to add one from Git or a folder.
+	void DrawLibrarySettings(Project project)
+	{
+		ImGui.SeparatorText("Libraries");
+		ImGui.TextWrapped("Beef libraries your scripts can use. Paste a Git address to download one into the project's Libraries folder, or a folder path to reference a library that lives elsewhere.");
+		List<(String name, String path)> libraries = scope .();
+		defer
+		{
+			for (let l in libraries)
+			{
+				delete l.name;
+				delete l.path;
+			}
+		}
+		project.CollectLibraries(libraries);
+		String removeReference = null;
+		String removeFolder = null;
+		if (libraries.Count == 0)
+			ImGui.TextDisabled("No libraries added.");
+		for (int32 i = 0; i < (int32)libraries.Count; i++)
+		{
+			let library = libraries[i];
+			ImGui.PushID(i);
+			if (ImGui.SmallButton("Remove"))
+			{
+				bool referenced = false;
+				for (let reference in project.Libraries)
+				{
+					if (reference == library.path)
+					{
+						removeReference = reference;
+						referenced = true;
+					}
+				}
+				if (!referenced)
+					removeFolder = library.path;
+			}
+			ImGui.SameLine();
+			ImGui.Text(library.name);
+			ImGui.SameLine();
+			ImGui.TextDisabled(library.path.CStr());
+			ImGui.PopID();
+		}
+		if (removeReference != null)
+		{
+			project.Libraries.Remove(removeReference);
+			delete removeReference;
+			project.Save();
+			mSettingsMessage.Set("Removed. Rebuild & Reload to apply.");
+		}
+		if (removeFolder != null)
+		{
+			// Downloaded libraries are moved aside rather than deleted outright.
+			let name = scope String();
+			Path.GetFileName(removeFolder, name);
+			Directory.CreateDirectory(scope $"{project.Path}/Libraries/.removed").IgnoreError();
+			if (Directory.Move(removeFolder, scope $"{project.Path}/Libraries/.removed/{name}") case .Ok)
+				mSettingsMessage.Set("Moved to Libraries/.removed. Rebuild & Reload to apply.");
+			else
+				mSettingsMessage.Set("Could not remove that library folder.");
+		}
+
+		ImGui.SetNextItemWidth(-90);
+		ImGui.InputText("##library", mLibraryInput, 0, "https://github.com/user/library  or  /path/to/library");
+		ImGui.SameLine();
+		if (ImGui.Button("Add", .(80, 0)))
+			AddLibrary(mLibraryInput);
 	}
 
 	void AddLibrary(StringView inputIn)

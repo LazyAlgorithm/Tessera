@@ -2,20 +2,31 @@ using System;
 
 namespace Tessera;
 
+/// Two numbers: a point or direction on a plane, a screen position, a size.
 [CRepr]
 struct Vector2
 {
 	public float x;
 	public float y;
 
-	public this() { x = 0; y = 0; }
-	public this(float x, float y) { this.x = x; this.y = y; }
+	public this()
+	{
+		x = 0;
+		y = 0;
+	}
+
+	public this(float x, float y)
+	{
+		this.x = x;
+		this.y = y;
+	}
 
 	public static Vector2 Zero => .(0, 0);
 	public static Vector2 One => .(1, 1);
 
 	public float Length => Math.Sqrt(x * x + y * y);
 	public float LengthSquared => x * x + y * y;
+	/// The same direction one unit long (zero stays zero).
 	public Vector2 Normalized
 	{
 		get
@@ -24,6 +35,8 @@ struct Vector2
 			return length > 1.0e-6f ? Vector2(x / length, y / length) : Vector2(0, 0);
 		}
 	}
+
+	/// The dot product: how much two directions point the same way, times their lengths.
 	public static float Dot(Vector2 a, Vector2 b) => a.x * b.x + a.y * b.y;
 	public static bool operator ==(Vector2 a, Vector2 b) => a.x == b.x && a.y == b.y;
 	public static bool operator !=(Vector2 a, Vector2 b) => a.x != b.x || a.y != b.y;
@@ -34,6 +47,7 @@ struct Vector2
 	public static Vector2 operator /(Vector2 a, float s) => .(a.x / s, a.y / s);
 }
 
+/// A point, direction or size in 3D. Tessera is left-handed: +X right, +Y up, +Z forward.
 [CRepr]
 struct Vector3
 {
@@ -41,9 +55,27 @@ struct Vector3
 	public float y;
 	public float z;
 
-	public this() { x = 0; y = 0; z = 0; }
-	public this(float x, float y, float z) { this.x = x; this.y = y; this.z = z; }
-	public this(float v) { x = v; y = v; z = v; }
+	public this()
+	{
+		x = 0;
+		y = 0;
+		z = 0;
+	}
+
+	public this(float x, float y, float z)
+	{
+		this.x = x;
+		this.y = y;
+		this.z = z;
+	}
+
+	/// The same number on all three axes.
+	public this(float v)
+	{
+		x = v;
+		y = v;
+		z = v;
+	}
 
 	public static Vector3 Zero => .(0, 0, 0);
 	public static Vector3 One => .(1, 1, 1);
@@ -57,6 +89,7 @@ struct Vector3
 	public float LengthSquared => x * x + y * y + z * z;
 	public float Length => Math.Sqrt(x * x + y * y + z * z);
 
+	/// The same direction one unit long (zero stays zero).
 	public Vector3 Normalized
 	{
 		get
@@ -69,21 +102,27 @@ struct Vector3
 		}
 	}
 
+	/// The axis by number: 0 x, 1 y, 2 z.
 	public float this[int index]
 	{
 		get => index == 0 ? x : (index == 1 ? y : z);
 		set mut
 		{
-			if (index == 0) x = value;
-			else if (index == 1) y = value;
-			else z = value;
+			if (index == 0)
+				x = value;
+			else if (index == 1)
+				y = value;
+			else
+				z = value;
 		}
 	}
 
 	public static Vector3 operator +(Vector3 a, Vector3 b) => .(a.x + b.x, a.y + b.y, a.z + b.z);
 	public static Vector3 operator -(Vector3 a, Vector3 b) => .(a.x - b.x, a.y - b.y, a.z - b.z);
 	public static Vector3 operator -(Vector3 a) => .(-a.x, -a.y, -a.z);
+	/// Multiplies axis by axis (to scale by different amounts on each).
 	public static Vector3 operator *(Vector3 a, Vector3 b) => .(a.x * b.x, a.y * b.y, a.z * b.z);
+	/// Divides axis by axis.
 	public static Vector3 operator /(Vector3 a, Vector3 b) => .(a.x / b.x, a.y / b.y, a.z / b.z);
 	public static Vector3 operator *(Vector3 a, float s) => .(a.x * s, a.y * s, a.z * s);
 	public static Vector3 operator *(float s, Vector3 a) => .(a.x * s, a.y * s, a.z * s);
@@ -91,17 +130,25 @@ struct Vector3
 	public static bool operator ==(Vector3 a, Vector3 b) => a.x == b.x && a.y == b.y && a.z == b.z;
 	public static bool operator !=(Vector3 a, Vector3 b) => a.x != b.x || a.y != b.y || a.z != b.z;
 
+	/// The dot product: how much two directions point the same way, times their lengths.
 	[Inline] public static float Dot(Vector3 a, Vector3 b) => a.x * b.x + a.y * b.y + a.z * b.z;
 
+	/// The cross product: a direction at right angles to both, as long as the area they span.
 	[Inline] public static Vector3 Cross(Vector3 a, Vector3 b) =>
 		.(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
 
+	/// How far apart two points are.
 	public static float Distance(Vector3 a, Vector3 b) => (a - b).Length;
+	/// The point a fraction t of the way from a to b (t is not clamped).
 	public static Vector3 Lerp(Vector3 a, Vector3 b, float t) => a + (b - a) * t;
+	/// The smaller of the two on each axis.
 	public static Vector3 Min(Vector3 a, Vector3 b) => .(Mathf.Min(a.x, b.x), Mathf.Min(a.y, b.y), Mathf.Min(a.z, b.z));
+	/// The larger of the two on each axis.
 	public static Vector3 Max(Vector3 a, Vector3 b) => .(Mathf.Max(a.x, b.x), Mathf.Max(a.y, b.y), Mathf.Max(a.z, b.z));
+	/// Each axis made positive.
 	public static Vector3 Abs(Vector3 a) => .(Mathf.Abs(a.x), Mathf.Abs(a.y), Mathf.Abs(a.z));
 
+	/// Moves from current towards target by at most maxDelta, stopping there.
 	public static Vector3 MoveTowards(Vector3 current, Vector3 target, float maxDelta)
 	{
 		let delta = target - current;
@@ -117,6 +164,7 @@ struct Vector3
 	}
 }
 
+/// Four numbers: a shader value, a plane, or a point with a w.
 [CRepr]
 struct Vector4
 {
@@ -125,12 +173,35 @@ struct Vector4
 	public float z;
 	public float w;
 
-	public this() { x = 0; y = 0; z = 0; w = 0; }
-	public this(float x, float y, float z, float w) { this.x = x; this.y = y; this.z = z; this.w = w; }
-	public this(Vector3 v, float w) { x = v.x; y = v.y; z = v.z; this.w = w; }
+	public this()
+	{
+		x = 0;
+		y = 0;
+		z = 0;
+		w = 0;
+	}
+
+	public this(float x, float y, float z, float w)
+	{
+		this.x = x;
+		this.y = y;
+		this.z = z;
+		this.w = w;
+	}
+
+	/// A Vector3 with a w.
+	public this(Vector3 v, float w)
+	{
+		x = v.x;
+		y = v.y;
+		z = v.z;
+		this.w = w;
+	}
+
 	public static bool operator ==(Vector4 a, Vector4 b) => a.x == b.x && a.y == b.y && a.z == b.z && a.w == b.w;
 	public static bool operator !=(Vector4 a, Vector4 b) => a.x != b.x || a.y != b.y || a.z != b.z || a.w != b.w;
 
+	/// The first three numbers.
 	public Vector3 XYZ => .(x, y, z);
 }
 
@@ -141,7 +212,12 @@ struct Int3 : IHashable
 	public int32 y;
 	public int32 z;
 
-	public this(int32 x, int32 y, int32 z) { this.x = x; this.y = y; this.z = z; }
+	public this(int32 x, int32 y, int32 z)
+	{
+		this.x = x;
+		this.y = y;
+		this.z = z;
+	}
 
 	public static Int3 operator +(Int3 a, Int3 b) => .(a.x + b.x, a.y + b.y, a.z + b.z);
 	public static Int3 operator -(Int3 a, Int3 b) => .(a.x - b.x, a.y - b.y, a.z - b.z);

@@ -94,21 +94,21 @@ static class SpawnPoints
 	{
 		scene.SpawnStartOver = false;
 		scene.SpawnPhaseTime = 0;
-		for (let component in scene.Components)
-		{
-			if (let point = component as SpawnPoint)
-				point.UsedThisStart = false;
-		}
+		for (let component in scene.ComponentsOfType(typeof(SpawnPoint)))
+			((SpawnPoint)component).UsedThisStart = false;
 	}
 
 	/// Closes the start phase now; from here only ordinary points are given out.
-	public static void EndStart(Scene scene) { scene.SpawnStartOver = true; }
+	public static void EndStart(Scene scene)
+	{
+		scene.SpawnStartOver = true;
+	}
 
 	/// How many points a team could be given (its own and any-team ones), not counting start-only points.
 	public static int Count(Scene scene, int32 team = 0)
 	{
 		int count = 0;
-		for (let component in scene.Components)
+		for (let component in scene.ComponentsOfType(typeof(SpawnPoint)))
 		{
 			if (let point = component as SpawnPoint)
 			{
@@ -168,10 +168,18 @@ static class SpawnPoints
 		{
 			// Own team's line-up first, then shared start points.
 			for (let point in all)
-				if (point.startOnly && !point.UsedThisStart && team != 0 && point.team == team) tier.Add(point);
+			{
+				if (point.startOnly && !point.UsedThisStart && team != 0 && point.team == team)
+					tier.Add(point);
+			}
 			if (tier.IsEmpty)
+			{
 				for (let point in all)
-					if (point.startOnly && !point.UsedThisStart && (team == 0 || point.team == 0)) tier.Add(point);
+				{
+					if (point.startOnly && !point.UsedThisStart && (team == 0 || point.team == 0))
+						tier.Add(point);
+				}
+			}
 			chosen = Choose(tier, random);
 		}
 		for (int pass = 0; pass < 2 && chosen == null; pass++)
@@ -179,13 +187,19 @@ static class SpawnPoints
 			let mustBeFree = pass == 0;
 			tier.Clear();
 			for (let point in all)
-				if (!point.startOnly && (team == 0 || point.team == team) && (!mustBeFree || !Occupied(point, bodies))) tier.Add(point);
+			{
+				if (!point.startOnly && (team == 0 || point.team == team) && (!mustBeFree || !Occupied(point, bodies)))
+					tier.Add(point);
+			}
 			chosen = Choose(tier, random);
 			if (chosen == null && team != 0)
 			{
 				tier.Clear();
 				for (let point in all)
-					if (!point.startOnly && point.team == 0 && (!mustBeFree || !Occupied(point, bodies))) tier.Add(point);
+				{
+					if (!point.startOnly && point.team == 0 && (!mustBeFree || !Occupied(point, bodies)))
+						tier.Add(point);
+				}
 				chosen = Choose(tier, random);
 			}
 		}
@@ -194,7 +208,10 @@ static class SpawnPoints
 			// Nothing suitable at all: any ordinary point is better than none, then any point.
 			tier.Clear();
 			for (let point in all)
-				if (!point.startOnly) tier.Add(point);
+			{
+				if (!point.startOnly)
+					tier.Add(point);
+			}
 			chosen = Choose(tier, random) ?? Choose(all, random);
 		}
 		chosen.LastUsed = ++sSequence;

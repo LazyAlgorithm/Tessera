@@ -321,8 +321,12 @@ class CharacterController : Component
 	{
 		if (shape == newShape && radius == newRadius && height == newHeight && boxSize == newBoxSize && edgeRadius == newEdgeRadius && center == newCenter)
 			return;
-		shape = newShape; radius = newRadius; height = newHeight;
-		boxSize = newBoxSize; edgeRadius = newEdgeRadius; center = newCenter;
+		shape = newShape;
+		radius = newRadius;
+		height = newHeight;
+		boxSize = newBoxSize;
+		edgeRadius = newEdgeRadius;
+		center = newCenter;
 		if (HasCharacter)
 			Rebuild();
 	}
@@ -331,7 +335,10 @@ class CharacterController : Component
 	public bool SetCapsule(float newRadius, float newHeight, Vector3 newCenter = .Zero)
 	{
 		let old = (shape, radius, height, center);
-		shape = .Capsule; radius = newRadius; height = newHeight; center = newCenter;
+		shape = .Capsule;
+		radius = newRadius;
+		height = newHeight;
+		center = newCenter;
 		if (ApplyShape())
 			return true;
 		(shape, radius, height, center) = old;
@@ -342,7 +349,10 @@ class CharacterController : Component
 	public bool SetBox(Vector3 newSize, float newEdgeRadius = 0.1f, Vector3 newCenter = .Zero)
 	{
 		let old = (shape, boxSize, edgeRadius, center);
-		shape = .Box; boxSize = newSize; edgeRadius = newEdgeRadius; center = newCenter;
+		shape = .Box;
+		boxSize = newSize;
+		edgeRadius = newEdgeRadius;
+		center = newCenter;
 		if (ApplyShape())
 			return true;
 		(shape, boxSize, edgeRadius, center) = old;

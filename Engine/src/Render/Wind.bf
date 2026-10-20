@@ -202,10 +202,10 @@ class FoliageBender : Component
 			let scale = bender.Transform.LocalToWorld.Right.Length;
 			Take(bender.Transform.TransformPoint(bender.offset), bender.radius * scale, bender.strength, ref places, ref push);
 		}
-		for (let component in scene.Components)
+		for (let component in scene.ComponentsOfType(typeof(CharacterController)))
 		{
-			let controller = component as CharacterController;
-			if (controller == null || controller.GameObject.IsDestroyed || !controller.IsActiveAndEnabled)
+			let controller = (CharacterController)component;
+			if (controller.GameObject.IsDestroyed || !controller.IsActiveAndEnabled)
 				continue;
 			// One with a Foliage Bender of its own has said how it wants to push.
 			if (controller.GetComponent<FoliageBender>() != null)

@@ -23,6 +23,7 @@ enum GamepadKind : int32
 	Generic, Xbox, PlayStation, Nintendo
 }
 
+/// A controller's sticks and triggers.
 enum GamepadAxis : int32
 {
 	LeftX, LeftY, RightX, RightY, LeftTrigger, RightTrigger,
@@ -40,6 +41,7 @@ enum GamepadAxis : int32
 /// can use from either a controller or the keyboard, see InputActions.
 static class Gamepad
 {
+	/// The most controllers read at once.
 	public const int MaxPads = 4;
 
 	struct Pad
@@ -64,6 +66,7 @@ static class Gamepad
 
 	/// How far a stick has to move before it counts, as a fraction of its travel. Worn sticks do not rest at zero.
 	public static float StickDeadZone = 0.18f;
+	/// Trigger pressure below this counts as not pressed.
 	public static float TriggerDeadZone = 0.06f;
 
 	/// How many controllers are connected.
@@ -81,6 +84,7 @@ static class Gamepad
 		}
 	}
 
+	/// Whether a controller is connected.
 	public static bool IsConnected(int pad = 0) => pad >= 0 && pad < MaxPads && sPads[pad].connected;
 	/// What the controller calls itself, for example "Xbox Series X Controller". Empty if there is none.
 	public static StringView Name(int pad = 0) => IsConnected(pad) ? (StringView)sNames[pad] : "";
@@ -118,9 +122,11 @@ static class Gamepad
 	/// Pretend controllers can be given a kind, to see the other makes' button names.
 	public static void SimulateKind(GamepadKind kind, int pad = 0) => sPads[pad].kind = kind;
 
+	/// Whether a controller button is held.
 	public static bool GetButton(GamepadButton button, int pad = 0) => Input.Enabled && IsConnected(pad) && sPads[pad].buttons[(int)button];
 	/// True only on the frame the button went down.
 	public static bool GetButtonDown(GamepadButton button, int pad = 0) => Input.Enabled && IsConnected(pad) && sPads[pad].buttons[(int)button] && !sPads[pad].previous[(int)button];
+	/// Whether a controller button came up this frame.
 	public static bool GetButtonUp(GamepadButton button, int pad = 0) => Input.Enabled && IsConnected(pad) && !sPads[pad].buttons[(int)button] && sPads[pad].previous[(int)button];
 
 	/// One axis as the controller reports it: sticks -1 to 1 (down and right are positive), triggers 0 to 1. No dead
@@ -143,8 +149,11 @@ static class Gamepad
 
 	/// The left stick: x is right, y is up, and the length is at most 1.
 	public static Vector2 LeftStick => Stick(0, .LeftX, .LeftY);
+	/// The first controller's right stick, -1 to 1 on each axis.
 	public static Vector2 RightStick => Stick(0, .RightX, .RightY);
+	/// A controller's left stick.
 	public static Vector2 GetLeftStick(int pad) => Stick(pad, .LeftX, .LeftY);
+	/// A controller's right stick.
 	public static Vector2 GetRightStick(int pad) => Stick(pad, .RightX, .RightY);
 
 	static float Trigger(int pad, GamepadAxis axis)
@@ -155,8 +164,11 @@ static class Gamepad
 
 	/// How far a trigger is pulled, 0 to 1.
 	public static float LeftTrigger => Trigger(0, .LeftTrigger);
+	/// How far the first controller's right trigger is pulled, 0 to 1.
 	public static float RightTrigger => Trigger(0, .RightTrigger);
+	/// How far a controller's left trigger is pulled, 0 to 1.
 	public static float GetLeftTrigger(int pad) => Trigger(pad, .LeftTrigger);
+	/// How far a controller's right trigger is pulled, 0 to 1.
 	public static float GetRightTrigger(int pad) => Trigger(pad, .RightTrigger);
 
 	/// The d-pad as a direction: x right, y up.
@@ -218,6 +230,7 @@ static class Gamepad
 		sNames[pad].Set("Simulated controller");
 	}
 
+	/// For automated runs: holds or lets go of a button on a pretend controller.
 	public static void SimulateButton(GamepadButton button, bool down, int pad = 0)
 	{
 		sPads[pad].buttons[(int)button] = down;
@@ -232,6 +245,7 @@ static class Gamepad
 		sPads[pad].axes[(int)(right ? GamepadAxis.RightY : GamepadAxis.LeftY)] = -value.y;
 	}
 
+	/// For automated runs: moves a stick or trigger of a pretend controller.
 	public static void SimulateAxis(GamepadAxis axis, float value, int pad = 0)
 	{
 		sPads[pad].axes[(int)axis] = value;
@@ -239,6 +253,7 @@ static class Gamepad
 			sPads[pad].buttons[(int)(axis == .LeftTrigger ? GamepadButton.LeftTrigger : GamepadButton.RightTrigger)] = value > 0.5f;
 	}
 
+	/// For automated runs: goes back to reading real controllers.
 	public static void StopSimulating()
 	{
 		sSimulated = false;
@@ -382,10 +397,14 @@ static class Gamepad
 			if (!sPads[p].connected)
 				continue;
 			let stick = Stick(p, .LeftX, .LeftY);
-			if (sPads[p].buttons[(int)GamepadButton.DpadUp] || stick.y > 0.6f) direction = 0;
-			else if (sPads[p].buttons[(int)GamepadButton.DpadRight] || stick.x > 0.6f) direction = 1;
-			else if (sPads[p].buttons[(int)GamepadButton.DpadDown] || stick.y < -0.6f) direction = 2;
-			else if (sPads[p].buttons[(int)GamepadButton.DpadLeft] || stick.x < -0.6f) direction = 3;
+			if (sPads[p].buttons[(int)GamepadButton.DpadUp] || stick.y > 0.6f)
+				direction = 0;
+			else if (sPads[p].buttons[(int)GamepadButton.DpadRight] || stick.x > 0.6f)
+				direction = 1;
+			else if (sPads[p].buttons[(int)GamepadButton.DpadDown] || stick.y < -0.6f)
+				direction = 2;
+			else if (sPads[p].buttons[(int)GamepadButton.DpadLeft] || stick.x < -0.6f)
+				direction = 3;
 			if (direction >= 0)
 				break;
 		}
@@ -407,6 +426,7 @@ static class Gamepad
 		}
 	}
 
+	/// Closes every controller.
 	public static void Shutdown()
 	{
 		for (var pad in ref sPads)

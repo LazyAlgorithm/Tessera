@@ -50,6 +50,20 @@ static class NodeLibrary
 	static void Build()
 	{
 		sDefs = new .();
+		AddEventAndFlowNodes();
+		AddNetworkNodes();
+		AddValueNodes();
+		AddVariableNodes();
+		AddBasicNodes();
+		AddSubgraphNodes();
+		AddShaderNodes();
+		AddCodeNodes();
+		AddApiNodes();
+	}
+
+	/// The events a component's code starts from, and branching and loops.
+	static void AddEventAndFlowNodes()
+	{
 		Add("event.start", "Events", "On Start", .Event, "Start");
 		Add("event.update", "Events", "On Update", .Event, "Update").Out("Delta Time", .Float);
 		Add("event.fixed", "Events", "On Fixed Update", .Event, "FixedUpdate");
@@ -64,29 +78,33 @@ static class NodeLibrary
 		Add("event.disable", "Events", "On Disable", .Event, "OnDisable");
 		Add("event.destroy", "Events", "On Destroy", .Event, "OnDestroy");
 		Add("event.gui", "Events", "On GUI", .Event, "OnGUI");
+	}
 
-		// Multiplayer. Everything a graph does through the engine is shared the same way it is from code; these are
-		// for the cases code would use a Network Script or a message for.
-		{
-			let tick = Add("net.tick", "Network", "On Tick", .Event, "OnTick");
-			tick.signature.Set("public override void OnTick(TickInput input, float deltaTime)");
-			tick.requiresBase.Set("NetworkScript");
-			tick.Out("Delta Time", .Float, "float", "deltaTime").Out("Move", .Vector2, "Vector2", "input.Move").Out("Move Direction", .Vector3, "Vector3", "input.MoveDirection")
-				.Out("Yaw", .Float, "float", "input.Yaw").Out("Pitch", .Float, "float", "input.Pitch").Out("Look Rotation", .Quaternion, "Quaternion", "input.LookRotation")
-				.Out("Jump", .Bool, "bool", "input.Jump").Out("Jump Pressed", .Bool, "bool", "input.Pressed(.Jump)").Out("Sprint", .Bool, "bool", "input.Sprint")
-				.Out("Crouch", .Bool, "bool", "input.Crouch").Out("Fire", .Bool, "bool", "input.Fire").Out("Fire Pressed", .Bool, "bool", "input.Pressed(.Fire)")
-				.Out("Use Pressed", .Bool, "bool", "input.Pressed(.Use)");
-			let event = Add("net.event", "Network", "On Network Event", .Event, "OnNetworkEvent");
-			event.signature.Set("public override void OnNetworkEvent(StringView name, float value)");
-			event.guard.Set("name == {0}");
-			event.In("Name", .String).Out("Value", .Float, "float", "value");
-			Add("net.send", "Network", "Send Network Event", .Action, "NetworkSync.SendEvent(this, {0}, {1});").In("Name", .String).In("Value", .Float);
-			Add("net.isserver", "Network", "Is Server", .Value, "(Scene.Network == null || Scene.Network.IsServer)").Out("", .Bool);
-			Add("net.isowner", "Network", "Is Mine", .Value, "NetworkSync.IsMine(this)").Out("", .Bool);
-			Add("net.insession", "Network", "In Session", .Value, "NetworkSync.InSession(Scene)").Out("", .Bool);
-		}
+	/// Multiplayer. Everything a graph does through the engine is shared the same way it is from code; these are
+	/// for the cases code would use a Network Script or a message for.
+	static void AddNetworkNodes()
+	{
+		let tick = Add("net.tick", "Network", "On Tick", .Event, "OnTick");
+		tick.signature.Set("public override void OnTick(TickInput input, float deltaTime)");
+		tick.requiresBase.Set("NetworkScript");
+		tick.Out("Delta Time", .Float, "float", "deltaTime").Out("Move", .Vector2, "Vector2", "input.Move").Out("Move Direction", .Vector3, "Vector3", "input.MoveDirection")
+			.Out("Yaw", .Float, "float", "input.Yaw").Out("Pitch", .Float, "float", "input.Pitch").Out("Look Rotation", .Quaternion, "Quaternion", "input.LookRotation")
+			.Out("Jump", .Bool, "bool", "input.Jump").Out("Jump Pressed", .Bool, "bool", "input.Pressed(.Jump)").Out("Sprint", .Bool, "bool", "input.Sprint")
+			.Out("Crouch", .Bool, "bool", "input.Crouch").Out("Fire", .Bool, "bool", "input.Fire").Out("Fire Pressed", .Bool, "bool", "input.Pressed(.Fire)")
+			.Out("Use Pressed", .Bool, "bool", "input.Pressed(.Use)");
+		let event = Add("net.event", "Network", "On Network Event", .Event, "OnNetworkEvent");
+		event.signature.Set("public override void OnNetworkEvent(StringView name, float value)");
+		event.guard.Set("name == {0}");
+		event.In("Name", .String).Out("Value", .Float, "float", "value");
+		Add("net.send", "Network", "Send Network Event", .Action, "NetworkSync.SendEvent(this, {0}, {1});").In("Name", .String).In("Value", .Float);
+		Add("net.isserver", "Network", "Is Server", .Value, "(Scene.Network == null || Scene.Network.IsServer)").Out("", .Bool);
+		Add("net.isowner", "Network", "Is Mine", .Value, "NetworkSync.IsMine(this)").Out("", .Bool);
+		Add("net.insession", "Network", "In Session", .Value, "NetworkSync.InSession(Scene)").Out("", .Bool);
+	}
 
-		// Whole numbers, comparisons, text and taking values apart: what code gets from operators.
+	/// Whole numbers, comparisons, text and taking values apart: what code gets from operators; and keys and logging.
+	static void AddValueNodes()
+	{
 		Add("math.int", "Values", "Whole Number", .Value, "{0}").In("Value", .Int).Out("", .Int);
 		Add("math.text", "Values", "Text", .Value, "{0}").In("Value", .String).Out("", .String);
 		Add("math.color", "Values", "Color", .Value, "{0}").In("Value", .Color).Out("", .Color);
@@ -121,15 +139,23 @@ static class NodeLibrary
 		Add("input.keyup", "Input", "Key Released", .Value, "Input.GetKeyUp({0})").In("Key", .Enum, "KeyCode").Out("", .Bool);
 		Add("debug.log", "Debug", "Log", .Action, "Log.Info({0});").In("Text", .String);
 		Add("debug.lognumber", "Debug", "Log Number", .Action, "Log.Info(scope String()..AppendF(\"{}: {}\", {0}, {1}));").In("Label", .String).In("Value", .Float);
+	}
 
-		// The variable is named by the node's Name value; the Variables panel of the Graph tab declares it.
+	/// Get and Set Variable for each type. The variable is named by the node's Name value; the Variables panel of the
+	/// Graph tab declares it.
+	static void AddVariableNodes()
+	{
 		for (let type in PinType[?](.Float, .Vector3, .Bool, .String, .Int))
 		{
 			let label = type == .Float ? "Number" : (type == .Vector3 ? "Vector" : (type == .Bool ? "Boolean" : (type == .Int ? "Whole Number" : "Text")));
-			Add(scope $"var.get.{NodeGraph.TypeSuffix(type)}", "Variables", scope $"Get Variable ({label})", .GetVariable, "").In("Name", .String).Out("", type);
-			Add(scope $"var.set.{NodeGraph.TypeSuffix(type)}", "Variables", scope $"Set Variable ({label})", .SetVariable, "").In("", .Flow).In("Name", .String).In("Value", type).Out("", .Flow);
+			Add(scope $"var.get.{NodeGraph.TypeSuffix(type)}" , "Variables", scope $"Get Variable ({label})" , .GetVariable, "").In("Name", .String).Out("", type);
+			Add(scope $"var.set.{NodeGraph.TypeSuffix(type)}" , "Variables", scope $"Set Variable ({label})" , .SetVariable, "").In("", .Flow).In("Name", .String).In("Value", type).Out("", .Flow);
 		}
+	}
 
+	/// The transform, the object, numbers, vectors, logic, time and input that most graphs start with.
+	static void AddBasicNodes()
+	{
 		Add("transform.translate", "Transform", "Translate", .Action, "Transform.Translate({0});").In("Offset", .Vector3);
 		Add("transform.rotate", "Transform", "Rotate", .Action, "Transform.Rotate({0});").In("Degrees", .Vector3);
 		Add("transform.setposition", "Transform", "Set Position", .Action, "Transform.Position = {0};").In("Position", .Vector3);
@@ -161,11 +187,14 @@ static class NodeLibrary
 		Add("input.mouse", "Input", "Left Mouse Held", .Value, "Input.GetMouseButton(0)").Out("", .Bool);
 
 		Add("input.spacepressed", "Input", "Space Pressed", .Value, "Input.GetKeyDown(.Space)").Out("", .Bool);
-        Add("input.shift", "Input", "Shift Held", .Value, "Input.GetKey(.LeftShift)").Out("", .Bool);
-        Add("input.rightmouse", "Input", "Right Mouse Held", .Value, "Input.GetMouseButton(1)").Out("", .Bool);
-        Add("input.mousedelta", "Input", "Mouse Delta", .Value, "Vector3(Input.MouseDelta.x, Input.MouseDelta.y, 0)").Out("", .Vector3);
+		Add("input.shift", "Input", "Shift Held", .Value, "Input.GetKey(.LeftShift)").Out("", .Bool);
+		Add("input.rightmouse", "Input", "Right Mouse Held", .Value, "Input.GetMouseButton(1)").Out("", .Bool);
+		Add("input.mousedelta", "Input", "Mouse Delta", .Value, "Vector3(Input.MouseDelta.x, Input.MouseDelta.y, 0)").Out("", .Vector3);
+	}
 
-        // Building blocks for subgraphs: a graph with a Sub Entry node can be used as a single node in other graphs.
+	/// Building blocks for subgraphs: a graph with a Sub Entry node can be used as a single node in other graphs.
+	static void AddSubgraphNodes()
+	{
 		Add("sub.entry", "Subgraph", "Sub Entry", .Event, "Sub");
 		Add("sub.param.float", "Subgraph", "Parameter (Number)", .Param, "").In("Name", .String).Out("", .Float);
 		Add("sub.param.vector", "Subgraph", "Parameter (Vector)", .Param, "").In("Name", .String).Out("", .Vector3);
@@ -174,11 +203,8 @@ static class NodeLibrary
 		Add("sub.return.float", "Subgraph", "Return (Number)", .Return, "").In("", .Flow).In("Value", .Float);
 		Add("sub.return.vector", "Subgraph", "Return (Vector)", .Return, "").In("", .Flow).In("Value", .Vector3);
 		Add("sub.return.bool", "Subgraph", "Return (Boolean)", .Return, "").In("", .Flow).In("Value", .Bool);
-
-		AddShaderNodes();
-		AddCodeNodes();
-		AddApiNodes();
 	}
+
 
 	/// Picks up [GraphNode] methods added since the list was built, for example by a script reload. Existing node
 	/// kinds are left alone, because open graphs point at them.
@@ -292,14 +318,16 @@ static class NodeLibrary
 		typeName.Set(type);
 		switch (type)
 		{
-		case "float", "double": pin = .Float; typeName.Set("float");
-		case "int", "int32", "uint32", "int64", "uint64", "int16", "uint16", "int8", "uint8": pin = .Int;
+		case "float","double":
+			pin = .Float;
+			typeName.Set("float");
+		case "int","int32","uint32","int64","uint64","int16","uint16","int8","uint8": pin = .Int;
 		case "bool": pin = .Bool;
 		case "Vector3": pin = .Vector3;
 		case "Vector2": pin = .Vector2;
 		case "Quaternion": pin = .Quaternion;
 		case "Color": pin = .Color;
-		case "String", "StringView": pin = .String;
+		case "String","StringView": pin = .String;
 		default:
 			if (type.IsEmpty || type.Contains('<') || type.Contains('*') || type.Contains('[') || type.Contains('(') || type.Contains(' ') || type.Contains('.'))
 				return false;
@@ -341,8 +369,8 @@ static class NodeLibrary
 	{
 		switch (name)
 		{
-		case "Awake", "Start", "Update", "FixedUpdate", "LateUpdate", "OnEnable", "OnDisable", "OnDestroy", "OnRegister", "OnUnregister", "OnFrame", "OnGUI",
-			"OnBeforeSave", "SaveFields", "OnSaving", "OnLoaded", "OnValidate", "OnDrawGizmos", "Simulate", "GatherInput", "OnTick", "ReadInput", "OnNetworkEvent", "ToString", "GetHashCode", "Dispose":
+		case "Awake","Start","Update","FixedUpdate","LateUpdate","OnEnable","OnDisable","OnDestroy","OnRegister","OnUnregister","OnFrame","OnGUI",
+			"OnBeforeSave","SaveFields","OnSaving","OnLoaded","OnValidate","OnDrawGizmos","Simulate","GatherInput","OnTick","ReadInput","OnNetworkEvent","ToString","GetHashCode","Dispose":
 			return true;
 		}
 		return false;
@@ -382,158 +410,198 @@ static class NodeLibrary
 		List<ApiIndex.TypeEntry> types = scope .();
 		ApiIndex.AllTypes(types);
 		types.Sort(scope (a, b) => a.name.CompareTo(b.name));
-		let typeName = scope String();
-		let fallback = scope String();
 		for (let type in types)
 		{
 			if (type.isEnum || type.isNested || type.isDelegate || type.name.IsEmpty || !type.name[0].IsUpper || type.name.StartsWith("BT") && type.name != "BTStatus")
 				continue;
-			PinType targetPin;
-			let targetType = scope String();
-			if (!MapApiType(type.name, out targetPin, targetType))
+			let maker = scope ApiNodeMaker(type);
+			if (!maker.CanTarget)
 				continue;
-			let isComponent = type.name != "Component" && ApiIndex.IsA(type.name, "Component");
-			let category = scope String();
-			Spaced(type.name, category);
-			int added = 0;
-			NodeDef Start(StringView key, StringView title, NodeKind kind, bool isStatic)
-			{
-				if (Find(key) != null)
-					return null;
-				let def = Add(key, category, scope $"{category}: {title}", kind, "");
-				def.fromApi = true;
-				def.fromGame = type.fromProject;
-				def.group.Set(type.fromProject ? "" : (type.group.IsEmpty ? (StringView)"Core" : type.group));
-				if (!isStatic)
-				{
-					SelfExpression(type.name, true, fallback);
-					def.In(type.name, targetPin, targetType, fallback);
-				}
-				added++;
-				return def;
-			}
 			for (let member in type.signatures)
 			{
 				if (member.isMutating && type.isStruct)
 					continue;
 				if (!member.isPublic || member.isGeneric || member.unreadable || member.name == type.name || IsLifecycle(member.name) || member.name.StartsWith("tn_"))
 					continue;
-				// A static class's members, and statics of any class, are called on the type; the rest on an object.
-				let isStatic = member.isStatic;
-				let owner = scope String();
-				// Qualified, because inside a component "Scene" and "Transform" mean this object's own.
-				if (isStatic)
-					owner.AppendF("{}{}", type.fromProject ? "" : "Tessera.", type.name);
+				if (member.kind == .Method)
+					maker.AddMethod(member);
 				else
-					owner.Set("{0}");
-				let firstArg = isStatic ? 0 : 1;
-				let label = scope String();
-				Spaced(member.name, label);
-				if (member.kind != .Method)
-				{
-					PinType pin;
-					if (!MapApiType(member.type, out pin, typeName))
-						continue;
-					let get = Start(scope $"api:{type.name}.{member.name}", label, .Value, isStatic);
-					if (get != null)
-					{
-						get.code.AppendF("{}.{}", owner, member.name);
-						get.Out("", pin, typeName);
-					}
-					if (member.canSet && !type.isStruct)
-					{
-						let set = Start(scope $"api:{type.name}.{member.name}=", scope $"Set {label}", .Action, isStatic);
-						if (set != null)
-						{
-							// Text fields own their String: copy into it instead of replacing it.
-							var memberType = (StringView)member.type;
-							memberType.Trim();
-							if (memberType == "String")
-								set.code.AppendF("{}.{}.Set({{{}}});", owner, member.name, firstArg);
-							else
-								set.code.AppendF("{}.{} = {{{}}};", owner, member.name, firstArg);
-							SelfExpression(typeName, false, fallback);
-							set.In("Value", pin, typeName, pin == .Object ? (StringView)fallback : "");
-						}
-					}
-					continue;
-				}
-				// A method: every parameter must be something a pin can carry. Trailing ones with defaults may be left off.
-				PinType returnPin = .Flow;
-				let returnType = scope String();
-				var declared = (StringView)member.type;
-				declared.Trim();
-				let returns = declared != "void";
-				if (returns && !MapApiType(declared, out returnPin, returnType))
-					continue;
-				if (returns && (declared == "String" || declared == "StringView") && !LooksPure(member.name))
-					continue;
-				int usable = 0;
-				bool ok = true, hasOut = false;
-				for (let parameter in member.parameters)
-				{
-					PinType pin;
-					if (!MapApiType(parameter.type, out pin, typeName) || (parameter.isOut && pin == .String))
-					{
-						ok = parameter.hasDefault;
-						break;
-					}
-					hasOut |= parameter.isOut;
-					usable++;
-				}
-				if (!ok)
-					continue;
-				let pure = returns && !hasOut && (LooksPure(member.name) || type.isStruct || type.name == "Mathf" || type.name == "Math");
-				let def = Start(scope $"api:{type.name}.{member.name}/{usable}", label, pure ? .Value : .Action, isStatic);
-				if (def == null)
-					continue;
-				def.code.AppendF("{}.{}(", owner, member.name);
-				int input = firstArg;
-				List<(String name, PinType pin, String type, int index)> outs = scope .();
-				defer { for (let o in outs) { delete o.name; delete o.type; } }
-				for (int i < usable)
-				{
-					let parameter = member.parameters[i];
-					PinType pin;
-					MapApiType(parameter.type, out pin, typeName);
-					if (i > 0)
-						def.code.Append(", ");
-					let parameterLabel = scope String();
-					Spaced(parameter.name, parameterLabel);
-					if (parameter.isOut)
-					{
-						def.code.AppendF("out o$N_{}", i);
-						outs.Add((new String(parameterLabel), pin, new String(typeName), i));
-						continue;
-					}
-					def.code.AppendF("{{{}}}", input++);
-					SelfExpression(typeName, false, fallback);
-					def.In(parameterLabel, pin, typeName, pin == .Object ? (StringView)fallback : "");
-				}
-				def.code.Append(pure ? ")" : ");");
-				if (returns)
-					def.Out(pure ? "" : "Result", returnPin, returnType, pure ? "" : "r$N");
-				for (let o in outs)
-					def.Out(o.name, o.pin, o.type, scope $"o$N_{o.index}");
+					maker.AddProperty(member);
 			}
 			// Components can be looked up on any object, and added to one.
-			if (isComponent)
+			if (type.name != "Component" && ApiIndex.IsA(type.name, "Component"))
+				maker.AddComponentNodes();
+		}
+	}
+
+	/// Makes the nodes for the members of one type read from source.
+	class ApiNodeMaker
+	{
+		ApiIndex.TypeEntry mType;
+		/// The pin an object of the type goes in, for members called on one.
+		PinType mTargetPin;
+		String mTargetType = new .() ~ delete _;
+		bool mCanTarget;
+		/// The type's name spaced out ("Mesh Renderer"): the nodes' category and the start of their titles.
+		String mCategory = new .() ~ delete _;
+		String mTypeName = new .() ~ delete _;
+		String mFallback = new .() ~ delete _;
+
+		public this(ApiIndex.TypeEntry type)
+		{
+			mType = type;
+			mCanTarget = MapApiType(type.name, out mTargetPin, mTargetType);
+			Spaced(type.name, mCategory);
+		}
+
+		/// Whether a pin can carry the type at all (if not, it gets no nodes).
+		public bool CanTarget => mCanTarget;
+
+		/// A new node for the type, or null if one with this key already exists. One for a member called on an object
+		/// starts with a pin for that object.
+		NodeDef Start(StringView key, StringView title, NodeKind kind, bool isStatic)
+		{
+			if (Find(key) != null)
+				return null;
+			let def = Add(key, mCategory, scope $"{mCategory}: {title}" , kind, "");
+			def.fromApi = true;
+			def.fromGame = mType.fromProject;
+			def.group.Set(mType.fromProject ? "" : (mType.group.IsEmpty ? (StringView)"Core" : mType.group));
+			if (!isStatic)
 			{
-				let get = Start(scope $"api:{type.name}.<get>", "Get From Object", .Value, true);
-				if (get != null)
+				SelfExpression(mType.name, true, mFallback);
+				def.In(mType.name, mTargetPin, mTargetType, mFallback);
+			}
+			return def;
+		}
+
+		/// What a member is called on in the generated code: the type for a static member (qualified, because inside
+		/// a component "Scene" and "Transform" mean this object's own), else the node's first input.
+		void Owner(bool isStatic, String owner)
+		{
+			if (isStatic)
+				owner.AppendF("{}{}", mType.fromProject ? "" : "Tessera.", mType.name);
+			else
+				owner.Set("{0}");
+		}
+
+		/// A field or property: a node reading it, and one setting it if it can be set.
+		public void AddProperty(ApiIndex.Member member)
+		{
+			PinType pin;
+			if (!MapApiType(member.type, out pin, mTypeName))
+				return;
+			let isStatic = member.isStatic;
+			let owner = Owner(isStatic, .. scope .());
+			let firstArg = isStatic ? 0 : 1;
+			let label = Spaced(member.name, .. scope .());
+			let get = Start(scope $"api:{mType.name}.{member.name}" , label, .Value, isStatic);
+			if (get != null)
+			{
+				get.code.AppendF("{}.{}", owner, member.name);
+				get.Out("", pin, mTypeName);
+			}
+			if (!member.canSet || mType.isStruct)
+				return;
+			let set = Start(scope $"api:{mType.name}.{member.name}=" , scope $"Set {label}" , .Action, isStatic);
+			if (set == null)
+				return;
+			// Text fields own their String: copy into it instead of replacing it.
+			var memberType = (StringView)member.type;
+			memberType.Trim();
+			if (memberType == "String")
+				set.code.AppendF("{}.{}.Set({{{}}});", owner, member.name, firstArg);
+			else
+				set.code.AppendF("{}.{} = {{{}}};", owner, member.name, firstArg);
+			SelfExpression(mTypeName, false, mFallback);
+			set.In("Value", pin, mTypeName, pin == .Object ? (StringView)mFallback : "");
+		}
+
+		/// A method: every parameter must be something a pin can carry, though trailing ones with defaults may be
+		/// left off. One that only works something out is a value node; the rest are actions.
+		public void AddMethod(ApiIndex.Member member)
+		{
+			PinType returnPin = .Flow;
+			let returnType = scope String();
+			var declared = (StringView)member.type;
+			declared.Trim();
+			let returns = declared != "void";
+			if (returns && !MapApiType(declared, out returnPin, returnType))
+				return;
+			if (returns && (declared == "String" || declared == "StringView") && !LooksPure(member.name))
+				return;
+			int usable = 0;
+			bool hasOut = false;
+			for (let parameter in member.parameters)
+			{
+				PinType pin;
+				if (!MapApiType(parameter.type, out pin, mTypeName) || (parameter.isOut && pin == .String))
 				{
-					get.code.AppendF("{{0}}.GetComponent<{}>()", type.name);
-					get.In("Object", .Object, "GameObject", "GameObject").Out("", .Object, type.name);
+					if (!parameter.hasDefault)
+						return;
+					break;
 				}
-				if (!type.isAbstract)
+				hasOut |= parameter.isOut;
+				usable++;
+			}
+			let isStatic = member.isStatic;
+			let pure = returns && !hasOut && (LooksPure(member.name) || mType.isStruct || mType.name == "Mathf" || mType.name == "Math");
+			let def = Start(scope $"api:{mType.name}.{member.name}/{usable}" , Spaced(member.name, .. scope .()), pure ? .Value : .Action, isStatic);
+			if (def == null)
+				return;
+			def.code.AppendF("{}.{}(", Owner(isStatic, .. scope .()), member.name);
+			int input = isStatic ? 0 : 1;
+			List<(String name, PinType pin, String type, int index)> outs = scope .();
+			defer
+			{
+				for (let o in outs)
 				{
-					let add = Start(scope $"api:{type.name}.<add>", "Add To Object", .Action, true);
-					if (add != null)
-					{
-						add.code.AppendF("{{0}}.AddComponent<{}>();", type.name);
-						add.In("Object", .Object, "GameObject", "GameObject").Out("Result", .Object, type.name, "r$N");
-					}
+					delete o.name;
+					delete o.type;
 				}
+			}
+			for (int i < usable)
+			{
+				let parameter = member.parameters[i];
+				PinType pin;
+				MapApiType(parameter.type, out pin, mTypeName);
+				if (i > 0)
+					def.code.Append(", ");
+				let parameterLabel = scope String();
+				Spaced(parameter.name, parameterLabel);
+				if (parameter.isOut)
+				{
+					def.code.AppendF("out o$N_{}", i);
+					outs.Add((new String(parameterLabel), pin, new String(mTypeName), i));
+					continue;
+				}
+				def.code.AppendF("{{{}}}", input++);
+				SelfExpression(mTypeName, false, mFallback);
+				def.In(parameterLabel, pin, mTypeName, pin == .Object ? (StringView)mFallback : "");
+			}
+			def.code.Append(pure ? ")" : ");");
+			if (returns)
+				def.Out(pure ? "" : "Result", returnPin, returnType, pure ? "" : "r$N");
+			for (let o in outs)
+				def.Out(o.name, o.pin, o.type, scope $"o$N_{o.index}");
+		}
+
+		/// For a component: Get From Object, and (unless it is abstract) Add To Object.
+		public void AddComponentNodes()
+		{
+			let get = Start(scope $"api:{mType.name}.<get>" , "Get From Object", .Value, true);
+			if (get != null)
+			{
+				get.code.AppendF("{{0}}.GetComponent<{}>()", mType.name);
+				get.In("Object", .Object, "GameObject", "GameObject").Out("", .Object, mType.name);
+			}
+			if (mType.isAbstract)
+				return;
+			let add = Start(scope $"api:{mType.name}.<add>" , "Add To Object", .Action, true);
+			if (add != null)
+			{
+				add.code.AppendF("{{0}}.AddComponent<{}>();", mType.name);
+				add.In("Object", .Object, "GameObject", "GameObject").Out("Result", .Object, mType.name, "r$N");
 			}
 		}
 	}
@@ -545,8 +613,10 @@ static class NodeLibrary
 		{
 			int count = 0;
 			for (let def in Defs)
+			{
 				if (def.fromApi)
 					count++;
+			}
 			return count;
 		}
 	}
@@ -573,16 +643,20 @@ static class NodeLibrary
 				code.AppendF("{}.{}(", typeName, method.Name);
 				bool supported = true;
 				List<(String, PinType)> parameters = scope .();
-				defer { for (let p in parameters) delete p.0; }
+				defer
+				{
+					for (let p in parameters)
+						delete p.0;
+				}
 				for (int i < method.ParamCount)
 				{
 					if (i == 0 && method.GetParamType(i) == typeof(Component))
-                    {
-                        code.Append("this");
-                        continue;
-                    }
-                    PinType pin;
-                    if (!MapType(method.GetParamType(i), out pin))
+					{
+						code.Append("this");
+						continue;
+					}
+					PinType pin;
+					if (!MapType(method.GetParamType(i), out pin))
 					{
 						supported = false;
 						break;
@@ -596,7 +670,7 @@ static class NodeLibrary
 				let title = scope String();
 				type.GetName(title);
 				title.AppendF(".{}", method.Name);
-				let def = Add(scope $"call:{typeName}.{method.Name}", "Code", title, returnsValue ? .Value : .Action, code);
+				let def = Add(scope $"call:{typeName}.{method.Name}" , "Code", title, returnsValue ? .Value : .Action, code);
 				for (let p in parameters)
 					def.In(p.0, p.1);
 				if (returnsValue)
@@ -643,7 +717,7 @@ static class NodeLibrary
 			let name = scope String();
 			entry.GetFileName(name);
 			if (!name.StartsWith('.'))
-				ScanSubgraphs(scope $"{folder}/{name}", assetRoot);
+				ScanSubgraphs(scope $"{folder}/{name}" , assetRoot);
 		}
 		for (let entry in Directory.EnumerateFiles(folder))
 		{
@@ -673,10 +747,18 @@ static class NodeLibrary
 
 			PinType returnType = .Flow;
 			List<(String, PinType)> parameters = scope .();
-			defer { for (let p in parameters) delete p.0; }
+			defer
+			{
+				for (let p in parameters)
+					delete p.0;
+			}
 			List<StringView> tokens = scope .();
 			List<String> storage = scope .();
-			defer { for (let s in storage) delete s; }
+			defer
+			{
+				for (let s in storage)
+					delete s;
+			}
 			for (let line in text.Split('\n'))
 			{
 				tokens.Clear();
@@ -685,9 +767,12 @@ static class NodeLibrary
 					continue;
 				let type = tokens[2];
 				PinType pin = .Float;
-				if (type.EndsWith(".vector")) pin = .Vector3;
-				else if (type.EndsWith(".bool")) pin = .Bool;
-				else if (type.EndsWith(".text")) pin = .String;
+				if (type.EndsWith(".vector"))
+					pin = .Vector3;
+				else if (type.EndsWith(".bool"))
+					pin = .Bool;
+				else if (type.EndsWith(".text"))
+					pin = .String;
 				if (type.StartsWith("sub.param."))
 					parameters.Add((new String(tokens.Count > 5 ? tokens[5] : "value"), pin));
 				else if (type.StartsWith("sub.return."))
@@ -715,10 +800,14 @@ static class NodeLibrary
 	static bool MapType(Type type, out PinType pin)
 	{
 		pin = .Float;
-		if (type == typeof(float) || type == typeof(int32)) pin = .Float;
-		else if (type == typeof(bool)) pin = .Bool;
-		else if (type == typeof(Vector3)) pin = .Vector3;
-		else if (type == typeof(String) || type == typeof(StringView)) pin = .String;
+		if (type == typeof(float) || type == typeof(int32))
+			pin = .Float;
+		else if (type == typeof(bool))
+			pin = .Bool;
+		else if (type == typeof(Vector3))
+			pin = .Vector3;
+		else if (type == typeof(String) || type == typeof(StringView))
+			pin = .String;
 		else return false;
 		return true;
 	}

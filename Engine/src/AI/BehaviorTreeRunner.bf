@@ -45,8 +45,10 @@ class BehaviorTreeRunner : Component
 	{
 		if (mRoot != null)
 			mRoot.Abort(mContext);
-		delete mRoot; mRoot = null;
-		delete mData; mData = null;
+		delete mRoot;
+		mRoot = null;
+		delete mData;
+		mData = null;
 		mById.Clear();
 		mLoaded.Set(tree);
 		mFinished = false;

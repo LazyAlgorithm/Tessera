@@ -15,10 +15,10 @@ namespace Tessera.Editor;
 /// progress bar, and the parameters show (and set) its values.
 extension EditorApp
 {
-	const float cStateWidth = 170;
-	const float cStateHeight = 38;
-	static Vector2 cAnyStatePosition = .(60, 40);
-	static Vector2 cEntryPosition = .(60, 140);
+	const float StateWidth = 170;
+	const float StateHeight = 38;
+	static readonly Vector2 AnyStatePosition = .(60, 40);
+	static readonly Vector2 EntryPosition = .(60, 140);
 
 	bool mShowAnimator;
 	bool mDockAnimator;
@@ -121,7 +121,7 @@ extension EditorApp
 				if (!name.EndsWith(".tanim"))
 					continue;
 				let relative = new String();
-				Assets.MakeRelative(scope $"{folder}/{name}", relative);
+				Assets.MakeRelative(scope $"{folder}/{name}" , relative);
 				mAnimClipChoices.Add(relative);
 			}
 			for (let entry in Directory.EnumerateDirectories(folder))
@@ -129,7 +129,7 @@ extension EditorApp
 				let name = scope String();
 				entry.GetFileName(name);
 				if (!name.StartsWith('.') && name != "build")
-					Scan(scope $"{folder}/{name}", depth + 1);
+					Scan(scope $"{folder}/{name}" , depth + 1);
 			}
 		}
 		Scan(Assets.ProjectPath, 0);
@@ -149,28 +149,19 @@ extension EditorApp
 		}
 	}
 
-	Vector2 AnimStatePosition(int32 index) => index == -1 ? cAnyStatePosition : mAnimController.states[index].position;
+	Vector2 AnimStatePosition(int32 index) => index == -1 ? AnyStatePosition : mAnimController.states[index].position;
 
 	void DrawAnimator()
 	{
 		if (!mShowAnimator)
 			return;
-		// Follow the selection: an object whose Animator uses another controller switches the window to it.
 		let selectedAnimator = SelectedAnimator();
-		if (selectedAnimator != null && !selectedAnimator.controller.IsEmpty && selectedAnimator.controller != mAnimControllerPath)
+		FollowSelectedController(selectedAnimator);
+		if (mDockAnimator && mAssetCenterDock != 0)
 		{
-			let controller = AnimatorController.Load(selectedAnimator.controller);
-			if (controller != null)
-			{
-				if (mAnimDirty)
-					SaveAnimator();
-				mAnimController = controller;
-				mAnimControllerPath.Set(selectedAnimator.controller);
-				mAnimState = -2;
-				mAnimTransition = -1;
-			}
+			ImGui.SetNextWindowDockID(mAssetCenterDock);
+			mDockAnimator = false;
 		}
-		if (mDockAnimator && mAssetCenterDock != 0) { ImGui.SetNextWindowDockID(mAssetCenterDock); mDockAnimator = false; }
 		// Brought to the front when a controller is opened (once the layout exists, at start-up).
 		if (mAnimFocus && Time.FrameCount > 30)
 		{
@@ -180,32 +171,76 @@ extension EditorApp
 		ImGui.PushStyleVar(ImGui.StyleVar.WindowPadding, ImGui.Vec2(0, 0));
 		let visible = ImGui.Begin("Animator", &mShowAnimator, ImGui.WindowFlags.NoScrollbar | ImGui.WindowFlags.NoScrollWithMouse);
 		ImGui.PopStyleVar();
-		if (!visible)
-		{
-			ImGui.End();
-			return;
-		}
-		if (mAnimController == null)
+		if (visible && mAnimController == null)
 		{
 			ImGui.SetCursorPosX(16);
 			ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 14);
 			ImGui.TextDisabled("Create a controller with Project > + > Animator Controller, double-click a .tcontroller file,\nor select an object whose Animator has a controller.");
-			ImGui.End();
-			return;
 		}
-		let controller = mAnimController;
-		// The running Animator to watch: the selected one, if it uses this controller.
-		Animator live = (mPlay != .Edit && selectedAnimator != null && selectedAnimator.Controller == controller) ? selectedAnimator : null;
-		mAnimState = Math.Min(mAnimState, (int32)controller.states.Count - 1);
-		if (mAnimTransition >= controller.transitions.Count)
-			mAnimTransition = -1;
+		else if (visible)
+		{
+			let controller = mAnimController;
+			// The running Animator to watch: the selected one, if it uses this controller.
+			Animator live = (mPlay != .Edit && selectedAnimator != null && selectedAnimator.Controller == controller) ? selectedAnimator : null;
+			mAnimState = Math.Min(mAnimState, (int32)controller.states.Count - 1);
+			if (mAnimTransition >= controller.transitions.Count)
+				mAnimTransition = -1;
+			ImGui.BeginChild("animleft", .(270, 0), ImGui.ChildBorders);
+			DrawAnimatorSidebar(controller, live, selectedAnimator);
+			ImGui.EndChild();
+			ImGui.SameLine(0, 0);
+			ImGui.BeginChild("animcanvas", .(0, 0), 0, ImGui.WindowFlags.NoScrollbar | ImGui.WindowFlags.NoScrollWithMouse | ImGui.WindowFlags.NoMove);
+			DrawStateMachine(controller, live);
+			ImGui.EndChild();
+		}
+		ImGui.End();
+		// Changes are written as soon as the mouse is let go, so there is no separate save step to forget.
+		if (visible && mAnimController != null && mAnimDirty && !ImGui.IsMouseDown(0))
+			SaveAnimator();
+	}
 
-		// ---- left: layers, parameters and the selection ----
-		ImGui.BeginChild("animleft", .(270, 0), ImGui.ChildBorders);
+	/// Follows the selection: an object whose Animator uses another controller switches the window to it.
+	void FollowSelectedController(Animator selectedAnimator)
+	{
+		if (selectedAnimator == null || selectedAnimator.controller.IsEmpty || selectedAnimator.controller == mAnimControllerPath)
+			return;
+		let controller = AnimatorController.Load(selectedAnimator.controller);
+		if (controller == null)
+			return;
+		if (mAnimDirty)
+			SaveAnimator();
+		mAnimController = controller;
+		mAnimControllerPath.Set(selectedAnimator.controller);
+		mAnimState = -2;
+		mAnimTransition = -1;
+	}
+
+	/// The left side: layers, parameters, and the selected state or transition.
+	void DrawAnimatorSidebar(AnimatorController controller, Animator live, Animator selectedAnimator)
+	{
 		mAnimLayer = Math.Clamp(mAnimLayer, 0, (int32)controller.layers.Count - 1);
 		DrawAnimatorLayers(controller, live);
 		ImGui.Dummy(.(0, 6));
 		ImGui.Separator();
+		DrawAnimatorParameters(controller, live);
+		ImGui.Dummy(.(0, 8));
+		ImGui.Separator();
+		ImGui.Dummy(.(0, 4));
+		if (mAnimTransition >= 0)
+			DrawAnimatorTransition(controller, controller.transitions[mAnimTransition]);
+		else if (mAnimState >= 0)
+			DrawAnimatorState(controller, controller.states[mAnimState], selectedAnimator);
+		else
+		{
+			ImGui.SetCursorPosX(8);
+			ImGui.TextDisabled(mAnimState == -1 ? "Any State: transitions from here\ncan fire from every state." : "Select a state or a transition.");
+		}
+	}
+
+	/// The parameters: a + menu to add one of each type, then each with its name, value and a remove button. In play
+	/// mode the value shown is the running Animator's, and editing it sets it there.
+	void DrawAnimatorParameters(AnimatorController controller, Animator live)
+	{
 		ImGui.SetCursorPosX(8);
 		ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 6);
 		ImGui.Text("Parameters");
@@ -218,80 +253,27 @@ extension EditorApp
 			{
 				let label = scope String();
 				type.ToString(label);
-				if (ImGui.MenuItem(label.CStr()))
+				if (!ImGui.MenuItem(label.CStr()))
+					continue;
+				// A name that is not taken yet.
+				let name = scope String();
+				for (int n = 0;; n++)
 				{
-					// A name that is not taken yet.
-					let name = scope String();
-					for (int n = 0; ; n++)
-					{
-						name.Clear();
-						name.AppendF(n == 0 ? "New {0}" : "New {0} {1}", label, n);
-						if (controller.FindParameter(name) < 0)
-							break;
-					}
-					controller.AddParameter(name, type);
-					mAnimDirty = true;
+					name.Clear();
+					name.AppendF(n == 0 ? "New {0}" : "New {0} {1}", label, n);
+					if (controller.FindParameter(name) < 0)
+						break;
 				}
+				controller.AddParameter(name, type);
+				mAnimDirty = true;
 			}
 			ImGui.EndPopup();
 		}
 		int32 removeParameter = -1;
 		for (int32 i = 0; i < (int32)controller.parameters.Count; i++)
 		{
-			let parameter = controller.parameters[i];
 			ImGui.PushID(i);
-			ImGui.SetCursorPosX(8);
-			ImGui.SetNextItemWidth(118);
-			if (ImGui.InputText("##name", parameter.name))
-			{
-				controller.Revision++;
-				mAnimDirty = true;
-			}
-			ImGui.SameLine();
-			// In play mode the value shown is the running Animator's, and editing it sets it there.
-			var value = live != null ? live.GetParameter(i) : parameter.defaultValue;
-			bool changed = false;
-			ImGui.SetNextItemWidth(72);
-			switch (parameter.type)
-			{
-			case .Float:
-				changed = ImGui.DragFloat("##value", ref value, 0.05f);
-			case .Int:
-				int32 whole = (int32)Math.Round(value);
-				changed = ImGui.InputInt("##value", ref whole);
-				value = whole;
-			case .Bool:
-				bool flag = value != 0;
-				changed = ImGui.Checkbox("##value", ref flag);
-				value = flag ? 1 : 0;
-			case .Trigger:
-				if (ImGui.SmallButton(value != 0 ? "(set)" : "fire"))
-				{
-					value = 1;
-					changed = live != null;
-				}
-			}
-			if (changed)
-			{
-				if (live != null)
-				{
-					switch (parameter.type)
-					{
-					case .Float: live.SetFloat(parameter.name, value);
-					case .Int: live.SetInteger(parameter.name, (int32)value);
-					case .Bool: live.SetBool(parameter.name, value != 0);
-					case .Trigger: live.SetTrigger(parameter.name);
-					}
-				}
-				else if (parameter.type != .Trigger)
-				{
-					parameter.defaultValue = value;
-					controller.Revision++;
-					mAnimDirty = true;
-				}
-			}
-			ImGui.SameLine();
-			if (ImGui.SmallButton("x"))
+			if (DrawParameterRow(controller, i, live))
 				removeParameter = i;
 			ImGui.PopID();
 		}
@@ -305,75 +287,134 @@ extension EditorApp
 			ImGui.SetCursorPosX(8);
 			ImGui.TextDisabled("None yet. Scripts set these;\ntransitions test them.");
 		}
+	}
 
-		ImGui.Dummy(.(0, 8));
-		ImGui.Separator();
-		ImGui.Dummy(.(0, 4));
-		if (mAnimTransition >= 0)
-			DrawAnimatorTransition(controller, controller.transitions[mAnimTransition]);
-		else if (mAnimState >= 0)
-			DrawAnimatorState(controller, controller.states[mAnimState], selectedAnimator);
-		else
+	/// One parameter's name, value and remove button. True when it is to be removed.
+	bool DrawParameterRow(AnimatorController controller, int32 i, Animator live)
+	{
+		let parameter = controller.parameters[i];
+		ImGui.SetCursorPosX(8);
+		ImGui.SetNextItemWidth(118);
+		if (ImGui.InputText("##name", parameter.name))
 		{
-			ImGui.SetCursorPosX(8);
-			ImGui.TextDisabled(mAnimState == -1 ? "Any State: transitions from here\ncan fire from every state." : "Select a state or a transition.");
+			controller.Revision++;
+			mAnimDirty = true;
 		}
-		ImGui.EndChild();
-		ImGui.SameLine(0, 0);
-
-		// ---- right: the state machine ----
-		ImGui.BeginChild("animcanvas", .(0, 0), 0, ImGui.WindowFlags.NoScrollbar | ImGui.WindowFlags.NoScrollWithMouse | ImGui.WindowFlags.NoMove);
-		let origin = ImGui.GetCursorScreenPos();
-		let size = ImGui.GetContentRegionAvail();
-		ImGui.InvisibleButton("##animcanvas", .(Math.Max(size.x, 1), Math.Max(size.y, 1)));
-		let hovered = ImGui.IsItemHovered();
-		let mouse = ImGui.GetMousePos();
-		NodeCanvas.UpdateView(ref mAnimPan, ref mAnimZoom, origin, mouse, hovered);
-		let zoom = mAnimZoom;
-		ImGui.Vec2 ToScreen(Vector2 p) => .(origin.x + mAnimPan.x + p.x * zoom, origin.y + mAnimPan.y + p.y * zoom);
-		Vector2 ToGraph(ImGui.Vec2 p) => .((p.x - origin.x - mAnimPan.x) / zoom, (p.y - origin.y - mAnimPan.y) / zoom);
-		NodeCanvas.DrawGrid(origin, size, mAnimPan, zoom);
-		NodeCanvas.BeginFont(zoom);
-		let graphMouse = ToGraph(mouse);
-		Vector2 Center(int32 state) => AnimStatePosition(state) + Vector2(cStateWidth * 0.5f, cStateHeight * 0.5f);
-
-		// Which state is under the mouse (-2 none).
-		int32 hoverState = -2;
-		if (hovered)
+		ImGui.SameLine();
+		var value = live != null ? live.GetParameter(i) : parameter.defaultValue;
+		bool changed = false;
+		ImGui.SetNextItemWidth(72);
+		switch (parameter.type)
 		{
-			for (int32 i = (int32)controller.states.Count - 1; i >= -1; i--)
+		case .Float:
+			changed = ImGui.DragFloat("##value", ref value, 0.05f);
+		case .Int:
+			int32 whole = (int32)Math.Round(value);
+			changed = ImGui.InputInt("##value", ref whole);
+			value = whole;
+		case .Bool:
+			bool flag = value != 0;
+			changed = ImGui.Checkbox("##value", ref flag);
+			value = flag ? 1 : 0;
+		case .Trigger:
+			if (ImGui.SmallButton(value != 0 ? "(set)" : "fire"))
 			{
-				if (i >= 0 && controller.states[i].layer != mAnimLayer)
-					continue;
-				let p = AnimStatePosition(i);
-				if (graphMouse.x >= p.x && graphMouse.x <= p.x + cStateWidth && graphMouse.y >= p.y && graphMouse.y <= p.y + cStateHeight)
-				{
-					hoverState = i;
-					break;
-				}
+				value = 1;
+				changed = live != null;
 			}
 		}
-
-		// ---- transitions ----
-		int32 hoverTransition = -1;
-		void Arrow(Vector2 from, Vector2 to, Color color, float thickness)
+		if (changed && live != null)
 		{
-			let a = ToScreen(from), b = ToScreen(to);
-			ImGui.DrawLine(a, b, color, thickness);
-			// An arrowhead in the middle, pointing the way the transition goes.
-			let direction = (to - from).Normalized;
-			let side = Vector2(-direction.y, direction.x);
-			let middle = (from + to) * 0.5f;
-			let tip = ToScreen(middle + direction * 8);
-			ImGui.DrawLine(tip, ToScreen(middle - direction * 6 + side * 7), color, thickness);
-			ImGui.DrawLine(tip, ToScreen(middle - direction * 6 - side * 7), color, thickness);
+			switch (parameter.type)
+			{
+			case .Float: live.SetFloat(parameter.name, value);
+			case .Int: live.SetInteger(parameter.name, (int32)value);
+			case .Bool: live.SetBool(parameter.name, value != 0);
+			case .Trigger: live.SetTrigger(parameter.name);
+			}
 		}
+		else if (changed && parameter.type != .Trigger)
+		{
+			parameter.defaultValue = value;
+			controller.Revision++;
+			mAnimDirty = true;
+		}
+		ImGui.SameLine();
+		return ImGui.SmallButton("x");
+	}
+
+	Vector2 StateCenter(int32 state) => AnimStatePosition(state) + Vector2(StateWidth * 0.5f, StateHeight * 0.5f);
+
+	/// The right side: the layer's state machine, with Any State and Entry, which states and transitions are made,
+	/// moved, linked and deleted on.
+	void DrawStateMachine(AnimatorController controller, Animator live)
+	{
+		let canvas = CanvasView.Begin("##animcanvas", ref mAnimPan, ref mAnimZoom);
+		NodeCanvas.BeginFont(canvas.zoom);
+		let hoverState = StateUnderMouse(controller, canvas);
+		let hoverTransition = DrawTransitions(controller, canvas, hoverState);
+		DrawStates(controller, canvas, live);
+		NodeCanvas.EndFont();
+		HandleStateMachineMouse(controller, canvas, hoverState, hoverTransition);
+		DrawStateMachineMenu(controller);
+		if (canvas.hovered && ImGui.IsKeyPressed(ImGui.Key.Delete))
+			DeleteAnimatorSelection(controller);
+		if (ImGui.IsKeyPressed(ImGui.Key.Escape))
+			mAnimLinkFrom = -3;
+
+		// Status line, top left of the canvas.
+		let status = scope String();
+		status.Append(mAnimControllerPath);
+		if (live != null)
+			status.AppendF("   Watching: {}  ({})", live.GameObject.Name, live.CurrentState);
+		else if (mAnimLinkFrom != -3)
+			status.Append("   Click the state this transition goes to (Esc cancels).");
+		ImGui.DrawText(.(canvas.origin.x + 8, canvas.origin.y + 6), .(1, 1, 1, 0.55f), status.CStr());
+	}
+
+	/// The state (of this layer, or Any State: -1) under the mouse, or -2 for none.
+	int32 StateUnderMouse(AnimatorController controller, CanvasView canvas)
+	{
+		if (!canvas.hovered)
+			return -2;
+		let graphMouse = canvas.GraphMouse;
+		for (int32 i = (int32)controller.states.Count - 1; i >= -1; i--)
+		{
+			if (i >= 0 && controller.states[i].layer != mAnimLayer)
+				continue;
+			let p = AnimStatePosition(i);
+			if (graphMouse.x >= p.x && graphMouse.x <= p.x + StateWidth && graphMouse.y >= p.y && graphMouse.y <= p.y + StateHeight)
+				return i;
+		}
+		return -2;
+	}
+
+	/// A line from one point to another with an arrowhead in the middle, pointing the way it goes.
+	static void DrawArrow(CanvasView canvas, Vector2 from, Vector2 to, Color color, float thickness)
+	{
+		let a = canvas.ToScreen(from), b = canvas.ToScreen(to);
+		ImGui.DrawLine(a, b, color, thickness);
+		let direction = (to - from).Normalized;
+		let side = Vector2(-direction.y, direction.x);
+		let middle = (from + to) * 0.5f;
+		let tip = canvas.ToScreen(middle + direction * 8);
+		ImGui.DrawLine(tip, canvas.ToScreen(middle - direction * 6 + side * 7), color, thickness);
+		ImGui.DrawLine(tip, canvas.ToScreen(middle - direction * 6 - side * 7), color, thickness);
+	}
+
+	/// The layer's transitions, the arrow from Entry to its default state, and one being made. Returns the
+	/// transition under the mouse, or -1.
+	int32 DrawTransitions(AnimatorController controller, CanvasView canvas, int32 hoverState)
+	{
+		let zoom = canvas.zoom;
+		let graphMouse = canvas.GraphMouse;
+		int32 hoverTransition = -1;
 		for (int32 i = 0; i < (int32)controller.transitions.Count; i++)
 		{
 			let transition = controller.transitions[i];
 			if (controller.LayerOf(transition) != mAnimLayer)
 				continue;
-			var from = Center(transition.from), to = Center(transition.to);
+			var from = StateCenter(transition.from), to = StateCenter(transition.to);
 			if (from == to)
 				continue;
 			// Two transitions between the same pair run side by side instead of on top of each other.
@@ -384,31 +425,40 @@ extension EditorApp
 			// Distance from the mouse to the line, for picking.
 			let along = Mathf.Clamp(Vector2.Dot(graphMouse - from, direction), 0, (to - from).Length);
 			let nearest = from + direction * along;
-			if (hovered && hoverState == -2 && (graphMouse - nearest).Length < 7 / Math.Max(zoom, 0.3f))
+			if (canvas.hovered && hoverState == -2 && (graphMouse - nearest).Length < 7 / Math.Max(zoom, 0.3f))
 				hoverTransition = i;
 			let selected = i == mAnimTransition;
-			Arrow(from, to, selected ? Color(0.45f, 0.70f, 1, 1) : (hoverTransition == i ? Color(1, 1, 1, 1) : Color(0.75f, 0.75f, 0.78f, 0.9f)), (selected ? 2.4f : 1.5f) * zoom);
+			let color = selected ? Color(0.45f, 0.70f, 1, 1) : (hoverTransition == i ? Color(1, 1, 1, 1) : Color(0.75f, 0.75f, 0.78f, 0.9f));
+			DrawArrow(canvas, from, to, color, (selected ? 2.4f : 1.5f) * zoom);
 		}
 		let layerDefault = controller.DefaultStateOf(mAnimLayer);
 		if (layerDefault >= 0)
-			Arrow(cEntryPosition + Vector2(cStateWidth * 0.5f, cStateHeight * 0.5f), Center(layerDefault), .(0.90f, 0.62f, 0.20f, 0.9f), 1.5f * zoom);
+			DrawArrow(canvas, EntryPosition + Vector2(StateWidth * 0.5f, StateHeight * 0.5f), StateCenter(layerDefault), .(0.90f, 0.62f, 0.20f, 0.9f), 1.5f * zoom);
 		if (mAnimLinkFrom != -3)
-			Arrow(Center(mAnimLinkFrom), graphMouse, .(1, 1, 1, 0.9f), 1.5f * zoom);
+			DrawArrow(canvas, StateCenter(mAnimLinkFrom), graphMouse, .(1, 1, 1, 0.9f), 1.5f * zoom);
+		return hoverTransition;
+	}
 
-		// ---- states ----
-		void Box(Vector2 position, StringView label, Color color, bool selected, float progress)
-		{
-			let min = ToScreen(position), max = ToScreen(position + Vector2(cStateWidth, cStateHeight));
-			ImGui.DrawRectFilled(min, max, color, 5 * zoom);
-			if (progress >= 0)
-				ImGui.DrawRectFilled(.(min.x, max.y - 5 * zoom), .(min.x + (max.x - min.x) * Mathf.Clamp01(progress), max.y), .(0.35f, 0.65f, 1, 1), 2 * zoom);
-			ImGui.DrawRect(min, max, selected ? Color(0.45f, 0.70f, 1, 1) : Color(0, 0, 0, 0.8f), 5 * zoom, selected ? 2.5f : 1);
-			let text = scope String(label);
-			let textSize = ImGui.CalcTextSize(text.CStr());
-			ImGui.DrawText(.((min.x + max.x - textSize.x) * 0.5f, (min.y + max.y - textSize.y) * 0.5f), .(1, 1, 1, 1), text.CStr());
-		}
-		Box(cAnyStatePosition, "Any State", .(0.20f, 0.52f, 0.52f, 1), mAnimState == -1 && mAnimTransition < 0, -1);
-		Box(cEntryPosition, "Entry", .(0.20f, 0.50f, 0.25f, 1), false, -1);
+	/// A state's box, with a bar along its bottom for how far through its clip it is (`progress` below 0: none).
+	static void DrawStateBox(CanvasView canvas, Vector2 position, StringView label, Color color, bool selected, float progress)
+	{
+		let zoom = canvas.zoom;
+		let min = canvas.ToScreen(position), max = canvas.ToScreen(position + Vector2(StateWidth, StateHeight));
+		ImGui.DrawRectFilled(min, max, color, 5 * zoom);
+		if (progress >= 0)
+			ImGui.DrawRectFilled(.(min.x, max.y - 5 * zoom), .(min.x + (max.x - min.x) * Mathf.Clamp01(progress), max.y), .(0.35f, 0.65f, 1, 1), 2 * zoom);
+		ImGui.DrawRect(min, max, selected ? Color(0.45f, 0.70f, 1, 1) : Color(0, 0, 0, 0.8f), 5 * zoom, selected ? 2.5f : 1);
+		let text = scope String(label);
+		let textSize = ImGui.CalcTextSize(text.CStr());
+		ImGui.DrawText(.((min.x + max.x - textSize.x) * 0.5f, (min.y + max.y - textSize.y) * 0.5f), .(1, 1, 1, 1), text.CStr());
+	}
+
+	/// Any State, Entry and the layer's states: the default one orange, the one playing (in play mode) blue.
+	void DrawStates(AnimatorController controller, CanvasView canvas, Animator live)
+	{
+		DrawStateBox(canvas, AnyStatePosition, "Any State", .(0.20f, 0.52f, 0.52f, 1), mAnimState == -1 && mAnimTransition < 0, -1);
+		DrawStateBox(canvas, EntryPosition, "Entry", .(0.20f, 0.50f, 0.25f, 1), false, -1);
+		let layerDefault = controller.DefaultStateOf(mAnimLayer);
 		for (int32 i = 0; i < (int32)controller.states.Count; i++)
 		{
 			let state = controller.states[i];
@@ -423,12 +473,15 @@ extension EditorApp
 			let label = scope String(state.name);
 			if (state.blend != null)
 				label.Append("  (blend)");
-			Box(state.position, label, color, mAnimState == i && mAnimTransition < 0, progress);
+			DrawStateBox(canvas, state.position, label, color, mAnimState == i && mAnimTransition < 0, progress);
 		}
-		NodeCanvas.EndFont();
+	}
 
-		// ---- mouse ----
-		if (hovered && ImGui.IsMouseClicked(0))
+	/// Clicks finish a transition being made, or select (and start dragging) a state or select a transition; a
+	/// right-click opens the menu.
+	void HandleStateMachineMouse(AnimatorController controller, CanvasView canvas, int32 hoverState, int32 hoverTransition)
+	{
+		if (canvas.hovered && ImGui.IsMouseClicked(0))
 		{
 			if (mAnimLinkFrom != -3)
 			{
@@ -463,99 +516,88 @@ extension EditorApp
 		{
 			if (ImGui.IsMouseDragging(0, 2))
 			{
-				controller.states[mAnimDragState].position += Input.MouseDelta / zoom;
+				controller.states[mAnimDragState].position += Input.MouseDelta / canvas.zoom;
 				mAnimDirty = true;
 			}
 		}
 		else
 			mAnimDragState = -2;
-		if (hovered && ImGui.IsMouseClicked(1))
+		if (canvas.hovered && ImGui.IsMouseClicked(1))
 		{
 			mAnimLinkFrom = -3;
 			mAnimMenuState = hoverState;
-			mAnimMenuPosition = graphMouse;
+			mAnimMenuPosition = canvas.GraphMouse;
 			ImGui.OpenPopup("AnimatorMenu");
 		}
-		if (ImGui.BeginPopup("AnimatorMenu"))
+	}
+
+	/// The right-click menu: Create State on empty canvas; Make Transition, Set as Default State and Delete on a state.
+	void DrawStateMachineMenu(AnimatorController controller)
+	{
+		if (!ImGui.BeginPopup("AnimatorMenu"))
+			return;
+		if (mAnimMenuState == -2)
 		{
-			if (mAnimMenuState == -2)
+			if (ImGui.MenuItem("Create State"))
 			{
-				if (ImGui.MenuItem("Create State"))
+				let name = scope String();
+				for (int n = 0;; n++)
 				{
-					let name = scope String();
-					for (int n = 0; ; n++)
-					{
-						name.Clear();
-						name.AppendF(n == 0 ? "New State" : "New State {0}", n);
-						if (controller.FindState(name) < 0)
-							break;
-					}
-					controller.AddState(name, "", mAnimMenuPosition).layer = mAnimLayer;
-					mAnimState = (int32)controller.states.Count - 1;
+					name.Clear();
+					name.AppendF(n == 0 ? "New State" : "New State {0}", n);
+					if (controller.FindState(name) < 0)
+						break;
+				}
+				controller.AddState(name, "", mAnimMenuPosition).layer = mAnimLayer;
+				mAnimState = (int32)controller.states.Count - 1;
+				mAnimTransition = -1;
+				mAnimDirty = true;
+			}
+		}
+		else
+		{
+			if (ImGui.MenuItem("Make Transition"))
+				mAnimLinkFrom = mAnimMenuState;
+			if (mAnimMenuState >= 0)
+			{
+				if (ImGui.MenuItem("Set as Default State"))
+				{
+					if (mAnimLayer == 0)
+						controller.defaultState = mAnimMenuState;
+					else
+						controller.layers[mAnimLayer].defaultState = mAnimMenuState;
+					controller.Revision++;
+					mAnimDirty = true;
+				}
+				if (ImGui.MenuItem("Delete"))
+				{
+					controller.RemoveState(mAnimMenuState);
+					mAnimState = -2;
 					mAnimTransition = -1;
 					mAnimDirty = true;
 				}
 			}
-			else
-			{
-				if (ImGui.MenuItem("Make Transition"))
-					mAnimLinkFrom = mAnimMenuState;
-				if (mAnimMenuState >= 0)
-				{
-					if (ImGui.MenuItem("Set as Default State"))
-					{
-						if (mAnimLayer == 0)
-							controller.defaultState = mAnimMenuState;
-						else
-							controller.layers[mAnimLayer].defaultState = mAnimMenuState;
-						controller.Revision++;
-						mAnimDirty = true;
-					}
-					if (ImGui.MenuItem("Delete"))
-					{
-						controller.RemoveState(mAnimMenuState);
-						mAnimState = -2;
-						mAnimTransition = -1;
-						mAnimDirty = true;
-					}
-				}
-			}
-			ImGui.EndPopup();
 		}
-		if (hovered && ImGui.IsKeyPressed(ImGui.Key.Delete))
+		ImGui.EndPopup();
+	}
+
+	/// Delete: removes the selected transition, else the selected state.
+	void DeleteAnimatorSelection(AnimatorController controller)
+	{
+		if (mAnimTransition >= 0)
 		{
-			if (mAnimTransition >= 0)
-			{
-				delete controller.transitions[mAnimTransition];
-				controller.transitions.RemoveAt(mAnimTransition);
-				controller.Revision++;
-				mAnimTransition = -1;
-				mAnimDirty = true;
-			}
-			else if (mAnimState >= 0)
-			{
-				controller.RemoveState(mAnimState);
-				mAnimState = -2;
-				mAnimDirty = true;
-			}
+			delete controller.transitions[mAnimTransition];
+			controller.transitions.RemoveAt(mAnimTransition);
+			controller.Revision++;
+			mAnimTransition = -1;
+			mAnimDirty = true;
 		}
-		if (ImGui.IsKeyPressed(ImGui.Key.Escape))
-			mAnimLinkFrom = -3;
-
-		// Status line, top left of the canvas.
-		let status = scope String();
-		status.Append(mAnimControllerPath);
-		if (live != null)
-			status.AppendF("   Watching: {}  ({})", live.GameObject.Name, live.CurrentState);
-		else if (mAnimLinkFrom != -3)
-			status.Append("   Click the state this transition goes to (Esc cancels).");
-		ImGui.DrawText(.(origin.x + 8, origin.y + 6), .(1, 1, 1, 0.55f), status.CStr());
-		ImGui.EndChild();
-		ImGui.End();
-
-		// Changes are written as soon as the mouse is let go, so there is no separate save step to forget.
-		if (mAnimDirty && !ImGui.IsMouseDown(0))
-			SaveAnimator();
+		else if (mAnimState >= 0)
+		{
+			controller.RemoveState(mAnimState);
+			mAnimState = -2;
+			mAnimDirty = true;
+		}
 	}
 
 	void DrawAnimatorState(AnimatorController controller, AnimatorController.State state, Animator selectedAnimator)
@@ -710,6 +752,14 @@ extension EditorApp
 			ImGui.SetCursorPosX(8);
 			ImGui.TextDisabled("Add a Float parameter above first.");
 		}
+		DrawBlendMotions(tree, selectedAnimator);
+		if (tree.motions.Count > 0)
+			DrawBlendPicture(controller, tree, selectedAnimator);
+	}
+
+	/// The tree's clips, each with the value (or X and Y) where it plays alone, and + Clip.
+	void DrawBlendMotions(AnimatorController.BlendTree tree, Animator selectedAnimator)
+	{
 		ImGui.SetCursorPosX(8);
 		ImGui.TextDisabled(tree.type == .Simple1D ? "Clips, and the value where each plays alone:" : "Clips, and the X, Y where each plays alone:");
 		int remove = -1;
@@ -758,9 +808,11 @@ extension EditorApp
 			tree.motions.Add(motion);
 			mAnimDirty = true;
 		}
-		// The picture: clips as dots, the parameters now as a cross, each dot as big as its weight.
-		if (tree.motions.Count == 0)
-			return;
+	}
+
+	/// The tree as a picture: clips as dots, each as big as its share now, and the parameters now as a cross.
+	void DrawBlendPicture(AnimatorController controller, AnimatorController.BlendTree tree, Animator selectedAnimator)
+	{
 		let live = (mPlay != .Edit && selectedAnimator != null && selectedAnimator.Controller == controller) ? selectedAnimator : null;
 		let x = tree.parameterX >= 0 ? (live != null ? live.GetParameter(tree.parameterX) : (tree.parameterX < controller.parameters.Count ? controller.parameters[tree.parameterX].defaultValue : 0)) : 0;
 		let y = tree.parameterY >= 0 ? (live != null ? live.GetParameter(tree.parameterY) : (tree.parameterY < controller.parameters.Count ? controller.parameters[tree.parameterY].defaultValue : 0)) : 0;
@@ -808,7 +860,7 @@ extension EditorApp
 		if (ImGui.SmallButton("+##layer"))
 		{
 			let name = scope String();
-			for (int n = 1; ; n++)
+			for (int n = 1;; n++)
 			{
 				name.Clear();
 				name.AppendF("Layer {}", n);
@@ -908,6 +960,60 @@ extension EditorApp
 		return null;
 	}
 
+	/// One condition of a transition: its parameter, how it is compared and with what. True when it is to be removed.
+	bool DrawConditionRow(AnimatorController controller, ref AnimatorController.Condition condition)
+	{
+		let parameter = controller.parameters[condition.parameter];
+		ImGui.SetCursorPosX(8);
+		ImGui.SetNextItemWidth(92);
+		if (ImGui.BeginCombo("##parameter", parameter.name.CStr()))
+		{
+			for (int32 p = 0; p < (int32)controller.parameters.Count; p++)
+			{
+				if (ImGui.Selectable(controller.parameters[p].name.CStr(), p == condition.parameter))
+				{
+					condition.parameter = p;
+					let numeric = controller.parameters[p].type == .Float || controller.parameters[p].type == .Int;
+					condition.mode = numeric ? .Greater : .If;
+					mAnimDirty = true;
+				}
+			}
+			ImGui.EndCombo();
+		}
+		let numeric = parameter.type == .Float || parameter.type == .Int;
+		if (parameter.type != .Trigger)
+		{
+			ImGui.SameLine();
+			ImGui.SetNextItemWidth(92);
+			if (ImGui.BeginCombo("##mode", scope String(ConditionLabel(condition.mode)).CStr()))
+			{
+				for (let mode in AnimatorConditionMode[?](.If, .IfNot, .Greater, .Less, .Equals, .NotEqual))
+				{
+					// Numbers are compared; booleans are simply true or false.
+					if ((mode == .If || mode == .IfNot) == numeric)
+						continue;
+					if (parameter.type == .Float && (mode == .Equals || mode == .NotEqual))
+						continue;
+					if (ImGui.Selectable(scope String(ConditionLabel(mode)).CStr(), mode == condition.mode))
+					{
+						condition.mode = mode;
+						mAnimDirty = true;
+					}
+				}
+				ImGui.EndCombo();
+			}
+		}
+		if (numeric)
+		{
+			ImGui.SameLine();
+			ImGui.SetNextItemWidth(46);
+			if (ImGui.DragFloat("##threshold", ref condition.threshold, parameter.type == .Int ? 1 : 0.05f))
+				mAnimDirty = true;
+		}
+		ImGui.SameLine();
+		return ImGui.SmallButton("x");
+	}
+
 	void DrawAnimatorTransition(AnimatorController controller, AnimatorController.Transition transition)
 	{
 		ImGui.SetCursorPosX(8);
@@ -950,56 +1056,8 @@ extension EditorApp
 			condition.parameter = Math.Clamp(condition.parameter, 0, (int32)controller.parameters.Count - 1);
 			if (condition.parameter < 0)
 				continue;
-			let parameter = controller.parameters[condition.parameter];
 			ImGui.PushID((int32)i + 1000);
-			ImGui.SetCursorPosX(8);
-			ImGui.SetNextItemWidth(92);
-			if (ImGui.BeginCombo("##parameter", parameter.name.CStr()))
-			{
-				for (int32 p = 0; p < (int32)controller.parameters.Count; p++)
-				{
-					if (ImGui.Selectable(controller.parameters[p].name.CStr(), p == condition.parameter))
-					{
-						condition.parameter = p;
-						let numeric = controller.parameters[p].type == .Float || controller.parameters[p].type == .Int;
-						condition.mode = numeric ? .Greater : .If;
-						mAnimDirty = true;
-					}
-				}
-				ImGui.EndCombo();
-			}
-			let numeric = parameter.type == .Float || parameter.type == .Int;
-			if (parameter.type != .Trigger)
-			{
-				ImGui.SameLine();
-				ImGui.SetNextItemWidth(92);
-				if (ImGui.BeginCombo("##mode", scope String(ConditionLabel(condition.mode)).CStr()))
-				{
-					for (let mode in AnimatorConditionMode[?](.If, .IfNot, .Greater, .Less, .Equals, .NotEqual))
-					{
-						// Numbers are compared; booleans are simply true or false.
-						if ((mode == .If || mode == .IfNot) == numeric)
-							continue;
-						if (parameter.type == .Float && (mode == .Equals || mode == .NotEqual))
-							continue;
-						if (ImGui.Selectable(scope String(ConditionLabel(mode)).CStr(), mode == condition.mode))
-						{
-							condition.mode = mode;
-							mAnimDirty = true;
-						}
-					}
-					ImGui.EndCombo();
-				}
-			}
-			if (numeric)
-			{
-				ImGui.SameLine();
-				ImGui.SetNextItemWidth(46);
-				if (ImGui.DragFloat("##threshold", ref condition.threshold, parameter.type == .Int ? 1 : 0.05f))
-					mAnimDirty = true;
-			}
-			ImGui.SameLine();
-			if (ImGui.SmallButton("x"))
+			if (DrawConditionRow(controller, ref condition))
 				remove = i;
 			ImGui.PopID();
 		}

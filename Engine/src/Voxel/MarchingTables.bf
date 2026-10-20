@@ -3,6 +3,7 @@
 
 namespace Tessera;
 
+/// The standard marching cubes lookup tables, used to turn voxel densities into triangles.
 static class MarchingTables
 {
 	/// For each of the 256 corner configurations, a bit per cube edge that the surface crosses.
@@ -39,7 +40,7 @@ static class MarchingTables
 		0x69c, 0x795, 0x49f, 0x596, 0x29a, 0x393, 0x099, 0x190,
 		0xf00, 0xe09, 0xd03, 0xc0a, 0xb06, 0xa0f, 0x905, 0x80c,
 		0x70c, 0x605, 0x50f, 0x406, 0x30a, 0x203, 0x109, 0x000
-	);
+		);
 
 	/// For each configuration, up to five triangles as edge indices, terminated by -1.
 	public static readonly int8[4096] Triangles = .(
@@ -299,7 +300,7 @@ static class MarchingTables
 		0, 9, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
 		0, 3, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
 		-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
-	);
+		);
 
 	/// Corner offsets inside a unit cell, x y z per corner.
 	public static readonly int32[24] Corners = .(0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0);

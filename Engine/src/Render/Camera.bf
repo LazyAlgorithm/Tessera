@@ -13,11 +13,16 @@ namespace Tessera;
 [Component]
 class Camera : Component
 {
+	/// How much the camera sees from top to bottom, in degrees.
 	[Range(10, 120)]
 	public float fieldOfView = 60.0f;
+	/// The nearest distance drawn, in metres. Too small makes far things flicker against each other.
 	public float nearClip = 0.1f;
+	/// The farthest distance drawn, in metres.
 	public float farClip = 1000.0f;
+	/// Draws without perspective: far things are as big as near ones (maps, 2D games).
 	public bool orthographic = false;
+	/// For an orthographic camera: half the height it sees, in metres.
 	public float orthographicSize = 5.0f;
 
 	/// The layer (Project Settings) whose objects are drawn as the viewmodel: after the world, over it. None: no
@@ -36,6 +41,7 @@ class Camera : Component
 	public override void OnRegister() => Scene.Cameras.Add(this);
 	public override void OnUnregister() => Scene.Cameras.Remove(this);
 
+	/// From the world to the camera's view.
 	public Matrix4 ViewMatrix
 	{
 		get
@@ -47,6 +53,7 @@ class Camera : Component
 		}
 	}
 
+	/// From the camera's view to the screen, for a picture of a width-to-height ratio.
 	public Matrix4 GetProjection(float aspect)
 	{
 		if (orthographic)
@@ -58,6 +65,7 @@ class Camera : Component
 		return Matrix4.Perspective(fieldOfView, aspect, nearClip, farClip, Gfx.HomogeneousDepth);
 	}
 
+	/// Everything a RenderView needs to draw from this camera.
 	public CameraData GetCameraData(float aspect)
 	{
 		CameraData data;
@@ -100,21 +108,34 @@ class Camera : Component
 /// Everything the renderer needs to know about a viewpoint.
 struct CameraData
 {
+	/// From the world to the camera's view.
 	public Matrix4 view;
+	/// From the camera's view to the screen.
 	public Matrix4 projection;
+	/// Where the camera is, in the world.
 	public Vector3 position;
+	/// Which way the camera faces, in the world.
 	public Vector3 forward;
+	/// The nearest distance drawn.
 	public float near;
+	/// The farthest distance drawn.
 	public float far;
+	/// The view's height, in degrees.
 	public float fieldOfView;
+	/// The picture's width over its height.
 	public float aspect;
+	/// Whether the view has no perspective.
 	public bool orthographic;
+	/// For an orthographic view: half its height, in metres.
 	public float orthographicSize;
 	/// A viewmodel pass (Camera.viewmodelLayer): objects on viewmodelLayer are drawn after the world with their own
 	/// projection, over it. False (the default, as for the editor's own camera) draws every layer with the world.
 	public bool hasViewmodel;
+	/// The layer drawn as the viewmodel, when hasViewmodel is set.
 	public int32 viewmodelLayer;
+	/// Whether the viewmodel casts shadows into the world.
 	public bool viewmodelCastsShadows;
+	/// The viewmodel's own projection, with its field of view and near clip.
 	public Matrix4 viewmodelProjection;
 
 	/// Ray through a viewport point given in 0..1 coordinates, origin at the top left.

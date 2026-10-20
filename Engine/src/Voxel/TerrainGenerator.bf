@@ -193,7 +193,10 @@ class FunctionTerrainGenerator : TerrainGenerator
 {
 	VoxelTerrain.DensityFunction mFunction ~ delete _;
 
-	public this(VoxelTerrain.DensityFunction shape) { mFunction = shape; }
+	public this(VoxelTerrain.DensityFunction shape)
+	{
+		mFunction = shape;
+	}
 
 	public override float Density(float x, float y, float z) => mFunction(x, y, z);
 }

@@ -6,10 +6,13 @@ namespace Tessera;
 /// Growable little-endian message writer.
 class NetWriter
 {
+	/// The bytes written so far.
 	public List<uint8> Data = new .() ~ delete _;
 
+	/// Starts again, empty.
 	public void Clear() => Data.Clear();
 
+	/// Writes a plain value (a number, a vector...) as its bytes.
 	public void Write<T>(T value) where T : struct
 	{
 		var v = value;
@@ -38,6 +41,7 @@ class NetWriter
 		Data.Add((uint8)(value >> 16));
 	}
 
+	/// Writes text, its length first.
 	public void WriteString(StringView text)
 	{
 		let length = (uint8)Math.Min(text.Length, 255);
@@ -53,8 +57,10 @@ struct NetReader
 	uint8* mData;
 	int mLength;
 	int mOffset;
+	/// False once a read went past the end: what was read since then is not to be trusted.
 	public bool Ok = true;
 
+	/// A reader over some received bytes.
 	public this(uint8* data, int length)
 	{
 		mData = data;
@@ -62,6 +68,7 @@ struct NetReader
 		mOffset = 0;
 	}
 
+	/// Reads a plain value written with Write (default and Ok false past the end).
 	public T Read<T>() mut where T : struct
 	{
 		T value = default;
@@ -75,6 +82,7 @@ struct NetReader
 		return value;
 	}
 
+	/// Reads a whole number written in as few bytes as it needs.
 	public uint32 ReadVarUInt() mut
 	{
 		uint32 value = 0;
@@ -89,6 +97,7 @@ struct NetReader
 		return 0;
 	}
 
+	/// Reads a signed number written in three bytes.
 	public int32 Read24() mut
 	{
 		let low = (uint32)Read<uint16>();
@@ -97,6 +106,7 @@ struct NetReader
 		return (int32)((low | (high << 16)) << 8) >> 8;
 	}
 
+	/// Reads text written with WriteString.
 	public void ReadString(String text) mut
 	{
 		let length = (int)Read<uint8>();
@@ -114,13 +124,20 @@ struct NetReader
 [CRepr]
 struct NetInput
 {
+	/// Sideways movement, -1 (left) to 1 (right).
 	public float moveX;
+	/// Forward movement, -1 (back) to 1 (forward).
 	public float moveZ;
+	/// Which way the player looks, in degrees about the vertical.
 	public float yaw;
+	/// How far up or down the player looks, in degrees.
 	public float pitch;
+	/// Which buttons are held, one bit each.
 	public uint32 buttons;
 
+	/// Whether a button (0 to 31) is held.
 	public bool GetButton(int index) => (buttons & ((uint32)1 << index)) != 0;
+	/// Holds or lets go of a button (0 to 31).
 	public void SetButton(int index, bool down) mut
 	{
 		if (down)
@@ -136,45 +153,57 @@ static class NetPack
 {
 	/// Steps per world unit in a packed position.
 	public const float PositionScale = 512;
-	const float cPositionLimit = 8388607 / PositionScale;
+	const float PositionLimit = 8388607 / PositionScale;
 
+	/// The rotation is a turn about the vertical alone, sent as one number.
 	public const uint8 FlagYawOnly = 1;
 	/// The position is too far from the origin to pack; it is sent as plain floats.
 	public const uint8 FlagWide = 2;
 	/// Everything, unpacked: for the machine that predicts this object and must compare exactly.
 	public const uint8 FlagFull = 4;
-    public const uint8 FlagExactTransform = 8;
-    public const uint8 FlagFineTransform = 16;
-    public const uint8 FlagSleeping = 32;
-    /// 0.1 millimetre position steps in metre-based worlds. Outside +/-838m, use exact floats.
-    public const float FinePositionScale = 10000;
+	/// Position and rotation sent as plain floats.
+	public const uint8 FlagExactTransform = 8;
+	/// Position sent in fine steps (FinePositionScale).
+	public const uint8 FlagFineTransform = 16;
+	/// The body is resting.
+	public const uint8 FlagSleeping = 32;
+	/// 0.1 millimetre position steps in metre-based worlds. Outside +/-838m, use exact floats.
+	public const float FinePositionScale = 10000;
 
-    public static void WriteTransform(NetWriter writer, Vector3 position, Quaternion rotation, bool quantized)
-    {
-        let limit = 8388607 / FinePositionScale;
-        if (quantized && position.x.IsFinite && position.y.IsFinite && position.z.IsFinite && Math.Abs(position.x)<limit && Math.Abs(position.y)<limit && Math.Abs(position.z)<limit)
-        {
-            writer.Write(FlagFineTransform);
-            writer.Write24((int32)Math.Round(position.x*FinePositionScale));
-            writer.Write24((int32)Math.Round(position.y*FinePositionScale));
-            writer.Write24((int32)Math.Round(position.z*FinePositionScale));
-            writer.Write(PackRotation(rotation));
-        }
-        else
-        {
-            writer.Write(FlagExactTransform);writer.Write(position);writer.Write(rotation);
-        }
-    }
+	/// Writes a position and rotation, packed small when quantized.
+	public static void WriteTransform(NetWriter writer, Vector3 position, Quaternion rotation, bool quantized)
+	{
+		let limit = 8388607 / FinePositionScale;
+		if (quantized && position.x.IsFinite && position.y.IsFinite && position.z.IsFinite && Math.Abs(position.x) < limit && Math.Abs(position.y) < limit && Math.Abs(position.z) < limit)
+		{
+			writer.Write(FlagFineTransform);
+			writer.Write24((int32)Math.Round(position.x * FinePositionScale));
+			writer.Write24((int32)Math.Round(position.y * FinePositionScale));
+			writer.Write24((int32)Math.Round(position.z * FinePositionScale));
+			writer.Write(PackRotation(rotation));
+		}
+		else
+		{
+			writer.Write(FlagExactTransform);
+			writer.Write(position);
+			writer.Write(rotation);
+		}
+	}
 
-    public static void ReadTransform(ref NetReader reader, uint8 flags, out Vector3 position, out Quaternion rotation)
-    {
-        if ((flags & FlagFineTransform)!=0)
-        {
-            position=.(reader.Read24()/FinePositionScale,reader.Read24()/FinePositionScale,reader.Read24()/FinePositionScale);
-            rotation=UnpackRotation(reader.Read<uint32>());
-        }
-        else { position=reader.Read<Vector3>();rotation=reader.Read<Quaternion>(); }
-    }
+	/// Reads what WriteTransform wrote, with the flags it was written with.
+	public static void ReadTransform(ref NetReader reader, uint8 flags, out Vector3 position, out Quaternion rotation)
+	{
+		if ((flags & FlagFineTransform) != 0)
+		{
+			position = .(reader.Read24() / FinePositionScale, reader.Read24() / FinePositionScale, reader.Read24() / FinePositionScale);
+			rotation = UnpackRotation(reader.Read<uint32>());
+		}
+		else
+		{
+			position = reader.Read<Vector3>();
+			rotation = reader.Read<Quaternion>();
+		}
+	}
 
 	/// What a snapshot says about an object nobody on the receiving machine controls.
 	public struct Packed
@@ -186,10 +215,11 @@ static class NetPack
 		public bool Same(Packed other) => x == other.x && y == other.y && z == other.z && rotation == other.rotation && flags == other.flags;
 	}
 
+	/// A position and rotation packed into a few bytes.
 	public static Packed Pack(Vector3 position, Quaternion rotation)
 	{
 		Packed packed = default;
-		if (Math.Abs(position.x) < cPositionLimit && Math.Abs(position.y) < cPositionLimit && Math.Abs(position.z) < cPositionLimit)
+		if (Math.Abs(position.x) < PositionLimit && Math.Abs(position.y) < PositionLimit && Math.Abs(position.z) < PositionLimit)
 		{
 			packed.x = (int32)Math.Round(position.x * PositionScale);
 			packed.y = (int32)Math.Round(position.y * PositionScale);
@@ -215,6 +245,7 @@ static class NetPack
 		return packed;
 	}
 
+	/// The position and rotation back from Pack.
 	public static void Unpack(Packed packed, out Vector3 position, out Quaternion rotation)
 	{
 		if ((packed.flags & FlagWide) != 0)
@@ -233,16 +264,21 @@ static class NetPack
 			rotation = UnpackRotation(packed.rotation);
 	}
 
+	/// Writes a packed position and rotation.
 	public static void Write(NetWriter writer, Packed packed)
 	{
 		writer.Write(packed.flags);
 		if ((packed.flags & FlagWide) != 0)
 		{
-			writer.Write(packed.x); writer.Write(packed.y); writer.Write(packed.z);
+			writer.Write(packed.x);
+			writer.Write(packed.y);
+			writer.Write(packed.z);
 		}
 		else
 		{
-			writer.Write24(packed.x); writer.Write24(packed.y); writer.Write24(packed.z);
+			writer.Write24(packed.x);
+			writer.Write24(packed.y);
+			writer.Write24(packed.z);
 		}
 		if ((packed.flags & FlagYawOnly) != 0)
 			writer.Write((uint16)packed.rotation);
@@ -257,11 +293,15 @@ static class NetPack
 		packed.flags = flags;
 		if ((flags & FlagWide) != 0)
 		{
-			packed.x = reader.Read<int32>(); packed.y = reader.Read<int32>(); packed.z = reader.Read<int32>();
+			packed.x = reader.Read<int32>();
+			packed.y = reader.Read<int32>();
+			packed.z = reader.Read<int32>();
 		}
 		else
 		{
-			packed.x = reader.Read24(); packed.y = reader.Read24(); packed.z = reader.Read24();
+			packed.x = reader.Read24();
+			packed.y = reader.Read24();
+			packed.z = reader.Read24();
 		}
 		packed.rotation = (flags & FlagYawOnly) != 0 ? (uint32)reader.Read<uint16>() : reader.Read<uint32>();
 		return packed;
@@ -292,6 +332,7 @@ static class NetPack
 		return packed;
 	}
 
+	/// A rotation back from its packed 32 bits.
 	public static Quaternion UnpackRotation(uint32 packed)
 	{
 		let largest = (int)(packed >> 30);
@@ -329,19 +370,19 @@ static class NetPack
 	/// A whole turn in 65536 steps; going round more than once comes back to the same place.
 	static int16 AngleShort(float degrees) => degrees.IsFinite ? (int16)(uint16)(int32)((int64)Math.Round((double)degrees * (65536.0 / 360)) & 0xFFFF) : 0;
 
-	const uint8 cInputSame = 1;
-	const uint8 cInputWideButtons = 2;
+	const uint8 InputSame = 1;
+	const uint8 InputWideButtons = 2;
 
 	/// Writes one tick of controls; a tick the same as the one before it in the packet takes a single byte.
 	public static void WriteInput(NetWriter writer, NetInput input, NetInput previous, bool hasPrevious)
 	{
 		if (hasPrevious && input.moveX == previous.moveX && input.moveZ == previous.moveZ && input.yaw == previous.yaw && input.pitch == previous.pitch && input.buttons == previous.buttons)
 		{
-			writer.Write(cInputSame);
+			writer.Write(InputSame);
 			return;
 		}
 		let wide = input.buttons > 0xFFFF;
-		writer.Write(wide ? cInputWideButtons : (uint8)0);
+		writer.Write(wide ? InputWideButtons : (uint8)0);
 		writer.Write(MoveByte(input.moveX));
 		writer.Write(MoveByte(input.moveZ));
 		writer.Write(AngleShort(input.yaw));
@@ -352,17 +393,18 @@ static class NetPack
 			writer.Write((uint16)input.buttons);
 	}
 
+	/// Reads a tick's controls, sent as changes from the tick before.
 	public static NetInput ReadInput(ref NetReader reader, NetInput previous)
 	{
 		let flags = reader.Read<uint8>();
-		if ((flags & cInputSame) != 0)
+		if ((flags & InputSame) != 0)
 			return previous;
 		NetInput input = default;
 		input.moveX = (float)reader.Read<int8>() / 127;
 		input.moveZ = (float)reader.Read<int8>() / 127;
 		input.yaw = (float)reader.Read<int16>() * (360.0f / 65536);
 		input.pitch = (float)reader.Read<int16>() * (360.0f / 65536);
-		input.buttons = (flags & cInputWideButtons) != 0 ? reader.Read<uint32>() : (uint32)reader.Read<uint16>();
+		input.buttons = (flags & InputWideButtons) != 0 ? reader.Read<uint32>() : (uint32)reader.Read<uint16>();
 		return input;
 	}
 }

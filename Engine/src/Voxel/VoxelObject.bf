@@ -302,52 +302,17 @@ class VoxelObject : Component
 		}
 		// Where each row of samples along X passes through the model's surface: inside is after an odd number.
 		List<float>[] rows = new List<float>[mSamples * mSamples];
-		defer { for (let row in rows) delete row; delete rows; }
-		let triangles = model.Indices.Count / 3;
-		let reach = 2;
-		for (int t < triangles)
+		defer
 		{
-			let a = model.Vertices[(int)model.Indices[t * 3]].position, b = model.Vertices[(int)model.Indices[t * 3 + 1]].position, c = model.Vertices[(int)model.Indices[t * 3 + 2]].position;
-			var low = Vector3.Min(a, Vector3.Min(b, c)), high = Vector3.Max(a, Vector3.Max(b, c));
-			low = (low - origin) / cell;
-			high = (high - origin) / cell;
-			// The rows this triangle crosses.
-			for (int z = Math.Max((int)Math.Floor(low.z), 0); z <= Math.Min((int)Math.Ceiling(high.z), mSamples - 1); z++)
-			{
-				for (int y = Math.Max((int)Math.Floor(low.y), 0); y <= Math.Min((int)Math.Ceiling(high.y), mSamples - 1); y++)
-				{
-					// A hair off the grid, so that a row never runs exactly along an edge shared by two triangles.
-					let py = origin.y + y * cell + cell * 0.00037f, pz = origin.z + z * cell + cell * 0.00053f;
-					let e0 = (b.y - a.y) * (pz - a.z) - (b.z - a.z) * (py - a.y);
-					let e1 = (c.y - b.y) * (pz - b.z) - (c.z - b.z) * (py - b.y);
-					let e2 = (a.y - c.y) * (pz - c.z) - (a.z - c.z) * (py - c.y);
-					if (!((e0 >= 0 && e1 >= 0 && e2 >= 0) || (e0 <= 0 && e1 <= 0 && e2 <= 0)))
-						continue;
-					let area = e0 + e1 + e2;
-					if (Math.Abs(area) < 1.0e-12f)
-						continue;
-					let x = (a.x * e1 + b.x * e2 + c.x * e0) / area;
-					let rowIndex = y + z * mSamples;
-					if (rows[rowIndex] == null)
-						rows[rowIndex] = new .();
-					rows[rowIndex].Add(x);
-				}
-			}
-			// The distance from this triangle to every sample near it.
-			for (int z = Math.Max((int)Math.Floor(low.z) - reach, 0); z <= Math.Min((int)Math.Ceiling(high.z) + reach, mSamples - 1); z++)
-				for (int y = Math.Max((int)Math.Floor(low.y) - reach, 0); y <= Math.Min((int)Math.Ceiling(high.y) + reach, mSamples - 1); y++)
-					for (int x = Math.Max((int)Math.Floor(low.x) - reach, 0); x <= Math.Min((int)Math.Ceiling(high.x) + reach, mSamples - 1); x++)
-					{
-						let p = origin + Vector3(x, y, z) * cell;
-						let weights = Nearest(p, a, b, c);
-						let away = (a * weights.x + b * weights.y + c * weights.z - p).LengthSquared;
-						let index = Index(x, y, z);
-						if (away < distance[index])
-						{
-							distance[index] = away;
-							nearest[index] = (int32)t;
-						}
-					}
+			for (let row in rows)
+				delete row;
+			delete rows;
+		}
+		for (int t < model.Indices.Count / 3)
+		{
+			Triangle(model, t, let a, let b, let c);
+			CrossRows(a, b, c, origin, cell, rows);
+			NearestSamples((int32)t, a, b, c, origin, cell, distance, nearest);
 		}
 		mSurface = new Surface();
 		mSurface.colors = new uint32[count];
@@ -373,24 +338,89 @@ class VoxelObject : Component
 					if (inside && mDensity[index] <= 0)
 						mDensity[index] = 1;
 					mSurface.colors[index] = 0xFFFFFFFF;
-					let t = nearest[index];
-					if (t < 0)
-						continue;
-					let va = model.Vertices[(int)model.Indices[t * 3]], vb = model.Vertices[(int)model.Indices[t * 3 + 1]], vc = model.Vertices[(int)model.Indices[t * 3 + 2]];
-					let weights = Nearest(origin + Vector3(x, y, z) * cell, va.position, vb.position, vc.position);
-					mSurface.uvs[index] = va.uv * weights.x + vb.uv * weights.y + vc.uv * weights.z;
-					uint32 packed = 0;
-					for (int channel < 4)
-					{
-						let shift = (uint32)channel * 8;
-						let value = ((va.color >> shift) & 0xFF) * weights.x + ((vb.color >> shift) & 0xFF) * weights.y + ((vc.color >> shift) & 0xFF) * weights.z;
-						packed |= (uint32)Math.Clamp(Math.Round(value), 0, 255) << shift;
-					}
-					mSurface.colors[index] = packed;
+					if (nearest[index] >= 0)
+						TakeSurface(model, nearest[index], origin + Vector3(x, y, z) * cell, out mSurface.colors[index], out mSurface.uvs[index]);
 				}
 			}
 		}
 		return true;
+	}
+
+	static void Triangle(Mesh model, int t, out Vector3 a, out Vector3 b, out Vector3 c)
+	{
+		a = model.Vertices[(int)model.Indices[t * 3]].position;
+		b = model.Vertices[(int)model.Indices[t * 3 + 1]].position;
+		c = model.Vertices[(int)model.Indices[t * 3 + 2]].position;
+	}
+
+	/// Notes where each row of samples along X that the triangle crosses passes through it.
+	void CrossRows(Vector3 a, Vector3 b, Vector3 c, Vector3 origin, float cell, List<float>[] rows)
+	{
+		let low = (Vector3.Min(a, Vector3.Min(b, c)) - origin) / cell;
+		let high = (Vector3.Max(a, Vector3.Max(b, c)) - origin) / cell;
+		for (int z = Math.Max((int)Math.Floor(low.z), 0); z <= Math.Min((int)Math.Ceiling(high.z), mSamples - 1); z++)
+		{
+			for (int y = Math.Max((int)Math.Floor(low.y), 0); y <= Math.Min((int)Math.Ceiling(high.y), mSamples - 1); y++)
+			{
+				// A hair off the grid, so that a row never runs exactly along an edge shared by two triangles.
+				let py = origin.y + y * cell + cell * 0.00037f, pz = origin.z + z * cell + cell * 0.00053f;
+				let e0 = (b.y - a.y) * (pz - a.z) - (b.z - a.z) * (py - a.y);
+				let e1 = (c.y - b.y) * (pz - b.z) - (c.z - b.z) * (py - b.y);
+				let e2 = (a.y - c.y) * (pz - c.z) - (a.z - c.z) * (py - c.y);
+				if (!((e0 >= 0 && e1 >= 0 && e2 >= 0) || (e0 <= 0 && e1 <= 0 && e2 <= 0)))
+					continue;
+				let area = e0 + e1 + e2;
+				if (Math.Abs(area) < 1.0e-12f)
+					continue;
+				let x = (a.x * e1 + b.x * e2 + c.x * e0) / area;
+				let rowIndex = y + z * mSamples;
+				if (rows[rowIndex] == null)
+					rows[rowIndex] = new .();
+				rows[rowIndex].Add(x);
+			}
+		}
+	}
+
+	/// For every sample within two cells of the triangle: the triangle, if it is the nearest so far, and how far
+	/// away it is (squared).
+	void NearestSamples(int32 t, Vector3 a, Vector3 b, Vector3 c, Vector3 origin, float cell, float[] distance, int32[] nearest)
+	{
+		const int reach = 2;
+		let low = (Vector3.Min(a, Vector3.Min(b, c)) - origin) / cell;
+		let high = (Vector3.Max(a, Vector3.Max(b, c)) - origin) / cell;
+		for (int z = Math.Max((int)Math.Floor(low.z) - reach, 0); z <= Math.Min((int)Math.Ceiling(high.z) + reach, mSamples - 1); z++)
+		{
+			for (int y = Math.Max((int)Math.Floor(low.y) - reach, 0); y <= Math.Min((int)Math.Ceiling(high.y) + reach, mSamples - 1); y++)
+			{
+				for (int x = Math.Max((int)Math.Floor(low.x) - reach, 0); x <= Math.Min((int)Math.Ceiling(high.x) + reach, mSamples - 1); x++)
+				{
+					let p = origin + Vector3(x, y, z) * cell;
+					let weights = Nearest(p, a, b, c);
+					let away = (a * weights.x + b * weights.y + c * weights.z - p).LengthSquared;
+					let index = Index(x, y, z);
+					if (away < distance[index])
+					{
+						distance[index] = away;
+						nearest[index] = t;
+					}
+				}
+			}
+		}
+	}
+
+	/// The model's colour and texture coordinates at the point of triangle t nearest a point.
+	static void TakeSurface(Mesh model, int t, Vector3 point, out uint32 color, out Vector2 uv)
+	{
+		let va = model.Vertices[(int)model.Indices[t * 3]], vb = model.Vertices[(int)model.Indices[t * 3 + 1]], vc = model.Vertices[(int)model.Indices[t * 3 + 2]];
+		let weights = Nearest(point, va.position, vb.position, vc.position);
+		uv = va.uv * weights.x + vb.uv * weights.y + vc.uv * weights.z;
+		color = 0;
+		for (int channel < 4)
+		{
+			let shift = (uint32)channel * 8;
+			let value = ((va.color >> shift) & 0xFF) * weights.x + ((vb.color >> shift) & 0xFF) * weights.y + ((vc.color >> shift) & 0xFF) * weights.z;
+			color |= (uint32)Math.Clamp(Math.Round(value), 0, 255) << shift;
+		}
 	}
 
 	/// Texture coordinates for a point with no model to take them from: the object's own space, seen along
@@ -453,16 +483,36 @@ class VoxelObject : Component
 		if (mMesh == null)
 			mMesh = new Mesh();
 		mMesh.Clear();
-		let cells = mSamples - 1;
-		let cell = CellSize;
-		let offset = Vector3(GridSize * 0.5f) - mCenter;
 		let renderer = GetComponent<MeshRenderer>();
 		// With a material inside, the inside's own colour comes from that material and its vertices stay white.
 		let insideMaterial = InteriorMaterialFor(renderer);
-		uint32 outer = mSurface != null ? (uint32)0xFFFFFFFF : color.ToABGR();
-		uint32 inner = insideMaterial != null ? (uint32)0xFFFFFFFF : interiorColor.ToABGR();
 		List<uint32> outsideIndices = scope .();
 		List<uint32> insideIndices = scope .();
+		March(insideMaterial != null, outsideIndices, insideIndices);
+		mMesh.Upload();
+		MakeParts(insideMaterial, outsideIndices, insideIndices);
+
+		// The renderer may not exist yet while a scene or prefab is still loading this object's
+		// components, so attaching (or creating) it is finished in OnFrame.
+		if (renderer != null)
+		{
+			renderer.RuntimeMesh = mMesh;
+			renderer.RuntimeParts = mParts.Count > 0 ? mParts : null;
+		}
+		else
+			mAttachPending = true;
+		RefreshCollision();
+	}
+
+	/// Marching cubes over the grid into mMesh. Triangles touching carved samples go in `inside`, the rest in
+	/// `outside`, so that the two can be drawn with different materials.
+	void March(bool insideHasMaterial, List<uint32> outside, List<uint32> inside)
+	{
+		let cells = mSamples - 1;
+		let cell = CellSize;
+		let offset = Vector3(GridSize * 0.5f) - mCenter;
+		uint32 outer = mSurface != null ? (uint32)0xFFFFFFFF : color.ToABGR();
+		uint32 inner = insideHasMaterial ? (uint32)0xFFFFFFFF : interiorColor.ToABGR();
 		uint32[12] edgeVertex = default;
 		bool[12] edgeCarved = default;
 		for (int z < cells)
@@ -507,63 +557,57 @@ class VoxelObject : Component
 						}
 						mMesh.Vertices.Add(.(local, normal, vertexColor, uv));
 					}
+					// The table winds the other way from Tessera's front faces.
 					let row = config * 16;
 					for (int i = 0; MarchingTables.Triangles[row + i] != -1; i += 3)
 					{
 						let e0 = MarchingTables.Triangles[row + i], e1 = MarchingTables.Triangles[row + i + 2], e2 = MarchingTables.Triangles[row + i + 1];
-						mMesh.Indices.Add(edgeVertex[e0]);
-						mMesh.Indices.Add(edgeVertex[e1]);
-						mMesh.Indices.Add(edgeVertex[e2]);
-						let list = (edgeCarved[e0] || edgeCarved[e1] || edgeCarved[e2]) ? insideIndices : outsideIndices;
-						list.Add(edgeVertex[e0]);
-						list.Add(edgeVertex[e1]);
-						list.Add(edgeVertex[e2]);
+						let list = (edgeCarved[e0] || edgeCarved[e1] || edgeCarved[e2]) ? inside : outside;
+						for (let edge in int[3](e0, e1, e2))
+						{
+							mMesh.Indices.Add(edgeVertex[edge]);
+							list.Add(edgeVertex[edge]);
+						}
 					}
 				}
 			}
 		}
-		mMesh.Upload();
+	}
 
-		// The outside and the inside as parts with a material each, when the inside has one and there is any inside.
+	/// The outside and the inside as parts with a material each, when the inside has one and there is any inside.
+	void MakeParts(Material insideMaterial, List<uint32> outside, List<uint32> inside)
+	{
 		for (let part in mParts)
 			delete part.mesh;
 		ClearAndDeleteItems!(mParts);
-		if (insideMaterial != null && insideIndices.Count > 0)
+		if (insideMaterial == null || inside.Count == 0)
+			return;
+		for (int side < 2)
 		{
-			for (int side < 2)
-			{
-				let indices = side == 0 ? outsideIndices : insideIndices;
-				if (indices.Count == 0)
-					continue;
-				let part = new MeshRenderer.Part();
-				part.mesh = new Mesh();
-				part.mesh.VertexSource = mMesh;
-				part.mesh.Indices.AddRange(indices);
-				part.mesh.UploadIndices();
-				// The outside has no material of its own here: it takes the Mesh Renderer's.
-				part.material = side == 0 ? null : insideMaterial;
-				mParts.Add(part);
-			}
+			let indices = side == 0 ? outside : inside;
+			if (indices.Count == 0)
+				continue;
+			let part = new MeshRenderer.Part();
+			part.mesh = new Mesh();
+			part.mesh.VertexSource = mMesh;
+			part.mesh.Indices.AddRange(indices);
+			part.mesh.UploadIndices();
+			// The outside has no material of its own here: it takes the Mesh Renderer's.
+			part.material = side == 0 ? null : insideMaterial;
+			mParts.Add(part);
 		}
+	}
 
-		// The renderer may not exist yet while a scene or prefab is still loading this object's
-		// components, so attaching (or creating) it is finished in OnFrame.
-		if (renderer != null)
-		{
-			renderer.RuntimeMesh = mMesh;
-			renderer.RuntimeParts = mParts.Count > 0 ? mParts : null;
-		}
-		else
-			mAttachPending = true;
-
-		// Keep collision in step with the surface.
-		let body = GetComponent<Rigidbody>();
+	/// Keeps collision in step with the surface: a Box Collider is fitted to it, and the body or collider remade.
+	void RefreshCollision()
+	{
 		let boxCollider = GetComponent<BoxCollider>();
 		if (boxCollider != null && mMesh.Vertices.Count > 0)
 		{
 			boxCollider.center = mMesh.Bounds.Center;
 			boxCollider.size = Vector3.Max(mMesh.Bounds.Extents * 2.0f, .(0.05f));
 		}
+		let body = GetComponent<Rigidbody>();
 		if (body != null)
 			body.RebuildBody();
 		else
@@ -688,12 +732,18 @@ class VoxelObject : Component
 						stack.Add(neighbor);
 					}
 				}
-				if (x > 0) Visit(index - 1);
-				if (x < mSamples - 1) Visit(index + 1);
-				if (y > 0) Visit(index - (int32)stepY);
-				if (y < mSamples - 1) Visit(index + (int32)stepY);
-				if (z > 0) Visit(index - (int32)stepZ);
-				if (z < mSamples - 1) Visit(index + (int32)stepZ);
+				if (x > 0)
+					Visit(index - 1);
+				if (x < mSamples - 1)
+					Visit(index + 1);
+				if (y > 0)
+					Visit(index - (int32)stepY);
+				if (y < mSamples - 1)
+					Visit(index + (int32)stepY);
+				if (z > 0)
+					Visit(index - (int32)stepZ);
+				if (z < mSamples - 1)
+					Visit(index + (int32)stepZ);
 			}
 			sizes.Add(members);
 		}
@@ -755,7 +805,7 @@ class VoxelObject : Component
 		for (int i < count)
 		{
 			// Neighbours of the piece keep their (negative) density so its surface stays where it was.
-			voxels.mDensity[i] = labels[i] == label ? mDensity[i] : (mDensity[i] > 0 ? (int8)-127 : mDensity[i]);
+			voxels.mDensity[i] = labels[i] == label ? mDensity[i] : (mDensity[i] > 0 ? (int8) - 127 : mDensity[i]);
 			voxels.mCarved[i] = mCarved[i];
 		}
 		piece.AddComponent<ConvexCollider>();

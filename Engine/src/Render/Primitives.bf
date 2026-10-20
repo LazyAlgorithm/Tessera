@@ -204,12 +204,14 @@ static class Primitives
 		}
 		let row = (uint32)segments + 1;
 		for (uint32 r = 0; r < (uint32)rings; r++)
+		{
 			for (uint32 s = 0; s < (uint32)segments; s++)
 			{
 				let a = first + r * row + s;
 				mesh.AddTriangle(a, a + 1, a + row);
 				mesh.AddTriangle(a + 1, a + row + 1, a + row);
 			}
+		}
 	}
 
 	/// A tuft of grass about 45 cm high: nine blades leaning outwards, dark at the root and light at the tip.
@@ -220,7 +222,7 @@ static class Primitives
 		let root = Color(0.13f, 0.27f, 0.08f, 1), middle = Color(0.26f, 0.48f, 0.14f, 1), tip = Color(0.50f, 0.74f, 0.27f, 1);
 		for (int blade < 9)
 		{
-			let theta = blade * 2.39996f;   // the golden angle: no two blades in line
+			let theta = blade * 2.39996f; // the golden angle: no two blades in line
 			let ring = blade == 0 ? 0.0f : 0.035f + (blade % 3) * 0.03f;
 			let height = 0.32f + ((blade * 5) % 4) * 0.055f;
 			let lean = 0.06f + ((blade * 3) % 5) * 0.03f;

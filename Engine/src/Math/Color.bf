@@ -11,8 +11,21 @@ struct Color
 	public float b;
 	public float a;
 
-	public this() { r = 1; g = 1; b = 1; a = 1; }
-	public this(float r, float g, float b, float a = 1.0f) { this.r = r; this.g = g; this.b = b; this.a = a; }
+	public this()
+	{
+		r = 1;
+		g = 1;
+		b = 1;
+		a = 1;
+	}
+
+	public this(float r, float g, float b, float a = 1.0f)
+	{
+		this.r = r;
+		this.g = g;
+		this.b = b;
+		this.a = a;
+	}
 
 	public static Color White => .(1, 1, 1, 1);
 	public static Color Black => .(0, 0, 0, 1);
@@ -21,9 +34,12 @@ struct Color
 	public static Color Blue => .(0, 0, 1, 1);
 	public static Color Yellow => .(1, 0.92f, 0.016f, 1);
 	public static Color Gray => .(0.5f, 0.5f, 0.5f, 1);
+	/// Fully see-through black.
 	public static Color Clear => .(0, 0, 0, 0);
 
+	/// The colour's red, green and blue times a number (alpha is kept).
 	public static Color operator *(Color c, float s) => .(c.r * s, c.g * s, c.b * s, c.a);
+	/// The colour a fraction t of the way from a to b.
 	public static Color Lerp(Color a, Color b, float t) =>
 		.(a.r + (b.r - a.r) * t, a.g + (b.g - a.g) * t, a.b + (b.b - a.b) * t, a.a + (b.a - a.a) * t);
 

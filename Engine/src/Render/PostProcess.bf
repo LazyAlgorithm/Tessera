@@ -47,6 +47,7 @@ static class PostProcess
 		public bgfx.TextureHandle texture;
 		public int32 size;
 	}
+
 	static Dictionary<String, Lookup> sLookups = new .() ~ { for (let entry in _) delete entry.key; delete _; };
 
 	/// The pixels (RGBA, 4 bytes each, rows top to bottom) of a neutral lookup table of `size` squares.
@@ -140,7 +141,7 @@ static class PostProcess
 			else
 			{
 				// Clamped and smoothly filtered: the shader blends between entries.
-				entry.texture = bgfx.create_texture_2d((uint16)width, (uint16)height, false, 1, .RGBA8, 0x0000002a, bgfx.copy(pixels, (uint32)(width * height * 4)), 0);
+				entry.texture = bgfx.create_texture_2d((uint16)width, (uint16)height, false, 1, .RGBA8, Gfx.SamplerClamp, bgfx.copy(pixels, (uint32)(width * height * 4)), 0);
 				entry.size = lookupSize;
 			}
 			Native.tn_image_free(pixels);

@@ -16,9 +16,9 @@ extension EditorApp
 {
 	[CLink] static extern void ImDrawList_AddCircleFilled(void* list, ImGui.Vec2 center, float radius, uint32 color, int32 segments);
 
-	const float cTreeNodeWidth = 200;
-	const float cTreeHeader = 26;
-	const float cTreeRow = 20;
+	const float TreeNodeWidth = 200;
+	const float TreeHeader = 26;
+	const float TreeRow = 20;
 
 	BehaviorTreeData mTree ~ delete _;
 	String mTreePath = new .() ~ delete _;
@@ -48,7 +48,8 @@ extension EditorApp
 
 	void OpenBehavior(StringView path)
 	{
-		mShowBehavior = true; mDockBehavior = true;
+		mShowBehavior = true;
+		mDockBehavior = true;
 		delete mTree;
 		mTree = new BehaviorTreeData();
 		mTreePath.Set(path);
@@ -72,7 +73,7 @@ extension EditorApp
 		for (let node in mTree.nodes)
 		{
 			min = .(Math.Min(min.x, node.position.x), Math.Min(min.y, node.position.y));
-			max = .(Math.Max(max.x, node.position.x + cTreeNodeWidth), Math.Max(max.y, node.position.y + TreeNodeHeight(node)));
+			max = .(Math.Max(max.x, node.position.x + TreeNodeWidth), Math.Max(max.y, node.position.y + TreeNodeHeight(node)));
 		}
 		let margin = 40.0f;
 		mTreeZoom = Mathf.Clamp(Math.Min((size.x - margin * 2) / Math.Max(max.x - min.x, 1), (size.y - margin * 2) / Math.Max(max.y - min.y, 1)), 0.25f, 1.0f);
@@ -169,8 +170,8 @@ extension EditorApp
 		return null;
 	}
 
-	static float TreeNodeHeight(BTNodeData node) => cTreeHeader + Math.Max(node.def.parameters.Count, 1) * cTreeRow + 10;
-	static Vector2 TreePin(BTNodeData node, bool bottom) => .(node.position.x + cTreeNodeWidth * 0.5f, node.position.y + (bottom ? TreeNodeHeight(node) : 0));
+	static float TreeNodeHeight(BTNodeData node) => TreeHeader + Math.Max(node.def.parameters.Count, 1) * TreeRow + 10;
+	static Vector2 TreePin(BTNodeData node, bool bottom) => .(node.position.x + TreeNodeWidth * 0.5f, node.position.y + (bottom ? TreeNodeHeight(node) : 0));
 
 	static Color TreeCategoryColor(BTNodeData node)
 	{
@@ -189,7 +190,8 @@ extension EditorApp
 	/// Colour for a node's live state, and how strongly to show it (0 = not at all).
 	static Color TreeStatusColor(BehaviorTreeRunner runner, int32 nodeId, out float strength, out StringView label)
 	{
-		strength = 0; label = "";
+		strength = 0;
+		label = "";
 		if (runner == null)
 			return default;
 		let last = runner.LastTickOf(nodeId);
@@ -200,19 +202,39 @@ extension EditorApp
 		strength = age <= 1 ? 1.0f : Math.Max(0.22f, 1.0f - age / 60.0f);
 		switch (runner.StatusOf(nodeId))
 		{
-		case .Running: label = "RUNNING"; return .(1.0f, 0.72f, 0.20f, 1);
-		case .Success: label = "SUCCESS"; return .(0.35f, 0.85f, 0.45f, 1);
-		case .Failure: label = "FAILED"; return .(0.92f, 0.35f, 0.35f, 1);
+		case .Running:
+			label = "RUNNING";
+			return .(1.0f, 0.72f, 0.20f, 1);
+		case .Success:
+			label = "SUCCESS";
+			return .(0.35f, 0.85f, 0.45f, 1);
+		case .Failure:
+			label = "FAILED";
+			return .(0.92f, 0.35f, 0.35f, 1);
 		// Stopped part-way by a branch with higher priority.
-		case .Idle: label = "STOPPED"; strength *= 0.6f; return .(0.65f, 0.65f, 0.70f, 1);
+		case .Idle:
+			label = "STOPPED";
+			strength *= 0.6f;
+			return .(0.65f, 0.65f, 0.70f, 1);
 		}
+	}
+
+	/// The node (and pin, 0 top or 1 bottom, if any) under the mouse.
+	struct TreeHover
+	{
+		public BTNodeData node;
+		public int pin;
 	}
 
 	void DrawBehavior()
 	{
 		if (!mShowBehavior && mPendingTree.IsEmpty)
 			return;
-		if (mDockBehavior && mAssetCenterDock != 0) { ImGui.SetNextWindowDockID(mAssetCenterDock); mDockBehavior = false; }
+		if (mDockBehavior && mAssetCenterDock != 0)
+		{
+			ImGui.SetNextWindowDockID(mAssetCenterDock);
+			mDockBehavior = false;
+		}
 		if (!mPendingTree.IsEmpty)
 		{
 			if (mTree != null)
@@ -228,27 +250,35 @@ extension EditorApp
 		ImGui.PushStyleVar(ImGui.StyleVar.WindowPadding, ImGui.Vec2(0, 0));
 		let visible = ImGui.Begin("Behavior", &mShowBehavior, ImGui.WindowFlags.NoScrollbar | ImGui.WindowFlags.NoScrollWithMouse);
 		ImGui.PopStyleVar();
-		if (!visible)
-		{
-			ImGui.End();
-			return;
-		}
-		if (mTree == null)
+		if (visible && mTree == null)
 		{
 			ImGui.SetCursorPosX(16);
 			ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 14);
 			ImGui.TextDisabled("Create a behaviour tree with Project > + > Behavior Tree, or double-click a .tbt file.");
-			ImGui.End();
-			return;
 		}
-		let runner = WatchedRunner();
+		else if (visible)
+		{
+			let runner = WatchedRunner();
+			DrawBehaviorToolbar(runner);
+			ImGui.BeginChild("treecanvas", .(0, 0), 0, ImGui.WindowFlags.NoScrollbar | ImGui.WindowFlags.NoScrollWithMouse | ImGui.WindowFlags.NoMove);
+			DrawTreeCanvas(runner);
+			ImGui.EndChild();
+		}
+		ImGui.End();
+	}
 
-		// ---- toolbar ----
+	void DrawBehaviorToolbar(BehaviorTreeRunner runner)
+	{
 		ImGui.SetCursorPosX(6);
 		ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 4);
-		if (ImGui.SmallButton("Save")) SaveBehavior();
+		if (ImGui.SmallButton("Save"))
+			SaveBehavior();
 		ImGui.SameLine();
-		if (ImGui.SmallButton("Fit View")) { mTreeFit = true; mTreeFitSize = default; }
+		if (ImGui.SmallButton("Fit View"))
+		{
+			mTreeFit = true;
+			mTreeFitSize = default;
+		}
 		ImGui.SameLine(0, 14);
 		let info = scope String();
 		info.AppendF("{}   {:0}%   {}", mTree.name, mTreeZoom * 100, mTreeStatus);
@@ -257,35 +287,37 @@ extension EditorApp
 		else if (mPlay != .Edit)
 			info.Append("   No running object uses this tree.");
 		ImGui.TextDisabled(info.CStr());
+	}
 
-		ImGui.BeginChild("treecanvas", .(0, 0), 0, ImGui.WindowFlags.NoScrollbar | ImGui.WindowFlags.NoScrollWithMouse | ImGui.WindowFlags.NoMove);
-		let origin = ImGui.GetCursorScreenPos();
-		let size = ImGui.GetContentRegionAvail();
-		ImGui.InvisibleButton("##treecanvas", .(Math.Max(size.x, 1), Math.Max(size.y, 1)));
-		let hovered = ImGui.IsItemHovered();
-		let mouse = ImGui.GetMousePos();
-		let list = igGetWindowDrawList();
-		if (mTreeFit && (size.x != mTreeFitSize.x || size.y != mTreeFitSize.y))
+	void DrawTreeCanvas(BehaviorTreeRunner runner)
+	{
+		var canvas = CanvasView.Layout("##treecanvas");
+		// Fitted to the canvas while Fit View is on: again whenever the canvas changes size.
+		if (mTreeFit && (canvas.size.x != mTreeFitSize.x || canvas.size.y != mTreeFitSize.y))
 		{
-			FitTree(size);
-			mTreeFitSize = size;
+			FitTree(canvas.size);
+			mTreeFitSize = canvas.size;
 		}
-		var zoom = mTreeZoom;
-		ImGui.Vec2 ToScreen(Vector2 p) => .(origin.x + mTreePan.x + p.x * zoom, origin.y + mTreePan.y + p.y * zoom);
-		Vector2 ToGraph(ImGui.Vec2 p) => .((p.x - origin.x - mTreePan.x) / zoom, (p.y - origin.y - mTreePan.y) / zoom);
-
+		let zoomBefore = mTreeZoom;
 		let panBefore = mTreePan;
-		NodeCanvas.UpdateView(ref mTreePan, ref mTreeZoom, origin, mouse, hovered);
-		if (mTreeZoom != zoom || mTreePan != panBefore)
+		canvas.Update(ref mTreePan, ref mTreeZoom);
+		if (mTreeZoom != zoomBefore || mTreePan != panBefore)
 			mTreeFit = false;
-		zoom = mTreeZoom;
-		NodeCanvas.DrawGrid(origin, size, mTreePan, zoom);
-		NodeCanvas.BeginFont(zoom);
-		let pinRadius = 5.5f * zoom;
-		let graphMouse = ToGraph(mouse);
 
-		// ---- links ----
-		List<int32> order = scope .();
+		NodeCanvas.BeginFont(canvas.zoom);
+		DrawTreeLinks(canvas, runner);
+		let hover = DrawTreeNodes(canvas, runner);
+		NodeCanvas.EndFont();
+		HandleTreeMouse(canvas, hover);
+		DrawTreeNodeSearch();
+		DrawSelectedTreeNode(canvas);
+		if (runner != null)
+			DrawBlackboard(canvas, runner);
+	}
+
+	/// Parent-to-child links, lit up in the colour of the child's latest result while an object runs the tree.
+	void DrawTreeLinks(CanvasView canvas, BehaviorTreeRunner runner)
+	{
 		for (let link in mTree.links)
 		{
 			let parent = mTree.Find(link.parent);
@@ -296,57 +328,44 @@ extension EditorApp
 			let live = TreeStatusColor(runner, child.id, let strength, let label);
 			if (strength > 0)
 				color = .(Mathf.Lerp(0.45f, live.r, strength), Mathf.Lerp(0.45f, live.g, strength), Mathf.Lerp(0.48f, live.b, strength), 1);
-			NodeCanvas.DrawLink(ToScreen(TreePin(parent, true)), ToScreen(TreePin(child, false)), color, strength >= 1 ? zoom * 1.6f : zoom, true);
+			NodeCanvas.DrawLink(canvas.ToScreen(TreePin(parent, true)), canvas.ToScreen(TreePin(child, false)), color, strength >= 1 ? canvas.zoom * 1.6f : canvas.zoom, true);
 		}
+	}
 
-		// ---- nodes ----
-		BTNodeData hoverNode = null;
-		int hoverPin = -1; // 0 top, 1 bottom
+	/// Every node, with its latest result, settings, pins and its place among its siblings. Returns what is under
+	/// the mouse.
+	TreeHover DrawTreeNodes(CanvasView canvas, BehaviorTreeRunner runner)
+	{
+		TreeHover hover = default;
+		hover.pin = -1;
+		let zoom = canvas.zoom;
+		let mouse = canvas.mouse;
+		let pinRadius = 5.5f * zoom;
+		List<int32> order = scope .();
 		for (let node in mTree.nodes)
 		{
-			let min = ToScreen(node.position);
-			let max = ToScreen(.(node.position.x + cTreeNodeWidth, node.position.y + TreeNodeHeight(node)));
-			let selected = node.id == mTreeSelected;
+			let min = canvas.ToScreen(node.position);
+			let max = canvas.ToScreen(.(node.position.x + TreeNodeWidth, node.position.y + TreeNodeHeight(node)));
 			let live = TreeStatusColor(runner, node.id, let strength, let label);
-			NodeCanvas.DrawNode(min, max, TreeCategoryColor(node), selected, zoom);
+			NodeCanvas.DrawNode(min, max, TreeCategoryColor(node), node.id == mTreeSelected, zoom);
 			if (strength > 0)
-			{
-				// A running node pulses so it stands out from results that merely happen to be fresh.
-				let pulse = label == "RUNNING" && strength >= 1 ? 0.75f + 0.25f * (float)Math.Sin(Time.FrameCount * 0.12f) : 1.0f;
-				let glow = Color(live.r, live.g, live.b, strength * pulse);
-				ImGui.DrawRect(.(min.x - 2, min.y - 2), .(max.x + 2, max.y + 2), glow, 7 * zoom, strength >= 1 ? 3 : 2);
-				if (strength >= 1)
-					ImGui.DrawRectFilled(min, max, .(live.r, live.g, live.b, 0.10f), 6 * zoom);
-			}
+				DrawTreeNodeGlow(min, max, live, strength, label, zoom);
 			if (zoom > 0.4f)
-			{
-				ImGui.DrawText(.(min.x + 9 * zoom, min.y + 5 * zoom), .White, node.def.title.CStr());
-				if (strength > 0)
-				{
-					let text = scope String(label);
-					ImGui.DrawText(.(max.x - 8 * zoom - ImGui.CalcTextSize(text.CStr()).x, min.y + 5 * zoom), .(live.r, live.g, live.b, Math.Max(strength, 0.5f)), text.CStr());
-				}
-				for (int i < node.def.parameters.Count)
-				{
-					let line = scope String();
-					line.AppendF("{}: {}", node.def.parameters[i].name, node.values[i]);
-					ImGui.DrawText(.(min.x + 9 * zoom, min.y + (cTreeHeader + 4 + i * cTreeRow) * zoom), .(0.85f, 0.85f, 0.85f, 1), line.CStr());
-				}
-			}
-			if (hovered && mouse.x >= min.x && mouse.x <= max.x && mouse.y >= min.y && mouse.y <= max.y)
-				hoverNode = node;
+				DrawTreeNodeText(node, min, max, live, strength, label, zoom);
+			if (canvas.hovered && mouse.x >= min.x && mouse.x <= max.x && mouse.y >= min.y && mouse.y <= max.y)
+				hover.node = node;
 			for (int side < 2)
 			{
 				if ((side == 0 && node.def.kind == .Root) || (side == 1 && node.def.MaxChildren == 0))
 					continue;
-				let center = ToScreen(TreePin(node, side == 1));
-				let over = hovered && Math.Abs(mouse.x - center.x) < pinRadius * 2 && Math.Abs(mouse.y - center.y) < pinRadius * 2;
+				let center = canvas.ToScreen(TreePin(node, side == 1));
+				let over = canvas.hovered && Math.Abs(mouse.x - center.x) < pinRadius * 2 && Math.Abs(mouse.y - center.y) < pinRadius * 2;
 				if (over)
 				{
-					hoverNode = node;
-					hoverPin = side;
+					hover.node = node;
+					hover.pin = side;
 				}
-				ImDrawList_AddCircleFilled(list, center, over ? pinRadius * 1.4f : pinRadius, Color(0.92f, 0.92f, 0.92f, 1).ToABGR(), 12);
+				ImDrawList_AddCircleFilled(canvas.drawList, center, over ? pinRadius * 1.4f : pinRadius, Color(0.92f, 0.92f, 0.92f, 1).ToABGR(), 12);
 			}
 			// Running order among siblings, shown beside the node's top pin.
 			let parentId = mTree.ParentOf(node.id);
@@ -355,240 +374,286 @@ extension EditorApp
 				mTree.ChildrenOf(parentId, order);
 				if (order.Count > 1)
 				{
-					let top = ToScreen(TreePin(node, false));
+					let top = canvas.ToScreen(TreePin(node, false));
 					ImGui.DrawText(.(top.x + 9 * zoom, top.y - 17 * zoom), .(0.75f, 0.75f, 0.80f, 1), scope String()..AppendF("{}", order.IndexOf(node.id) + 1).CStr());
 				}
 			}
 		}
-		NodeCanvas.EndFont();
+		return hover;
+	}
 
-		// ---- mouse: connect, select, drag ----
-		if (hovered && ImGui.IsMouseClicked(0))
+	/// The outline of a node with a fresh result; a running node pulses, so that it stands out from results that
+	/// merely happen to be fresh.
+	static void DrawTreeNodeGlow(ImGui.Vec2 min, ImGui.Vec2 max, Color live, float strength, StringView label, float zoom)
+	{
+		let pulse = label == "RUNNING" && strength >= 1 ? 0.75f + 0.25f * (float)Math.Sin(Time.FrameCount * 0.12f) : 1.0f;
+		let glow = Color(live.r, live.g, live.b, strength * pulse);
+		ImGui.DrawRect(.(min.x - 2, min.y - 2), .(max.x + 2, max.y + 2), glow, 7 * zoom, strength >= 1 ? 3 : 2);
+		if (strength >= 1)
+			ImGui.DrawRectFilled(min, max, .(live.r, live.g, live.b, 0.10f), 6 * zoom);
+	}
+
+	/// A node's title, its latest result (top right) and its settings.
+	static void DrawTreeNodeText(BTNodeData node, ImGui.Vec2 min, ImGui.Vec2 max, Color live, float strength, StringView label, float zoom)
+	{
+		ImGui.DrawText(.(min.x + 9 * zoom, min.y + 5 * zoom), .White, node.def.title.CStr());
+		if (strength > 0)
 		{
-			if (hoverPin >= 0 && Input.GetKey(.LeftAlt))
-				mTree.Disconnect(hoverNode.id, hoverPin == 0);
-			else if (hoverPin >= 0)
+			let text = scope String(label);
+			ImGui.DrawText(.(max.x - 8 * zoom - ImGui.CalcTextSize(text.CStr()).x, min.y + 5 * zoom), .(live.r, live.g, live.b, Math.Max(strength, 0.5f)), text.CStr());
+		}
+		for (int i < node.def.parameters.Count)
+		{
+			let line = scope String();
+			line.AppendF("{}: {}", node.def.parameters[i].name, node.values[i]);
+			ImGui.DrawText(.(min.x + 9 * zoom, min.y + (TreeHeader + 4 + i * TreeRow) * zoom), .(0.85f, 0.85f, 0.85f, 1), line.CStr());
+		}
+	}
+
+	/// The mouse on the canvas: linking (Alt-click undoes a pin's link), selecting and dragging nodes, deleting the
+	/// selected one, and the right-click menu of nodes to add.
+	void HandleTreeMouse(CanvasView canvas, TreeHover hover)
+	{
+		let graphMouse = canvas.GraphMouse;
+		if (canvas.hovered && ImGui.IsMouseClicked(0))
+		{
+			if (hover.pin >= 0 && Input.GetKey(.LeftAlt))
+				mTree.Disconnect(hover.node.id, hover.pin == 0);
+			else if (hover.pin >= 0)
 			{
 				mTreeLinking = true;
-				mTreeLinkNode = hoverNode.id;
-				mTreeLinkFromBottom = hoverPin == 1;
+				mTreeLinkNode = hover.node.id;
+				mTreeLinkFromBottom = hover.pin == 1;
 			}
-			else if (hoverNode != null)
+			else if (hover.node != null)
 			{
-				mTreeSelected = hoverNode.id;
-				mTreeDragNode = hoverNode.id;
+				mTreeSelected = hover.node.id;
+				mTreeDragNode = hover.node.id;
 			}
 			else
 				mTreeSelected = 0;
 		}
 		if (mTreeLinking)
-		{
-			let source = mTree.Find(mTreeLinkNode);
-			if (source != null)
-			{
-				let start = ToScreen(TreePin(source, mTreeLinkFromBottom));
-				if (mTreeLinkFromBottom)
-					NodeCanvas.DrawLink(start, mouse, .(1, 1, 1, 0.8f), zoom, true);
-				else
-					NodeCanvas.DrawLink(mouse, start, .(1, 1, 1, 0.8f), zoom, true);
-			}
-			if (!ImGui.IsMouseDown(0))
-			{
-				if (source != null && hoverNode != null && hoverNode.id != mTreeLinkNode)
-				{
-					// Dropped on a node: the end that was dragged from decides which is the parent.
-					let error = scope String();
-					let ok = mTreeLinkFromBottom ? mTree.Connect(source.id, hoverNode.id, error) : mTree.Connect(hoverNode.id, source.id, error);
-					if (!ok)
-						mTreeStatus.Set(error.IsEmpty ? "Those nodes cannot be linked." : error);
-				}
-				else if (source != null && hovered && hoverNode == null)
-				{
-					mTreeNewPosition = .(graphMouse.x - cTreeNodeWidth * 0.5f, graphMouse.y);
-					mTreeSearch.Clear();
-					mTreeSearchForLink = true;
-					mOpenTreeSearch = true;
-				}
-				mTreeLinking = false;
-			}
-		}
+			DragTreeLink(canvas, hover);
 		if (mTreeDragNode != 0)
 		{
 			let dragged = mTree.Find(mTreeDragNode);
 			if (dragged != null && ImGui.IsMouseDown(0))
 			{
-				dragged.position = dragged.position + Input.MouseDelta / zoom;
+				dragged.position = dragged.position + Input.MouseDelta / canvas.zoom;
 				mTreeFit = false;
 			}
 			else
 				mTreeDragNode = 0;
 		}
-		if (hovered && ImGui.IsKeyPressed(ImGui.Key.Delete) && (ImGui.tn_imgui_capture_flags() & 4) == 0)
+		if (canvas.hovered && ImGui.IsKeyPressed(ImGui.Key.Delete) && (ImGui.tn_imgui_capture_flags() & 4) == 0)
 		{
 			let selected = mTree.Find(mTreeSelected);
 			if (selected != null)
 				mTree.RemoveNode(selected);
 			mTreeSelected = 0;
 		}
-
-		// ---- add-node menu with search ----
-		if (hovered && ImGui.IsMouseClicked(1))
+		if (canvas.hovered && ImGui.IsMouseClicked(1))
 		{
-			mTreeNewPosition = .(graphMouse.x - cTreeNodeWidth * 0.5f, graphMouse.y);
+			mTreeNewPosition = .(graphMouse.x - TreeNodeWidth * 0.5f, graphMouse.y);
 			mTreeSearch.Clear();
 			mTreeSearchForLink = false;
 			mOpenTreeSearch = true;
 		}
+	}
+
+	/// A link being dragged out of a pin: drawn to the mouse, and on release made to the node it was dropped on (the
+	/// end it was dragged from decides which is the parent), or offered new nodes if dropped on nothing.
+	void DragTreeLink(CanvasView canvas, TreeHover hover)
+	{
+		let source = mTree.Find(mTreeLinkNode);
+		if (source != null)
+		{
+			let start = canvas.ToScreen(TreePin(source, mTreeLinkFromBottom));
+			if (mTreeLinkFromBottom)
+				NodeCanvas.DrawLink(start, canvas.mouse, .(1, 1, 1, 0.8f), canvas.zoom, true);
+			else
+				NodeCanvas.DrawLink(canvas.mouse, start, .(1, 1, 1, 0.8f), canvas.zoom, true);
+		}
+		if (ImGui.IsMouseDown(0))
+			return;
+		if (source != null && hover.node != null && hover.node.id != mTreeLinkNode)
+		{
+			let error = scope String();
+			let ok = mTreeLinkFromBottom ? mTree.Connect(source.id, hover.node.id, error) : mTree.Connect(hover.node.id, source.id, error);
+			if (!ok)
+				mTreeStatus.Set(error.IsEmpty ? "Those nodes cannot be linked." : error);
+		}
+		else if (source != null && canvas.hovered && hover.node == null)
+		{
+			let graphMouse = canvas.GraphMouse;
+			mTreeNewPosition = .(graphMouse.x - TreeNodeWidth * 0.5f, graphMouse.y);
+			mTreeSearch.Clear();
+			mTreeSearchForLink = true;
+			mOpenTreeSearch = true;
+		}
+		mTreeLinking = false;
+	}
+
+	/// Whether the add-node menu offers a node: one Root per tree, and a node dragged out of a top pin needs a parent
+	/// that can have children.
+	bool OfferedTreeNode(BTNodeDef def)
+	{
+		if (def.kind == .Root)
+			return mTree.Root == null && !mTreeSearchForLink;
+		return !(mTreeSearchForLink && !mTreeLinkFromBottom && def.MaxChildren == 0);
+	}
+
+	/// The add-node menu: browsing by category with nothing typed, else the nodes whose names match.
+	void DrawTreeNodeSearch()
+	{
 		if (mOpenTreeSearch)
 		{
 			ImGui.OpenPopup("AddTreeNode");
 			mOpenTreeSearch = false;
 			mTreeSearchFocus = true;
 		}
-		if (ImGui.BeginPopup("AddTreeNode"))
+		if (!ImGui.BeginPopup("AddTreeNode"))
+			return;
+		if (mTreeSearchFocus)
 		{
-			if (mTreeSearchFocus)
+			ImGui.SetKeyboardFocusHere();
+			mTreeSearchFocus = false;
+		}
+		ImGui.SetNextItemWidth(260);
+		ImGui.InputText("##treesearch", mTreeSearch, 0, "Search nodes");
+		let chosen = mTreeSearch.IsEmpty ? BrowseTreeNodes() : MatchingTreeNodes(ImGui.IsKeyPressed(ImGui.Key.Enter));
+		if (chosen != null)
+		{
+			let created = mTree.AddNode(chosen, mTreeNewPosition);
+			mTreeSelected = created.id;
+			if (mTreeSearchForLink)
 			{
-				ImGui.SetKeyboardFocusHere();
-				mTreeSearchFocus = false;
+				if (mTreeLinkFromBottom)
+					mTree.Connect(mTreeLinkNode, created.id);
+				else
+					mTree.Connect(created.id, mTreeLinkNode);
 			}
-			ImGui.SetNextItemWidth(260);
-			ImGui.InputText("##treesearch", mTreeSearch, 0, "Search nodes");
-			let enter = ImGui.IsKeyPressed(ImGui.Key.Enter);
-			BTNodeDef chosen = null;
-			bool Offered(BTNodeDef def)
+			ImGui.CloseCurrentPopup();
+		}
+		ImGui.EndPopup();
+	}
+
+	BTNodeDef BrowseTreeNodes()
+	{
+		BTNodeDef chosen = null;
+		String category = null;
+		bool open = false;
+		for (let def in BehaviorLibrary.Defs)
+		{
+			if (!OfferedTreeNode(def))
+				continue;
+			if (category == null || category != def.category)
 			{
-				// One Root per tree, and a node dragged out of a top pin needs a parent that can have children.
-				if (def.kind == .Root)
-					return mTree.Root == null && !mTreeSearchForLink;
-				return !(mTreeSearchForLink && !mTreeLinkFromBottom && def.MaxChildren == 0);
-			}
-			if (mTreeSearch.IsEmpty)
-			{
-				String category = null;
-				bool open = false;
-				for (let def in BehaviorLibrary.Defs)
-				{
-					if (!Offered(def))
-						continue;
-					if (category == null || category != def.category)
-					{
-						if (open)
-							ImGui.EndMenu();
-						category = def.category;
-						open = ImGui.BeginMenu(category.CStr());
-					}
-					if (open)
-					{
-						if (ImGui.MenuItem(def.title.CStr()))
-							chosen = def;
-						if (ImGui.IsItemHovered() && !def.description.IsEmpty)
-							ImGui.SetTooltip(def.description.CStr());
-					}
-				}
 				if (open)
 					ImGui.EndMenu();
+				category = def.category;
+				open = ImGui.BeginMenu(category.CStr());
+			}
+			if (!open)
+				continue;
+			if (ImGui.MenuItem(def.title.CStr()))
+				chosen = def;
+			if (ImGui.IsItemHovered() && !def.description.IsEmpty)
+				ImGui.SetTooltip(def.description.CStr());
+		}
+		if (open)
+			ImGui.EndMenu();
+		return chosen;
+	}
+
+	/// Names that start with the typed text come first; Enter takes the top one.
+	BTNodeDef MatchingTreeNodes(bool enter)
+	{
+		BTNodeDef chosen = null;
+		ImGui.BeginChild("treematches", .(260, 240));
+		int shown = 0;
+		for (int pass < 2)
+		{
+			for (let def in BehaviorLibrary.Defs)
+			{
+				if (!OfferedTreeNode(def))
+					continue;
+				let starts = def.title.StartsWith(mTreeSearch, .OrdinalIgnoreCase);
+				let contains = def.title.Contains(mTreeSearch, true) || def.category.Contains(mTreeSearch, true);
+				if ((pass == 0 && !starts) || (pass == 1 && (starts || !contains)))
+					continue;
+				let label = scope String();
+				label.AppendF("{}   ({})", def.title, def.category);
+				if (ImGui.Selectable(label.CStr(), shown == 0) || (enter && shown == 0))
+					chosen = def;
+				shown++;
+			}
+		}
+		if (shown == 0)
+			ImGui.TextDisabled("No matching nodes.");
+		ImGui.EndChild();
+		return chosen;
+	}
+
+	/// The selected node's settings and what it does, in a panel at the canvas's top left.
+	void DrawSelectedTreeNode(CanvasView canvas)
+	{
+		let selectedNode = mTree.Find(mTreeSelected);
+		if (selectedNode == null)
+			return;
+		let rows = selectedNode.def.parameters.Count;
+		ImGui.SetCursorScreenPos(.(canvas.origin.x + 10, canvas.origin.y + 10));
+		ImGui.PushStyleColor(ImGui.Col.ChildBg, .(0.10f, 0.10f, 0.11f, 0.92f));
+		ImGui.BeginChild("treevalues", .(300, 92 + rows * 27), ImGui.ChildBorders);
+		ImGui.Text(selectedNode.def.title);
+		for (int32 i = 0; i < (int32)rows; i++)
+		{
+			let parameter = selectedNode.def.parameters[i];
+			ImGui.PushID(i);
+			ImGui.SetNextItemWidth(150);
+			if (parameter.type == .Bool)
+			{
+				bool value = selectedNode.values[i] == "true";
+				if (ImGui.Checkbox("##v", ref value))
+					selectedNode.values[i].Set(value ? "true" : "false");
 			}
 			else
-			{
-				ImGui.BeginChild("treematches", .(260, 240));
-				int shown = 0;
-				for (int pass < 2)
-				{
-					for (let def in BehaviorLibrary.Defs)
-					{
-						if (!Offered(def))
-							continue;
-						let starts = def.title.StartsWith(mTreeSearch, .OrdinalIgnoreCase);
-						let contains = def.title.Contains(mTreeSearch, true) || def.category.Contains(mTreeSearch, true);
-						if ((pass == 0 && !starts) || (pass == 1 && (starts || !contains)))
-							continue;
-						let label = scope String();
-						label.AppendF("{}   ({})", def.title, def.category);
-						if (ImGui.Selectable(label.CStr(), shown == 0) || (enter && shown == 0))
-							chosen = def;
-						shown++;
-					}
-				}
-				if (shown == 0)
-					ImGui.TextDisabled("No matching nodes.");
-				ImGui.EndChild();
-			}
-			if (chosen != null)
-			{
-				let created = mTree.AddNode(chosen, mTreeNewPosition);
-				mTreeSelected = created.id;
-				if (mTreeSearchForLink)
-				{
-					if (mTreeLinkFromBottom)
-						mTree.Connect(mTreeLinkNode, created.id);
-					else
-						mTree.Connect(created.id, mTreeLinkNode);
-				}
-				ImGui.CloseCurrentPopup();
-			}
-			ImGui.EndPopup();
+				ImGui.InputText("##v", selectedNode.values[i], 0, parameter.type == .Vector ? (char8*)"x y z" : null);
+			ImGui.SameLine();
+			ImGui.Text(parameter.name);
+			ImGui.PopID();
 		}
+		ImGui.PushStyleColor(ImGui.Col.Text, .(0.62f, 0.64f, 0.68f, 1));
+		ImGui.TextWrapped(selectedNode.def.description.CStr());
+		ImGui.PopStyleColor();
+		ImGui.EndChild();
+		ImGui.PopStyleColor();
+	}
 
-		// ---- settings of the selected node ----
-		let selectedNode = mTree.Find(mTreeSelected);
-		if (selectedNode != null)
+	/// What the watched object remembers, in a panel at the canvas's bottom left.
+	void DrawBlackboard(CanvasView canvas, BehaviorTreeRunner runner)
+	{
+		let count = runner.Blackboard.Values.Count;
+		let height = 34 + Math.Max(count, 1) * 19;
+		ImGui.SetCursorScreenPos(.(canvas.origin.x + 10, canvas.origin.y + canvas.size.y - height - 10));
+		ImGui.PushStyleColor(ImGui.Col.ChildBg, .(0.10f, 0.10f, 0.11f, 0.92f));
+		ImGui.BeginChild("treeblackboard", .(300, height), ImGui.ChildBorders);
+		ImGui.Text(scope String()..AppendF("Blackboard of {}", runner.GameObject.Name));
+		if (count == 0)
+			ImGui.TextDisabled("Nothing remembered yet.");
+		List<String> keys = scope .();
+		for (let key in runner.Blackboard.Values.Keys)
+			keys.Add(key);
+		keys.Sort(scope (a, b) => a.CompareTo(b));
+		for (let key in keys)
 		{
-			let rows = selectedNode.def.parameters.Count;
-			ImGui.SetCursorScreenPos(.(origin.x + 10, origin.y + 10));
-			ImGui.PushStyleColor(ImGui.Col.ChildBg, .(0.10f, 0.10f, 0.11f, 0.92f));
-			ImGui.BeginChild("treevalues", .(300, 92 + rows * 27), ImGui.ChildBorders);
-			ImGui.Text(selectedNode.def.title);
-			for (int32 i = 0; i < (int32)rows; i++)
-			{
-				let parameter = selectedNode.def.parameters[i];
-				ImGui.PushID(i);
-				ImGui.SetNextItemWidth(150);
-				if (parameter.type == .Bool)
-				{
-					bool value = selectedNode.values[i] == "true";
-					if (ImGui.Checkbox("##v", ref value))
-						selectedNode.values[i].Set(value ? "true" : "false");
-				}
-				else
-					ImGui.InputText("##v", selectedNode.values[i], 0, parameter.type == .Vector ? (char8*)"x y z" : null);
-				ImGui.SameLine();
-				ImGui.Text(parameter.name);
-				ImGui.PopID();
-			}
-			ImGui.PushStyleColor(ImGui.Col.Text, .(0.62f, 0.64f, 0.68f, 1));
-			ImGui.TextWrapped(selectedNode.def.description.CStr());
-			ImGui.PopStyleColor();
-			ImGui.EndChild();
-			ImGui.PopStyleColor();
-		}
-
-		// ---- what the watched object remembers ----
-		if (runner != null)
-		{
-			let count = runner.Blackboard.Values.Count;
-			let height = 34 + Math.Max(count, 1) * 19;
-			ImGui.SetCursorScreenPos(.(origin.x + 10, origin.y + size.y - height - 10));
-			ImGui.PushStyleColor(ImGui.Col.ChildBg, .(0.10f, 0.10f, 0.11f, 0.92f));
-			ImGui.BeginChild("treeblackboard", .(300, height), ImGui.ChildBorders);
-			ImGui.Text(scope String()..AppendF("Blackboard of {}", runner.GameObject.Name));
-			if (count == 0)
-				ImGui.TextDisabled("Nothing remembered yet.");
-			List<String> keys = scope .();
-			for (let key in runner.Blackboard.Values.Keys)
-				keys.Add(key);
-			keys.Sort(scope (a, b) => a.CompareTo(b));
-			for (let key in keys)
-			{
-				let line = scope String();
-				line.AppendF("{} = ", key);
-				runner.Blackboard.Describe(key, mScene, line);
-				ImGui.TextDisabled(line.CStr());
-			}
-			ImGui.EndChild();
-			ImGui.PopStyleColor();
+			let line = scope String();
+			line.AppendF("{} = ", key);
+			runner.Blackboard.Describe(key, mScene, line);
+			ImGui.TextDisabled(line.CStr());
 		}
 		ImGui.EndChild();
-		ImGui.End();
+		ImGui.PopStyleColor();
 	}
 }

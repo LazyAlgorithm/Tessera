@@ -88,9 +88,9 @@ static class Workshop
 	static function bool(void* utils, uint64 call, void* result, int32 size, int32 expectedId, bool* failed) sGetCallResult;
 
 	// Item state flags from Steam.
-	const uint32 cSubscribed = 1, cInstalled = 4, cNeedsUpdate = 8, cDownloading = 16;
+	const uint32 ItemSubscribed = 1, ItemInstalled = 4, ItemNeedsUpdate = 8, ItemDownloading = 16;
 	// Result structures Steam fills in, by callback id and size.
-	const int32 cQueryCompletedId = 3401, cCreateItemId = 3403, cSubmitUpdateId = 3404;
+	const int32 QueryCompletedId = 3401, CreateItemId = 3403, SubmitUpdateId = 3404;
 
 	enum Step { Query, Create, Submit }
 	class Pending
@@ -110,6 +110,7 @@ static class Workshop
 		public WorkshopVisibility visibility;
 		public uint64 itemId;
 	}
+
 	static List<Pending> sPending = new .() ~ DeleteContainerAndItems!(_);
 	static uint64 sUpdateHandle;
 	static List<String> sMounted = new .() ~ DeleteContainerAndItems!(_);
@@ -177,11 +178,11 @@ static class Workshop
 			ids.Add(buffer[(int)i]);
 	}
 
-	public static bool IsSubscribed(uint64 id) => Bind() && sGetItemState != null && (sGetItemState(sUgc, id) & cSubscribed) != 0;
+	public static bool IsSubscribed(uint64 id) => Bind() && sGetItemState != null && (sGetItemState(sUgc, id) & ItemSubscribed) != 0;
 	/// Downloaded and ready to use.
-	public static bool IsInstalled(uint64 id) => Bind() && sGetItemState != null && (sGetItemState(sUgc, id) & cInstalled) != 0;
-	public static bool IsDownloading(uint64 id) => Bind() && sGetItemState != null && (sGetItemState(sUgc, id) & cDownloading) != 0;
-	public static bool NeedsUpdate(uint64 id) => Bind() && sGetItemState != null && (sGetItemState(sUgc, id) & cNeedsUpdate) != 0;
+	public static bool IsInstalled(uint64 id) => Bind() && sGetItemState != null && (sGetItemState(sUgc, id) & ItemInstalled) != 0;
+	public static bool IsDownloading(uint64 id) => Bind() && sGetItemState != null && (sGetItemState(sUgc, id) & ItemDownloading) != 0;
+	public static bool NeedsUpdate(uint64 id) => Bind() && sGetItemState != null && (sGetItemState(sUgc, id) & ItemNeedsUpdate) != 0;
 
 	/// Where an installed item's files are on disk. False if it is not installed.
 	public static bool GetFolder(uint64 id, String folder)
@@ -307,11 +308,15 @@ static class Workshop
 	static void FinishQuery(Pending pending, bool failed)
 	{
 		List<WorkshopItem> items = scope .();
-		defer { for (let item in items) delete item; }
+		defer
+		{
+			for (let item in items)
+				delete item;
+		}
 		// SteamUGCQueryCompleted_t: query handle, result, number of results returned...
 		uint8[512] completed = default;
 		bool callFailed = failed;
-		bool ok = !failed && sGetCallResult(sUtils, pending.call, &completed, 280, cQueryCompletedId, &callFailed) && !callFailed && *(int32*)&completed[8] == 1;
+		bool ok = !failed && sGetCallResult(sUtils, pending.call, &completed, 280, QueryCompletedId, &callFailed) && !callFailed && *(int32*)&completed[8] == 1;
 		if (ok)
 		{
 			let count = ReadU32(&completed[12]);
@@ -385,15 +390,24 @@ static class Workshop
 	{
 		let update = sStartItemUpdate(sUgc, AppId, pending.itemId);
 		sUpdateHandle = update;
-		if (!pending.title.IsEmpty && sSetItemTitle != null) sSetItemTitle(sUgc, update, pending.title.CStr());
-		if (!pending.description.IsEmpty && sSetItemDescription != null) sSetItemDescription(sUgc, update, pending.description.CStr());
-		if (sSetItemContent != null) sSetItemContent(sUgc, update, pending.folder.CStr());
-		if (!pending.preview.IsEmpty && sSetItemPreview != null) sSetItemPreview(sUgc, update, pending.preview.CStr());
-		if (sSetItemVisibility != null) sSetItemVisibility(sUgc, update, (int32)pending.visibility);
+		if (!pending.title.IsEmpty && sSetItemTitle != null)
+			sSetItemTitle(sUgc, update, pending.title.CStr());
+		if (!pending.description.IsEmpty && sSetItemDescription != null)
+			sSetItemDescription(sUgc, update, pending.description.CStr());
+		if (sSetItemContent != null)
+			sSetItemContent(sUgc, update, pending.folder.CStr());
+		if (!pending.preview.IsEmpty && sSetItemPreview != null)
+			sSetItemPreview(sUgc, update, pending.preview.CStr());
+		if (sSetItemVisibility != null)
+			sSetItemVisibility(sUgc, update, (int32)pending.visibility);
 		if (!pending.tags.IsEmpty && sSetItemTags != null)
 		{
 			List<String> owned = scope .();
-			defer { for (let tag in owned) delete tag; }
+			defer
+			{
+				for (let tag in owned)
+					delete tag;
+			}
 			List<char8*> pointers = scope .();
 			for (let part in pending.tags.Split(','))
 			{
@@ -461,7 +475,7 @@ static class Workshop
 				// CreateItemResult_t: result, then the new item's id.
 				uint8[64] created = default;
 				bool callFailed = failed;
-				if (!failed && sGetCallResult(sUtils, pending.call, &created, 16, cCreateItemId, &callFailed) && !callFailed && *(int32*)&created[0] == 1)
+				if (!failed && sGetCallResult(sUtils, pending.call, &created, 16, CreateItemId, &callFailed) && !callFailed && *(int32*)&created[0] == 1)
 				{
 					pending.itemId = ReadU64(&created[4]);
 					Submit(pending);
@@ -472,7 +486,7 @@ static class Workshop
 				// SubmitItemUpdateResult_t: result first.
 				uint8[64] submitted = default;
 				bool callFailed = failed;
-				let ok = !failed && sGetCallResult(sUtils, pending.call, &submitted, 16, cSubmitUpdateId, &callFailed) && !callFailed && *(int32*)&submitted[0] == 1;
+				let ok = !failed && sGetCallResult(sUtils, pending.call, &submitted, 16, SubmitUpdateId, &callFailed) && !callFailed && *(int32*)&submitted[0] == 1;
 				sUpdateHandle = 0;
 				pending.publishDone(pending.itemId, ok, ok ? "Published." : scope $"Steam refused the upload (result {*(int32*)&submitted[0]}).");
 			}

@@ -11,10 +11,10 @@ namespace Tessera.Editor;
 /// file changes. One is made per frame, so opening a folder full of models does not stall the editor.
 static class AssetPreviews
 {
-	const int32 cSize = 128;
+	const int32 PreviewSize = 128;
 	/// The preview scene renders in views 50 to 56; the copy into the kept picture happens in the view after.
-	const uint16 cViewBase = 50;
-	const uint16 cCopyView = 58;
+	const uint16 ViewBase = 50;
+	const uint16 CopyView = 58;
 
 	class Entry
 	{
@@ -63,8 +63,10 @@ static class AssetPreviews
 	static void Queue(StringView fullPath)
 	{
 		for (let queued in sQueue)
+		{
 			if (queued == fullPath)
 				return;
+		}
 		sQueue.Add(new String(fullPath));
 	}
 
@@ -200,7 +202,7 @@ static class AssetPreviews
 			return;
 		if (sView == null)
 		{
-			sView = new RenderView(cViewBase);
+			sView = new RenderView(ViewBase);
 			sView.ShowAmbientOcclusion = false;
 			sView.ShowDepthOfField = false;
 			sView.ShowMotionBlur = false;
@@ -232,21 +234,21 @@ static class AssetPreviews
 		if (entry.failed)
 			return;
 		Frame();
-		sView.Resize(cSize, cSize);
+		sView.Resize(PreviewSize, PreviewSize);
 		sView.Render(sScene, sCamera.GetCameraData(1));
 		if (entry.texture.idx == uint16.MaxValue)
-			entry.texture = bgfx.create_texture_2d((uint16)cSize, (uint16)cSize, false, 1, .RGBA8, (uint64)bgfx.TextureFlags.BlitDst, null, 0);
+			entry.texture = bgfx.create_texture_2d((uint16)PreviewSize, (uint16)PreviewSize, false, 1, .RGBA8, (uint64)bgfx.TextureFlags.BlitDst, null, 0);
 		// The scene's picture is copied out in a later view of the same frame, so the next asset can reuse the scene.
 		bgfx.TextureRegion from = default, to = default;
 		from.handle.idx = sView.OutputTexture;
-		from.width = (uint16)cSize;
-		from.height = (uint16)cSize;
+		from.width = (uint16)PreviewSize;
+		from.height = (uint16)PreviewSize;
 		from.depth = 1;
 		to.handle = entry.texture;
-		to.width = (uint16)cSize;
-		to.height = (uint16)cSize;
+		to.width = (uint16)PreviewSize;
+		to.height = (uint16)PreviewSize;
 		to.depth = 1;
-		bgfx.blit(cCopyView, &to, &from);
+		bgfx.blit(CopyView, &to, &from);
 		sRevision++;
 	}
 

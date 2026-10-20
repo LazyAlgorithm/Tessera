@@ -607,9 +607,12 @@ class UIDocumentData
 		float spacing = gap;
 		if (grow <= 0)
 		{
-			if (justify == "center") cursor = free * 0.5f;
-			else if (justify == "end") cursor = free;
-			else if (justify == "space-between" && count > 1) spacing = gap + free / (count - 1);
+			if (justify == "center")
+				cursor = free * 0.5f;
+			else if (justify == "end")
+				cursor = free;
+			else if (justify == "space-between" && count > 1)
+				spacing = gap + free / (count - 1);
 		}
 
 		for (let child in element.children)
@@ -629,8 +632,10 @@ class UIDocumentData
 				let hasRight = child.Length("right", width, out right);
 				let hasTop = child.Length("top", height, out top);
 				let hasBottom = child.Length("bottom", height, out bottom);
-				if (hasLeft && hasRight) cw = Math.Max(width - left - right, 0);
-				if (hasTop && hasBottom) ch = Math.Max(height - top - bottom, 0);
+				if (hasLeft && hasRight)
+					cw = Math.Max(width - left - right, 0);
+				if (hasTop && hasBottom)
+					ch = Math.Max(height - top - bottom, 0);
 				cx = hasLeft ? x + left : (hasRight ? x + width - right - cw : x);
 				cy = hasTop ? y + top : (hasBottom ? y + height - bottom - ch : y);
 				Arrange(child, cx, cy, cw, ch);
@@ -785,226 +790,268 @@ class UIDocumentData
 		}
 	}
 
+	/// Where an element is on screen this frame, and how the pointer (or the controller's highlight) is on it.
+	struct ElementFrame
+	{
+		public ImGui.Vec2 min;
+		public ImGui.Vec2 max;
+		public ImGui.Vec2 mouse;
+		public float radius;
+		/// Under the pointer; with a controller in use, "has the highlight".
+		public bool over;
+		/// Clicked this frame (the controller's bottom button when it has the highlight).
+		public bool pressed;
+		public bool interactive;
+		public Color color;
+	}
+
 	void DrawElement(UIElement element, ImGui.Vec2 origin, UIDocument binder, bool canInteract)
 	{
-        let interactive=canInteract && element.attributes.Get("disabled") != "true";
 		if (!element.visible || element.computed.Get("display") == "none")
 			return;
-		let min = ImGui.Vec2(origin.x + element.x * scale, origin.y + element.y * scale);
-		let max = ImGui.Vec2(min.x + element.width * scale, min.y + element.height * scale);
-		let radius = element.Number("border-radius") * scale;
-		element.screenX = min.x;
-		element.screenY = min.y;
-		element.screenWidth = max.x - min.x;
-		element.screenHeight = max.y - min.y;
+		ElementFrame frame;
+		frame.interactive = canInteract && element.attributes.Get("disabled") != "true";
+		frame.min = ImGui.Vec2(origin.x + element.x * scale, origin.y + element.y * scale);
+		frame.max = ImGui.Vec2(frame.min.x + element.width * scale, frame.min.y + element.height * scale);
+		frame.radius = element.Number("border-radius") * scale;
+		frame.mouse = ImGui.GetMousePos();
+		frame.over = mFocusMode ? element == focused : (frame.mouse.x >= frame.min.x && frame.mouse.x < frame.max.x && frame.mouse.y >= frame.min.y && frame.mouse.y < frame.max.y);
+		frame.pressed = mFocusMode ? mFocusPress : ImGui.IsMouseReleased(0);
+		frame.color = element.ColorOf("color", .(0.9f, 0.9f, 0.9f, 1));
+		element.screenX = frame.min.x;
+		element.screenY = frame.min.y;
+		element.screenWidth = frame.max.x - frame.min.x;
+		element.screenHeight = frame.max.y - frame.min.y;
 		element.screenScale = scale;
+
+		DrawBox(element, frame);
+		switch (element.tag)
+		{
+		case "image":
+			DrawImageElement(element, frame);
+		case "slider":
+			DrawSlider(element, frame, binder);
+		case "toggle":
+			DrawToggle(element, frame, binder);
+		case "bar":
+			DrawBar(element, frame, binder);
+		case "input":
+			DrawInput(element, frame, binder);
+		case "canvas":
+			// A canvas is drawn by the game: its ondraw handler is called here, between what is behind it and its
+			// own children.
+			if (binder == null)
+				DrawCanvasPlaceholder(element, frame.min, frame.max);
+			else
+			{
+				let handler = element.attributes.Get("ondraw");
+				if (!handler.IsEmpty)
+					binder.Invoke(handler, element);
+			}
+		default:
+			if (UIDocumentData.IsTextTag(element.tag))
+				DrawTextElement(element, frame, binder);
+		}
+		for (let child in element.children)
+			DrawElement(child, origin, binder, frame.interactive);
+	}
+
+	/// The element's background and border, with hover and press feedback on buttons (no style rules needed).
+	void DrawBox(UIElement element, ElementFrame frame)
+	{
 		var background = element.ColorOf("background-color", .(0, 0, 0, 0));
-		let mouse = ImGui.GetMousePos();
-		// With a controller in use, "under the pointer" means "has the highlight", and its bottom button is the click.
-		let over = mFocusMode ? element == focused : (mouse.x >= min.x && mouse.x < max.x && mouse.y >= min.y && mouse.y < max.y);
-		let pressed = mFocusMode ? mFocusPress : ImGui.IsMouseReleased(0);
 		let isButton = element.tag == "button" || element.attributes.Has("onclick");
-		if (interactive && (isButton || element.tag == "toggle" || element.tag == "slider"))
+		if (frame.interactive && (isButton || element.tag == "toggle" || element.tag == "slider"))
 			mNavigable.Add(element);
-		if (isButton && over && interactive)
+		if (isButton && frame.over && frame.interactive)
 		{
 			hovered = element;
 			GUI.MouseOverControl = true;
-			// Hover and press feedback without needing extra style rules.
 			let shift = (mFocusMode ? mFocusDown : ImGui.IsMouseDown(0)) ? -0.06f : 0.08f;
-            if(element.attributes.Get("feedback") != "none")
+			if (element.attributes.Get("feedback") != "none")
 				background = .(Mathf.Clamp01(background.r + shift), Mathf.Clamp01(background.g + shift), Mathf.Clamp01(background.b + shift), Math.Max(background.a, 0.25f));
-			if (pressed)
+			if (frame.pressed)
 				clicked = element;
 		}
 		if (background.a > 0.003f)
-			ImGui.DrawRectFilled(min, max, background, radius);
+			ImGui.DrawRectFilled(frame.min, frame.max, background, frame.radius);
 		let borderWidth = element.Number("border-width") * scale;
 		if (borderWidth > 0)
-			ImGui.DrawRect(min, max, element.ColorOf("border-color", .(1, 1, 1, 0.3f)), radius, borderWidth);
+			ImGui.DrawRect(frame.min, frame.max, element.ColorOf("border-color", .(1, 1, 1, 0.3f)), frame.radius, borderWidth);
+	}
 
+	void DrawImageElement(UIElement element, ElementFrame frame)
+	{
+		let source = element.attributes.Get("src");
+		if (source.IsEmpty)
+			return;
+		ImGui.SetCursorScreenPos(frame.min);
+		ImGui.Image(Assets.GetTexture(source).idx, .(element.width * scale, element.height * scale), .(0, 0), .(1, 1), false);
+	}
+
+	/// A track with a filled part and a knob. Drag anywhere along it.
+	void DrawSlider(UIElement element, ElementFrame frame, UIDocument binder)
+	{
+		let low = SceneSerializer.ParseFloat(element.attributes.Get("min", "0"));
+		let high = SceneSerializer.ParseFloat(element.attributes.Get("max", "1"));
+		let step = SceneSerializer.ParseFloat(element.attributes.Get("step", "0"));
+		let bind = element.attributes.Get("bind");
+		let bound = scope String();
+		if (binder != null && !bind.IsEmpty && binder.ReadBinding(bind, bound) && float.Parse(bound) case .Ok(let number))
+			element.value = number;
+		let min = frame.min, max = frame.max;
+		let knob = element.Number("slider-thumb-size", element.height) * scale * 0.5f;
+		let left = min.x + knob, right = max.x - knob;
+		if (frame.interactive && !mFocusMode && ((frame.over && ImGui.IsMouseClicked(0)) || mDragging == element))
+		{
+			mDragging = element;
+			GUI.MouseOverControl = true;
+			var next = low + Mathf.Clamp01((frame.mouse.x - left) / Math.Max(right - left, 1)) * (high - low);
+			if (step > 0)
+				next = low + Math.Round((next - low) / step) * step;
+			if (next != element.value)
+			{
+				element.value = next;
+				changed = element;
+				if (binder != null && !bind.IsEmpty)
+					binder.WriteBinding(bind, scope $"{next}");
+			}
+		}
+		if (frame.over && frame.interactive)
+			GUI.MouseOverControl = true;
+		let fraction = high > low ? Mathf.Clamp01((element.value - low) / (high - low)) : 0;
+		let middle = (min.y + max.y) * 0.5f;
+		let thickness = Math.Max(element.screenHeight * 0.16f, 2);
+		let trackSource = element.attributes.Get("track-src");
+		if (trackSource.IsEmpty)
+		{
+			ImGui.DrawRectFilled(.(left, middle - thickness), .(left + (right - left) * fraction, middle + thickness), frame.color, thickness);
+			ImGui.DrawCircleFilled(.(left + (right - left) * fraction, middle), knob * (frame.over || mDragging == element ? 1.0f : 0.82f), .(1, 1, 1, 1));
+			return;
+		}
+		// Pictures for the track, the filled part and the knob.
+		let halfTrack = element.Number("slider-track-height", element.height * 0.32f) * scale * 0.5f;
+		let thumbX = left + (right - left) * fraction;
+		ImGui.DrawImage(Assets.GetTexture(trackSource).idx, .(min.x, middle - halfTrack), .(max.x, middle + halfTrack), false);
+		let fillSource = element.attributes.Get("fill-src");
+		if (!fillSource.IsEmpty && thumbX > min.x)
+			ImGui.DrawImage(Assets.GetTexture(fillSource).idx, .(min.x, middle - halfTrack), .(thumbX, middle + halfTrack), false);
+		let thumbSource = element.attributes.Get("thumb-src");
+		if (!thumbSource.IsEmpty)
+			ImGui.DrawImage(Assets.GetTexture(thumbSource).idx, .(thumbX - knob, middle - knob), .(thumbX + knob, middle + knob), false);
+	}
+
+	/// A pill with a knob at one end, off to the left and on to the right (or, toggle-style: button, a coloured button).
+	void DrawToggle(UIElement element, ElementFrame frame, UIDocument binder)
+	{
+		let bind = element.attributes.Get("bind");
+		let bound = scope String();
+		if (binder != null && !bind.IsEmpty && binder.ReadBinding(bind, bound))
+			element.value = (bound == "1" || bound == "true") ? 1 : 0;
+		if (frame.interactive && frame.over)
+		{
+			GUI.MouseOverControl = true;
+			hovered = element;
+			if (frame.pressed)
+			{
+				element.value = element.value > 0.5f ? 0 : 1;
+				changed = element;
+				if (binder != null && !bind.IsEmpty)
+					binder.WriteBinding(bind, element.value > 0.5f ? "1" : "0");
+			}
+		}
+		let on = element.value > 0.5f;
+		let half = element.screenHeight * 0.5f;
+		if (element.computed.Get("toggle-style") == "button")
+		{
+			let fill = frame.over ? Color(0.86f, 0.84f, 0.12f, 1) : (on ? Color(0.95f, 0.59f, 0.05f, 1) : Color(0.18f, 0.35f, 0.76f, 1));
+			ImGui.DrawRectFilled(frame.min, frame.max, fill, 3 * scale);
+			return;
+		}
+		if (on)
+			ImGui.DrawRectFilled(frame.min, frame.max, frame.color, half);
+		ImGui.DrawCircleFilled(.(on ? frame.max.x - half : frame.min.x + half, frame.min.y + half), half * 0.78f, .(1, 1, 1, 1));
+	}
+
+	/// A bar filled to its value (0 to 1), or to the bound field's.
+	void DrawBar(UIElement element, ElementFrame frame, UIDocument binder)
+	{
+		float fraction = Mathf.Clamp01(element.value);
+		let bind = element.attributes.Get("bind");
+		let value = scope String();
+		if (binder != null && !bind.IsEmpty && binder.ReadBinding(bind, value) && float.Parse(value) case .Ok(let number))
+			fraction = number;
+		// With nothing to ask (the editor's still preview), show it half full.
+		if (binder == null)
+			fraction = 0.5f;
+		let fill = (element.width * scale - 4) * Mathf.Clamp01(fraction);
+		if (fill > 0)
+			ImGui.DrawRectFilled(.(frame.min.x + 2, frame.min.y + 2), .(frame.min.x + 2 + fill, frame.max.y - 2), frame.color, Math.Max(frame.radius - 1, 0));
+	}
+
+	/// A text box editing the bound field.
+	void DrawInput(UIElement element, ElementFrame frame, UIDocument binder)
+	{
+		let bind = element.attributes.Get("bind");
+		let value = scope String();
+		if (binder != null && !bind.IsEmpty)
+			binder.ReadBinding(bind, value);
+		ImGui.SetCursorScreenPos(frame.min);
+		ImGui.SetNextItemWidth(element.width * scale);
+		ImGui.PushID(Internal.UnsafeCastToPtr(element));
+		ImGui.BeginDisabled(!frame.interactive);
+		if (ImGui.InputText("##input", value) && binder != null && !bind.IsEmpty)
+			binder.WriteBinding(bind, value);
+		// A phone's keyboard does not come up for the game's canvas: in a browser on a touch screen, a tap on the
+		// box asks in the browser's own box instead (prompt="..." is its question), where Paste works too.
+		if (WebPlatform.IsWeb && Input.UsingTouch && frame.interactive && !mFocusMode && frame.over && ImGui.IsMouseReleased(0))
+		{
+			if (ImGui.IsItemActive())
+				ImGui.ClearActiveID();
+			let title = element.attributes.Get("prompt");
+			if (WebPlatform.PromptText(title.IsEmpty ? "Type here" : title, value) && binder != null && !bind.IsEmpty)
+				binder.WriteBinding(bind, value);
+		}
+		if (ImGui.IsItemHovered() || ImGui.IsItemActive())
+			GUI.MouseOverControl = true;
+		ImGui.EndDisabled();
+		ImGui.PopID();
+	}
+
+	/// An element's text: its own, or with bind="field" a value from the controller, aligned as its style says.
+	void DrawTextElement(UIElement element, ElementFrame frame, UIDocument binder)
+	{
+		let shown = scope String(element.text);
+		let bind = element.attributes.Get("bind");
+		if (binder != null && !bind.IsEmpty)
+		{
+			shown.Clear();
+			binder.ReadBinding(bind, shown);
+		}
+		if (shown.IsEmpty)
+			return;
 		var padding = element.Edges("padding");
 		padding = .(padding.x * scale, padding.y * scale, padding.z * scale, padding.w * scale);
-		let fontSize = element.Number("font-size", 16) * scale;
-		let color = element.ColorOf("color", .(0.9f, 0.9f, 0.9f, 1));
-		if (element.tag == "image")
-		{
-			let source = element.attributes.Get("src");
-			if (!source.IsEmpty)
-			{
-				ImGui.SetCursorScreenPos(min);
-				ImGui.Image(Assets.GetTexture(source).idx, .(element.width * scale, element.height * scale), .(0, 0), .(1, 1), false);
-			}
-		}
-		else if (element.tag == "slider")
-		{
-			// A track with a filled part and a knob. Drag anywhere along it.
-			let low = SceneSerializer.ParseFloat(element.attributes.Get("min", "0"));
-			let high = SceneSerializer.ParseFloat(element.attributes.Get("max", "1"));
-			let step = SceneSerializer.ParseFloat(element.attributes.Get("step", "0"));
-			let bind = element.attributes.Get("bind");
-			let bound = scope String();
-			if (binder != null && !bind.IsEmpty && binder.ReadBinding(bind, bound) && float.Parse(bound) case .Ok(let number))
-				element.value = number;
-			let knob = element.Number("slider-thumb-size", element.height) * scale * 0.5f;
-			let left = min.x + knob, right = max.x - knob;
-			if (interactive && !mFocusMode && ((over && ImGui.IsMouseClicked(0)) || mDragging == element))
-			{
-				mDragging = element;
-				GUI.MouseOverControl = true;
-				var next = low + Mathf.Clamp01((mouse.x - left) / Math.Max(right - left, 1)) * (high - low);
-				if (step > 0)
-					next = low + Math.Round((next - low) / step) * step;
-				if (next != element.value)
-				{
-					element.value = next;
-					changed = element;
-					if (binder != null && !bind.IsEmpty)
-						binder.WriteBinding(bind, scope $"{next}");
-				}
-			}
-			if (over && interactive)
-				GUI.MouseOverControl = true;
-			let fraction = high > low ? Mathf.Clamp01((element.value - low) / (high - low)) : 0;
-			let middle = (min.y + max.y) * 0.5f;
-			let thickness = Math.Max(element.screenHeight * 0.16f, 2);
-			let trackSource = element.attributes.Get("track-src");
-			if (!trackSource.IsEmpty)
-			{
-				let halfTrack = element.Number("slider-track-height", element.height * 0.32f) * scale * 0.5f;
-				let thumbX = left + (right - left) * fraction;
-				ImGui.DrawImage(Assets.GetTexture(trackSource).idx, .(min.x, middle - halfTrack), .(max.x, middle + halfTrack), false);
-				let fillSource = element.attributes.Get("fill-src");
-				if (!fillSource.IsEmpty && thumbX > min.x)
-					ImGui.DrawImage(Assets.GetTexture(fillSource).idx, .(min.x, middle - halfTrack), .(thumbX, middle + halfTrack), false);
-				let thumbSource = element.attributes.Get("thumb-src");
-				if (!thumbSource.IsEmpty)
-					ImGui.DrawImage(Assets.GetTexture(thumbSource).idx, .(thumbX - knob, middle - knob), .(thumbX + knob, middle + knob), false);
-			}
-			else
-			{
-				ImGui.DrawRectFilled(.(left, middle - thickness), .(left + (right - left) * fraction, middle + thickness), color, thickness);
-				ImGui.DrawCircleFilled(.(left + (right - left) * fraction, middle), knob * (over || mDragging == element ? 1.0f : 0.82f), .(1, 1, 1, 1));
-			}
-		}
-		else if (element.tag == "toggle")
-		{
-			// A pill with a knob at one end: off to the left, on to the right.
-			let bind = element.attributes.Get("bind");
-			let bound = scope String();
-			if (binder != null && !bind.IsEmpty && binder.ReadBinding(bind, bound))
-				element.value = (bound == "1" || bound == "true") ? 1 : 0;
-			if (interactive && over)
-			{
-				GUI.MouseOverControl = true;
-				hovered = element;
-				if (pressed)
-				{
-					element.value = element.value > 0.5f ? 0 : 1;
-					changed = element;
-					if (binder != null && !bind.IsEmpty)
-						binder.WriteBinding(bind, element.value > 0.5f ? "1" : "0");
-				}
-			}
-			let on = element.value > 0.5f;
-			let half = element.screenHeight * 0.5f;
-			if (element.computed.Get("toggle-style") == "button")
-			{
-				let fill = over ? Color(0.86f,0.84f,0.12f,1) : (on ? Color(0.95f,0.59f,0.05f,1) : Color(0.18f,0.35f,0.76f,1));
-				ImGui.DrawRectFilled(min, max, fill, 3*scale);
-			}
-			else
-			{
-				if (on) ImGui.DrawRectFilled(min, max, color, half);
-				ImGui.DrawCircleFilled(.(on ? max.x - half : min.x + half, min.y + half), half * 0.78f, .(1, 1, 1, 1));
-			}
-		}
-		else if (element.tag == "bar")
-		{
-			float fraction = Mathf.Clamp01(element.value);
-			let bind = element.attributes.Get("bind");
-			let value = scope String();
-			if (binder != null && !bind.IsEmpty && binder.ReadBinding(bind, value) && float.Parse(value) case .Ok(let number))
-				fraction = number;
-			// With nothing to ask (the editor's still preview), show it half full.
-			if (binder == null)
-				fraction = 0.5f;
-			let fill = (element.width * scale - 4) * Mathf.Clamp01(fraction);
-			if (fill > 0)
-				ImGui.DrawRectFilled(.(min.x + 2, min.y + 2), .(min.x + 2 + fill, max.y - 2), color, Math.Max(radius - 1, 0));
-		}
-		else if (element.tag == "input")
-		{
-			let bind = element.attributes.Get("bind");
-			let value = scope String();
-			if (binder != null && !bind.IsEmpty)
-				binder.ReadBinding(bind, value);
-			ImGui.SetCursorScreenPos(min);
-			ImGui.SetNextItemWidth(element.width * scale);
-			ImGui.PushID(Internal.UnsafeCastToPtr(element));
-			ImGui.BeginDisabled(!interactive);
-			if (ImGui.InputText("##input", value) && binder != null && !bind.IsEmpty)
-				binder.WriteBinding(bind, value);
-			// A phone's keyboard does not come up for the game's canvas: in a browser on a touch screen, a tap on the
-			// box asks in the browser's own box instead (prompt="..." is its question), where Paste works too.
-			if (WebPlatform.IsWeb && Input.UsingTouch && interactive && !mFocusMode && over && ImGui.IsMouseReleased(0))
-			{
-				if (ImGui.IsItemActive())
-					ImGui.ClearActiveID();
-				let title = element.attributes.Get("prompt");
-				if (WebPlatform.PromptText(title.IsEmpty ? "Type here" : title, value) && binder != null && !bind.IsEmpty)
-					binder.WriteBinding(bind, value);
-			}
-			if (ImGui.IsItemHovered() || ImGui.IsItemActive())
-				GUI.MouseOverControl = true;
-			ImGui.EndDisabled();
-			ImGui.PopID();
-		}
-		else if (UIDocumentData.IsTextTag(element.tag))
-		{
-			// bind="field" shows a value from the controller in place of the written text.
-			let shown = scope String(element.text);
-			let bind = element.attributes.Get("bind");
-			if (binder != null && !bind.IsEmpty)
-			{
-				shown.Clear();
-				binder.ReadBinding(bind, shown);
-			}
-			if (!shown.IsEmpty)
-			{
-				ImGui.PushFontSize(fontSize);
-				let size = ImGui.CalcTextSize(shown.CStr());
-				var tx = min.x + padding.x;
-				var ty = min.y + padding.y;
-				let alignText = element.computed.Get("text-align", element.tag == "button" ? "center" : "left");
-			// Text in an element with a height of its own sits in the middle of it.
-			if (element.tag == "text" && element.computed.Has("height"))
-				ty = min.y + (element.screenHeight - size.y) * 0.5f;
-				if (alignText == "center")
-					tx = min.x + (element.width * scale - size.x) * 0.5f;
-				else if (alignText == "right")
-					tx = max.x - padding.z - size.x;
-				if (element.tag == "button")
-					ty = min.y + (element.height * scale - size.y) * 0.5f;
-				if (element.computed.Get("white-space") == "normal")
-					ImGui.DrawTextWrapped(.(min.x + padding.x, ty), color, shown.CStr(), element.width * scale - padding.x - padding.z);
-				else
-					ImGui.DrawText(.(tx, ty), color, shown.CStr());
-				ImGui.PopFont();
-			}
-		}
-		// A canvas is drawn by the game: its ondraw handler is called here, between what is behind it and its
-		// own children.
-		if (element.tag == "canvas" && binder != null)
-		{
-			let handler = element.attributes.Get("ondraw");
-			if (!handler.IsEmpty)
-				binder.Invoke(handler, element);
-		}
-		else if (element.tag == "canvas")
-			DrawCanvasPlaceholder(element, min, max);
-		for (let child in element.children)
-			DrawElement(child, origin, binder, interactive);
+		let min = frame.min, max = frame.max;
+		ImGui.PushFontSize(element.Number("font-size", 16) * scale);
+		let size = ImGui.CalcTextSize(shown.CStr());
+		var tx = min.x + padding.x;
+		var ty = min.y + padding.y;
+		let alignText = element.computed.Get("text-align", element.tag == "button" ? "center" : "left");
+		// Text in an element with a height of its own sits in the middle of it.
+		if (element.tag == "text" && element.computed.Has("height"))
+			ty = min.y + (element.screenHeight - size.y) * 0.5f;
+		if (alignText == "center")
+			tx = min.x + (element.width * scale - size.x) * 0.5f;
+		else if (alignText == "right")
+			tx = max.x - padding.z - size.x;
+		if (element.tag == "button")
+			ty = min.y + (element.height * scale - size.y) * 0.5f;
+		if (element.computed.Get("white-space") == "normal")
+			ImGui.DrawTextWrapped(.(min.x + padding.x, ty), frame.color, shown.CStr(), element.width * scale - padding.x - padding.z);
+		else
+			ImGui.DrawText(.(tx, ty), frame.color, shown.CStr());
+		ImGui.PopFont();
 	}
 
 	/// What the editor's preview shows where the game will draw (there is nothing to call there): a tinted box
@@ -1024,15 +1071,29 @@ class UIDocumentData
 		float r = 0, g = 0, b = 0;
 		switch ((int)hue)
 		{
-		case 0: r = 1; g = part;
-		case 1: r = 1 - part; g = 1;
-		case 2: g = 1; b = part;
-		case 3: g = 1 - part; b = 1;
-		case 4: r = part; b = 1;
-		default: r = 1; b = 1 - part;
+		case 0:
+			r = 1;
+			g = part;
+		case 1:
+			r = 1 - part;
+			g = 1;
+		case 2:
+			g = 1;
+			b = part;
+		case 3:
+			g = 1 - part;
+			b = 1;
+		case 4:
+			r = part;
+			b = 1;
+		default:
+			r = 1;
+			b = 1 - part;
 		}
 		// Softened towards white so that the label reads on any tint.
-		r = 0.45f + r * 0.55f; g = 0.45f + g * 0.55f; b = 0.45f + b * 0.55f;
+		r = 0.45f + r * 0.55f;
+		g = 0.45f + g * 0.55f;
+		b = 0.45f + b * 0.55f;
 		let picture = element.attributes.Get("preview-src");
 		// A canvas over the whole view (cross-hairs, name tags) would tint everything under it: it gets a frame only.
 		let covers = element.width >= mViewWidth * 0.9f && element.height >= mViewHeight * 0.9f;

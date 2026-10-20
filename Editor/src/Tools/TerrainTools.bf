@@ -20,10 +20,10 @@ extension EditorApp
 	bool mBrushTest;
 	Vector3 mBrushTestPoint;
 
-	const int32 cTilesTool = 5;
-	const int32 cFoliageTool = 6;
-	static readonly char8*[?] cBrushNames = .("Raise", "Lower", "Smooth", "Flatten", "Paint", "Tiles", "Foliage");
-	static readonly char8*[?] cLayerNames = .("Automatic", "Grass", "Rock", "Sand", "Snow", "Dirt");
+	const int32 TilesTool = 5;
+	const int32 FoliageTool = 6;
+	static readonly char8*[?] BrushNames = .("Raise", "Lower", "Smooth", "Flatten", "Paint", "Tiles", "Foliage");
+	static readonly char8*[?] LayerNames = .("Automatic", "Grass", "Rock", "Sand", "Snow", "Dirt");
 
 	void DrawTerrainTools(VoxelTerrain terrain)
 	{
@@ -35,22 +35,22 @@ extension EditorApp
 		{
 			if (i != 0 && i != 5)
 				ImGui.SameLine();
-			if (ToolButton(cBrushNames[i], mBrushTool == i, width))
+			if (ToolButton(BrushNames[i], mBrushTool == i, width))
 			{
 				mBrushTool = mBrushTool == i ? -1 : i;
-				if (mBrushTool != cFoliageTool)
+				if (mBrushTool != FoliageTool)
 					mFoliagePainting = null;
 			}
-			if (i == cFoliageTool && ImGui.IsItemHovered())
+			if (i == FoliageTool && ImGui.IsItemHovered())
 				ImGui.SetTooltip("Grass, bushes and trees painted on the ground.");
 		}
-		if (mBrushTool == cFoliageTool)
+		if (mBrushTool == FoliageTool)
 		{
 			DrawTerrainFoliage(terrain);
 			return;
 		}
 
-		if (mBrushTool == cTilesTool)
+		if (mBrushTool == TilesTool)
 		{
 			DrawTileTools(terrain);
 			return;
@@ -64,11 +64,11 @@ extension EditorApp
 			if (mBrushTool == (int32)VoxelBrush.Paint)
 			{
 				BeginProperty("Layer");
-				if (ImGui.BeginCombo("##layer", cLayerNames[mPaintLayer]))
+				if (ImGui.BeginCombo("##layer", LayerNames[mPaintLayer]))
 				{
 					for (int32 i < 6)
 					{
-						if (ImGui.Selectable(cLayerNames[i], mPaintLayer == i))
+						if (ImGui.Selectable(LayerNames[i], mPaintLayer == i))
 							mPaintLayer = i;
 					}
 					ImGui.EndCombo();
@@ -218,7 +218,6 @@ extension EditorApp
 		}
 		ImGui.SameLine();
 		ImGui.TextDisabled("leaves a hole; undo brings it back");
-
 	}
 
 	/// Finishes the brush stroke in progress, keeping it as one undo step.
@@ -368,117 +367,25 @@ extension EditorApp
 		ImGui.TextWrapped("At runtime call Carve(point, radius) from a script; loose pieces break off and fall.");
 	}
 
-	/// The brush's preview in the Scene view: the patch of ground inside the brush, lying on the ground as it is, with a
-	/// see-through mesh over it of the shape the brush is about to give it (higher, lower, levelled, evened out, or
-	/// tinted with the paint layer). It is a guide to where and which way, not an exact forecast: how far the ground
-	/// moves depends on how long the brush is held. Returns false when the ground under the brush could not be read.
-	bool DrawBrushPreview(VoxelTerrain terrain, Vector3 center, VoxelBrush mode, float flattenHeight)
+	/// The patch of ground under the brush, sampled on a square grid: the ground's height at each point (NaN where
+	/// there is none), the height the brush is about to give it, and how much the brush acts there.
+	struct BrushPatch
 	{
-		let radius = mBrushSize;
-		let cells = (int)Math.Clamp(Math.Round(radius * 2 / Math.Max(terrain.voxelSize, 0.1f)), 10, 32);
-		let side = cells + 1;
-		float[] ground = scope float[side * side];
-		float[] after = scope float[side * side];
-		float[] weight = scope float[side * side];
-		let top = center.y + radius + 2;
-		let spacing = radius * 2 / cells;
-		int found = 0;
-		for (int j < side)
-		{
-			for (int i < side)
-			{
-				let at = i + j * side;
-				let x = center.x - radius + i * spacing, z = center.z - radius + j * spacing;
-				let away = Math.Sqrt((x - center.x) * (x - center.x) + (z - center.z) * (z - center.z));
-				weight[at] = Math.Max(1 - away / radius, 0);
-				ground[at] = float.NaN;
-				// A little beyond the brush too, so that the patch has a clean round edge to be cut to.
-				if (away > radius + spacing * 1.5f)
-					continue;
-				Vector3 hit;
-				if (terrain.Raycast(Ray(.(x, top, z), .(0, -1, 0)), (radius + 2) * 2, out hit))
-				{
-					ground[at] = hit.y;
-					found++;
-				}
-			}
-		}
-		if (found < 4)
-			return false;
-		// What the brush makes of each point. Raise and Lower move the ground by about what a second of holding does.
-		let push = Math.Clamp(mBrushStrength, 0.05f, 2) * Math.Min(radius * 0.35f, 4);
-		for (int j < side)
-		{
-			for (int i < side)
-			{
-				let at = i + j * side;
-				let height = ground[at];
-				if (height.IsNaN)
-				{
-					after[at] = float.NaN;
-					continue;
-				}
-				let w = weight[at];
-				switch (mode)
-				{
-				case .Raise: after[at] = height + push * w;
-				case .Lower: after[at] = height - push * w;
-				case .Flatten: after[at] = Mathf.Lerp(height, flattenHeight, Math.Min(w * 2.5f, 1));
-				case .Smooth:
-					float sum = 0;
-					int count = 0;
-					for (int dj = -2; dj <= 2; dj++)
-						for (int di = -2; di <= 2; di++)
-						{
-							let ni = i + di, nj = j + dj;
-							if (ni < 0 || nj < 0 || ni >= side || nj >= side || ground[ni + nj * side].IsNaN)
-								continue;
-							sum += ground[ni + nj * side];
-							count++;
-						}
-					after[at] = Mathf.Lerp(height, count > 0 ? sum / count : height, Math.Min(w * 2, 1));
-				default: after[at] = height;
-				}
-			}
-		}
-		Color tint;
-		switch (mode)
-		{
-		case .Raise: tint = .(0.35f, 0.9f, 0.45f, 1);
-		case .Lower: tint = .(1.0f, 0.45f, 0.3f, 1);
-		case .Flatten: tint = .(0.35f, 0.7f, 1.0f, 1);
-		case .Smooth: tint = .(0.8f, 0.6f, 1.0f, 1);
-		default:
-			// Paint: the colour of the layer that is about to go on.
-			float[6][3] layers = .(.(1, 1, 1), .(0.41f, 0.62f, 0.29f), .(0.5f, 0.48f, 0.45f), .(0.84f, 0.77f, 0.56f), .(0.93f, 0.94f, 0.96f), .(0.49f, 0.36f, 0.24f));
-			let layer = layers[Math.Clamp(mPaintLayer, 0, 5)];
-			tint = .(layer[0], layer[1], layer[2], 1);
-		}
-		let lift = Math.Max(terrain.voxelSize * 0.04f, 0.03f);
-		Vector3 On(int i, int j, float[] heights) => .(center.x - radius + i * spacing, heights[i + j * side] + lift, center.z - radius + j * spacing);
-		for (int j < cells)
-		{
-			for (int i < cells)
-			{
-				let a = i + j * side, b = a + 1, c = a + side + 1, d = a + side;
-				if (ground[a].IsNaN || ground[b].IsNaN || ground[c].IsNaN || ground[d].IsNaN)
-					continue;
-				let w = (weight[a] + weight[b] + weight[c] + weight[d]) * 0.25f;
-				if (w <= 0)
-					continue;
-				// The shape to come: stronger in the middle, fading to nothing at the brush's edge.
-				let fill = Color(tint.r * 0.75f, tint.g * 0.75f, tint.b * 0.75f, 0.3f + 0.45f * Math.Min(w * 1.6f, 1));
-				Gizmos.Triangles.Quad(On(i, j, after), On(i + 1, j, after), On(i + 1, j + 1, after), On(i, j + 1, after), fill);
-				// Its lines, every other cell, so that the slope reads.
-				if (i % 2 == 0)
-					Gizmos.Lines.Line(On(i, j, after), On(i, j + 1, after), .(tint.r * 0.35f, tint.g * 0.35f, tint.b * 0.35f, 0.9f * Math.Min(w * 3, 1)));
-				if (j % 2 == 0)
-					Gizmos.Lines.Line(On(i, j, after), On(i + 1, j, after), .(tint.r * 0.35f, tint.g * 0.35f, tint.b * 0.35f, 0.9f * Math.Min(w * 3, 1)));
-			}
-		}
-		// The brush's edge, lying on the ground as it is now, and on the shape to come.
-		let ringColor = Color(1.0f, 0.45f, 0.05f, 1);
-		float Height(float x, float z, float[] heights)
+		public Vector3 center;
+		public float radius;
+		public int cells;
+		public int side;
+		public float spacing;
+		/// How far the preview floats above the ground, so that it does not flicker into it.
+		public float lift;
+		public float[] ground;
+		public float[] after;
+		public float[] weight;
+
+		public Vector3 On(int i, int j, float[] heights) => .(center.x - radius + i * spacing, heights[i + j * side] + lift, center.z - radius + j * spacing);
+
+		/// The height at a point inside the patch, between the samples round it.
+		public float Height(float x, float z, float[] heights)
 		{
 			let fi = Math.Clamp((x - (center.x - radius)) / spacing, 0, cells - 0.001f), fj = Math.Clamp((z - (center.z - radius)) / spacing, 0, cells - 0.001f);
 			let i = (int)fi, j = (int)fj;
@@ -488,21 +395,169 @@ extension EditorApp
 			let tx = fi - i, tz = fj - j;
 			return Mathf.Lerp(Mathf.Lerp(h00, h10, tx), Mathf.Lerp(h01, h11, tx), tz);
 		}
+	}
+
+	/// The brush's preview in the Scene view: the patch of ground inside the brush, lying on the ground as it is, with a
+	/// see-through mesh over it of the shape the brush is about to give it (higher, lower, levelled, evened out, or
+	/// tinted with the paint layer). It is a guide to where and which way, not an exact forecast: how far the ground
+	/// moves depends on how long the brush is held. Returns false when the ground under the brush could not be read.
+	bool DrawBrushPreview(VoxelTerrain terrain, Vector3 center, VoxelBrush mode, float flattenHeight)
+	{
+		BrushPatch patch;
+		patch.center = center;
+		patch.radius = mBrushSize;
+		patch.cells = (int)Math.Clamp(Math.Round(patch.radius * 2 / Math.Max(terrain.voxelSize, 0.1f)), 10, 32);
+		patch.side = patch.cells + 1;
+		patch.spacing = patch.radius * 2 / patch.cells;
+		patch.lift = Math.Max(terrain.voxelSize * 0.04f, 0.03f);
+		patch.ground = scope float[patch.side * patch.side];
+		patch.after = scope float[patch.side * patch.side];
+		patch.weight = scope float[patch.side * patch.side];
+		if (SampleBrushGround(terrain, ref patch) < 4)
+			return false;
+		ShapeUnderBrush(ref patch, mode, flattenHeight);
+		let tint = BrushTint(mode);
+		DrawBrushShape(patch, tint);
+		DrawBrushEdge(patch);
+		return true;
+	}
+
+	/// Reads the ground's height at every point of the patch (and a little beyond the brush, so that the patch has a
+	/// clean round edge to be cut to), with how much the brush acts there. Returns how many points have ground.
+	static int SampleBrushGround(VoxelTerrain terrain, ref BrushPatch patch)
+	{
+		let center = patch.center;
+		let radius = patch.radius;
+		let top = center.y + radius + 2;
+		int found = 0;
+		for (int j < patch.side)
+		{
+			for (int i < patch.side)
+			{
+				let at = i + j * patch.side;
+				let x = center.x - radius + i * patch.spacing, z = center.z - radius + j * patch.spacing;
+				let away = Math.Sqrt((x - center.x) * (x - center.x) + (z - center.z) * (z - center.z));
+				patch.weight[at] = Math.Max(1 - away / radius, 0);
+				patch.ground[at] = float.NaN;
+				if (away > radius + patch.spacing * 1.5f)
+					continue;
+				Vector3 hit;
+				if (terrain.Raycast(Ray(.(x, top, z), .(0, -1, 0)), (radius + 2) * 2, out hit))
+				{
+					patch.ground[at] = hit.y;
+					found++;
+				}
+			}
+		}
+		return found;
+	}
+
+	/// What the brush makes of each point. Raise and Lower move the ground by about what a second of holding does.
+	void ShapeUnderBrush(ref BrushPatch patch, VoxelBrush mode, float flattenHeight)
+	{
+		let push = Math.Clamp(mBrushStrength, 0.05f, 2) * Math.Min(patch.radius * 0.35f, 4);
+		let side = patch.side;
+		let ground = patch.ground;
+		for (int j < side)
+		{
+			for (int i < side)
+			{
+				let at = i + j * side;
+				let height = ground[at];
+				if (height.IsNaN)
+				{
+					patch.after[at] = float.NaN;
+					continue;
+				}
+				let w = patch.weight[at];
+				switch (mode)
+				{
+				case .Raise: patch.after[at] = height + push * w;
+				case .Lower: patch.after[at] = height - push * w;
+				case .Flatten: patch.after[at] = Mathf.Lerp(height, flattenHeight, Math.Min(w * 2.5f, 1));
+				case .Smooth:
+					float sum = 0;
+					int count = 0;
+					for (int dj = -2; dj <= 2; dj++)
+					{
+						for (int di = -2; di <= 2; di++)
+						{
+							let ni = i + di, nj = j + dj;
+							if (ni < 0 || nj < 0 || ni >= side || nj >= side || ground[ni + nj * side].IsNaN)
+								continue;
+							sum += ground[ni + nj * side];
+							count++;
+						}
+					}
+					patch.after[at] = Mathf.Lerp(height, count > 0 ? sum / count : height, Math.Min(w * 2, 1));
+				default: patch.after[at] = height;
+				}
+			}
+		}
+	}
+
+	/// The preview's colour: one for each sculpting brush, and for Paint the colour of the layer about to go on.
+	Color BrushTint(VoxelBrush mode)
+	{
+		switch (mode)
+		{
+		case .Raise: return .(0.35f, 0.9f, 0.45f, 1);
+		case .Lower: return .(1.0f, 0.45f, 0.3f, 1);
+		case .Flatten: return .(0.35f, 0.7f, 1.0f, 1);
+		case .Smooth: return .(0.8f, 0.6f, 1.0f, 1);
+		default:
+			float[6][3] layers = .(.(1, 1, 1), .(0.41f, 0.62f, 0.29f), .(0.5f, 0.48f, 0.45f), .(0.84f, 0.77f, 0.56f), .(0.93f, 0.94f, 0.96f), .(0.49f, 0.36f, 0.24f));
+			let layer = layers[Math.Clamp(mPaintLayer, 0, 5)];
+			return .(layer[0], layer[1], layer[2], 1);
+		}
+	}
+
+	/// The shape to come, see-through: stronger in the middle, fading to nothing at the brush's edge, with its lines
+	/// every other cell so that the slope reads.
+	static void DrawBrushShape(BrushPatch patch, Color tint)
+	{
+		let side = patch.side;
+		for (int j < patch.cells)
+		{
+			for (int i < patch.cells)
+			{
+				let a = i + j * side, b = a + 1, c = a + side + 1, d = a + side;
+				if (patch.ground[a].IsNaN || patch.ground[b].IsNaN || patch.ground[c].IsNaN || patch.ground[d].IsNaN)
+					continue;
+				let w = (patch.weight[a] + patch.weight[b] + patch.weight[c] + patch.weight[d]) * 0.25f;
+				if (w <= 0)
+					continue;
+				let after = patch.after;
+				let fill = Color(tint.r * 0.75f, tint.g * 0.75f, tint.b * 0.75f, 0.3f + 0.45f * Math.Min(w * 1.6f, 1));
+				Gizmos.Triangles.Quad(patch.On(i, j, after), patch.On(i + 1, j, after), patch.On(i + 1, j + 1, after), patch.On(i, j + 1, after), fill);
+				let line = Color(tint.r * 0.35f, tint.g * 0.35f, tint.b * 0.35f, 0.9f * Math.Min(w * 3, 1));
+				if (i % 2 == 0)
+					Gizmos.Lines.Line(patch.On(i, j, after), patch.On(i, j + 1, after), line);
+				if (j % 2 == 0)
+					Gizmos.Lines.Line(patch.On(i, j, after), patch.On(i + 1, j, after), line);
+			}
+		}
+	}
+
+	/// The brush's edge, lying on the ground as it is now, and a post in the middle from the ground to the shape to
+	/// come: how far and which way.
+	static void DrawBrushEdge(BrushPatch patch)
+	{
+		let center = patch.center;
+		let ringColor = Color(1.0f, 0.45f, 0.05f, 1);
 		Vector3 previous = default;
 		for (int s <= 64)
 		{
 			let angle = s * (Mathf.PI * 2 / 64);
-			let x = center.x + Math.Cos(angle) * radius, z = center.z + Math.Sin(angle) * radius;
-			let point = Vector3(x, Height(x, z, ground) + lift * 2, z);
+			let x = center.x + Math.Cos(angle) * patch.radius, z = center.z + Math.Sin(angle) * patch.radius;
+			let point = Vector3(x, patch.Height(x, z, patch.ground) + patch.lift * 2, z);
 			if (s > 0)
 				Gizmos.Lines.Line(previous, point, ringColor);
 			previous = point;
 		}
-		// A post from the ground to the shape to come, in the middle: how far and which way.
-		let middle = side / 2 + (side / 2) * side;
-		if (!ground[middle].IsNaN)
-			Gizmos.Lines.Line(.(center.x, ground[middle] + lift, center.z), .(center.x, after[middle] + lift, center.z), ringColor);
-		return true;
+		let middle = patch.side / 2 + (patch.side / 2) * patch.side;
+		if (!patch.ground[middle].IsNaN)
+			Gizmos.Lines.Line(.(center.x, patch.ground[middle] + patch.lift, center.z), .(center.x, patch.after[middle] + patch.lift, center.z), ringColor);
 	}
 
 	/// Runs the active brush under the mouse. Returns true when the brush is in control of the mouse.
@@ -513,7 +568,7 @@ extension EditorApp
 			// --brush-preview: the preview at a fixed place, for screenshots taken with nobody at the mouse.
 			let tested = selected.GetComponent<VoxelTerrain>();
 			Vector3 ground;
-			if (tested != null && mBrushTool >= 0 && mBrushTool < cTilesTool && tested.Raycast(Ray(mBrushTestPoint + Vector3(0, 300, 0), .(0, -1, 0)), 800, out ground))
+			if (tested != null && mBrushTool >= 0 && mBrushTool < TilesTool && tested.Raycast(Ray(mBrushTestPoint + Vector3(0, 300, 0), .(0, -1, 0)), 800, out ground))
 				DrawBrushPreview(tested, ground, (VoxelBrush)mBrushTool, ground.y + 2);
 		}
 		if (UpdateFoliageBrush(selected, origin, size))
@@ -540,83 +595,93 @@ extension EditorApp
 		}
 		let mouse = ImGui.GetMousePos();
 		let ray = mSceneCamera.ViewportPointToRay((mouse.x - origin.x) / size.x, (mouse.y - origin.y) / size.y);
-		let down = ImGui.IsMouseDown(0);
-		let color = Color(1.0f, 0.85f, 0.2f, 1);
-
-		if (terrain != null && mBrushTool == cTilesTool)
+		if (terrain == null)
+		{
+			CarveWithBrush(selected, voxels, ray);
+			return true;
+		}
+		if (mBrushTool == TilesTool)
 		{
 			EndBrushStroke();
 			UpdateTileTool(terrain, ray);
-			return true;
 		}
-		if (terrain != null && mBrushTool == cFoliageTool)
-		{
-			// The Foliage tool with no kind of plant picked: nothing to do, and the sculpting brushes stay out of it.
+		// The Foliage tool with no kind of plant picked: nothing to do, and the sculpting brushes stay out of it.
+		else if (mBrushTool == FoliageTool)
 			EndBrushStroke();
-			return true;
-		}
-		if (terrain != null)
-		{
-			Vector3 point;
-			if (!terrain.Raycast(ray, 800, out point))
-			{
-				if (!down)
-					EndBrushStroke();
-				return true;
-			}
-			var previewMode = (VoxelBrush)mBrushTool;
-			if (ImGui.IsKeyDown(ImGui.Key.LeftShift))
-			{
-				if (previewMode == .Raise) previewMode = .Lower;
-				else if (previewMode == .Lower) previewMode = .Raise;
-			}
-			if (!mBrushPreview || !DrawBrushPreview(terrain, point, previewMode, mBrushStroke ? mFlattenHeight : point.y))
-			{
-				Gizmos.Lines.Circle(point, .Up, mBrushSize, color, 48);
-				Gizmos.Lines.Line(point, point + Vector3(0, mBrushSize * 0.5f, 0), color);
-			}
-			if (down)
-			{
-				var mode = (VoxelBrush)mBrushTool;
-				if (ImGui.IsKeyDown(ImGui.Key.LeftShift))
-				{
-					if (mode == .Raise) mode = .Lower;
-					else if (mode == .Lower) mode = .Raise;
-				}
-				if (!mBrushStroke && mode == .Flatten)
-					mFlattenHeight = point.y;
-				if (!mBrushStroke && mPlay == .Edit)
-				{
-					// A whole stroke, mouse down to up, is one undo step.
-					terrain.BeginEditRecord();
-					mStrokeTerrain = terrain.GameObject.Id;
-				}
-				mBrushStroke = true;
-				let amount = mode == .Paint ? 1.0f : mBrushStrength * Math.Min(Time.UnscaledDeltaTime, 0.05f) * 6.0f;
-				terrain.Brush(point, mBrushSize, amount, mode, mPaintLayer, mFlattenHeight);
-				MarkDirty();
-			}
-			else
-				EndBrushStroke();
-			return true;
-		}
+		else
+			SculptWithBrush(terrain, ray);
+		return true;
+	}
 
-		// Destructible object: find the hit on its current mesh.
+	/// The sculpting brush picked, with Shift turning Raise into Lower and back.
+	VoxelBrush BrushModeWithShift()
+	{
+		let mode = (VoxelBrush)mBrushTool;
+		if (!ImGui.IsKeyDown(ImGui.Key.LeftShift))
+			return mode;
+		if (mode == .Raise)
+			return .Lower;
+		if (mode == .Lower)
+			return .Raise;
+		return mode;
+	}
+
+	/// A sculpting or paint brush on the terrain: its preview where the mouse points, and while the mouse is down the
+	/// brush itself (a whole stroke, mouse down to up, is one undo step).
+	void SculptWithBrush(VoxelTerrain terrain, Ray ray)
+	{
+		let down = ImGui.IsMouseDown(0);
+		Vector3 point;
+		if (!terrain.Raycast(ray, 800, out point))
+		{
+			if (!down)
+				EndBrushStroke();
+			return;
+		}
+		let mode = BrushModeWithShift();
+		if (!mBrushPreview || !DrawBrushPreview(terrain, point, mode, mBrushStroke ? mFlattenHeight : point.y))
+		{
+			Gizmos.Lines.Circle(point, .Up, mBrushSize, BrushColor, 48);
+			Gizmos.Lines.Line(point, point + Vector3(0, mBrushSize * 0.5f, 0), BrushColor);
+		}
+		if (!down)
+		{
+			EndBrushStroke();
+			return;
+		}
+		if (!mBrushStroke && mode == .Flatten)
+			mFlattenHeight = point.y;
+		if (!mBrushStroke && mPlay == .Edit)
+		{
+			terrain.BeginEditRecord();
+			mStrokeTerrain = terrain.GameObject.Id;
+		}
+		mBrushStroke = true;
+		let amount = mode == .Paint ? 1.0f : mBrushStrength * Math.Min(Time.UnscaledDeltaTime, 0.05f) * 6.0f;
+		terrain.Brush(point, mBrushSize, amount, mode, mPaintLayer, mFlattenHeight);
+		MarkDirty();
+	}
+
+	/// The brush's colour where it has no preview of its own.
+	static readonly Color BrushColor = .(1.0f, 0.85f, 0.2f, 1);
+
+	/// The brush on a destructible object: a sphere where the mouse meets its current mesh, carving while held.
+	void CarveWithBrush(GameObject selected, VoxelObject voxels, Ray ray)
+	{
 		let renderer = selected.GetComponent<MeshRenderer>();
 		let mesh = renderer != null ? renderer.ActiveMesh : null;
 		if (mesh == null)
-			return true;
+			return;
 		let toLocal = selected.Transform.WorldToLocal;
 		let localOrigin = toLocal.TransformPoint(ray.origin);
 		let localRay = Ray(localOrigin, (toLocal.TransformPoint(ray.origin + ray.direction) - localOrigin).Normalized);
 		let t = mesh.Raycast(localRay);
 		if (t < 0)
-			return true;
+			return;
 		let hit = selected.Transform.TransformPoint(localRay.GetPoint(t));
 		let radius = Math.Min(mBrushSize, 10.0f) * 0.25f;
-		Gizmos.Lines.Sphere(hit, radius, color);
-		if (down && voxels.Carve(hit, radius))
+		Gizmos.Lines.Sphere(hit, radius, BrushColor);
+		if (ImGui.IsMouseDown(0) && voxels.Carve(hit, radius))
 			MarkDirty();
-		return true;
 	}
 }

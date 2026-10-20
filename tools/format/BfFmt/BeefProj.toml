@@ -1,0 +1,11 @@
+FileVersion = 1
+
+[Project]
+Name = "BfFmt"
+StartupObject = "BfFmt.Program"
+
+# Links the Beef toolchain's own compiler library, whose formatter is the IDE's Format Document.
+[Configs.Debug.Linux64]
+OtherLinkFlags = "$(LinkFlags) $(BeefPath)/libIDEHelper.a $(BeefPath)/libBeefySysLib.a $(BeefPath)/libhunspell.so $(Var IDEHelperLibs) -lstdc++ -Wl,-rpath -Wl,$(BeefPath)"
+CLibType = "Dynamic"
+PreBuildCmds = ["ReadFile(\"$(BeefPath)/IDEHelper_libs.txt\", \"IDEHelperLibs\")"]

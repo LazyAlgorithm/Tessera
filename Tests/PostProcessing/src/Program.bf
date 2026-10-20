@@ -14,7 +14,8 @@ class Program
 	static bool Check(bool pass, StringView label)
 	{
 		Console.WriteLine(scope $"{pass ? "PASS" : "FAIL"}: {label}");
-		if (!pass) sFailures++;
+		if (!pass)
+			sFailures++;
 		return pass;
 	}
 

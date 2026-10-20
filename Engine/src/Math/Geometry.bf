@@ -2,19 +2,29 @@ using System;
 
 namespace Tessera;
 
+/// A box lined up with the axes, from min to max.
 struct Bounds
 {
 	public Vector3 min;
 	public Vector3 max;
 
-	public this(Vector3 min, Vector3 max) { this.min = min; this.max = max; }
+	public this(Vector3 min, Vector3 max)
+	{
+		this.min = min;
+		this.max = max;
+	}
 
+	/// A box that holds nothing, ready to Encapsulate points into.
 	public static Bounds Empty => .(.(float.MaxValue), .(-float.MaxValue));
 
+	/// The middle of the box.
 	public Vector3 Center => (min + max) * 0.5f;
+	/// Half the box's size on each axis.
 	public Vector3 Extents => (max - min) * 0.5f;
+	/// Whether the box holds anything (an Empty one does not).
 	public bool IsValid => max.x >= min.x && max.y >= min.y && max.z >= min.z;
 
+	/// Grows the box to take in a point.
 	public void Encapsulate(Vector3 p) mut
 	{
 		min = Vector3.Min(min, p);
@@ -52,7 +62,8 @@ struct Bounds
 			{
 				var t1 = (lo - o) / d;
 				var t2 = (hi - o) / d;
-				if (t1 > t2) Swap!(t1, t2);
+				if (t1 > t2)
+					Swap!(t1, t2);
 				tMin = Mathf.Max(tMin, t1);
 				tMax = Mathf.Min(tMax, t2);
 				if (tMin > tMax)
@@ -63,21 +74,29 @@ struct Bounds
 	}
 }
 
+/// A line from a point, going one way.
 struct Ray
 {
 	public Vector3 origin;
 	public Vector3 direction;
 
-	public this(Vector3 origin, Vector3 direction) { this.origin = origin; this.direction = direction; }
+	public this(Vector3 origin, Vector3 direction)
+	{
+		this.origin = origin;
+		this.direction = direction;
+	}
 
+	/// The point some distance along the ray.
 	public Vector3 GetPoint(float distance) => origin + direction * distance;
 }
 
 /// Six inward-facing planes extracted from a view-projection matrix.
 struct Frustum
 {
+	/// The six planes round the view (left, right, bottom, top, near, far), facing in.
 	public Vector4[6] planes;
 
+	/// The view of a view-projection matrix.
 	public this(Matrix4 viewProj, bool homogeneousDepth)
 	{
 		planes = default;
@@ -105,6 +124,7 @@ struct Frustum
 	static Vector4 Add(Vector4 a, Vector4 b) => .(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w);
 	static Vector4 Sub(Vector4 a, Vector4 b) => .(a.x - b.x, a.y - b.y, a.z - b.z, a.w - b.w);
 
+	/// Whether any of a box might be in view (a box near a corner can be counted in when it is not).
 	public bool Intersects(Bounds b)
 	{
 		let c = b.Center;

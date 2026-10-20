@@ -52,7 +52,15 @@ extension EditorApp
 	[CLink] static extern bool igBeginTabItem(char8* label, bool* open, int32 flags);
 	[CLink] static extern void igEndTabItem();
 
-	List<ScriptDocument> mScripts = new .() ~ { for (let d in _) { tn_code_destroy(d.handle); delete d; } delete _; };
+	List<ScriptDocument> mScripts = new .() ~
+		{
+			for (let d in _)
+			{
+				tn_code_destroy(d.handle);
+				delete d;
+			}
+			delete _;
+		};
 	List<ScriptProblem> mProblems = new .() ~ DeleteContainerAndItems!(_);
 	ScriptDocument mActiveScript;
 	ScriptDocument mSelectScript;
@@ -144,7 +152,8 @@ extension EditorApp
 
 	void OpenScript(StringView path, int32 line = -1)
 	{
-        mShowScripts=true; mDockScripts=true;
+		mShowScripts = true;
+		mDockScripts = true;
 		ScriptDocument document = null;
 		for (let existing in mScripts)
 		{
@@ -220,8 +229,12 @@ extension EditorApp
 	/// Compiles the project on a worker thread so typing is never blocked.
 	void StartErrorCheck()
 	{
-        if (mReloadReady) { QueueScriptReload(); return; }
-        mCheckWasReload = false;
+		if (mReloadReady)
+		{
+			QueueScriptReload();
+			return;
+		}
+		mCheckWasReload = false;
 		if (mCheckRunning)
 			return;
 		if (mCheckThread != null)
@@ -238,7 +251,7 @@ extension EditorApp
 				mCheckSucceeded = project.Build(false);
 				mCheckLog.Clear();
 				project.ReadBuildLog(mCheckLog);
-				Interlocked.Store(ref mCheckFinished,true);
+				Interlocked.Store(ref mCheckFinished, true);
 			});
 		mCheckThread.Start(false);
 	}
@@ -258,7 +271,7 @@ extension EditorApp
 		if (!mCheckRunning || !Interlocked.Load(ref mCheckFinished))
 			return;
 		mCheckThread?.Join();
-        mCheckRunning = false;
+		mCheckRunning = false;
 		ClearAndDeleteItems!(mProblems);
 		for (let line in mCheckLog.Split('\n'))
 		{
@@ -286,8 +299,13 @@ extension EditorApp
 		}
 		for (let document in mScripts)
 			ApplyProblems(document);
-		if (mCheckWasReload) { FinishScriptReload(); mCheckWasReload = false; return; }
-        if (mCheckSucceeded)
+		if (mCheckWasReload)
+		{
+			FinishScriptReload();
+			mCheckWasReload = false;
+			return;
+		}
+		if (mCheckSucceeded)
 			Log.Info("Scripts compiled. Use File > Rebuild & Reload to run the new code.");
 		else
 			Log.Error(scope $"Scripts have {mProblems.Count} problem(s); see the Scripts tab.");
@@ -305,8 +323,13 @@ extension EditorApp
 
 	void DrawScripts()
 	{
-        if (!mShowScripts) return;
-        if (mDockScripts && mAssetCenterDock!=0) { ImGui.SetNextWindowDockID(mAssetCenterDock); mDockScripts=false; }
+		if (!mShowScripts)
+			return;
+		if (mDockScripts && mAssetCenterDock != 0)
+		{
+			ImGui.SetNextWindowDockID(mAssetCenterDock);
+			mDockScripts = false;
+		}
 		if (!mPendingOpenScript.IsEmpty)
 		{
 			// A converted script is reopened once its read-only tab has closed.
@@ -341,110 +364,134 @@ extension EditorApp
 			}
 			else
 			{
-				// ---- toolbar ----
-				ImGui.SetCursorPosX(6);
-				ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 4);
 				let active = mActiveScript;
-				ImGui.BeginDisabled(active == null);
-				if (ImGui.SmallButton("Save") && active != null) SaveScript(active);
-				ImGui.SameLine();
-				if (ImGui.SmallButton("Save All")) SaveAllScripts();
-				ImGui.SameLine(0, 14);
-				ImGui.BeginDisabled(active == null || !tn_code_can_undo(active.handle));
-				if (ImGui.SmallButton("Undo")) tn_code_undo(active.handle);
-				ImGui.EndDisabled();
-				ImGui.SameLine();
-				ImGui.BeginDisabled(active == null || !tn_code_can_redo(active.handle));
-				if (ImGui.SmallButton("Redo")) tn_code_redo(active.handle);
-				ImGui.EndDisabled();
-				ImGui.EndDisabled();
-				ImGui.SameLine(0, 14);
-				if (ImGui.SmallButton("Check Errors")) { SaveAllScripts(); StartErrorCheck(); }
-				ImGui.SameLine();
-				if (ImGui.SmallButton("Rebuild & Reload")) { SaveAllScripts(); RequestRebuild(); }
-				ImGui.SameLine(0, 14);
-				if (mCheckRunning)
-					ImGui.TextColored(.(1.0f, 0.82f, 0.35f, 1), "Compiling...");
-				else if (mProblems.Count > 0)
-					ImGui.TextColored(.(1.0f, 0.45f, 0.4f, 1), scope String()..AppendF("{} problem(s)", mProblems.Count).CStr());
-				else
-					ImGui.TextDisabled("Ctrl+S save   Ctrl+F find   Ctrl+Space complete");
-
-				// ---- one tab per open file ----
+				DrawScriptToolbar(active);
 				let problemsHeight = mProblems.Count > 0 ? Math.Min(120.0f, 26.0f + mProblems.Count * 20.0f) : 0.0f;
-				if (active != null && active.readOnly)
-				{
-					ImGui.SetCursorPosX(6);
-					ImGui.TextColored(.(1.0f, 0.82f, 0.35f, 1), "Generated from a graph: read-only. Edit the graph, or");
-					ImGui.SameLine();
-					if (ImGui.SmallButton("Convert to Script"))
-					{
-						let graphPath = scope String();
-						if (FindSourceGraph(active.path, graphPath))
-							ConvertGraphToScript(graphPath);
-					}
-				}
-				ScriptDocument close = null;
-				if (igBeginTabBar("##scripts", 1 | 4 | 64))
-				{
-					for (let document in mScripts)
-					{
-						var flags = (int32)0;
-						if (tn_code_is_dirty(document.handle))
-							flags |= 1; // unsaved dot
-						if (mSelectScript == document)
-							flags |= 2; // select this tab
-						ImGui.PushID(Internal.UnsafeCastToPtr(document));
-						if (igBeginTabItem(document.name.CStr(), &document.open, flags))
-						{
-							mActiveScript = document;
-							if (document.apiRevision != ApiIndex.Revision)
-							{
-								document.apiRevision = ApiIndex.Revision;
-								tn_code_refresh(document.handle);
-							}
-							let avail = ImGui.GetContentRegionAvail();
-							tn_code_render(document.handle, "##code", avail.x, Math.Max(avail.y - problemsHeight, 60));
-							igEndTabItem();
-						}
-						ImGui.PopID();
-						if (!document.open)
-							close = document;
-					}
-					mSelectScript = null;
-					igEndTabBar();
-				}
-				if (close != null)
-				{
-					if (tn_code_is_dirty(close.handle))
-						SaveScript(close);
-					if (mActiveScript == close)
-						mActiveScript = null;
-					mScripts.Remove(close);
-					tn_code_destroy(close.handle);
-					delete close;
-				}
-
-				// ---- error list ----
+				DrawScriptTabs(active, problemsHeight);
 				if (problemsHeight > 0)
-				{
-					ImGui.BeginChild("problems", .(0, problemsHeight), ImGui.ChildBorders);
-					for (int32 i = 0; i < (int32)mProblems.Count; i++)
-					{
-						let problem = mProblems[i];
-						let fileName = scope String();
-						Path.GetFileName(problem.file, fileName);
-						let label = scope String();
-						label.AppendF("{}({}): {}##{}", fileName, problem.line + 1, problem.message, i);
-						ImGui.PushStyleColor(ImGui.Col.Text, problem.isError ? Color(1.0f, 0.5f, 0.45f, 1) : Color(1.0f, 0.82f, 0.35f, 1));
-						if (ImGui.Selectable(label.CStr()))
-							OpenScript(problem.file, problem.line);
-						ImGui.PopStyleColor();
-					}
-					ImGui.EndChild();
-				}
+					DrawScriptProblems(problemsHeight);
 			}
 		}
 		ImGui.End();
+	}
+
+	/// Save, Save All, Undo, Redo, Check Errors and Rebuild & Reload, then how the last check went.
+	void DrawScriptToolbar(ScriptDocument active)
+	{
+		ImGui.SetCursorPosX(6);
+		ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 4);
+		ImGui.BeginDisabled(active == null);
+		if (ImGui.SmallButton("Save") && active != null)
+			SaveScript(active);
+		ImGui.SameLine();
+		if (ImGui.SmallButton("Save All"))
+			SaveAllScripts();
+		ImGui.SameLine(0, 14);
+		ImGui.BeginDisabled(active == null || !tn_code_can_undo(active.handle));
+		if (ImGui.SmallButton("Undo"))
+			tn_code_undo(active.handle);
+		ImGui.EndDisabled();
+		ImGui.SameLine();
+		ImGui.BeginDisabled(active == null || !tn_code_can_redo(active.handle));
+		if (ImGui.SmallButton("Redo"))
+			tn_code_redo(active.handle);
+		ImGui.EndDisabled();
+		ImGui.EndDisabled();
+		ImGui.SameLine(0, 14);
+		if (ImGui.SmallButton("Check Errors"))
+		{
+			SaveAllScripts();
+			StartErrorCheck();
+		}
+		ImGui.SameLine();
+		if (ImGui.SmallButton("Rebuild & Reload"))
+		{
+			SaveAllScripts();
+			RequestRebuild();
+		}
+		ImGui.SameLine(0, 14);
+		if (mCheckRunning)
+			ImGui.TextColored(.(1.0f, 0.82f, 0.35f, 1), "Compiling...");
+		else if (mProblems.Count > 0)
+			ImGui.TextColored(.(1.0f, 0.45f, 0.4f, 1), scope String()..AppendF("{} problem(s)", mProblems.Count).CStr());
+		else
+			ImGui.TextDisabled("Ctrl+S save   Ctrl+F find   Ctrl+Space complete");
+	}
+
+	/// One tab per open file, each a code editor, above the problem list (`problemsHeight` high). A script made from a
+	/// graph is read-only, with a button to turn it into an ordinary script.
+	void DrawScriptTabs(ScriptDocument active, float problemsHeight)
+	{
+		if (active != null && active.readOnly)
+		{
+			ImGui.SetCursorPosX(6);
+			ImGui.TextColored(.(1.0f, 0.82f, 0.35f, 1), "Generated from a graph: read-only. Edit the graph, or");
+			ImGui.SameLine();
+			if (ImGui.SmallButton("Convert to Script"))
+			{
+				let graphPath = scope String();
+				if (FindSourceGraph(active.path, graphPath))
+					ConvertGraphToScript(graphPath);
+			}
+		}
+		ScriptDocument close = null;
+		if (igBeginTabBar("##scripts", 1 | 4 | 64))
+		{
+			for (let document in mScripts)
+			{
+				var flags = (int32)0;
+				if (tn_code_is_dirty(document.handle))
+					flags |= 1; // unsaved dot
+				if (mSelectScript == document)
+					flags |= 2; // select this tab
+				ImGui.PushID(Internal.UnsafeCastToPtr(document));
+				if (igBeginTabItem(document.name.CStr(), &document.open, flags))
+				{
+					mActiveScript = document;
+					if (document.apiRevision != ApiIndex.Revision)
+					{
+						document.apiRevision = ApiIndex.Revision;
+						tn_code_refresh(document.handle);
+					}
+					let avail = ImGui.GetContentRegionAvail();
+					tn_code_render(document.handle, "##code", avail.x, Math.Max(avail.y - problemsHeight, 60));
+					igEndTabItem();
+				}
+				ImGui.PopID();
+				if (!document.open)
+					close = document;
+			}
+			mSelectScript = null;
+			igEndTabBar();
+		}
+		if (close != null)
+		{
+			if (tn_code_is_dirty(close.handle))
+				SaveScript(close);
+			if (mActiveScript == close)
+				mActiveScript = null;
+			mScripts.Remove(close);
+			tn_code_destroy(close.handle);
+			delete close;
+		}
+	}
+
+	/// The problems the last check found: click one to go to it.
+	void DrawScriptProblems(float problemsHeight)
+	{
+		ImGui.BeginChild("problems", .(0, problemsHeight), ImGui.ChildBorders);
+		for (int32 i = 0; i < (int32)mProblems.Count; i++)
+		{
+			let problem = mProblems[i];
+			let fileName = scope String();
+			Path.GetFileName(problem.file, fileName);
+			let label = scope String();
+			label.AppendF("{}({}): {}##{}", fileName, problem.line + 1, problem.message, i);
+			ImGui.PushStyleColor(ImGui.Col.Text, problem.isError ? Color(1.0f, 0.5f, 0.45f, 1) : Color(1.0f, 0.82f, 0.35f, 1));
+			if (ImGui.Selectable(label.CStr()))
+				OpenScript(problem.file, problem.line);
+			ImGui.PopStyleColor();
+		}
+		ImGui.EndChild();
 	}
 }

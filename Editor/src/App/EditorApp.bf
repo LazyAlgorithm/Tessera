@@ -13,20 +13,23 @@ class EditorApp : Application
 	enum PlayState { Edit, Playing, Paused }
 
 	const uint16 ImGuiView = 250;
-	static readonly Color cAccent = .(0.36f, 0.62f, 0.92f, 1);
+	static readonly Color Accent = .(0.36f, 0.62f, 0.92f, 1);
 
 	Scene mScene ~ delete _;
 	RenderView mSceneView ~ delete _;
 	RenderView mGameView ~ delete _;
 	PlayState mPlay = .Edit;
+	/// The game asked to quit while playing: Play stops at the start of the next frame (not in the middle of the
+	/// component that asked, whose scene stopping would replace).
+	bool mStopPlayRequested;
 	String mSnapshot = new .() ~ delete _;
-    uint32 mPrePlaySelection;
-    bool mPrePlayDirty;
+	uint32 mPrePlaySelection;
+	bool mPrePlayDirty;
 	String mIniPath = new .() ~ delete _;
 	String mBrowsePath = new .() ~ delete _;
 	String mComponentSearch = new .() ~ delete _;
-    ComponentClipboard mComponentClipboard = new .() ~ delete _;
-    bool mFocusComponentSearch;
+	ComponentClipboard mComponentClipboard = new .() ~ delete _;
+	bool mFocusComponentSearch;
 	String mHierarchySearch = new .() ~ delete _;
 	String mNewScriptName = new .("NewScript") ~ delete _;
 	String mSceneSaveName = new .() ~ delete _;
@@ -52,10 +55,14 @@ class EditorApp : Application
 	bool mFocusScene = true;
 	/// Bring the Scene view to the front now, whatever else is open (set when a prefab is opened).
 	bool mShowScene;
-    uint32 mAssetCenterDock;
-    uint32 mBottomDock;
-    bool mShowScripts; bool mShowGraph; bool mShowUI;
-    bool mDockScripts; bool mDockGraph; bool mDockUI;
+	uint32 mAssetCenterDock;
+	uint32 mBottomDock;
+	bool mShowScripts;
+	bool mShowGraph;
+	bool mShowUI;
+	bool mDockScripts;
+	bool mDockGraph;
+	bool mDockUI;
 	int32 mLogVersion;
 
 	// Scene view camera and tools.
@@ -98,7 +105,7 @@ class EditorApp : Application
 			return false;
 
 		mBrowsePath.Set(Assets.ProjectPath);
-        InitializeScriptReload();
+		InitializeScriptReload();
 		mSceneView = new RenderView(10);
 		mSceneView.DrawGizmos = true;
 		// Depth of field and motion blur get in the way of editing (Scene Settings > Screen Effects can show them).
@@ -115,35 +122,33 @@ class EditorApp : Application
 		AlignSceneCameraToGameCamera();
 		// Shaders edited outside the editor, or never compiled on this machine, are built before anything draws.
 		CompileStaleShaders();
-		let browse = scope String();
-		if (GetArg("--browse", browse))
+		ApplyStartupSwitches();
+		return true;
+	}
+
+	/// A switch naming an asset (--prefab Prefabs/crate.tprefab), as a full path. False when the switch is not given.
+	bool AssetArg(StringView name, String full)
+	{
+		let value = scope String();
+		if (!GetArg(name, value))
+			return false;
+		Assets.ResolvePath(value, full);
+		return true;
+	}
+
+	/// The command-line switches that open the editor on something (a folder, an asset, a window), mostly for
+	/// automated checks.
+	void ApplyStartupSwitches()
+	{
+		let full = scope String();
+		if (AssetArg("--browse", full..Clear()) && Directory.Exists(full))
+			mBrowsePath.Set(full);
+		if (AssetArg("--prefab", full..Clear()) && File.Exists(full))
+			OpenPrefab(full);
+		if (AssetArg("--material", full..Clear()) && File.Exists(full))
+			OpenMaterial(full);
+		if (AssetArg("--ui", full..Clear()))
 		{
-			let full = scope String();
-			Assets.ResolvePath(browse, full);
-			if (Directory.Exists(full))
-				mBrowsePath.Set(full);
-		}
-		let openPrefab = scope String();
-		if (GetArg("--prefab", openPrefab))
-		{
-			let full = scope String();
-			Assets.ResolvePath(openPrefab, full);
-			if (File.Exists(full))
-				OpenPrefab(full);
-		}
-		let openMaterial = scope String();
-		if (GetArg("--material", openMaterial))
-		{
-			let full = scope String();
-			Assets.ResolvePath(openMaterial, full);
-			if (File.Exists(full))
-				OpenMaterial(full);
-		}
-		let openUi = scope String();
-		if (GetArg("--ui", openUi))
-		{
-			let full = scope String();
-			Assets.ResolvePath(openUi, full);
 			OpenUI(full);
 			let pick = scope String();
 			if (GetArg("--ui-select", pick) && mUiData != null && mUiData.root != null)
@@ -154,140 +159,30 @@ class EditorApp : Application
 		if (HasArg("--input-actions"))
 			mShowInputActions = true;
 		if (HasArg("--build-window"))
+			ApplyBuildSwitches();
+		if (AssetArg("--animator", full..Clear()))
+			OpenAnimatorFromSwitch(full);
+		if (AssetArg("--animation", full..Clear()))
 		{
-			OpenBuildWindow();
-			if (HasArg("--build-windows"))
-				mBuildTarget = .Windows;
-			if (HasArg("--build-web"))
-				mBuildTarget = .Web;
-			if (HasArg("--build-editor"))
-				mBuildEditor = true;
-			// For automated checks: build straight away into the given folder.
-			let folder = scope String();
-			if (GetArg("--build-now", folder))
-			{
-				mBuildFolder.Set(folder);
-				mWantBuildGame = true;
-				mBusyFrames = 3;
-			}
-		}
-		let openController = scope String();
-		if (GetArg("--animator", openController))
-		{
-			let full = scope String();
-			Assets.ResolvePath(openController, full);
-			if (File.Exists(full))
-				OpenAnimator(full);
-			else
-				mShowAnimator = true;
-			// Test switch: --animator-state <name> selects a state (and shows its layer).
-			let stateName = scope String();
-			if (GetArg("--animator-state", stateName) && mAnimController != null)
-			{
-				let index = mAnimController.FindState(stateName);
-				if (index >= 0)
-				{
-					mAnimState = index;
-					mAnimLayer = mAnimController.states[index].layer;
-				}
-			}
-		}
-		let openClip = scope String();
-		if (GetArg("--animation", openClip))
-		{
-			let full = scope String();
-			Assets.ResolvePath(openClip, full);
 			if (File.Exists(full))
 				OpenAnimationClip(full);
 			else
 				mShowAnimation = true;
 		}
-		let openTree = scope String();
-		if (GetArg("--behavior", openTree))
+		if (AssetArg("--behavior", full..Clear()) && File.Exists(full))
 		{
-			let full = scope String();
-			Assets.ResolvePath(openTree, full);
-			if (File.Exists(full))
-			{
-				OpenBehavior(full);
-				mTreeFocusAfter = 30;
-			}
+			OpenBehavior(full);
+			mTreeFocusAfter = 30;
 		}
-		let openGraph = scope String();
-		if (GetArg("--graph", openGraph))
-		{
-			let full = scope String();
-			Assets.ResolvePath(openGraph, full);
-			if (!File.Exists(full))
-			{
-				let saved = scope String(mBrowsePath);
-				Path.GetDirectoryPath(full, mBrowsePath..Clear()).IgnoreError();
-				let graphName = scope String();
-				Path.GetFileNameWithoutExtension(full, graphName);
-				CreateGraphAsset(graphName);
-				mBrowsePath.Set(saved);
-			}
-			else
-				OpenGraph(full);
-			if (HasArg("--compile-graph"))
-				CompileGraph();
-		}
-		let openScript = scope String();
-		if (GetArg("--script", openScript))
-		{
-			let full = scope String();
-			Assets.ResolvePath(openScript, full);
+		if (AssetArg("--graph", full..Clear()))
+			OpenGraphFromSwitch(full);
+		if (AssetArg("--script", full..Clear()))
 			OpenScript(full);
-		}
-		// Test switches for the terrain brush: --brush <0-4> picks a tool, --brush-preview "x,z" or "x,z,size" shows its preview there.
-		let brushArg = scope String();
-		if (GetArg("--brush", brushArg) && (int32.Parse(brushArg) case .Ok(let tool)))
-			mBrushTool = Math.Clamp(tool, 0, 4);
-		if (GetArg("--brush-preview", brushArg))
-		{
-			var parts = brushArg.Split(',');
-			if ((parts.GetNext() case .Ok(let xText)) && (parts.GetNext() case .Ok(let zText)) && (float.Parse(xText) case .Ok(let x)) && (float.Parse(zText) case .Ok(let z)))
-			{
-				mBrushTestPoint = .(x, 0, z);
-				mBrushTest = true;
-				if ((parts.GetNext() case .Ok(let sizeText)) && (float.Parse(sizeText) case .Ok(let brushSize)))
-					mBrushSize = Math.Clamp(brushSize, 1, 40);
-			}
-		}
+		ApplyBrushSwitches();
 		// Test switch: --undo-test-foliage paints plants on the scene's first Foliage twice and checks that undo and
 		// redo take the strokes off and put them back without making the object again.
 		if (HasArg("--undo-test-foliage"))
-		{
-			let foliage = mScene.FindComponent<Foliage>();
-			if (foliage == null)
-				Log.Error("UNDO-TEST FAIL: the scene has no Foliage");
-			else
-			{
-				ResetUndo();
-				let n0 = foliage.Count;
-				foliage.Paint(foliage.Transform.Position + Vector3(5, 0, 5), 4);
-				MarkDirty();
-				mUndoPending = false;
-				CommitSceneStep();
-				let n1 = foliage.Count;
-				foliage.Paint(foliage.Transform.Position + Vector3(20, 0, 5), 4);
-				MarkDirty();
-				mUndoPending = false;
-				CommitSceneStep();
-				let n2 = foliage.Count;
-				Undo();
-				let u1 = mScene.FindComponent<Foliage>();
-				let afterOne = u1 != null ? u1.Count : -1;
-				Undo();
-				let u2 = mScene.FindComponent<Foliage>();
-				let afterTwo = u2 != null ? u2.Count : -1;
-				Redo();
-				let r1 = mScene.FindComponent<Foliage>();
-				let afterRedo = r1 != null ? r1.Count : -1;
-				let pass = n1 > n0 && n2 > n1 && afterOne == n1 && afterTwo == n0 && afterRedo == n1 && u1 == foliage && u2 == foliage && r1 == foliage;
-				Log.Info(scope $"UNDO-TEST {pass ? "PASS" : "FAIL"}: plants {n0} -> {n1} -> {n2}; undo {afterOne}, undo {afterTwo}, redo {afterRedo}; same component kept: {u1 == foliage && u2 == foliage && r1 == foliage}");
-			}
-		}
+			RunFoliageUndoTest();
 		let selectName = scope String();
 		if (GetArg("--select", selectName))
 		{
@@ -300,7 +195,114 @@ class EditorApp : Application
 		}
 		if (HasArg("--play"))
 			StartPlay();
-		return true;
+	}
+
+	/// --build-window, with --build-windows, --build-web or --build-editor choosing what is built, and --build-now
+	/// <folder> building it straight away (for automated checks).
+	void ApplyBuildSwitches()
+	{
+		OpenBuildWindow();
+		if (HasArg("--build-windows"))
+			mBuildTarget = .Windows;
+		if (HasArg("--build-web"))
+			mBuildTarget = .Web;
+		if (HasArg("--build-editor"))
+			mBuildEditor = true;
+		let folder = scope String();
+		if (GetArg("--build-now", folder))
+		{
+			mBuildFolder.Set(folder);
+			mWantBuildGame = true;
+			mBusyFrames = 3;
+		}
+	}
+
+	/// --animator <controller>, and the test switch --animator-state <name>, which selects a state (and shows its layer).
+	void OpenAnimatorFromSwitch(StringView full)
+	{
+		if (File.Exists(full))
+			OpenAnimator(full);
+		else
+			mShowAnimator = true;
+		let stateName = scope String();
+		if (!GetArg("--animator-state", stateName) || mAnimController == null)
+			return;
+		let index = mAnimController.FindState(stateName);
+		if (index >= 0)
+		{
+			mAnimState = index;
+			mAnimLayer = mAnimController.states[index].layer;
+		}
+	}
+
+	/// --graph <graph>: opens it, or makes it if there is no such file; with --compile-graph it is compiled too.
+	void OpenGraphFromSwitch(StringView full)
+	{
+		if (!File.Exists(full))
+		{
+			let saved = scope String(mBrowsePath);
+			Path.GetDirectoryPath(full, mBrowsePath..Clear()).IgnoreError();
+			let graphName = scope String();
+			Path.GetFileNameWithoutExtension(full, graphName);
+			CreateGraphAsset(graphName);
+			mBrowsePath.Set(saved);
+		}
+		else
+			OpenGraph(full);
+		if (HasArg("--compile-graph"))
+			CompileGraph();
+	}
+
+	/// Test switches for the terrain brush: --brush <0-4> picks a tool, --brush-preview "x,z" or "x,z,size" shows its
+	/// preview there.
+	void ApplyBrushSwitches()
+	{
+		let brushArg = scope String();
+		if (GetArg("--brush", brushArg) && (int32.Parse(brushArg) case .Ok(let tool)))
+			mBrushTool = Math.Clamp(tool, 0, 4);
+		if (!GetArg("--brush-preview", brushArg))
+			return;
+		var parts = brushArg.Split(',');
+		if ((parts.GetNext() case .Ok(let xText)) && (parts.GetNext() case .Ok(let zText)) && (float.Parse(xText) case .Ok(let x)) && (float.Parse(zText) case .Ok(let z)))
+		{
+			mBrushTestPoint = .(x, 0, z);
+			mBrushTest = true;
+			if ((parts.GetNext() case .Ok(let sizeText)) && (float.Parse(sizeText) case .Ok(let brushSize)))
+				mBrushSize = Math.Clamp(brushSize, 1, 40);
+		}
+	}
+
+	void RunFoliageUndoTest()
+	{
+		let foliage = mScene.FindComponent<Foliage>();
+		if (foliage == null)
+		{
+			Log.Error("UNDO-TEST FAIL: the scene has no Foliage");
+			return;
+		}
+		ResetUndo();
+		let n0 = foliage.Count;
+		foliage.Paint(foliage.Transform.Position + Vector3(5, 0, 5), 4);
+		MarkDirty();
+		mUndoPending = false;
+		CommitSceneStep();
+		let n1 = foliage.Count;
+		foliage.Paint(foliage.Transform.Position + Vector3(20, 0, 5), 4);
+		MarkDirty();
+		mUndoPending = false;
+		CommitSceneStep();
+		let n2 = foliage.Count;
+		Undo();
+		let u1 = mScene.FindComponent<Foliage>();
+		let afterOne = u1 != null ? u1.Count : -1;
+		Undo();
+		let u2 = mScene.FindComponent<Foliage>();
+		let afterTwo = u2 != null ? u2.Count : -1;
+		Redo();
+		let r1 = mScene.FindComponent<Foliage>();
+		let afterRedo = r1 != null ? r1.Count : -1;
+		let pass = n1 > n0 && n2 > n1 && afterOne == n1 && afterTwo == n0 && afterRedo == n1 && u1 == foliage && u2 == foliage && r1 == foliage;
+		Log.Info(scope $"UNDO-TEST {pass ? "PASS" : "FAIL"}: plants {n0} -> {n1} -> {n2}; undo {afterOne}, undo {afterTwo}, redo {afterRedo}; same component kept: {u1 == foliage && u2 == foliage && r1 == foliage}");
 	}
 
 	protected override void OnShutdown()
@@ -338,10 +340,24 @@ class EditorApp : Application
 		}
 	}
 
+	/// A game quitting (Application.Quit, or Running = false) stops Play rather than closing the editor.
+	protected override bool OnQuitRequested()
+	{
+		if (mPlay == .Edit)
+			return false;
+		mStopPlayRequested = true;
+		return true;
+	}
+
 	protected override void OnUpdate()
 	{
-        PollScriptReload();
-        PollProjectFolders();
+		if (mStopPlayRequested)
+		{
+			mStopPlayRequested = false;
+			StopPlay();
+		}
+		PollScriptReload();
+		PollProjectFolders();
 		// A game changing scene: only while playing, so that the scene being edited is never replaced.
 		if (mPlay == .Playing)
 		{
@@ -414,8 +430,9 @@ class EditorApp : Application
 				RebuildAndReload();
 			if (mWantBuildGame)
 				BuildGame();
-            if (mWantFullRestart) FullRebuildAndRestart();
-            mWantFullRestart = false;
+			if (mWantFullRestart)
+				FullRebuildAndRestart();
+			mWantFullRestart = false;
 			mWantRebuild = false;
 			mWantBuildGame = false;
 			mStatus.Clear();

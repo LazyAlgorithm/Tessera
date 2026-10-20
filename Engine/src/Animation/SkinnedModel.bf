@@ -34,7 +34,7 @@ class SkinnedModel
 	public List<uint32> Colors = new .() ~ delete _;
 	public List<Vector2> UVs = new .() ~ delete _;
 	public List<uint16> JointIndices = new .() ~ delete _; // 4 per vertex
-	public List<float> Weights = new .() ~ delete _;       // 4 per vertex
+	public List<float> Weights = new .() ~ delete _; // 4 per vertex
 	public List<uint32> Indices = new .() ~ delete _;
 
 	/// One part of the model for each of its materials (a character's skin, cloth and armour): its triangles, as
@@ -50,6 +50,7 @@ class SkinnedModel
 		/// the base colour, normal, metallic-roughness, occlusion and emissive textures, alpha mode and double sides.
 		public Material material ~ delete _;
 	}
+
 	public List<Part> Parts = new .() ~ DeleteContainerAndItems!(_);
 	/// True when the parts are drawn with materials of their own: the file has more than one material, or any
 	/// textures. Otherwise the model is one mesh drawn with its Mesh Renderer's settings, as before.
@@ -147,6 +148,34 @@ class SkinnedModel
 			return null;
 
 		let model = new SkinnedModel();
+		model.ReadJoints(scene, jointCount);
+		model.ReadClips(scene, jointCount);
+		let imageNames = scope List<String>();
+		defer
+		{
+			for (let name in imageNames)
+				delete name;
+		}
+		ReadImages(scene, path, images, imageNames);
+		bool anyTexture = false;
+		for (uint32 p < Native.tn_gltf_prim_count(scene))
+		{
+			let prim = Native.tn_gltf_get_prim(scene, p);
+			if (prim.joints == null)
+				continue;
+			model.AddPrimitive(prim, model.PartFor(prim, imageNames, ref anyTexture), jointCount);
+		}
+		model.HasOwnMaterials = model.Parts.Count > 1 || anyTexture;
+		if (model.Positions.Count == 0)
+		{
+			delete model;
+			return null;
+		}
+		return model;
+	}
+
+	void ReadJoints(void* scene, int32 jointCount)
+	{
 		for (int32 j < jointCount)
 		{
 			let source = Native.tn_gltf_get_joint(scene, j);
@@ -163,8 +192,13 @@ class SkinnedModel
 				joint.inverseBind.m[i] = source.inverseBind[i];
 				joint.parentWorld.m[i] = source.parentWorld[i];
 			}
-			model.Joints.Add(joint);
+			Joints.Add(joint);
 		}
+	}
+
+	/// Each clip: 30 frames a second, ten numbers a joint a frame (position, rotation, scale).
+	void ReadClips(void* scene, int32 jointCount)
+	{
 		for (int32 a < Native.tn_gltf_anim_count(scene))
 		{
 			let source = Native.tn_gltf_get_anim(scene, a);
@@ -175,29 +209,44 @@ class SkinnedModel
 			let count = source.frames * jointCount * 10;
 			clip.data = new float[count];
 			Internal.MemCpy(clip.data.Ptr, source.data, count * sizeof(float));
-			model.Clips.Add(clip);
+			Clips.Add(clip);
 		}
-		// The file's images become textures named after it: "Models/hero.glb#image2".
-		let imageNames = scope List<String>();
-		defer { for (let name in imageNames) delete name; }
+	}
+
+	/// The file's images become textures named after it: "Models/hero.glb#image2". With `images` given they are
+	/// copied out for the main thread to make into textures; otherwise they are made into textures now.
+	static void ReadImages(void* scene, StringView path, List<PendingImage> images, List<String> names)
+	{
 		for (int32 i < Native.tn_gltf_image_count(scene))
 		{
 			int32 width = 0, height = 0;
 			let pixels = Native.tn_gltf_get_image(scene, i, &width, &height);
 			let name = new String()..AppendF("{}#image{}", path, i);
-			imageNames.Add(name);
-			if (pixels != null && images != null)
+			names.Add(name);
+			if (pixels == null)
+				continue;
+			if (images == null)
 			{
-				let image = new PendingImage();
-				image.name.Set(name);
-				image.width = width;
-				image.height = height;
-				image.pixels = new uint8[width * height * 4];
-				Internal.MemCpy(image.pixels.Ptr, pixels, width * height * 4);
-				images.Add(image);
-			}
-			else if (pixels != null)
 				Assets.AddTexture(name, pixels, width, height);
+				continue;
+			}
+			let image = new PendingImage();
+			image.name.Set(name);
+			image.width = width;
+			image.height = height;
+			image.pixels = new uint8[width * height * 4];
+			Internal.MemCpy(image.pixels.Ptr, pixels, width * height * 4);
+			images.Add(image);
+		}
+	}
+
+	/// The part for a primitive's material, made (with that material) the first time the material comes up.
+	Part PartFor(Native.GltfPrim* prim, List<String> imageNames, ref bool anyTexture)
+	{
+		for (let existing in Parts)
+		{
+			if (existing.fileMaterial == prim.material)
+				return existing;
 		}
 		void Image(String into, int32 index)
 		{
@@ -205,89 +254,74 @@ class SkinnedModel
 			if (index >= 0 && index < imageNames.Count)
 				into.Set(imageNames[index]);
 		}
-		bool anyTexture = false;
-		for (uint32 p < Native.tn_gltf_prim_count(scene))
+		let part = new Part();
+		part.fileMaterial = prim.material;
+		part.name.Append(&prim.materialName);
+		if (part.name.IsEmpty)
+			part.name.AppendF("Part {}", Parts.Count + 1);
+		let material = part.material = new Material();
+		material.flatShading = false;
+		material.metallic = prim.metallic;
+		material.roughness = prim.roughness;
+		material.emissive = Color(prim.emissive[0], prim.emissive[1], prim.emissive[2], 1);
+		material.emissiveIntensity = (prim.emissive[0] + prim.emissive[1] + prim.emissive[2]) > 0 ? 1 : 0;
+		Image(material.texture, prim.baseColorImage);
+		Image(material.normalMap, prim.normalImage);
+		material.normalStrength = prim.normalScale;
+		Image(material.metallicRoughnessMap, prim.metalRoughImage);
+		Image(material.occlusionMap, prim.occlusionImage);
+		material.occlusionStrength = prim.occlusionStrength;
+		Image(material.emissiveMap, prim.emissiveImage);
+		if (!material.emissiveMap.IsEmpty)
+			material.emissiveIntensity = 1;
+		material.blend = prim.alphaMode == 1 ? .Cutout : (prim.alphaMode == 2 ? .Transparent : .Opaque);
+		material.cutoff = prim.alphaCutoff;
+		material.doubleSided = prim.doubleSided != 0;
+		anyTexture |= !material.texture.IsEmpty || !material.normalMap.IsEmpty || !material.metallicRoughnessMap.IsEmpty || !material.occlusionMap.IsEmpty || !material.emissiveMap.IsEmpty;
+		Parts.Add(part);
+		return part;
+	}
+
+	/// A primitive's vertices (with up to four joints each, their weights adding to one) and triangles.
+	void AddPrimitive(Native.GltfPrim* prim, Part part, int32 jointCount)
+	{
+		let baseVertex = (uint32)Positions.Count;
+		let baseColor = Color(prim.baseColor[0], prim.baseColor[1], prim.baseColor[2], prim.baseColor[3]);
+		for (uint32 v < prim.vertexCount)
 		{
-			let prim = Native.tn_gltf_get_prim(scene, p);
-			if (prim.joints == null)
-				continue;
-			// The part for this primitive's material, made the first time it comes up.
-			Part part = null;
-			for (let existing in model.Parts)
+			Positions.Add(.(prim.positions[v * 3], prim.positions[v * 3 + 1], prim.positions[v * 3 + 2]));
+			Normals.Add(prim.normals != null ? Vector3(prim.normals[v * 3], prim.normals[v * 3 + 1], prim.normals[v * 3 + 2]) : Vector3.Up);
+			var color = baseColor;
+			if (prim.colors != null)
 			{
-				if (existing.fileMaterial == prim.material)
-					part = existing;
+				color.r *= prim.colors[v * 4];
+				color.g *= prim.colors[v * 4 + 1];
+				color.b *= prim.colors[v * 4 + 2];
 			}
-			if (part == null)
+			// glTF stores linear color; the shader expects sRGB-encoded vertex colors.
+			Colors.Add(Color(Math.Pow(color.r, 1.0f / 2.2f), Math.Pow(color.g, 1.0f / 2.2f), Math.Pow(color.b, 1.0f / 2.2f), color.a).ToABGR());
+			UVs.Add(prim.uvs != null ? Vector2(prim.uvs[v * 2], prim.uvs[v * 2 + 1]) : default);
+			float total = 0;
+			for (int k < 4)
+				total += prim.weights[v * 4 + (uint32)k];
+			for (int k < 4)
 			{
-				part = new Part();
-				part.fileMaterial = prim.material;
-				part.name.Append(&prim.materialName);
-				if (part.name.IsEmpty)
-					part.name.AppendF("Part {}", model.Parts.Count + 1);
-				let material = part.material = new Material();
-				material.flatShading = false;
-				material.metallic = prim.metallic;
-				material.roughness = prim.roughness;
-				material.emissive = Color(prim.emissive[0], prim.emissive[1], prim.emissive[2], 1);
-				material.emissiveIntensity = (prim.emissive[0] + prim.emissive[1] + prim.emissive[2]) > 0 ? 1 : 0;
-				Image(material.texture, prim.baseColorImage);
-				Image(material.normalMap, prim.normalImage);
-				material.normalStrength = prim.normalScale;
-				Image(material.metallicRoughnessMap, prim.metalRoughImage);
-				Image(material.occlusionMap, prim.occlusionImage);
-				material.occlusionStrength = prim.occlusionStrength;
-				Image(material.emissiveMap, prim.emissiveImage);
-				if (!material.emissiveMap.IsEmpty)
-					material.emissiveIntensity = 1;
-				material.blend = prim.alphaMode == 1 ? .Cutout : (prim.alphaMode == 2 ? .Transparent : .Opaque);
-				material.cutoff = prim.alphaCutoff;
-				material.doubleSided = prim.doubleSided != 0;
-				anyTexture |= !material.texture.IsEmpty || !material.normalMap.IsEmpty || !material.metallicRoughnessMap.IsEmpty || !material.occlusionMap.IsEmpty || !material.emissiveMap.IsEmpty;
-				model.Parts.Add(part);
-			}
-			let baseVertex = (uint32)model.Positions.Count;
-			let baseColor = Color(prim.baseColor[0], prim.baseColor[1], prim.baseColor[2], prim.baseColor[3]);
-			for (uint32 v < prim.vertexCount)
-			{
-				model.Positions.Add(.(prim.positions[v * 3], prim.positions[v * 3 + 1], prim.positions[v * 3 + 2]));
-				model.Normals.Add(prim.normals != null ? Vector3(prim.normals[v * 3], prim.normals[v * 3 + 1], prim.normals[v * 3 + 2]) : Vector3.Up);
-				var color = baseColor;
-				if (prim.colors != null)
-				{
-					color.r *= prim.colors[v * 4];
-					color.g *= prim.colors[v * 4 + 1];
-					color.b *= prim.colors[v * 4 + 2];
-				}
-				// glTF stores linear color; the shader expects sRGB-encoded vertex colors.
-				model.Colors.Add(Color(Math.Pow(color.r, 1.0f / 2.2f), Math.Pow(color.g, 1.0f / 2.2f), Math.Pow(color.b, 1.0f / 2.2f), color.a).ToABGR());
-				model.UVs.Add(prim.uvs != null ? Vector2(prim.uvs[v * 2], prim.uvs[v * 2 + 1]) : default);
-				float total = 0;
-				for (int k < 4)
-					total += prim.weights[v * 4 + (uint32)k];
-				for (int k < 4)
-				{
-					model.JointIndices.Add((uint16)Math.Min((int32)prim.joints[v * 4 + (uint32)k], jointCount - 1));
-					model.Weights.Add(total > 0 ? prim.weights[v * 4 + (uint32)k] / total : (k == 0 ? 1.0f : 0.0f));
-				}
-			}
-			// Mirroring Z on output turns triangles inside out, so swap two corners.
-			for (uint32 i = 0; i + 2 < prim.indexCount; i += 3)
-			{
-				model.Indices.Add(baseVertex + prim.indices[i]);
-				model.Indices.Add(baseVertex + prim.indices[i + 2]);
-				model.Indices.Add(baseVertex + prim.indices[i + 1]);
-				part.indices.Add(baseVertex + prim.indices[i]);
-				part.indices.Add(baseVertex + prim.indices[i + 2]);
-				part.indices.Add(baseVertex + prim.indices[i + 1]);
+				JointIndices.Add((uint16)Math.Min((int32)prim.joints[v * 4 + (uint32)k], jointCount - 1));
+				Weights.Add(total > 0 ? prim.weights[v * 4 + (uint32)k] / total : (k == 0 ? 1.0f : 0.0f));
 			}
 		}
-		model.HasOwnMaterials = model.Parts.Count > 1 || anyTexture;
-		if (model.Positions.Count == 0)
+		// Mirroring Z on output turns triangles inside out, so swap two corners.
+		for (uint32 i = 0; i + 2 < prim.indexCount; i += 3)
 		{
-			delete model;
-			return null;
+			let a = baseVertex + prim.indices[i];
+			let b = baseVertex + prim.indices[i + 2];
+			let c = baseVertex + prim.indices[i + 1];
+			Indices.Add(a);
+			Indices.Add(b);
+			Indices.Add(c);
+			part.indices.Add(a);
+			part.indices.Add(b);
+			part.indices.Add(c);
 		}
-		return model;
 	}
 }

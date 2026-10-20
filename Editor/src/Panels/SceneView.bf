@@ -14,7 +14,9 @@ extension EditorApp
 		ImGui.PushStyleVar(ImGui.StyleVar.WindowPadding, ImGui.Vec2(0, 0));
 		let open = ImGui.Begin("Scene", null, ImGui.WindowFlags.NoScrollbar | ImGui.WindowFlags.NoScrollWithMouse);
 		ImGui.PopStyleVar();
-        let sceneDock=ImGui.GetWindowDockID(); if (sceneDock!=0) mAssetCenterDock=sceneDock;
+		let sceneDock = ImGui.GetWindowDockID();
+		if (sceneDock != 0)
+			mAssetCenterDock = sceneDock;
 		mSceneHovered = false;
 		if (open)
 		{
@@ -118,12 +120,18 @@ extension EditorApp
 			var speed = 12.0f * Time.UnscaledDeltaTime;
 			if (Input.GetKey(.LeftShift))
 				speed *= 4;
-			if (Input.GetKey(.W)) mCamPosition = mCamPosition + forward * speed;
-			if (Input.GetKey(.S)) mCamPosition = mCamPosition - forward * speed;
-			if (Input.GetKey(.D)) mCamPosition = mCamPosition + right * speed;
-			if (Input.GetKey(.A)) mCamPosition = mCamPosition - right * speed;
-			if (Input.GetKey(.E)) mCamPosition = mCamPosition + Vector3.Up * speed;
-			if (Input.GetKey(.Q)) mCamPosition = mCamPosition - Vector3.Up * speed;
+			if (Input.GetKey(.W))
+				mCamPosition = mCamPosition + forward * speed;
+			if (Input.GetKey(.S))
+				mCamPosition = mCamPosition - forward * speed;
+			if (Input.GetKey(.D))
+				mCamPosition = mCamPosition + right * speed;
+			if (Input.GetKey(.A))
+				mCamPosition = mCamPosition - right * speed;
+			if (Input.GetKey(.E))
+				mCamPosition = mCamPosition + Vector3.Up * speed;
+			if (Input.GetKey(.Q))
+				mCamPosition = mCamPosition - Vector3.Up * speed;
 		}
 		else if (mSceneHovered)
 		{

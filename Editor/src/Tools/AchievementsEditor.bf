@@ -18,15 +18,21 @@ extension EditorApp
 		if (!mShowAchievements)
 			return;
 		ImGui.SetNextWindowSize(.(860, 480), ImGui.Cond.FirstUseEver);
-		if (!ImGui.Begin("Achievements", &mShowAchievements, ImGui.WindowFlags.NoCollapse))
+		if (ImGui.Begin("Achievements", &mShowAchievements, ImGui.WindowFlags.NoCollapse))
 		{
-			ImGui.End();
-			return;
+			let definitions = Achievements.Definitions;
+			DrawAchievementSteam(Project.Current);
+			DrawAchievementToolbar(definitions);
+			DrawAchievementTable(definitions);
+			ImGui.TextDisabled("In code: Achievements.Unlock(\"ID\"). On Steam, create each achievement on the Steamworks site with the same ID;");
+			ImGui.TextDisabled("Local only always saves on this machine, including with Steam connected. New achievements default to Local only.");
 		}
-		let project = Project.Current;
-		let definitions = Achievements.Definitions;
+		ImGui.End();
+	}
 
-		// ---- where they are kept ----
+	/// Where they are kept: the Steam App ID, and whether the editor is connected to Steam.
+	void DrawAchievementSteam(Project project)
+	{
 		ImGui.Text("Steam App ID");
 		ImGui.SameLine();
 		ImGui.SetNextItemWidth(140);
@@ -52,17 +58,21 @@ extension EditorApp
 			}
 		}
 		ImGui.Separator();
+	}
 
-		// ---- toolbar ----
+	/// + Add, Save, Import from Steam and Lock All.
+	void DrawAchievementToolbar(List<AchievementInfo> definitions)
+	{
 		if (ImGui.Button("+ Add"))
 		{
 			let info = new AchievementInfo();
 			info.localOnly = true;
 			info.id.Set("NEW_ACHIEVEMENT");
-			for (int suffix = 2; ; suffix++)
+			for (int suffix = 2;; suffix++)
 			{
 				bool taken = false;
-				for (let other in definitions) taken |= other.id == info.id;
+				for (let other in definitions)
+					taken |= other.id == info.id;
 				if (!taken) break;
 				info.id..Clear().AppendF("NEW_ACHIEVEMENT_{}", suffix);
 			}
@@ -86,28 +96,7 @@ extension EditorApp
 		{
 			ImGui.SameLine();
 			if (ImGui.Button("Import from Steam"))
-			{
-				// Adds what the app has on Steam and is missing here; existing rows are left alone.
-				int added = 0;
-				for (int i < Steam.AchievementCount)
-				{
-					let id = scope String();
-					Steam.GetAchievementId(i, id);
-					if (id.IsEmpty || Achievements.Find(id) != null)
-						continue;
-					let info = new AchievementInfo();
-					info.id.Set(id);
-					Steam.GetAchievementAttribute(id, "name", info.name);
-					Steam.GetAchievementAttribute(id, "desc", info.description);
-					let hidden = scope String();
-					Steam.GetAchievementAttribute(id, "hidden", hidden);
-					info.hidden = hidden == "1";
-					definitions.Add(info);
-					added++;
-				}
-				mAchievementsDirty |= added > 0;
-				mAchievementStatus.Set(scope $"Imported {added} achievement(s) from Steam.");
-			}
+				ImportSteamAchievements(definitions);
 		}
 		ImGui.SameLine();
 		if (ImGui.Button("Lock All"))
@@ -128,8 +117,12 @@ extension EditorApp
 		}
 		ImGui.SameLine(0, 14);
 		ImGui.TextDisabled(mAchievementStatus.CStr());
+	}
 
-		// ---- the list ----
+	/// The list: each achievement's ID, name, description and flags, a button to lock or unlock it, and one to
+	/// remove it.
+	void DrawAchievementTable(List<AchievementInfo> definitions)
+	{
 		AchievementInfo removed = null;
 		if (ImGui.BeginTable("achievements", 7, ImGui.TableFlags.RowBg | ImGui.TableFlags.BordersInnerV | ImGui.TableFlags.Resizable | ImGui.TableFlags.ScrollY, .(0, -44)))
 		{
@@ -194,8 +187,29 @@ extension EditorApp
 			delete removed;
 			mAchievementsDirty = true;
 		}
-		ImGui.TextDisabled("In code: Achievements.Unlock(\"ID\"). On Steam, create each achievement on the Steamworks site with the same ID;");
-		ImGui.TextDisabled("Local only always saves on this machine, including with Steam connected. New achievements default to Local only.");
-		ImGui.End();
+	}
+
+	/// Adds what the app has on Steam and is missing here; existing rows are left alone.
+	void ImportSteamAchievements(List<AchievementInfo> definitions)
+	{
+		int added = 0;
+		for (int i < Steam.AchievementCount)
+		{
+			let id = scope String();
+			Steam.GetAchievementId(i, id);
+			if (id.IsEmpty || Achievements.Find(id) != null)
+				continue;
+			let info = new AchievementInfo();
+			info.id.Set(id);
+			Steam.GetAchievementAttribute(id, "name", info.name);
+			Steam.GetAchievementAttribute(id, "desc", info.description);
+			let hidden = scope String();
+			Steam.GetAchievementAttribute(id, "hidden", hidden);
+			info.hidden = hidden == "1";
+			definitions.Add(info);
+			added++;
+		}
+		mAchievementsDirty |= added > 0;
+		mAchievementStatus.Set(scope $"Imported {added} achievement(s) from Steam.");
 	}
 }

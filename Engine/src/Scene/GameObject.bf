@@ -6,9 +6,15 @@ namespace Tessera;
 /// An entity in a scene: a named Transform with a list of components.
 class GameObject
 {
+	/// The object's name, shown in the Hierarchy; Scene.Find looks objects up by it.
 	public String Name = new .() ~ delete _;
+	/// A number unique within the scene, kept when the scene is saved and loaded. References to objects are saved as
+	/// it.
 	public uint32 Id;
+	/// Where the object is, how it is turned and sized, and its place in the hierarchy. Every object has one.
 	public Transform Transform ~ delete _;
+	/// The object's components, in the order the Inspector shows them. Use AddComponent and RemoveComponent to change
+	/// them.
 	public List<Component> Components = new .() ~ delete _;
 	/// An organisational folder in the Hierarchy: it only groups objects. Its transform stays at
 	/// identity so it never moves its children, and it carries no components.
@@ -90,8 +96,10 @@ class GameObject
 
 	/// How many tags the object has, and each in turn.
 	public int TagCount => mTags != null ? mTags.Count : 0;
+	/// The tag at an index, 0 to TagCount - 1.
 	public StringView GetTag(int index) => mTags[index];
 
+	/// Whether the object has a tag (Project Settings > Tags names them).
 	public bool HasTag(StringView tag)
 	{
 		if (mTags == null)
@@ -116,6 +124,7 @@ class GameObject
 		mScene?.[Friend]IndexTag(this, tag, true);
 	}
 
+	/// Takes a tag off the object, if it has it.
 	public void RemoveTag(StringView tag)
 	{
 		if (mTags == null)
@@ -132,6 +141,7 @@ class GameObject
 		}
 	}
 
+	/// An object outside any scene. Use Scene.CreateGameObject to make one in a scene.
 	public this(StringView name)
 	{
 		Name.Set(name);
@@ -144,10 +154,14 @@ class GameObject
 			delete component;
 	}
 
+	/// The scene the object is in.
 	public Scene Scene => mScene;
+	/// Whether this object itself is switched on, whatever its parents are (see ActiveInHierarchy).
 	public bool ActiveSelf => mActive;
+	/// True once Scene.Destroy has been called on the object; it is freed at the end of the frame.
 	public bool IsDestroyed => mDestroyed;
 
+	/// Whether the object and every parent above it are switched on: only then do its components run.
 	public bool ActiveInHierarchy
 	{
 		get
@@ -183,7 +197,10 @@ class GameObject
 			let component = Components[i];
 			if (!component.IsAwake || !component.Enabled)
 				continue;
-			if (active) component.OnEnable(); else component.OnDisable();
+			if (active)
+				component.OnEnable();
+			else
+				component.OnDisable();
 		}
 		for (let child in Transform.Children)
 		{
@@ -193,11 +210,15 @@ class GameObject
 		}
 	}
 
+	/// Adds a new component of a type and returns it. While the scene plays, it wakes at once (Awake, OnEnable) and
+	/// starts before the next Update.
 	public T AddComponent<T>() where T : Component
 	{
 		return (T)AddComponent(typeof(T));
 	}
 
+	/// Adds a new component of a type given at run time, or logs an error and returns null if the type is not a
+	/// [Component].
 	public Component AddComponent(Type type)
 	{
 		let component = ComponentRegistry.Create(type);
@@ -218,6 +239,7 @@ class GameObject
 			mScene.[Friend]RegisterComponent(component);
 	}
 
+	/// The object's first component of a type (or a type derived from it), or null.
 	public T GetComponent<T>() where T : Component
 	{
 		for (let component in Components)
@@ -228,6 +250,7 @@ class GameObject
 		return null;
 	}
 
+	/// The first component of a type on this object or anything under it, searching this object first, or null.
 	public T GetComponentInChildren<T>() where T : Component
 	{
 		let own = GetComponent<T>();
@@ -242,6 +265,7 @@ class GameObject
 		return null;
 	}
 
+	/// Removes and frees one of the object's components (OnDisable and OnDestroy run first while playing).
 	public void RemoveComponent(Component component)
 	{
 		if (!Components.Remove(component))

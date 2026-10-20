@@ -33,7 +33,7 @@ What is in the folder:
 
 With **Pack assets into one file** unticked (or `--loose`), the pack is replaced by what would have been in it: `game.tessera`, `Assets/` and `Engine/assets/shaders/`.
 
-Three more project settings shape a built game's window, set in `project.tessera` (they have no editor field yet, as few games need them): `windowWidth` and `windowHeight` give the window's size in points when it starts in a window (otherwise 1600 by 900), and `escapeQuits = 0` stops Escape from closing the game, for a game or tool with its own way out. Tessera Hub, itself a Tessera project, uses all three.
+Three more project settings shape a built game's window, set in `project.tessera` (they have no editor field yet, as few games need them): `windowWidth` and `windowHeight` give the window's size in points when it starts in a window (otherwise 1600 by 900), and `escapeQuits = 0` stops Escape from closing the game, for a game or tool with its own way out. A game's own way out calls `Application.Quit()` (or sets `Application.Instance.Running = false`): it closes a built game, and only stops Play in the editor. Tessera Hub, itself a Tessera project, uses all three.
 
 The player finds this package beside its executable, independent of working directory. --game overrides the package folder. --scene overrides the start scene. Application's renderer/headless/frame-limit options and network startup options remain available. --editor is rejected. A Linux build needs the system's graphics and X11 libraries, which every desktop has; a Windows build needs a Vulkan graphics driver and nothing else. ImGui remains a runtime dependency for component GUI; TesseraEditor panels/tools are excluded.
 

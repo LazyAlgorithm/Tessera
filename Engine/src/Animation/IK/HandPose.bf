@@ -103,7 +103,12 @@ class HandPose : IKComponent
 		if (shape == .Custom)
 			return;
 		let curls = Curls(shape);
-		thumb = curls[0]; index = curls[1]; middle = curls[2]; ring = curls[3]; pinky = curls[4]; spread = curls[5];
+		thumb = curls[0];
+		index = curls[1];
+		middle = curls[2];
+		ring = curls[3];
+		pinky = curls[4];
+		spread = curls[5];
 	}
 
 	public override void OnValidate()
@@ -207,11 +212,16 @@ class HandPose : IKComponent
 				continue;
 			let name = child.GameObject.Name;
 			int slot = -1;
-			if (Named(name, "thumb")) slot = 0;
-			else if (Named(name, "index", "pointer", "fore")) slot = 1;
-			else if (Named(name, "middle", "mid")) slot = 2;
-			else if (Named(name, "ring")) slot = 3;
-			else if (Named(name, "pinky", "pinkie", "little")) slot = 4;
+			if (Named(name, "thumb"))
+				slot = 0;
+			else if (Named(name, "index", "pointer", "fore"))
+				slot = 1;
+			else if (Named(name, "middle", "mid"))
+				slot = 2;
+			else if (Named(name, "ring"))
+				slot = 3;
+			else if (Named(name, "pinky", "pinkie", "little"))
+				slot = 4;
 			if (slot >= 0 && mFingers[slot] == null)
 			{
 				anyNamed = true;

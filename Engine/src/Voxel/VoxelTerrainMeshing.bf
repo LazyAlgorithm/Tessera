@@ -36,12 +36,48 @@ extension VoxelTerrain
 			if ((uint)x <= (uint)ChunkCells && (uint)y <= (uint)ChunkCells && (uint)z <= (uint)ChunkCells)
 				return center[SampleIndex(x, y, z)];
 			int face, distance, a, b;
-			if (x < 0) { face = 0; distance = -x; a = y; b = z; }
-			else if (x > ChunkCells) { face = 1; distance = x - ChunkCells; a = y; b = z; }
-			else if (y < 0) { face = 2; distance = -y; a = x; b = z; }
-			else if (y > ChunkCells) { face = 3; distance = y - ChunkCells; a = x; b = z; }
-			else if (z < 0) { face = 4; distance = -z; a = x; b = y; }
-			else { face = 5; distance = z - ChunkCells; a = x; b = y; }
+			if (x < 0)
+			{
+				face = 0;
+				distance = -x;
+				a = y;
+				b = z;
+			}
+			else if (x > ChunkCells)
+			{
+				face = 1;
+				distance = x - ChunkCells;
+				a = y;
+				b = z;
+			}
+			else if (y < 0)
+			{
+				face = 2;
+				distance = -y;
+				a = x;
+				b = z;
+			}
+			else if (y > ChunkCells)
+			{
+				face = 3;
+				distance = y - ChunkCells;
+				a = x;
+				b = z;
+			}
+			else if (z < 0)
+			{
+				face = 4;
+				distance = -z;
+				a = x;
+				b = y;
+			}
+			else
+			{
+				face = 5;
+				distance = z - ChunkCells;
+				a = x;
+				b = y;
+			}
 			a = Math.Clamp(a, 0, ChunkCells);
 			b = Math.Clamp(b, 0, ChunkCells);
 			return (distance <= 1 ? near : far)[face * FaceCount + a + b * Samples];
@@ -77,12 +113,30 @@ extension VoxelTerrain
 	{
 		switch (face)
 		{
-		case 0: x = -distance; y = a; z = b;
-		case 1: x = ChunkCells + distance; y = a; z = b;
-		case 2: x = a; y = -distance; z = b;
-		case 3: x = a; y = ChunkCells + distance; z = b;
-		case 4: x = a; y = b; z = -distance;
-		default: x = a; y = b; z = ChunkCells + distance;
+		case 0:
+			x = -distance;
+			y = a;
+			z = b;
+		case 1:
+			x = ChunkCells + distance;
+			y = a;
+			z = b;
+		case 2:
+			x = a;
+			y = -distance;
+			z = b;
+		case 3:
+			x = a;
+			y = ChunkCells + distance;
+			z = b;
+		case 4:
+			x = a;
+			y = b;
+			z = -distance;
+		default:
+			x = a;
+			y = b;
+			z = ChunkCells + distance;
 		}
 	}
 
@@ -90,24 +144,28 @@ extension VoxelTerrain
 	{
 		let offset = FaceOffset(face);
 		for (int b < Samples)
+		{
 			for (int a < Samples)
 			{
 				BeyondFace(face, distance, a, b, let x, let y, let z);
 				// The same sample in the neighbour's own coordinates.
 				layer[face * FaceCount + a + b * Samples] = source[SampleIndex(x - offset.x * ChunkCells, y - offset.y * ChunkCells, z - offset.z * ChunkCells)];
 			}
+		}
 	}
 
 	static void GenerateLayer(MeshWork work, int8[] layer, int face, int distance)
 	{
 		let snap = work.snap;
 		for (int b < Samples)
+		{
 			for (int a < Samples)
 			{
 				BeyondFace(face, distance, a, b, let x, let y, let z);
 				let p = work.origin + Vector3(x, y, z) * work.size;
 				layer[face * FaceCount + a + b * Samples] = Quantize(snap.Density(p.x, p.y, p.z), work.size);
 			}
+		}
 	}
 
 	/// The samples beyond each face: from the neighbouring chunk, its sculpting on file, or the generator.
@@ -169,8 +227,10 @@ extension VoxelTerrain
 		if (work.masked)
 		{
 			for (int z < Samples)
+			{
 				for (int x < Samples)
 					work.inside[x + z * Samples] = snap.Inside(work.origin.x + x * work.size, work.origin.z + z * work.size);
+			}
 		}
 		FillApron(chunk, work, step);
 		chunk.vertices.Clear();
@@ -282,11 +342,9 @@ extension VoxelTerrain
 						{
 							let da = (float)work.D(ax, ay, az);
 							let db = (float)work.D(bx, by, bz);
-							let t = Mathf.Abs(da - db) > 0.001f ? Mathf.Clamp01(da / (da - db)) : 0.5f;
+							let t = Crossing(da, db);
 							let local = Vector3(ax + (bx - ax) * t, ay + (by - ay) * t, az + (bz - az) * t);
-							var normal = Vector3.Lerp(Gradient(work, ax, ay, az, step), Gradient(work, bx, by, bz, step), t);
-							let length = normal.Length;
-							normal = length > 0.00001f ? normal * (1.0f / length) : Vector3(0, 1, 0);
+							let normal = SafeNormal(Vector3.Lerp(Gradient(work, ax, ay, az, step), Gradient(work, bx, by, bz, step), t));
 							let position = origin + local * size;
 							vertexIndex = (int32)vertices.Count;
 							var color = SurfaceColor(position.y, normal.y);
@@ -302,12 +360,14 @@ extension VoxelTerrain
 						edgeVertex[e] = (uint32)vertexIndex;
 					}
 
+					// The table winds the other way from Tessera's front faces.
 					let row = config * 16;
 					for (int i = 0; MarchingTables.Triangles[row + i] != -1; i += 3)
 					{
-						indices.Add(edgeVertex[MarchingTables.Triangles[row + i]]);
-						indices.Add(edgeVertex[MarchingTables.Triangles[row + i + 2]]);
-						indices.Add(edgeVertex[MarchingTables.Triangles[row + i + 1]]);
+						let a = edgeVertex[MarchingTables.Triangles[row + i]];
+						let b = edgeVertex[MarchingTables.Triangles[row + i + 1]];
+						let c = edgeVertex[MarchingTables.Triangles[row + i + 2]];
+						AddTriangle(indices, a, c, b);
 					}
 				}
 			}
@@ -331,7 +391,9 @@ extension VoxelTerrain
 			int8*[27] sources = default;
 			bool[27] absent = default;
 			for (int32 oz = -1; oz <= 1; oz++)
+			{
 				for (int32 oy = -1; oy <= 1; oy++)
+				{
 					for (int32 ox = -1; ox <= 1; ox++)
 					{
 						let slot = (ox + 1) + (oy + 1) * 3 + (oz + 1) * 9;
@@ -349,6 +411,8 @@ extension VoxelTerrain
 						sources[slot] = source != null ? source.Ptr : null;
 						absent[slot] = source == null;
 					}
+				}
+			}
 			for (int k < side)
 			{
 				let rz = (k - Pad) * step;
@@ -380,7 +444,9 @@ extension VoxelTerrain
 		if (anyMissing)
 		{
 			for (int k < side)
+			{
 				for (int j < side)
+				{
 					for (int i < side)
 					{
 						let at = i + j * side + k * side * side;
@@ -389,10 +455,13 @@ extension VoxelTerrain
 						let p = work.origin + Vector3((i - Pad) * step, (j - Pad) * step, (k - Pad) * step) * size;
 						padded[at] = Quantize(snap.Density(p.x, p.y, p.z), size);
 					}
+				}
+			}
 		}
 		if (work.masked)
 		{
 			for (int k < side)
+			{
 				for (int i < side)
 				{
 					if (snap.Inside(work.origin.x + (i - Pad) * step * size, work.origin.z + (k - Pad) * step * size))
@@ -400,6 +469,91 @@ extension VoxelTerrain
 					for (int j < side)
 						padded[i + j * side + k * side * side] = Air;
 				}
+			}
+		}
+	}
+
+	/// A normal from an unnormalised direction; straight up when there is no direction to speak of.
+	static Vector3 SafeNormal(Vector3 direction)
+	{
+		let length = direction.Length;
+		return length > 0.00001f ? direction * (1.0f / length) : Vector3(0, 1, 0);
+	}
+
+	/// How far along an edge from a sample of density `da` to one of `db` the surface (density 0) crosses it.
+	static float Crossing(float da, float db) => Math.Abs(da - db) > 0.001f ? Mathf.Clamp01(da / (da - db)) : 0.5f;
+
+	/// The two axes across a grid edge along `axis`, going round it: for X, Y then Z; for Y, Z then X; for Z, X then Y.
+	static void AxesAround(int axis, out Int3 u, out Int3 v)
+	{
+		switch (axis)
+		{
+		case 0:
+			u = .(0, 1, 0);
+			v = .(0, 0, 1);
+		case 1:
+			u = .(0, 0, 1);
+			v = .(1, 0, 0);
+		default:
+			u = .(1, 0, 0);
+			v = .(0, 1, 0);
+		}
+	}
+
+	static void AddTriangle(List<uint32> indices, uint32 a, uint32 b, uint32 c)
+	{
+		indices.Add(a);
+		indices.Add(b);
+		indices.Add(c);
+	}
+
+	/// Finds the point of a cell that best fits the planes where the surface crosses its edges (a quadratic error
+	/// function, as dual contouring calls it).
+	struct CellFit
+	{
+		public Vector3 mass;
+		public Vector3 facing;
+		public Vector3 right;
+		public float a00, a01, a02, a11, a12, a22;
+		public int crossings;
+
+		/// One crossing: where it is in the cell (0 to 1 on each axis) and which way the surface faces there.
+		public void Add(Vector3 point, Vector3 normal) mut
+		{
+			mass = mass + point;
+			facing = facing + normal;
+			let along = Vector3.Dot(normal, point);
+			a00 += normal.x * normal.x;
+			a01 += normal.x * normal.y;
+			a02 += normal.x * normal.z;
+			a11 += normal.y * normal.y;
+			a12 += normal.y * normal.z;
+			a22 += normal.z * normal.z;
+			right = right + normal * along;
+			crossings++;
+		}
+
+		/// The middle of the crossings, moved `sharpness` of the way (0 to 1) to the point nearest every crossing's
+		/// plane, which is what keeps corners and ridges sharp.
+		public Vector3 Solve(float sharpness)
+		{
+			let middle = mass * (1.0f / crossings);
+			if (sharpness <= 0)
+				return middle;
+			// Pulled a little towards the middle so that it is always well defined (flat ground has planes that all
+			// agree).
+			let pull = 0.1f * crossings;
+			let m00 = a00 + pull, m11 = a11 + pull, m22 = a22 + pull;
+			let rx = right.x + pull * middle.x, ry = right.y + pull * middle.y, rz = right.z + pull * middle.z;
+			let c00 = m11 * m22 - a12 * a12, c01 = a02 * a12 - a01 * m22, c02 = a01 * a12 - a02 * m11;
+			let det = m00 * c00 + a01 * c01 + a02 * c02;
+			if (Math.Abs(det) <= 1.0e-9f)
+				return middle;
+			let c11 = m00 * m22 - a02 * a02, c12 = a01 * a02 - m00 * a12, c22 = m00 * m11 - a01 * a01;
+			var solved = Vector3((c00 * rx + c01 * ry + c02 * rz) / det, (c01 * rx + c11 * ry + c12 * rz) / det, (c02 * rx + c12 * ry + c22 * rz) / det);
+			// Kept inside its cell: a point outside would fold the surface over its neighbours.
+			solved = .(Mathf.Clamp01(solved.x), Mathf.Clamp01(solved.y), Mathf.Clamp01(solved.z));
+			return Vector3.Lerp(middle, solved, sharpness);
 		}
 	}
 
@@ -410,18 +564,22 @@ extension VoxelTerrain
 	void BuildContoured(Chunk chunk, MeshWork work, int32 step, List<MeshVertex> vertices, List<uint32> indices)
 	{
 		FillPadded(chunk, work, step);
+		Internal.MemSet(work.cellVertex.Ptr, 0xFF, work.cellVertex.Count * sizeof(int32));
+		PlaceCellPoints(chunk, work, step, vertices);
+		JoinCellPoints(work, step, vertices, indices);
+	}
+
+	/// A point for every cell the surface passes through (cells -1 to n - 1 along each axis), its vertex index kept
+	/// in work.cellVertex.
+	void PlaceCellPoints(Chunk chunk, MeshWork work, int32 step, List<MeshVertex> vertices)
+	{
 		let n = ChunkCells / step;
 		let side = n + 1 + Pad * 2;
 		let sideY = side, sideZ = side * side;
 		let data = work.padded.Ptr;
-		let cells = work.cellVertex;
 		let cellSide = n + 1;
-		Internal.MemSet(cells.Ptr, 0xFF, cells.Count * sizeof(int32));
-		let size = work.size;
-		let origin = work.origin;
-		let sharpness = mSharpness;
-
-		// ---- a point for every cell the surface passes through (cells -1 to n - 1 along each axis) ----
+		int Corner(int at, int c) => at + (c & 1) + ((c >> 1) & 1) * sideY + ((c >> 2) & 1) * sideZ;
+		Vector3 Slope(int at) => .((float)data[at - 1] - data[at + 1], (float)data[at - sideY] - data[at + sideY], (float)data[at - sideZ] - data[at + sideZ]);
 		for (int cz = -1; cz < n; cz++)
 		{
 			for (int cy = -1; cy < n; cy++)
@@ -433,7 +591,7 @@ extension VoxelTerrain
 					int solid = 0;
 					for (int c < 8)
 					{
-						let value = data[at + (c & 1) + ((c >> 1) & 1) * sideY + ((c >> 2) & 1) * sideZ];
+						let value = data[Corner(at, c)];
 						corner[c] = value;
 						if (value > 0)
 							solid |= 1 << c;
@@ -441,10 +599,7 @@ extension VoxelTerrain
 					if (solid == 0 || solid == 255)
 						continue;
 					// Where the surface crosses each edge of the cell, and which way it faces there.
-					Vector3 mass = .Zero, facing = .Zero;
-					float a00 = 0, a01 = 0, a02 = 0, a11 = 0, a12 = 0, a22 = 0;
-					Vector3 right = .Zero;
-					int crossings = 0;
+					CellFit fit = default;
 					for (int axis < 3)
 					{
 						let bit = 1 << axis;
@@ -455,80 +610,63 @@ extension VoxelTerrain
 							let d = c | bit;
 							if (((solid >> c) & 1) == ((solid >> d) & 1))
 								continue;
-							let da = corner[c], db = corner[d];
-							let t = Math.Abs(da - db) > 0.001f ? Mathf.Clamp01(da / (da - db)) : 0.5f;
+							let t = Crossing(corner[c], corner[d]);
 							var point = Vector3(c & 1, (c >> 1) & 1, (c >> 2) & 1);
 							point[axis] = t;
-							let ia = at + (c & 1) + ((c >> 1) & 1) * sideY + ((c >> 2) & 1) * sideZ;
-							let ib = at + (d & 1) + ((d >> 1) & 1) * sideY + ((d >> 2) & 1) * sideZ;
-							let ga = Vector3((float)data[ia - 1] - data[ia + 1], (float)data[ia - sideY] - data[ia + sideY], (float)data[ia - sideZ] - data[ia + sideZ]);
-							let gb = Vector3((float)data[ib - 1] - data[ib + 1], (float)data[ib - sideY] - data[ib + sideY], (float)data[ib - sideZ] - data[ib + sideZ]);
-							var normal = Vector3.Lerp(ga, gb, t);
-							let length = normal.Length;
-							normal = length > 0.00001f ? normal * (1.0f / length) : Vector3(0, 1, 0);
-							mass = mass + point;
-							facing = facing + normal;
-							let along = Vector3.Dot(normal, point);
-							a00 += normal.x * normal.x; a01 += normal.x * normal.y; a02 += normal.x * normal.z;
-							a11 += normal.y * normal.y; a12 += normal.y * normal.z; a22 += normal.z * normal.z;
-							right = right + normal * along;
-							crossings++;
+							fit.Add(point, SafeNormal(Vector3.Lerp(Slope(Corner(at, c)), Slope(Corner(at, d)), t)));
 						}
 					}
-					if (crossings == 0)
+					if (fit.crossings == 0)
 						continue;
-					mass = mass * (1.0f / crossings);
-					var point = mass;
-					if (sharpness > 0)
-					{
-						// The point nearest to every crossing's plane, pulled a little towards the middle of the crossings
-						// so that it is always well defined (flat ground has planes that all agree).
-						let pull = 0.1f * crossings;
-						let m00 = a00 + pull, m11 = a11 + pull, m22 = a22 + pull;
-						let rx = right.x + pull * mass.x, ry = right.y + pull * mass.y, rz = right.z + pull * mass.z;
-						let c00 = m11 * m22 - a12 * a12, c01 = a02 * a12 - a01 * m22, c02 = a01 * a12 - a02 * m11;
-						let det = m00 * c00 + a01 * c01 + a02 * c02;
-						if (Math.Abs(det) > 1.0e-9f)
-						{
-							let c11 = m00 * m22 - a02 * a02, c12 = a01 * a02 - m00 * a12, c22 = m00 * m11 - a01 * a01;
-							var solved = Vector3((c00 * rx + c01 * ry + c02 * rz) / det, (c01 * rx + c11 * ry + c12 * rz) / det, (c02 * rx + c12 * ry + c22 * rz) / det);
-							// Kept inside its cell: a point outside would fold the surface over its neighbours.
-							solved = .(Mathf.Clamp01(solved.x), Mathf.Clamp01(solved.y), Mathf.Clamp01(solved.z));
-							point = Vector3.Lerp(mass, solved, sharpness);
-						}
-					}
-					let facingLength = facing.Length;
-					let normal = facingLength > 0.00001f ? facing * (1.0f / facingLength) : Vector3(0, 1, 0);
-					let position = origin + (Vector3(cx, cy, cz) + point) * (step * size);
+					let point = fit.Solve(mSharpness);
+					let normal = SafeNormal(fit.facing);
+					let position = work.origin + (Vector3(cx, cy, cz) + point) * (step * work.size);
 					var color = SurfaceColor(position.y, normal.y);
 					if (chunk.paint != null)
 					{
-						// Painted where the nearest solid corner is painted (corners outside the chunk read its edge).
-						int best = -1;
-						float bestDistance = float.MaxValue;
-						for (int c < 8)
-						{
-							if (((solid >> c) & 1) == 0)
-								continue;
-							let distance = (Vector3(c & 1, (c >> 1) & 1, (c >> 2) & 1) - point).LengthSquared;
-							if (distance < bestDistance)
-							{
-								bestDistance = distance;
-								best = c;
-							}
-						}
-						let px = Math.Clamp((cx + (best & 1)) * step, 0, ChunkCells), py = Math.Clamp((cy + ((best >> 1) & 1)) * step, 0, ChunkCells), pz = Math.Clamp((cz + ((best >> 2) & 1)) * step, 0, ChunkCells);
-						let layer = chunk.paint[SampleIndex(px, py, pz)];
+						let layer = chunk.paint[NearestSolidSample(cx, cy, cz, step, solid, point)];
 						if (layer != 0)
 							color = LayerColor(layer);
 					}
-					cells[(cx + 1) + (cy + 1) * cellSide + (cz + 1) * cellSide * cellSide] = (int32)vertices.Count;
+					work.cellVertex[(cx + 1) + (cy + 1) * cellSide + (cz + 1) * cellSide * cellSide] = (int32)vertices.Count;
 					vertices.Add(.(position, normal, color.ToABGR(), .(position.x, position.z)));
 				}
 			}
 		}
+	}
 
-		// ---- a quad across every grid edge the surface crosses (this chunk owns the edges that start inside it) ----
+	/// The sample at a cell's solid corner nearest its point, for its paint (corners outside the chunk read its edge).
+	static int NearestSolidSample(int cx, int cy, int cz, int32 step, int solid, Vector3 point)
+	{
+		int best = -1;
+		float bestDistance = float.MaxValue;
+		for (int c < 8)
+		{
+			if (((solid >> c) & 1) == 0)
+				continue;
+			let distance = (Vector3(c & 1, (c >> 1) & 1, (c >> 2) & 1) - point).LengthSquared;
+			if (distance < bestDistance)
+			{
+				bestDistance = distance;
+				best = c;
+			}
+		}
+		let px = Math.Clamp((cx + (best & 1)) * step, 0, ChunkCells);
+		let py = Math.Clamp((cy + ((best >> 1) & 1)) * step, 0, ChunkCells);
+		let pz = Math.Clamp((cz + ((best >> 2) & 1)) * step, 0, ChunkCells);
+		return SampleIndex(px, py, pz);
+	}
+
+	/// A quad across every grid edge the surface crosses, joining the points of the four cells round it (this chunk
+	/// owns the edges that start inside it).
+	static void JoinCellPoints(MeshWork work, int32 step, List<MeshVertex> vertices, List<uint32> indices)
+	{
+		let n = ChunkCells / step;
+		let side = n + 1 + Pad * 2;
+		let sideY = side, sideZ = side * side;
+		let data = work.padded.Ptr;
+		let cells = work.cellVertex;
+		let cellSide = n + 1;
 		for (int z < n)
 		{
 			for (int y < n)
@@ -543,39 +681,55 @@ extension VoxelTerrain
 						if (here == there)
 							continue;
 						// The four cells round the edge, going round it: back along both other axes, then each in turn.
-						int ux = 0, uy = 0, uz = 0, vx = 0, vy = 0, vz = 0;
-						if (axis == 0) { uy = 1; vz = 1; }
-						else if (axis == 1) { uz = 1; vx = 1; }
-						else { ux = 1; vy = 1; }
+						AxesAround(axis, let u, let v);
 						int Cell(int dx, int dy, int dz) => cells[(x + dx + 1) + (y + dy + 1) * cellSide + (z + dz + 1) * cellSide * cellSide];
-						let q0 = Cell(-ux - vx, -uy - vy, -uz - vz);
-						let q1 = Cell(-vx, -vy, -vz);
+						let q0 = Cell(-u.x - v.x, -u.y - v.y, -u.z - v.z);
+						let q1 = Cell(-v.x, -v.y, -v.z);
 						let q2 = Cell(0, 0, 0);
-						let q3 = Cell(-ux, -uy, -uz);
+						let q3 = Cell(-u.x, -u.y, -u.z);
 						if (q0 < 0 || q1 < 0 || q2 < 0 || q3 < 0)
 							continue;
 						// Split along the shorter diagonal, which keeps the two triangles from being slivers.
 						let across = (vertices[q0].position - vertices[q2].position).LengthSquared <= (vertices[q1].position - vertices[q3].position).LengthSquared;
 						uint32 a = (uint32)q0, b = (uint32)q1, c = (uint32)q2, d = (uint32)q3;
+						// Facing the other way: go round the quad in the other direction.
 						if (!here)
-						{
-							// Facing the other way: go round the quad in the other direction.
 							Swap!(b, d);
-						}
 						if (across)
 						{
-							indices.Add(a); indices.Add(b); indices.Add(c);
-							indices.Add(a); indices.Add(c); indices.Add(d);
+							AddTriangle(indices, a, b, c);
+							AddTriangle(indices, a, c, d);
 						}
 						else
 						{
-							indices.Add(a); indices.Add(b); indices.Add(d);
-							indices.Add(b); indices.Add(c); indices.Add(d);
+							AddTriangle(indices, a, b, d);
+							AddTriangle(indices, b, c, d);
 						}
 					}
 				}
 			}
 		}
+	}
+
+	/// The key of the edge between two vertices, the same whichever way round they are given.
+	static uint64 EdgeKey(uint32 a, uint32 b) => a < b ? ((uint64)a << 32) | b : ((uint64)b << 32) | a;
+
+	/// A strip from the edge between two vertices down into the ground, `depth` along their normals, seen from both
+	/// sides.
+	static void AddSkirt(List<MeshVertex> vertices, List<uint32> indices, uint32 ia, uint32 ib, float depth)
+	{
+		var a = vertices[(int)ia];
+		var b = vertices[(int)ib];
+		a.position -= a.normal * depth;
+		b.position -= b.normal * depth;
+		let a2 = (uint32)vertices.Count;
+		let b2 = a2 + 1;
+		vertices.Add(a);
+		vertices.Add(b);
+		AddTriangle(indices, ia, ib, b2);
+		AddTriangle(indices, ia, b2, a2);
+		AddTriangle(indices, ia, b2, ib);
+		AddTriangle(indices, ia, a2, b2);
 	}
 
 	/// Skirts for contoured chunks: a strip down into the ground from every edge of the mesh that only one triangle
@@ -588,8 +742,7 @@ extension VoxelTerrain
 		{
 			for (int e < 3)
 			{
-				let ia = indices[t * 3 + e], ib = indices[t * 3 + (e + 1) % 3];
-				let key = ia < ib ? ((uint64)ia << 32) | ib : ((uint64)ib << 32) | ia;
+				let key = EdgeKey(indices[t * 3 + e], indices[t * 3 + (e + 1) % 3]);
 				if (uses.TryGetValue(key, let count))
 					uses[key] = count + 1;
 				else
@@ -601,21 +754,8 @@ extension VoxelTerrain
 			for (int e < 3)
 			{
 				let ia = indices[t * 3 + e], ib = indices[t * 3 + (e + 1) % 3];
-				let key = ia < ib ? ((uint64)ia << 32) | ib : ((uint64)ib << 32) | ia;
-				if (uses[key] != 1)
-					continue;
-				var a = vertices[(int)ia];
-				var b = vertices[(int)ib];
-				a.position -= a.normal * depth;
-				b.position -= b.normal * depth;
-				let a2 = (uint32)vertices.Count;
-				let b2 = a2 + 1;
-				vertices.Add(a);
-				vertices.Add(b);
-				indices.Add(ia); indices.Add(ib); indices.Add(b2);
-				indices.Add(ia); indices.Add(b2); indices.Add(a2);
-				indices.Add(ia); indices.Add(b2); indices.Add(ib);
-				indices.Add(ia); indices.Add(a2); indices.Add(b2);
+				if (uses[EdgeKey(ia, ib)] == 1)
+					AddSkirt(vertices, indices, ia, ib, depth);
 			}
 		}
 	}
@@ -628,15 +768,20 @@ extension VoxelTerrain
 		let depth = (2 * step + 1) * size;
 		let limit = ChunkCells * size;
 		let epsilon = size * 0.001f;
-		int Faces(Vector3 position)
+		// Which of the chunk's four sides (bits: -X, +X, -Z, +Z) a vertex lies on.
+		int Sides(Vector3 position)
 		{
 			let p = position - work.origin;
-			int faces = 0;
-			if (Math.Abs(p.x) < epsilon) faces |= 1;
-			if (Math.Abs(p.x - limit) < epsilon) faces |= 2;
-			if (Math.Abs(p.z) < epsilon) faces |= 4;
-			if (Math.Abs(p.z - limit) < epsilon) faces |= 8;
-			return faces;
+			int sides = 0;
+			if (Math.Abs(p.x) < epsilon)
+				sides |= 1;
+			if (Math.Abs(p.x - limit) < epsilon)
+				sides |= 2;
+			if (Math.Abs(p.z) < epsilon)
+				sides |= 4;
+			if (Math.Abs(p.z - limit) < epsilon)
+				sides |= 8;
+			return sides;
 		}
 		let triangles = indices.Count / 3;
 		for (int t < triangles)
@@ -645,24 +790,13 @@ extension VoxelTerrain
 			{
 				let ia = indices[t * 3 + e];
 				let ib = indices[t * 3 + (e + 1) % 3];
-				if ((Faces(vertices[(int)ia].position) & Faces(vertices[(int)ib].position)) == 0)
-					continue;
-				var a = vertices[(int)ia];
-				var b = vertices[(int)ib];
-				a.position -= a.normal * depth;
-				b.position -= b.normal * depth;
-				let a2 = (uint32)vertices.Count;
-				let b2 = a2 + 1;
-				vertices.Add(a);
-				vertices.Add(b);
-				indices.Add(ia); indices.Add(ib); indices.Add(b2);
-				indices.Add(ia); indices.Add(b2); indices.Add(a2);
-				indices.Add(ia); indices.Add(b2); indices.Add(ib);
-				indices.Add(ia); indices.Add(a2); indices.Add(b2);
+				if ((Sides(vertices[(int)ia].position) & Sides(vertices[(int)ib].position)) != 0)
+					AddSkirt(vertices, indices, ia, ib, depth);
 			}
 		}
 	}
 
+	/// Cubes: a square face between every solid cell and an empty one.
 	void BuildBlocky(Chunk chunk, MeshWork work)
 	{
 		let size = work.size;
@@ -683,10 +817,10 @@ extension VoxelTerrain
 						if (solid == neighbor)
 							continue;
 						// The face sits on the +axis side of this cell, facing whichever side is empty.
-						Vector3 u = default, v = default, n = default;
-						if (axis == 0) { n = .(1, 0, 0); u = .(0, 1, 0); v = .(0, 0, 1); }
-						else if (axis == 1) { n = .(0, 1, 0); u = .(0, 0, 1); v = .(1, 0, 0); }
-						else { n = .(0, 0, 1); u = .(1, 0, 0); v = .(0, 1, 0); }
+						AxesAround(axis, let across, let up);
+						let n = Vector3(axis == 0 ? 1 : 0, axis == 1 ? 1 : 0, axis == 2 ? 1 : 0);
+						let u = Vector3(across.x, across.y, across.z);
+						let v = Vector3(up.x, up.y, up.z);
 						let corner = p + n * size;
 						let normal = solid ? n : -n;
 						let cellY = solid ? p.y : p.y + (axis == 1 ? size : 0);
@@ -705,13 +839,13 @@ extension VoxelTerrain
 						chunk.vertices.Add(.(corner + v * size, normal, color, .(0, 1)));
 						if (solid)
 						{
-							chunk.indices.Add(first); chunk.indices.Add(first + 1); chunk.indices.Add(first + 2);
-							chunk.indices.Add(first); chunk.indices.Add(first + 2); chunk.indices.Add(first + 3);
+							AddTriangle(chunk.indices, first, first + 1, first + 2);
+							AddTriangle(chunk.indices, first, first + 2, first + 3);
 						}
 						else
 						{
-							chunk.indices.Add(first); chunk.indices.Add(first + 2); chunk.indices.Add(first + 1);
-							chunk.indices.Add(first); chunk.indices.Add(first + 3); chunk.indices.Add(first + 2);
+							AddTriangle(chunk.indices, first, first + 2, first + 1);
+							AddTriangle(chunk.indices, first, first + 3, first + 2);
 						}
 					}
 				}

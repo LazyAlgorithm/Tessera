@@ -8,23 +8,33 @@ namespace Tessera;
 [CRepr]
 struct Matrix4
 {
+	/// The sixteen numbers, column by column: element (row, column) is m[column * 4 + row].
 	public float[16] m;
 
+	/// The matrix that changes nothing.
 	public static Matrix4 Identity
 	{
 		get
 		{
 			Matrix4 r = default;
-			r.m[0] = 1; r.m[5] = 1; r.m[10] = 1; r.m[15] = 1;
+			r.m[0] = 1;
+			r.m[5] = 1;
+			r.m[10] = 1;
+			r.m[15] = 1;
 			return r;
 		}
 	}
 
+	/// The move the matrix makes.
 	public Vector3 Translation => .(m[12], m[13], m[14]);
+	/// Where the matrix puts +X (its first column).
 	public Vector3 Right => .(m[0], m[1], m[2]);
+	/// Where the matrix puts +Y.
 	public Vector3 Up => .(m[4], m[5], m[6]);
+	/// Where the matrix puts +Z.
 	public Vector3 Forward => .(m[8], m[9], m[10]);
 
+	/// b, then a.
 	public static Matrix4 operator *(Matrix4 a, Matrix4 b)
 	{
 		Matrix4 r = default;
@@ -42,40 +52,69 @@ struct Matrix4
 		return r;
 	}
 
+	/// A move.
 	public static Matrix4 Translate(Vector3 t)
 	{
 		var r = Identity;
-		r.m[12] = t.x; r.m[13] = t.y; r.m[14] = t.z;
+		r.m[12] = t.x;
+		r.m[13] = t.y;
+		r.m[14] = t.z;
 		return r;
 	}
 
+	/// A scaling on each axis.
 	public static Matrix4 Scale(Vector3 s)
 	{
 		Matrix4 r = default;
-		r.m[0] = s.x; r.m[5] = s.y; r.m[10] = s.z; r.m[15] = 1;
-		return r;
-	}
-
-	public static Matrix4 Rotation(Quaternion q)
-	{
-		let xx = q.x * q.x; let yy = q.y * q.y; let zz = q.z * q.z;
-		let xy = q.x * q.y; let xz = q.x * q.z; let yz = q.y * q.z;
-		let wx = q.w * q.x; let wy = q.w * q.y; let wz = q.w * q.z;
-		Matrix4 r = default;
-		r.m[0] = 1 - 2 * (yy + zz); r.m[1] = 2 * (xy + wz); r.m[2] = 2 * (xz - wy);
-		r.m[4] = 2 * (xy - wz); r.m[5] = 1 - 2 * (xx + zz); r.m[6] = 2 * (yz + wx);
-		r.m[8] = 2 * (xz + wy); r.m[9] = 2 * (yz - wx); r.m[10] = 1 - 2 * (xx + yy);
+		r.m[0] = s.x;
+		r.m[5] = s.y;
+		r.m[10] = s.z;
 		r.m[15] = 1;
 		return r;
 	}
 
+	/// A rotation.
+	public static Matrix4 Rotation(Quaternion q)
+	{
+		let xx = q.x * q.x;
+		let yy = q.y * q.y;
+		let zz = q.z * q.z;
+		let xy = q.x * q.y;
+		let xz = q.x * q.z;
+		let yz = q.y * q.z;
+		let wx = q.w * q.x;
+		let wy = q.w * q.y;
+		let wz = q.w * q.z;
+		Matrix4 r = default;
+		r.m[0] = 1 - 2 * (yy + zz);
+		r.m[1] = 2 * (xy + wz);
+		r.m[2] = 2 * (xz - wy);
+		r.m[4] = 2 * (xy - wz);
+		r.m[5] = 1 - 2 * (xx + zz);
+		r.m[6] = 2 * (yz + wx);
+		r.m[8] = 2 * (xz + wy);
+		r.m[9] = 2 * (yz - wx);
+		r.m[10] = 1 - 2 * (xx + yy);
+		r.m[15] = 1;
+		return r;
+	}
+
+	/// Scale, then rotate, then move: an object's local matrix.
 	public static Matrix4 TRS(Vector3 t, Quaternion q, Vector3 s)
 	{
 		var r = Rotation(q);
-		r.m[0] *= s.x; r.m[1] *= s.x; r.m[2] *= s.x;
-		r.m[4] *= s.y; r.m[5] *= s.y; r.m[6] *= s.y;
-		r.m[8] *= s.z; r.m[9] *= s.z; r.m[10] *= s.z;
-		r.m[12] = t.x; r.m[13] = t.y; r.m[14] = t.z;
+		r.m[0] *= s.x;
+		r.m[1] *= s.x;
+		r.m[2] *= s.x;
+		r.m[4] *= s.y;
+		r.m[5] *= s.y;
+		r.m[6] *= s.y;
+		r.m[8] *= s.z;
+		r.m[9] *= s.z;
+		r.m[10] *= s.z;
+		r.m[12] = t.x;
+		r.m[13] = t.y;
+		r.m[14] = t.z;
 		return r;
 	}
 
@@ -97,6 +136,7 @@ struct Matrix4
 		q = Quaternion.FromBasis(r, u, f);
 	}
 
+	/// A point moved by the matrix.
 	public Vector3 TransformPoint(Vector3 p)
 	{
 		return .(
@@ -105,6 +145,7 @@ struct Matrix4
 			m[2] * p.x + m[6] * p.y + m[10] * p.z + m[14]);
 	}
 
+	/// A direction turned and scaled by the matrix (without its move).
 	public Vector3 TransformDirection(Vector3 d)
 	{
 		return .(
@@ -113,6 +154,7 @@ struct Matrix4
 			m[2] * d.x + m[6] * d.y + m[10] * d.z);
 	}
 
+	/// A Vector4 times the matrix.
 	public Vector4 Transform(Vector4 v)
 	{
 		return .(
@@ -130,18 +172,22 @@ struct Matrix4
 		return .(v.x * inv, v.y * inv, v.z * inv);
 	}
 
+	/// Rows and columns swapped.
 	public Matrix4 Transposed
 	{
 		get
 		{
 			Matrix4 r = default;
 			for (int c < 4)
+			{
 				for (int row < 4)
 					r.m[c * 4 + row] = m[row * 4 + c];
+			}
 			return r;
 		}
 	}
 
+	/// The matrix that undoes this one.
 	public Matrix4 Inverse
 	{
 		get
@@ -195,6 +241,8 @@ struct Matrix4
 		return r;
 	}
 
+	/// A projection without perspective, of a box from left to right, bottom to top and near to far. homogeneousDepth:
+	/// depth from -1 to 1 (OpenGL) instead of 0 to 1.
 	public static Matrix4 Ortho(float left, float right, float bottom, float top, float near, float far, bool homogeneousDepth)
 	{
 		Matrix4 r = default;
@@ -216,6 +264,7 @@ struct Matrix4
 		return r;
 	}
 
+	/// A view from eye towards target, with up as near up as it can be.
 	public static Matrix4 LookAt(Vector3 eye, Vector3 target, Vector3 up)
 	{
 		let z = (target - eye).Normalized;
@@ -225,9 +274,18 @@ struct Matrix4
 		x = x.Normalized;
 		let y = Vector3.Cross(z, x);
 		Matrix4 r = default;
-		r.m[0] = x.x; r.m[4] = x.y; r.m[8] = x.z; r.m[12] = -Vector3.Dot(x, eye);
-		r.m[1] = y.x; r.m[5] = y.y; r.m[9] = y.z; r.m[13] = -Vector3.Dot(y, eye);
-		r.m[2] = z.x; r.m[6] = z.y; r.m[10] = z.z; r.m[14] = -Vector3.Dot(z, eye);
+		r.m[0] = x.x;
+		r.m[4] = x.y;
+		r.m[8] = x.z;
+		r.m[12] = -Vector3.Dot(x, eye);
+		r.m[1] = y.x;
+		r.m[5] = y.y;
+		r.m[9] = y.z;
+		r.m[13] = -Vector3.Dot(y, eye);
+		r.m[2] = z.x;
+		r.m[6] = z.y;
+		r.m[10] = z.z;
+		r.m[14] = -Vector3.Dot(z, eye);
 		r.m[15] = 1.0f;
 		return r;
 	}

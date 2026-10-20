@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using Tessera;
+
 namespace IKTests;
 
 class Program
@@ -21,9 +22,9 @@ class Program
 	/// An arm hanging from a shoulder, bent a little at the elbow, with a hand at the end.
 	static void Arm(Scene scene, Transform parent, StringView side, float x, out Transform upper, out Transform elbow, out Transform hand)
 	{
-		upper = Bone(scene, scope $"UpperArm.{side}", parent, .(x, 1.4f, 0));
-		elbow = Bone(scene, scope $"LowerArm.{side}", upper, .(0, -0.3f, 0));
-		hand = Bone(scene, scope $"Hand.{side}", elbow, .(0, -0.3f, 0));
+		upper = Bone(scene, scope $"UpperArm.{side}" , parent, .(x, 1.4f, 0));
+		elbow = Bone(scene, scope $"LowerArm.{side}" , upper, .(0, -0.3f, 0));
+		hand = Bone(scene, scope $"Hand.{side}" , elbow, .(0, -0.3f, 0));
 		upper.LocalRotation = Quaternion.Euler(-10, 0, 0);
 		elbow.LocalRotation = Quaternion.Euler(-20, 0, 0);
 	}
@@ -92,7 +93,8 @@ class Program
 		elbow.LocalRotation = Quaternion.Euler(-40, 0, 0);
 		Step(scene);
 		ok &= Check((hand.Position - target.Position).Length < 0.001f, "IK follows a pose changed underneath it");
-		Vector3 inputPosition; Quaternion inputRotation;
+		Vector3 inputPosition;
+		Quaternion inputRotation;
 		ok &= Check(IKSystem.InputPose(upper, out inputPosition, out inputRotation) && Quaternion.Dot(inputRotation, Quaternion.Euler(-60, 0, 20)) > 0.99999f, "the pose from before IK can be asked for");
 		arm.Enabled = false;
 		Step(scene);
@@ -194,7 +196,7 @@ class Program
 		var previous = tailRoot;
 		for (int i < 5)
 		{
-			previous = Bone(scene, scope $"Tail{i}", previous, i == 0 ? Vector3(3, 0, 0) : Vector3(0, 0, 0.2f));
+			previous = Bone(scene, scope $"Tail{i}" , previous, i == 0 ? Vector3(3, 0, 0) : Vector3(0, 0, 0.2f));
 			tail.Add(previous);
 		}
 		let tailTip = Bone(scene, "TailTip", previous, .(0, 0, 0.2f));
@@ -208,12 +210,12 @@ class Program
 		Transform[5] tips = default;
 		for (int f < 5)
 		{
-			var bone = Bone(scene, scope $"{names[f]}1", palm, f == 0 ? Vector3(-0.04f, -0.01f, 0.02f) : Vector3(-0.045f + f * 0.02f, 0, 0.09f));
+			var bone = Bone(scene, scope $"{names[f]}1" , palm, f == 0 ? Vector3(-0.04f, -0.01f, 0.02f) : Vector3(-0.045f + f * 0.02f, 0, 0.09f));
 			if (f == 0)
 				bone.LocalRotation = Quaternion.Euler(0, -45, 0);
 			for (int j = 2; j <= 3; j++)
-				bone = Bone(scene, scope $"{names[f]}{j}", bone, .(0, 0, 0.03f));
-			tips[f] = Bone(scene, scope $"{names[f]}End", bone, .(0, 0, 0.025f));
+				bone = Bone(scene, scope $"{names[f]}{j}" , bone, .(0, 0, 0.03f));
+			tips[f] = Bone(scene, scope $"{names[f]}End" , bone, .(0, 0, 0.025f));
 		}
 		let fingers = palm.GameObject.AddComponent<HandPose>();
 		Step(scene);

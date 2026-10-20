@@ -84,8 +84,15 @@ class Progress : Component
 	public int32 seenAtAwake = -1;
 	public int32 loadedCalls;
 
-	public override void Awake() { seenAtAwake = coins; }
-	public override void OnLoaded() { loadedCalls++; }
+	public override void Awake()
+	{
+		seenAtAwake = coins;
+	}
+
+	public override void OnLoaded()
+	{
+		loadedCalls++;
+	}
 }
 
 [DataAsset]
@@ -96,7 +103,10 @@ class TestSettings : DataAsset
 	[Saved] public float volume = 0.8f;
 	[Saved] public List<String> recent = new .() ~ DeleteContainerAndItems!(_);
 	public int32 loadedCalls;
-	public override void OnLoaded() { loadedCalls++; }
+	public override void OnLoaded()
+	{
+		loadedCalls++;
+	}
 }
 
 class Refs : ISaveReferences
@@ -112,39 +122,76 @@ class Program
 	static void Check(bool pass, StringView label)
 	{
 		Console.WriteLine(scope $"{pass ? "PASS" : "FAIL"}: {label}");
-		if (!pass) sFailed++;
+		if (!pass)
+			sFailed++;
 	}
 
 	static void Fill(Everything e, GameObject other)
 	{
-		e.b = true; e.i8 = -8; e.i16 = -1600; e.i32 = -320000; e.i64 = -6400000000; e.u8 = 200; e.u16 = 60000; e.u32 = 4000000000; e.u64 = 0xFFFFFFFFFFFFFFF0; e.iSize = 123456789;
-		e.c8 = 'Z'; e.c32 = (char32)0x1F600; e.f = 1.25f; e.dbl = 0.1; e.text.Set("hello \"world\"\n"); e.v2 = .(1, 2); e.v3 = .(3, 4, 5); e.v4 = .(6, 7, 8, 9);
-		e.i3 = .(-1, 2, -3); e.q = .(0.1f, 0.2f, 0.3f, 0.9f); e.color = .(0.5f, 0.25f, 1, 0.75f);
-		for (int i < 16) e.matrix.m[i] = i * 0.5f;
+		e.b = true;
+		e.i8 = -8;
+		e.i16 = -1600;
+		e.i32 = -320000;
+		e.i64 = -6400000000;
+		e.u8 = 200;
+		e.u16 = 60000;
+		e.u32 = 4000000000;
+		e.u64 = 0xFFFFFFFFFFFFFFF0;
+		e.iSize = 123456789;
+		e.c8 = 'Z';
+		e.c32 = (char32)0x1F600;
+		e.f = 1.25f;
+		e.dbl = 0.1;
+		e.text.Set("hello \"world\"\n");
+		e.v2 = .(1, 2);
+		e.v3 = .(3, 4, 5);
+		e.v4 = .(6, 7, 8, 9);
+		e.i3 = .(-1, 2, -3);
+		e.q = .(0.1f, 0.2f, 0.3f, 0.9f);
+		e.color = .(0.5f, 0.25f, 1, 0.75f);
+		for (int i < 16)
+			e.matrix.m[i] = i * 0.5f;
 		e.mood = .Angry;
 		e.sized = .(1, 2, 3, 4);
 		e.sizedNested[1][2] = .(7, 8, 9);
 		e.array = new .(5, 6, 7);
 		e.strings = new .(new String("a"), new String("bb"));
 		e.grid = new int32[2, 3];
-		e.grid[1, 2] = 42; e.grid[0, 1] = -1;
+		e.grid[1, 2] = 42;
+		e.grid[0, 1] = -1;
 		e.cube = new float[2, 2, 2];
 		e.cube[1, 0, 1] = 3.5f;
-		e.path.Add(.(1, 1, 1)); e.path.Add(.(2, 2, 2));
-		let inner = new List<int32>(); inner.Add(10); inner.Add(20); e.nested.Add(inner); e.nested.Add(new List<int32>());
-		e.queue.Add(3); e.queue.Add(1);
-		e.tags.Add(new String("red")); e.tags.Add(new String("fast"));
-		e.linked.AddLast(1.5); e.linked.AddLast(2.5);
+		e.path.Add(.(1, 1, 1));
+		e.path.Add(.(2, 2, 2));
+		let inner = new List<int32>();
+		inner.Add(10);
+		inner.Add(20);
+		e.nested.Add(inner);
+		e.nested.Add(new List<int32>());
+		e.queue.Add(3);
+		e.queue.Add(1);
+		e.tags.Add(new String("red"));
+		e.tags.Add(new String("fast"));
+		e.linked.AddLast(1.5);
+		e.linked.AddLast(2.5);
 		e.places[new String("home")] = .(4, 5);
-		let bucket = new List<int32>(); bucket.Add(99); e.buckets[7] = bucket;
-		e.stats.hp = 77; e.stats.speed = 3.5f; e.stats.notSaved = 5;
-		e.inventory.items.Add(new String("sword")); e.inventory.gold = 12;
-		e.big.slots = 30; e.big.gold = 9;
-		e.team.Add(.() { hp = 1, speed = 2 }); e.team.Add(.() { hp = 3, speed = 4 });
+		let bucket = new List<int32>();
+		bucket.Add(99);
+		e.buckets[7] = bucket;
+		e.stats.hp = 77;
+		e.stats.speed = 3.5f;
+		e.stats.notSaved = 5;
+		e.inventory.items.Add(new String("sword"));
+		e.inventory.gold = 12;
+		e.big.slots = 30;
+		e.big.gold = 9;
+		e.team.Add(.() { hp = 1, speed = 2 });
+		e.team.Add(.() { hp = 3, speed = 4 });
 		e.oldName = 55;
 		e.other = other;
 		e.otherComponent = other.GetComponent<Everything>();
-		e.objects.Add(other); e.objects.Add(null);
+		e.objects.Add(other);
+		e.objects.Add(null);
 		e.notSaved = 1234;
 	}
 
@@ -156,7 +203,11 @@ class Program
 		Check(a.text == b.text && b.nullText == null, scope $"{how}: strings");
 		Check(a.v2 == b.v2 && a.v3 == b.v3 && a.v4 == b.v4 && a.i3 == b.i3 && a.q.x == b.q.x && a.q.w == b.q.w && a.color.g == b.color.g && a.color.a == b.color.a, scope $"{how}: vectors, quaternion, colour");
 		var matrixSame = true;
-		for (int i < 16) if (a.matrix.m[i] != b.matrix.m[i]) matrixSame = false;
+		for (int i < 16)
+		{
+			if (a.matrix.m[i] != b.matrix.m[i])
+				matrixSame = false;
+		}
 		Check(matrixSame, scope $"{how}: matrix");
 		Check(b.mood == .Angry, scope $"{how}: enum");
 		Check(b.sized[3] == 4 && b.sizedNested[1][2] == Vector3(7, 8, 9), scope $"{how}: sized arrays");
@@ -168,11 +219,19 @@ class Program
 		Check(b.nested.Count == 2 && b.nested[0].Count == 2 && b.nested[0][1] == 20 && b.nested[1].Count == 0, scope $"{how}: List<List<int32>>");
 		Check(b.queue.Count == 2 && b.queue.PopFront() == 3, scope $"{how}: Queue");
 		var hasRed = false;
-		for (let tag in b.tags) if (tag == "red") hasRed = true;
+		for (let tag in b.tags)
+		{
+			if (tag == "red")
+				hasRed = true;
+		}
 		Check(b.tags.Count == 2 && hasRed, scope $"{how}: HashSet<String>");
 		Check(b.linked.Count == 2 && b.linked.Last.Value == 2.5, scope $"{how}: LinkedList");
 		Vector2 home = default;
-		for (let kv in b.places) if (kv.key == "home") home = kv.value;
+		for (let kv in b.places)
+		{
+			if (kv.key == "home")
+				home = kv.value;
+		}
 		Check(b.places.Count == 1 && home == Vector2(4, 5), scope $"{how}: Dictionary<String, Vector2>");
 		Check(b.buckets.Count == 1 && b.buckets[7].Count == 1 && b.buckets[7][0] == 99, scope $"{how}: Dictionary<int32, List<int32>>");
 		Check(b.stats.hp == 77 && b.stats.speed == 3.5f && b.stats.notSaved == 0, scope $"{how}: struct with [Saved] fields");
@@ -210,14 +269,14 @@ class Program
 	static void SceneSaves()
 	{
 		NetworkManager.RegisterPrefab("Crate", new (scene) =>
-		{
-			let crate = scene.CreateGameObject("Crate");
-			crate.AddComponent<BoxCollider>().size = .(1, 1, 1);
-			crate.AddComponent<Rigidbody>();
-			crate.AddComponent<SavedTransform>();
-			crate.AddComponent<Progress>();
-			return crate;
-		});
+			{
+				let crate = scene.CreateGameObject("Crate");
+				crate.AddComponent<BoxCollider>().size = .(1, 1, 1);
+				crate.AddComponent<Rigidbody>();
+				crate.AddComponent<SavedTransform>();
+				crate.AddComponent<Progress>();
+				return crate;
+			});
 		SaveSystem.Storage = new MemorySaveStorage();
 
 		let first = MakeScene();
@@ -247,12 +306,15 @@ class Program
 		keeper.target = null;
 		first.Destroy(crate);
 		Step(first, 2);
+		// Gone before the load: the one found afterwards is made again (it may well get the freed one's memory, so
+		// comparing the two references says nothing).
+		let crateGone = first.Find("Crate") == null;
 		let load = SaveSystem.Load("test");
 		Step(first, 2);
 		Check(load.Done && load.Succeeded, "Load reads it back");
 		Check(keeper.coins == 42 && keeper.loadedCalls == 1, "a [Saved] field comes back, and OnLoaded is called");
 		let again = first.Find("Crate");
-		Check(again != null && again != crate && again.GetComponent<Progress>().coins == 7, "an object made while playing is made again, with its fields");
+		Check(crateGone && again != null && again.GetComponent<Progress>().coins == 7, "an object made while playing is made again, with its fields");
 		Check(keeper.target == again, "a reference to it points at the new one");
 		Check(first.Find("Doomed") == null, "a scene object that was destroyed stays gone");
 		if (again != null)
@@ -263,7 +325,10 @@ class Program
 		}
 		var crates = 0;
 		for (let gameObject in first.Objects)
-			if (gameObject.Name == "Crate" && !gameObject.IsDestroyed) crates++;
+		{
+			if (gameObject.Name == "Crate" && !gameObject.IsDestroyed)
+				crates++;
+		}
 		Check(crates == 1, scope $"loading again does not make duplicates ({crates} crates)");
 		first.StopPlay();
 		delete first;
@@ -302,7 +367,11 @@ class Program
 		let names = scope List<String>();
 		SaveSystem.ListSlots(names);
 		var listed = false;
-		for (let n in names) if (n == name) listed = true;
+		for (let n in names)
+		{
+			if (n == name)
+				listed = true;
+		}
 		Check(listed, "and is listed under the same name");
 		ClearAndDeleteItems!(names);
 		SaveSystem.Delete(name);
@@ -326,7 +395,7 @@ class Program
 			let text = scope String();
 			made.WriteText(text);
 			delete made;
-			File.WriteAllText(scope $"{folder}/Data/Settings.tdata", text).IgnoreError();
+			File.WriteAllText(scope $"{folder}/Data/Settings.tdata" , text).IgnoreError();
 		}
 		DataAsset.ClearCache();
 		let settings = DataAsset.Get<TestSettings>();

@@ -116,147 +116,184 @@ extension EditorApp
 		ImGui.SetNextWindowSize(.(640, 0), ImGui.Cond.Always);
 		if (ImGui.Begin("Build", &mShowBuild, ImGui.WindowFlags.NoDocking | ImGui.WindowFlags.NoCollapse))
 		{
-			let building = mWantBuildGame;
-#if BF_PLATFORM_WINDOWS
-			// A Windows machine builds Windows games; the other choices need Linux.
-			mBuildTarget = .Windows;
-			mBuildEditor = false;
-#else
-			ImGui.SeparatorText("Build");
-			if (ImGui.RadioButton("Game", !mBuildEditor)) { mBuildEditor = false; mBuildMessage.Clear(); }
-			ImGui.SameLine();
-			if (ImGui.RadioButton("Editor", mBuildEditor)) { mBuildEditor = true; mBuildMessage.Clear(); if (mBuildTarget == .Web) mBuildTarget = .Linux; }
-			if (mBuildEditor)
-			{
-				ImGui.SameLine();
-				ImGui.TextDisabled("Tessera itself, to use on another machine");
-			}
-			ImGui.SeparatorText("For");
-			if (ImGui.RadioButton("Linux", mBuildTarget == .Linux)) { mBuildTarget = .Linux; mBuildMessage.Clear(); }
-			ImGui.SameLine();
-			if (ImGui.RadioButton("Windows", mBuildTarget == .Windows)) { mBuildTarget = .Windows; mBuildMessage.Clear(); }
-			// The editor itself does not run in a browser; only games do.
-			ImGui.BeginDisabled(mBuildEditor);
-			ImGui.SameLine();
-			if (ImGui.RadioButton("Web", mBuildTarget == .Web)) { mBuildTarget = .Web; mBuildMessage.Clear(); }
-			ImGui.EndDisabled();
-			if (mBuildTarget == .Web)
-			{
-				ImGui.SameLine();
-				ImGui.TextDisabled("Played in a browser, on computers and phones");
-			}
-#endif
+			DrawBuildTarget();
 			if (!mBuildEditor)
-			{
-				let project = Project.Current;
-				// A web page fills the browser window, and full screen is the player's choice; its assets are always packed.
-				if (mBuildTarget != .Web)
-				{
-					ImGui.SeparatorText("Window");
-					if (ImGui.Checkbox("Start in fullscreen", ref project.Fullscreen))
-						project.Save();
-					ImGui.SameLine();
-					ImGui.TextDisabled(project.Fullscreen ? "The game fills the screen when it starts" : "The game starts in a window");
-				}
-				ImGui.SeparatorText("Assets");
-				ImGui.BeginDisabled(mBuildTarget == .Web);
-				if (ImGui.Checkbox("Pack assets into one file", ref project.PackAssets))
-					project.Save();
-				ImGui.EndDisabled();
-				ImGui.SameLine();
-				ImGui.TextDisabled(project.PackAssets ? "game.tpak: not readable or editable with ordinary tools" : "Loose files, as they are in the project");
-				if (project.PackAssets)
-				{
-					if (ImGui.Checkbox("Compress the pack", ref project.PackCompress))
-						project.Save();
-					ImGui.SameLine();
-					ImGui.TextDisabled(project.PackCompress ? "Smaller to send; files are unpacked as they load" : "Full size; nothing to unpack when loading");
-					if (ImGui.Checkbox("A pack for each scene", ref project.PackSplit))
-						project.Save();
-					ImGui.SameLine();
-					ImGui.TextDisabled(project.PackSplit ? "What only one scene uses goes in its own pack: updates stay small" : "Everything in game.tpak");
-					if (project.PackSplit)
-					{
-						ImGui.SetNextItemWidth(-1);
-						if (ImGui.InputText("##packshared", project.PackShared, 0, "Always shared, e.g. Models/prop_*.glb; Audio/*"))
-							project.Save();
-						ImGui.TextDisabled("Files your scripts load by a name they build: a build cannot find those by reading.");
-					}
-				}
-			}
+				DrawGameBuildOptions(Project.Current);
 			let ready = mBuildTarget == .Linux || (mBuildTarget == .Windows ? WindowsBuildReady() : WebBuildReady());
-			if (!ready && mBuildTarget == .Web)
-			{
-				ImGui.PushTextWrapPos(0);
-				ImGui.TextColored(Color(1.0f, 0.75f, 0.35f, 1), "This machine is not set up to build for the web yet. Run this once in a terminal (it downloads Emscripten, about 1 GB):");
-				ImGui.PopTextWrapPos();
-				let command = scope $"{Project.Current.EngineRoot}/tools/web/setup.sh";
-				ImGui.Text(command);
-				ImGui.SameLine();
-				if (ImGui.SmallButton("Copy"))
-					ImGui.SetClipboardText(command);
-			}
-			else if (!ready)
-			{
-				ImGui.PushTextWrapPos(0);
-				ImGui.TextColored(Color(1.0f, 0.75f, 0.35f, 1), "This machine is not set up to build for Windows yet. Run this once in a terminal (it downloads about 3 GB, including Microsoft's Windows libraries under their licence):");
-				ImGui.PopTextWrapPos();
-				let command = scope $"{Project.Current.EngineRoot}/tools/windows/setup.sh --accept-license";
-				ImGui.Text(command);
-				ImGui.SameLine();
-				if (ImGui.SmallButton("Copy"))
-					ImGui.SetClipboardText(command);
-			}
-
-			ImGui.SeparatorText("Folder");
-			ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().x - 110);
-			if (ImGui.InputText("##buildfolder", mBuildFolder))
-				mBuildMessage.Clear();
-			ImGui.SameLine();
-			if (ImGui.Button("Choose...", .(100, 0)))
-				SDL.SDL_ShowOpenFolderDialog( => OnFolderPicked, null, Window, mBuildFolder.IsEmpty ? null : mBuildFolder.CStr(), false);
+			if (!ready)
+				DrawBuildSetupHint();
 			let output = scope String();
-			BuildOutputFolder(output);
-			ImGui.PushTextWrapPos(0);
-			if (mBuildEditor)
-				ImGui.TextDisabled(scope $"The editor is put in {output}. That folder holds the launcher, the editor and the engine, and nothing else: move it anywhere, or copy it to another machine. That machine needs the Beef compiler; the folder's tessera-package.txt says what else. An earlier copy there is replaced.");
-			else if (mBuildTarget == .Web)
-				ImGui.TextDisabled(scope $"The game is put in {output}: a web page (index.html) with the game and its assets. Put that folder on any web server, such as GitHub Pages or itch.io, and share the address. Play in Browser tries it on this machine. An earlier build of the game there is replaced.");
-			else
-				ImGui.TextDisabled(scope $"The game is put in {output}. That folder holds everything the game needs and nothing else: move it anywhere, or send it to somebody. An earlier build of the game there is replaced.");
-			ImGui.PopTextWrapPos();
-
-			ImGui.Spacing();
-			ImGui.BeginDisabled(!ready || building || mBuildFolder.IsEmpty);
-			if (ImGui.Button(building ? "Building..." : "Build", .(140, 0)))
-			{
-				File.WriteAllText(BuildChoicePath(.. scope .()), scope $"{mBuildTarget.ToString(.. scope .())..ToLower()}\n{mBuildFolder}\n").IgnoreError();
-				mBuildMessage.Set("Building. This takes a minute; the editor does not respond until it is done.");
-				mBuildSucceeded = false;
-				mWantBuildGame = true;
-				mBusyFrames = 3;
-			}
-			ImGui.EndDisabled();
-			if (mBuildSucceeded)
-			{
-				ImGui.SameLine();
-				if (ImGui.Button("Show Folder"))
-					ShowInFileManager(output);
-				if (mBuildTarget == .Web && !mBuildEditor)
-				{
-					ImGui.SameLine();
-					if (ImGui.Button("Play in Browser"))
-						PlayInBrowser(output);
-				}
-			}
-			if (!mBuildMessage.IsEmpty)
-			{
-				ImGui.PushTextWrapPos(0);
-				ImGui.Text(mBuildMessage);
-				ImGui.PopTextWrapPos();
-			}
+			DrawBuildFolder(output);
+			DrawBuildButtons(ready, output);
 		}
 		ImGui.End();
+	}
+
+	/// What is built (the game or the editor) and for which system. A Windows machine builds Windows games; the other
+	/// choices need Linux.
+	void DrawBuildTarget()
+	{
+#if BF_PLATFORM_WINDOWS
+		mBuildTarget = .Windows;
+		mBuildEditor = false;
+#else
+		ImGui.SeparatorText("Build");
+		if (ImGui.RadioButton("Game", !mBuildEditor))
+		{
+			mBuildEditor = false;
+			mBuildMessage.Clear();
+		}
+		ImGui.SameLine();
+		if (ImGui.RadioButton("Editor", mBuildEditor))
+		{
+			mBuildEditor = true;
+			mBuildMessage.Clear();
+			if (mBuildTarget == .Web)
+				mBuildTarget = .Linux;
+		}
+		if (mBuildEditor)
+		{
+			ImGui.SameLine();
+			ImGui.TextDisabled("Tessera itself, to use on another machine");
+		}
+		ImGui.SeparatorText("For");
+		if (ImGui.RadioButton("Linux", mBuildTarget == .Linux))
+		{
+			mBuildTarget = .Linux;
+			mBuildMessage.Clear();
+		}
+		ImGui.SameLine();
+		if (ImGui.RadioButton("Windows", mBuildTarget == .Windows))
+		{
+			mBuildTarget = .Windows;
+			mBuildMessage.Clear();
+		}
+		// The editor itself does not run in a browser; only games do.
+		ImGui.BeginDisabled(mBuildEditor);
+		ImGui.SameLine();
+		if (ImGui.RadioButton("Web", mBuildTarget == .Web))
+		{
+			mBuildTarget = .Web;
+			mBuildMessage.Clear();
+		}
+		ImGui.EndDisabled();
+		if (mBuildTarget == .Web)
+		{
+			ImGui.SameLine();
+			ImGui.TextDisabled("Played in a browser, on computers and phones");
+		}
+#endif
+	}
+
+	/// A game's options: starting full screen, and how its assets are packed. A web page fills the browser window,
+	/// and full screen is the player's choice; its assets are always packed.
+	void DrawGameBuildOptions(Project project)
+	{
+		if (mBuildTarget != .Web)
+		{
+			ImGui.SeparatorText("Window");
+			if (ImGui.Checkbox("Start in fullscreen", ref project.Fullscreen))
+				project.Save();
+			ImGui.SameLine();
+			ImGui.TextDisabled(project.Fullscreen ? "The game fills the screen when it starts" : "The game starts in a window");
+		}
+		ImGui.SeparatorText("Assets");
+		ImGui.BeginDisabled(mBuildTarget == .Web);
+		if (ImGui.Checkbox("Pack assets into one file", ref project.PackAssets))
+			project.Save();
+		ImGui.EndDisabled();
+		ImGui.SameLine();
+		ImGui.TextDisabled(project.PackAssets ? "game.tpak: not readable or editable with ordinary tools" : "Loose files, as they are in the project");
+		if (!project.PackAssets)
+			return;
+		if (ImGui.Checkbox("Compress the pack", ref project.PackCompress))
+			project.Save();
+		ImGui.SameLine();
+		ImGui.TextDisabled(project.PackCompress ? "Smaller to send; files are unpacked as they load" : "Full size; nothing to unpack when loading");
+		if (ImGui.Checkbox("A pack for each scene", ref project.PackSplit))
+			project.Save();
+		ImGui.SameLine();
+		ImGui.TextDisabled(project.PackSplit ? "What only one scene uses goes in its own pack: updates stay small" : "Everything in game.tpak");
+		if (project.PackSplit)
+		{
+			ImGui.SetNextItemWidth(-1);
+			if (ImGui.InputText("##packshared", project.PackShared, 0, "Always shared, e.g. Models/prop_*.glb; Audio/*"))
+				project.Save();
+			ImGui.TextDisabled("Files your scripts load by a name they build: a build cannot find those by reading.");
+		}
+	}
+
+	/// This machine is not set up to build for the chosen system yet: the command that sets it up, to copy.
+	void DrawBuildSetupHint()
+	{
+		let web = mBuildTarget == .Web;
+		ImGui.PushTextWrapPos(0);
+		if (web)
+			ImGui.TextColored(Color(1.0f, 0.75f, 0.35f, 1), "This machine is not set up to build for the web yet. Run this once in a terminal (it downloads Emscripten, about 1 GB):");
+		else
+			ImGui.TextColored(Color(1.0f, 0.75f, 0.35f, 1), "This machine is not set up to build for Windows yet. Run this once in a terminal (it downloads about 3 GB, including Microsoft's Windows libraries under their licence):");
+		ImGui.PopTextWrapPos();
+		let command = web ? scope $"{Project.Current.EngineRoot}/tools/web/setup.sh" : scope $"{Project.Current.EngineRoot}/tools/windows/setup.sh --accept-license";
+		ImGui.Text(command);
+		ImGui.SameLine();
+		if (ImGui.SmallButton("Copy"))
+			ImGui.SetClipboardText(command);
+	}
+
+	/// The folder to build into, and what will be put there. `output` is set to the build's own folder inside it.
+	void DrawBuildFolder(String output)
+	{
+		ImGui.SeparatorText("Folder");
+		ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().x - 110);
+		if (ImGui.InputText("##buildfolder", mBuildFolder))
+			mBuildMessage.Clear();
+		ImGui.SameLine();
+		if (ImGui.Button("Choose...", .(100, 0)))
+			SDL.SDL_ShowOpenFolderDialog( => OnFolderPicked, null, Window, mBuildFolder.IsEmpty ? null : mBuildFolder.CStr(), false);
+		BuildOutputFolder(output);
+		ImGui.PushTextWrapPos(0);
+		if (mBuildEditor)
+			ImGui.TextDisabled(scope $"The editor is put in {output}. That folder holds the launcher, the editor and the engine, and nothing else: move it anywhere, or copy it to another machine. That machine needs the Beef compiler; the folder's tessera-package.txt says what else. An earlier copy there is replaced.");
+		else if (mBuildTarget == .Web)
+			ImGui.TextDisabled(scope $"The game is put in {output}: a web page (index.html) with the game and its assets. Put that folder on any web server, such as GitHub Pages or itch.io, and share the address. Play in Browser tries it on this machine. An earlier build of the game there is replaced.");
+		else
+			ImGui.TextDisabled(scope $"The game is put in {output}. That folder holds everything the game needs and nothing else: move it anywhere, or send it to somebody. An earlier build of the game there is replaced.");
+		ImGui.PopTextWrapPos();
+	}
+
+	/// Build, and once a build has worked, Show Folder (and for the web, Play in Browser); then what happened.
+	void DrawBuildButtons(bool ready, StringView output)
+	{
+		let building = mWantBuildGame;
+		ImGui.Spacing();
+		ImGui.BeginDisabled(!ready || building || mBuildFolder.IsEmpty);
+		if (ImGui.Button(building ? "Building..." : "Build", .(140, 0)))
+		{
+			File.WriteAllText(BuildChoicePath(.. scope .()), scope $"{mBuildTarget.ToString(.. scope .())..ToLower()}\n{mBuildFolder}\n").IgnoreError();
+			mBuildMessage.Set("Building. This takes a minute; the editor does not respond until it is done.");
+			mBuildSucceeded = false;
+			mWantBuildGame = true;
+			mBusyFrames = 3;
+		}
+		ImGui.EndDisabled();
+		if (mBuildSucceeded)
+		{
+			ImGui.SameLine();
+			if (ImGui.Button("Show Folder"))
+				ShowInFileManager(output);
+			if (mBuildTarget == .Web && !mBuildEditor)
+			{
+				ImGui.SameLine();
+				if (ImGui.Button("Play in Browser"))
+					PlayInBrowser(output);
+			}
+		}
+		if (!mBuildMessage.IsEmpty)
+		{
+			ImGui.PushTextWrapPos(0);
+			ImGui.Text(mBuildMessage);
+			ImGui.PopTextWrapPos();
+		}
 	}
 
 	/// Serves a web build from this machine (a page loaded from a file cannot fetch its own assets) and opens it in

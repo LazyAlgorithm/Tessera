@@ -47,9 +47,12 @@ class SaveIO
 	SaveNode mCurrent;
 	/// Writing: the name the next value is stored under, in an object.
 	String mPendingKey = new .() ~ delete _;
+	/// How references to objects and components are turned into keys and back.
 	public ISaveReferences references;
 
+	/// Whether this is loading (values are set from the save).
 	public bool Reading => mReading;
+	/// Whether this is saving (values are written into the save).
 	public bool Writing => !mReading;
 	/// Writing: what has been written so far (the object passed to the constructor's caller, or the one made here).
 	public SaveNode Root => mRoot;
@@ -151,6 +154,7 @@ class SaveIO
 		return node.items.Count;
 	}
 
+	/// Ends a list begun with BeginList.
 	public void EndList()
 	{
 		mStack.PopBack();
@@ -175,6 +179,7 @@ class SaveIO
 	/// Reading: whether the value here was saved as null.
 	public bool IsNull => mReading && mCurrent != null && mCurrent.kind == .Null;
 
+	/// Ends an object begun with BeginObject.
 	public void EndObject()
 	{
 		mStack.PopBack();
@@ -204,22 +209,134 @@ class SaveIO
 		return true;
 	}
 
-	public void Value(ref bool value) { if (!mReading) Put(SaveNode.MakeBool(value)); else if (GetInteger(let v)) value = v != 0; }
-	public void Value(ref int8 value) { if (!mReading) PutInt(value); else if (GetInteger(let v)) value = (int8)v; }
-	public void Value(ref int16 value) { if (!mReading) PutInt(value); else if (GetInteger(let v)) value = (int16)v; }
-	public void Value(ref int32 value) { if (!mReading) PutInt(value); else if (GetInteger(let v)) value = (int32)v; }
-	public void Value(ref int64 value) { if (!mReading) PutInt(value); else if (GetInteger(let v)) value = v; }
-	public void Value(ref int value) { if (!mReading) PutInt(value); else if (GetInteger(let v)) value = (int)v; }
-	public void Value(ref uint8 value) { if (!mReading) PutInt(value); else if (GetInteger(let v)) value = (uint8)v; }
-	public void Value(ref uint16 value) { if (!mReading) PutInt(value); else if (GetInteger(let v)) value = (uint16)v; }
-	public void Value(ref uint32 value) { if (!mReading) PutInt(value); else if (GetInteger(let v)) value = (uint32)v; }
-	public void Value(ref uint64 value) { if (!mReading) PutInt((int64)value); else if (GetInteger(let v)) value = (uint64)v; }
-	public void Value(ref uint value) { if (!mReading) PutInt((int64)value); else if (GetInteger(let v)) value = (uint)v; }
-	public void Value(ref char8 value) { if (!mReading) PutInt((uint8)value); else if (GetInteger(let v)) value = (char8)(uint8)v; }
-	public void Value(ref char16 value) { if (!mReading) PutInt((uint16)value); else if (GetInteger(let v)) value = (char16)(uint16)v; }
-	public void Value(ref char32 value) { if (!mReading) PutInt((uint32)value); else if (GetInteger(let v)) value = (char32)(uint32)v; }
-	public void Value(ref float value) { if (!mReading) PutFloat(value); else if (GetNumber(let v)) value = (float)v; }
-	public void Value(ref double value) { if (!mReading) PutFloat(value); else if (GetNumber(let v)) value = v; }
+	/// Writes the value when saving, or sets it from the save when loading. Every kind of value has one of these.
+	public void Value(ref bool value)
+	{
+		if (!mReading)
+			Put(SaveNode.MakeBool(value));
+		else if (GetInteger(let v))
+			value = v != 0;
+	}
+
+	public void Value(ref int8 value)
+	{
+		if (!mReading)
+			PutInt(value);
+		else if (GetInteger(let v))
+			value = (int8)v;
+	}
+
+	public void Value(ref int16 value)
+	{
+		if (!mReading)
+			PutInt(value);
+		else if (GetInteger(let v))
+			value = (int16)v;
+	}
+
+	public void Value(ref int32 value)
+	{
+		if (!mReading)
+			PutInt(value);
+		else if (GetInteger(let v))
+			value = (int32)v;
+	}
+
+	public void Value(ref int64 value)
+	{
+		if (!mReading)
+			PutInt(value);
+		else if (GetInteger(let v))
+			value = v;
+	}
+
+	public void Value(ref int value)
+	{
+		if (!mReading)
+			PutInt(value);
+		else if (GetInteger(let v))
+			value = (int)v;
+	}
+
+	public void Value(ref uint8 value)
+	{
+		if (!mReading)
+			PutInt(value);
+		else if (GetInteger(let v))
+			value = (uint8)v;
+	}
+
+	public void Value(ref uint16 value)
+	{
+		if (!mReading)
+			PutInt(value);
+		else if (GetInteger(let v))
+			value = (uint16)v;
+	}
+
+	public void Value(ref uint32 value)
+	{
+		if (!mReading)
+			PutInt(value);
+		else if (GetInteger(let v))
+			value = (uint32)v;
+	}
+
+	public void Value(ref uint64 value)
+	{
+		if (!mReading)
+			PutInt((int64)value);
+		else if (GetInteger(let v))
+			value = (uint64)v;
+	}
+
+	public void Value(ref uint value)
+	{
+		if (!mReading)
+			PutInt((int64)value);
+		else if (GetInteger(let v))
+			value = (uint)v;
+	}
+
+	public void Value(ref char8 value)
+	{
+		if (!mReading)
+			PutInt((uint8)value);
+		else if (GetInteger(let v))
+			value = (char8)(uint8)v;
+	}
+
+	public void Value(ref char16 value)
+	{
+		if (!mReading)
+			PutInt((uint16)value);
+		else if (GetInteger(let v))
+			value = (char16)(uint16)v;
+	}
+
+	public void Value(ref char32 value)
+	{
+		if (!mReading)
+			PutInt((uint32)value);
+		else if (GetInteger(let v))
+			value = (char32)(uint32)v;
+	}
+
+	public void Value(ref float value)
+	{
+		if (!mReading)
+			PutFloat(value);
+		else if (GetNumber(let v))
+			value = (float)v;
+	}
+
+	public void Value(ref double value)
+	{
+		if (!mReading)
+			PutFloat(value);
+		else if (GetNumber(let v))
+			value = v;
+	}
 
 	/// A null String is saved as null; reading into a null field makes a new String, which the field then owns.
 	public void Value(ref String value)
@@ -269,9 +386,12 @@ class SaveIO
 	{
 		if (BeginList(3) >= 0 || !mReading)
 		{
-			if (Item()) Value(ref value.x);
-			if (Item()) Value(ref value.y);
-			if (Item()) Value(ref value.z);
+			if (Item())
+				Value(ref value.x);
+			if (Item())
+				Value(ref value.y);
+			if (Item())
+				Value(ref value.z);
 		}
 		EndList();
 	}
@@ -291,6 +411,7 @@ class SaveIO
 		value = mCurrent.kind == .Int && references != null ? references.Find(mCurrent.integer) : null;
 	}
 
+	/// A transform's local position, rotation and scale.
 	public void Value(ref Transform value)
 	{
 		var gameObject = value?.GameObject;
@@ -341,9 +462,12 @@ class SaveIO
 		String typeName = scope String();
 		int32 index = 0;
 		BeginList(3);
-		if (Item()) Value(ref gameObject);
-		if (Item()) Value(ref typeName);
-		if (Item()) Value(ref index);
+		if (Item())
+			Value(ref gameObject);
+		if (Item())
+			Value(ref typeName);
+		if (Item())
+			Value(ref index);
 		EndList();
 		value = null;
 		if (gameObject == null)

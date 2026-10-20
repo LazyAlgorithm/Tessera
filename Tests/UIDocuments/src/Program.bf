@@ -1,10 +1,15 @@
 using System;
 using Tessera;
+
 namespace UIDocumentTests;
 
 class Program
 {
-	static bool Check(bool pass, StringView label) { Console.WriteLine(scope $"{pass ? "PASS" : "FAIL"}: {label}"); return pass; }
+	static bool Check(bool pass, StringView label)
+	{
+		Console.WriteLine(scope $"{pass ? "PASS" : "FAIL"}: {label}");
+		return pass;
+	}
 
 	static void Wipe(UIElement element)
 	{

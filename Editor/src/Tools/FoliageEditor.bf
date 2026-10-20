@@ -17,7 +17,7 @@ extension EditorApp
 		{
 			mFoliagePainting = painting ? null : foliage;
 			// On a terrain this is the Terrain Tools' Foliage tool; elsewhere no terrain brush is in the way.
-			mBrushTool = (mFoliagePainting != null && foliage.GameObject.GetComponent<VoxelTerrain>() != null) ? cFoliageTool : -1;
+			mBrushTool = (mFoliagePainting != null && foliage.GameObject.GetComponent<VoxelTerrain>() != null) ? FoliageTool : -1;
 		}
 		ImGui.SameLine();
 		ImGui.TextDisabled(scope String()..AppendF("{} plants", foliage.Count).CStr());
@@ -39,11 +39,13 @@ extension EditorApp
 			for (let tile in tiles)
 			{
 				for (float z = patch * 0.5f; z < w; z += patch)
+				{
 					for (float x = patch * 0.5f; x < w; x += patch)
 					{
 						let center = terrain.Transform.TransformPoint(.(tile.x * w + x, terrain.flatHeight + 40, tile.z * w + z));
 						foliage.Paint(center, patch * 0.75f, 0.6f);
 					}
+				}
 			}
 			MarkDirty();
 		}

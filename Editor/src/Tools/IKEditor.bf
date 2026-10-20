@@ -66,7 +66,7 @@ extension EditorApp
 			{
 				// The target starts where the hand is, so nothing moves until it is dragged; the pole starts out
 				// beyond the elbow, the way it already bends.
-				let target = mScene.CreateGameObject(scope $"{limb.tip.GameObject.Name} Target", limb.Transform).Transform;
+				let target = mScene.CreateGameObject(scope $"{limb.tip.GameObject.Name} Target" , limb.Transform).Transform;
 				limb.target = target;
 				limb.TargetToTip();
 				let middle = limb.Middle, upper = limb.Upper;
@@ -74,7 +74,7 @@ extension EditorApp
 				var outward = middle.Position - (upper.Position + along * 0.5f);
 				if (outward.LengthSquared < 1.0e-6f)
 					outward = -limb.Transform.Forward;
-				let pole = mScene.CreateGameObject(scope $"{limb.tip.GameObject.Name} Pole", limb.Transform).Transform;
+				let pole = mScene.CreateGameObject(scope $"{limb.tip.GameObject.Name} Pole" , limb.Transform).Transform;
 				pole.Position = middle.Position + outward.Normalized * Math.Max(along.Length * 0.6f, 0.2f);
 				limb.pole = pole;
 				mSelectedId = target.GameObject.Id;

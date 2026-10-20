@@ -40,53 +40,75 @@ enum InputBindingKind : int32
 /// One way of working an action: a key, a button, a stick... An action can have any number.
 struct InputBinding
 {
+	/// What kind of input this binding reads.
 	public InputBindingKind kind;
 	/// Keys: up or the only key, then down, left, right. KeyAxis: negative, positive.
 	public KeyCode key, key2, key3, key4;
 	/// Mouse button number, wheel direction, or which stick.
 	public int32 index;
+	/// The controller button (PadButton).
 	public GamepadButton button;
+	/// The controller axis (PadAxis).
 	public GamepadAxis axis;
 	/// Multiplies what the binding gives. For InputActions.Delta it is how fast a stick or keys turn: units a second.
 	public float scale = 1;
 	/// Flips the binding: an axis the other way round, a direction's up and down.
 	public bool invert;
 
+	/// Whether this reads a controller.
 	public bool IsGamepad => kind == .PadButton || kind == .PadAxis || kind == .PadStick || kind == .PadDpad;
 
+	/// A binding to a key.
 	public static InputBinding Key(KeyCode key) => .() { kind = .Key, key = key };
+	/// A binding to a mouse button: 0 left, 1 right, 2 middle.
 	public static InputBinding Mouse(int32 button) => .() { kind = .MouseButton, index = button };
+	/// A binding to a controller button.
 	public static InputBinding Pad(GamepadButton button) => .() { kind = .PadButton, button = button };
+	/// A binding to a controller stick (the left, or the right).
 	public static InputBinding Stick(bool right, float scale = 1) => .() { kind = .PadStick, index = right ? 1 : 0, scale = scale };
+	/// W, S, A and D as a direction.
 	public static InputBinding WASD => .() { kind = .Keys, key = .W, key2 = .S, key3 = .A, key4 = .D };
+	/// A binding to an on-screen control made with TouchControls.
 	public static InputBinding TouchControl(StringView name) => .() { kind = .Touch, index = TouchControls.NameId(name) };
 }
 
 /// Something the player can do ("Jump", "Move", "Fire"), whatever they do it with.
 class InputAction
 {
+	/// The action's name, as scripts ask for it.
 	public String name = new .() ~ delete _;
+	/// Whether it gives a button, an axis or a direction.
 	public InputActionKind kind;
+	/// Every way of working it.
 	public List<InputBinding> bindings = new .() ~ delete _;
 
 	// This frame.
+	/// How far it is pushed now (0 to 1, -1 to 1 for an axis), and last frame.
 	public float value, previous;
+	/// A direction action's direction now, and its movement this frame (for looking around).
 	public Vector2 vector, delta;
 	/// The binding that is doing the most this frame is on a controller.
 	public bool fromGamepad;
 
+	/// Whether a button action is held.
 	public bool Held => value > 0.5f;
+	/// Whether a button action went down this frame.
 	public bool Pressed => value > 0.5f && previous <= 0.5f;
+	/// Whether a button action came up this frame.
 	public bool Released => value <= 0.5f && previous > 0.5f;
 }
 
 /// A named group of actions that is switched on and off together: "Player", "Vehicle", "Menu".
 class InputMap
 {
+	/// The map's name.
 	public String name = new .() ~ delete _;
+	/// Whether its actions are read (see InputActions.SetMapEnabled).
 	public bool enabled = true;
+	/// The map's actions.
 	public List<InputAction> actions = new .() ~ DeleteContainerAndItems!(_);
 
+	/// An action by name, or null.
 	public InputAction Find(StringView actionName)
 	{
 		for (let action in actions)
@@ -114,6 +136,7 @@ class InputMap
 /// Directions use one convention everywhere: x is right and y is up (or forward), also for mouse movement.
 static class InputActions
 {
+	/// The project's input file, in its assets.
 	public const String FileName = "Input.tinput";
 
 	static List<InputMap> sMaps = new .() ~ DeleteContainerAndItems!(_);
@@ -234,6 +257,71 @@ static class InputActions
 		return false;
 	}
 
+	/// A "bind <kind> <what> [scale N] [invert]" line, split into words.
+	static bool ParseBinding(List<StringView> words, out InputBinding binding)
+	{
+		binding = .();
+		bool ok = true;
+		int used = 2;
+		switch (words[1])
+		{
+		case "key":
+			binding.kind = .Key;
+			ok = words.Count > 2 && ParseKey(words[2], out binding.key);
+			used = 3;
+		case "mouse":
+			binding.kind = .MouseButton;
+			binding.index = words.Count > 2 ? Math.Clamp(SceneSerializer.ParseInt(words[2]), 0, 2) : 0;
+			used = 3;
+		case "wheel":
+			binding.kind = .MouseWheel;
+			binding.index = (words.Count > 2 && words[2] == "down") ? -1 : 1;
+			used = 3;
+		case "mousedelta":
+			binding.kind = .MouseDelta;
+		case "pad":
+			binding.kind = .PadButton;
+			ok = words.Count > 2 && Enum.Parse<GamepadButton>(words[2], true) case .Ok(out binding.button);
+			used = 3;
+		case "padaxis":
+			binding.kind = .PadAxis;
+			ok = words.Count > 2 && Enum.Parse<GamepadAxis>(words[2], true) case .Ok(out binding.axis);
+			used = 3;
+		case "stick":
+			binding.kind = .PadStick;
+			binding.index = (words.Count > 2 && words[2] == "right") ? 1 : 0;
+			used = 3;
+		case "dpad":
+			binding.kind = .PadDpad;
+		case "keyaxis":
+			binding.kind = .KeyAxis;
+			ok = words.Count > 3 && ParseKey(words[2], out binding.key) && ParseKey(words[3], out binding.key2);
+			used = 4;
+		case "touch":
+			binding.kind = .Touch;
+			ok = words.Count > 2;
+			if (ok)
+				binding.index = TouchControls.NameId(words[2]);
+			used = 3;
+		case "keys":
+			binding.kind = .Keys;
+			ok = words.Count > 5 && ParseKey(words[2], out binding.key) && ParseKey(words[3], out binding.key2) && ParseKey(words[4], out binding.key3) && ParseKey(words[5], out binding.key4);
+			used = 6;
+		default:
+			ok = false;
+		}
+		if (!ok)
+			return false;
+		for (int i = used; i < words.Count; i++)
+		{
+			if (words[i] == "scale" && i + 1 < words.Count)
+				binding.scale = SceneSerializer.ParseFloat(words[++i]);
+			else if (words[i] == "invert")
+				binding.invert = true;
+		}
+		return true;
+	}
+
 	static void ParseInto(List<InputMap> maps, StringView text)
 	{
 		InputMap map = null;
@@ -269,69 +357,10 @@ static class InputActions
 			}
 			else if (words[0] == "bind" && words.Count > 1 && action != null)
 			{
-				InputBinding binding = .();
-				bool ok = true;
-				int used = 2;
-				switch (words[1])
-				{
-				case "key":
-					binding.kind = .Key;
-					ok = words.Count > 2 && ParseKey(words[2], out binding.key);
-					used = 3;
-				case "mouse":
-					binding.kind = .MouseButton;
-					binding.index = words.Count > 2 ? Math.Clamp(SceneSerializer.ParseInt(words[2]), 0, 2) : 0;
-					used = 3;
-				case "wheel":
-					binding.kind = .MouseWheel;
-					binding.index = (words.Count > 2 && words[2] == "down") ? -1 : 1;
-					used = 3;
-				case "mousedelta":
-					binding.kind = .MouseDelta;
-				case "pad":
-					binding.kind = .PadButton;
-					ok = words.Count > 2 && Enum.Parse<GamepadButton>(words[2], true) case .Ok(out binding.button);
-					used = 3;
-				case "padaxis":
-					binding.kind = .PadAxis;
-					ok = words.Count > 2 && Enum.Parse<GamepadAxis>(words[2], true) case .Ok(out binding.axis);
-					used = 3;
-				case "stick":
-					binding.kind = .PadStick;
-					binding.index = (words.Count > 2 && words[2] == "right") ? 1 : 0;
-					used = 3;
-				case "dpad":
-					binding.kind = .PadDpad;
-				case "keyaxis":
-					binding.kind = .KeyAxis;
-					ok = words.Count > 3 && ParseKey(words[2], out binding.key) && ParseKey(words[3], out binding.key2);
-					used = 4;
-				case "touch":
-					binding.kind = .Touch;
-					ok = words.Count > 2;
-					if (ok)
-						binding.index = TouchControls.NameId(words[2]);
-					used = 3;
-				case "keys":
-					binding.kind = .Keys;
-					ok = words.Count > 5 && ParseKey(words[2], out binding.key) && ParseKey(words[3], out binding.key2) && ParseKey(words[4], out binding.key3) && ParseKey(words[5], out binding.key4);
-					used = 6;
-				default:
-					ok = false;
-				}
-				if (!ok)
-				{
+				if (ParseBinding(words, let binding))
+					action.bindings.Add(binding);
+				else
 					Log.Warning(scope $"Input actions: could not read \"{line}\".");
-					continue;
-				}
-				for (int i = used; i < words.Count; i++)
-				{
-					if (words[i] == "scale" && i + 1 < words.Count)
-						binding.scale = SceneSerializer.ParseFloat(words[++i]);
-					else if (words[i] == "invert")
-						binding.invert = true;
-				}
-				action.bindings.Add(binding);
 			}
 		}
 	}
@@ -431,6 +460,7 @@ static class InputActions
 	public static bool Held(StringView name) => Live(name)?.Held ?? false;
 	/// True only on the frame the action went down.
 	public static bool Pressed(StringView name) => Live(name)?.Pressed ?? false;
+	/// Whether a button action came up this frame.
 	public static bool Released(StringView name) => Live(name)?.Released ?? false;
 	/// How far: 0 to 1 for a button (a trigger gives everything in between), -1 to 1 for an axis.
 	public static float Value(StringView name) => Live(name)?.value ?? 0;
@@ -454,6 +484,7 @@ static class InputActions
 		}
 	}
 
+	/// Whether a map's actions are read.
 	public static bool IsMapEnabled(StringView mapName)
 	{
 		EnsureLoaded();
@@ -467,15 +498,16 @@ static class InputActions
 
 	// ---- telling the player ----
 
+	/// A key's name, as a player would know it.
 	public static void KeyName(KeyCode key, String name)
 	{
 		switch (key)
 		{
-		case .Alpha0, .Alpha1, .Alpha2, .Alpha3, .Alpha4, .Alpha5, .Alpha6, .Alpha7, .Alpha8, .Alpha9:
+		case .Alpha0,.Alpha1,.Alpha2,.Alpha3,.Alpha4,.Alpha5,.Alpha6,.Alpha7,.Alpha8,.Alpha9:
 			name.AppendF("{}", key == .Alpha0 ? 0 : (int32)key - (int32)KeyCode.Alpha1 + 1);
-		case .LeftControl, .RightControl: name.Append("Ctrl");
-		case .LeftShift, .RightShift: name.Append("Shift");
-		case .LeftAlt, .RightAlt: name.Append("Alt");
+		case .LeftControl,.RightControl: name.Append("Ctrl");
+		case .LeftShift,.RightShift: name.Append("Shift");
+		case .LeftAlt,.RightAlt: name.Append("Alt");
 		case .UpArrow: name.Append("Up");
 		case .DownArrow: name.Append("Down");
 		case .LeftArrow: name.Append("Left");
@@ -502,7 +534,7 @@ static class InputActions
 			{
 			case .LeftTrigger: Gamepad.ButtonName(.LeftTrigger, kind, name);
 			case .RightTrigger: Gamepad.ButtonName(.RightTrigger, kind, name);
-			case .LeftX, .LeftY: name.Append("Left Stick");
+			case .LeftX,.LeftY: name.Append("Left Stick");
 			default: name.Append("Right Stick");
 			}
 		case .PadStick: name.Append(binding.index == 1 ? "Right Stick" : "Left Stick");
@@ -554,7 +586,10 @@ static class InputActions
 		binding = .();
 		let enabled = Input.Enabled;
 		Input.Enabled = true;
-		defer { Input.Enabled = enabled; }
+		defer
+		{
+			Input.Enabled = enabled;
+		}
 		if (Gamepad.AnyButtonDown(let button))
 		{
 			binding = .Pad(button);
@@ -661,7 +696,7 @@ static class InputActions
 						let moved = control.delta;
 						action.delta += Vector2(moved.x, binding.invert ? moved.y : -moved.y) * binding.scale;
 						amount = moved.LengthSquared > 0 ? 0.001f : 0;
-					case .Button, .Swipe:
+					case .Button,.Swipe:
 						if (control.value > Math.Abs(action.value))
 							action.value = control.value;
 						amount = control.value;
@@ -672,7 +707,7 @@ static class InputActions
 				let moved = Input.MouseDelta;
 				action.delta += Vector2(moved.x, binding.invert ? moved.y : -moved.y) * binding.scale;
 				amount = moved.LengthSquared > 0 ? 0.001f : 0;
-			case .PadStick, .PadDpad, .Keys:
+			case .PadStick,.PadDpad,.Keys:
 				Vector2 direction;
 				if (binding.kind == .PadStick)
 					direction = binding.index == 1 ? Gamepad.RightStick : Gamepad.LeftStick;

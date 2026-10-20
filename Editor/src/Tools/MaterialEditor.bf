@@ -164,7 +164,7 @@ extension EditorApp
 				if (!isImage && !name.EndsWith(".tshader"))
 					continue;
 				let relative = new String();
-				Assets.MakeRelative(scope $"{folder}/{name}", relative);
+				Assets.MakeRelative(scope $"{folder}/{name}" , relative);
 				(isImage ? mImageChoices : mShaderChoices).Add(relative);
 			}
 			for (let entry in Directory.EnumerateDirectories(folder))
@@ -172,7 +172,7 @@ extension EditorApp
 				let name = scope String();
 				entry.GetFileName(name);
 				if (!name.StartsWith('.') && name != "build" && name != "Compiled")
-					Scan(scope $"{folder}/{name}", depth + 1);
+					Scan(scope $"{folder}/{name}" , depth + 1);
 			}
 		}
 		Scan(Assets.ProjectPath, 0);
@@ -228,6 +228,28 @@ extension EditorApp
 		ImGui.PushID("material");
 		let material = mMaterial;
 		bool changed = false;
+		changed |= DrawMaterialShaderChoice(material);
+		let custom = material.Shader;
+		if (custom != null && !custom.problems.IsEmpty)
+			ImGui.TextDisabled("This shader has mistakes; see the Console.");
+		changed |= DrawMaterialSurface(material);
+		changed |= DrawMaterialPlacement(material);
+		// The custom shader's own properties (they mark the material changed themselves).
+		if (custom != null && custom.properties.Count > 0)
+			DrawShaderProperties(material, custom);
+		ImGui.PopID();
+		if (changed)
+			material.Changed();
+		// Shader property edits bump the material's revision themselves; either way it is written once the mouse is up.
+		mMaterialDirty |= changed || material.Revision != mMaterialSavedRevision;
+		if (mMaterialDirty && !ImGui.IsMouseDown(0))
+			SaveMaterial();
+	}
+
+	/// Which shader the material uses: Standard, or one of the project's.
+	bool DrawMaterialShaderChoice(Material material)
+	{
+		bool changed = false;
 		ImGui.SeparatorText("Shader");
 		ImGui.SetNextItemWidth(-130);
 		if (ImGui.BeginCombo("Shader", material.shader.IsEmpty ? (char8*)"Standard" : material.shader.CStr()))
@@ -248,10 +270,13 @@ extension EditorApp
 			}
 			ImGui.EndCombo();
 		}
-		let custom = material.Shader;
-		if (custom != null && !custom.problems.IsEmpty)
-			ImGui.TextDisabled("This shader has mistakes; see the Console.");
+		return changed;
+	}
 
+	/// Colour, the PBR settings and maps.
+	bool DrawMaterialSurface(Material material)
+	{
+		bool changed = false;
 		ImGui.SeparatorText("Surface");
 		changed |= ImGui.ColorEdit4("Color", ref material.color);
 		changed |= ImageRow("Texture", material.texture);
@@ -274,7 +299,13 @@ extension EditorApp
 		if (!material.occlusionMap.IsEmpty)
 			changed |= ImGui.SliderFloat("Occlusion Strength", ref material.occlusionStrength, 0, 1);
 		changed |= ImageRow("Emissive Map", material.emissiveMap);
+		return changed;
+	}
 
+	/// Texture tiling and offset, and how see-through the material is.
+	bool DrawMaterialPlacement(Material material)
+	{
+		bool changed = false;
 		ImGui.SeparatorText("Texture placement");
 		float[2] tiling = .(material.tiling.x, material.tiling.y), offset = .(material.offset.x, material.offset.y);
 		ImGui.SetNextItemWidth(-130);
@@ -310,47 +341,41 @@ extension EditorApp
 		}
 		if (material.blend == .Cutout)
 			changed |= ImGui.SliderFloat("Cutoff", ref material.cutoff, 0, 1);
+		return changed;
+	}
 
-		// The custom shader's own properties.
-		if (custom != null && custom.properties.Count > 0)
+	/// A custom shader's own properties, each with the field its type needs.
+	void DrawShaderProperties(Material material, ShaderAsset custom)
+	{
+		ImGui.SeparatorText("Shader properties");
+		for (let property in custom.properties)
 		{
-			ImGui.SeparatorText("Shader properties");
-			for (let property in custom.properties)
+			ImGui.PushID(property.name.CStr());
+			let label = scope String();
+			NodeLibrary.Spaced(property.name, label);
+			switch (property.type)
 			{
-				ImGui.PushID(property.name.CStr());
-				let label = scope String();
-				NodeLibrary.Spaced(property.name, label);
-				switch (property.type)
-				{
-				case .Float:
-					var value = material.GetFloat(property.name);
-					if (ImGui.DragFloat(label.CStr(), ref value, 0.01f))
-						material.SetFloat(property.name, value);
-				case .Color:
-					var color = material.GetColor(property.name);
-					if (ImGui.ColorEdit4(label.CStr(), ref color))
-						material.SetColor(property.name, color);
-				case .Vector:
-					var vector = material.GetVector(property.name);
-					ImGui.SetNextItemWidth(-130);
-					if (ImGui.DragFloat4(label.CStr(), &vector.x, 0.01f))
-						material.SetVector(property.name, vector);
-				case .Texture:
-					let image = scope String();
-					material.GetTexture(property.name, image);
-					if (ImageRow(label.CStr(), image))
-						material.SetTexture(property.name, image);
-				}
-				ImGui.PopID();
+			case .Float:
+				var value = material.GetFloat(property.name);
+				if (ImGui.DragFloat(label.CStr(), ref value, 0.01f))
+					material.SetFloat(property.name, value);
+			case .Color:
+				var color = material.GetColor(property.name);
+				if (ImGui.ColorEdit4(label.CStr(), ref color))
+					material.SetColor(property.name, color);
+			case .Vector:
+				var vector = material.GetVector(property.name);
+				ImGui.SetNextItemWidth(-130);
+				if (ImGui.DragFloat4(label.CStr(), &vector.x, 0.01f))
+					material.SetVector(property.name, vector);
+			case .Texture:
+				let image = scope String();
+				material.GetTexture(property.name, image);
+				if (ImageRow(label.CStr(), image))
+					material.SetTexture(property.name, image);
 			}
+			ImGui.PopID();
 		}
-		ImGui.PopID();
-		if (changed)
-			material.Changed();
-		// Shader property edits bump the material's revision themselves; either way it is written once the mouse is up.
-		mMaterialDirty |= changed || material.Revision != mMaterialSavedRevision;
-		if (mMaterialDirty && !ImGui.IsMouseDown(0))
-			SaveMaterial();
 	}
 
 	int32 mMaterialSavedRevision;

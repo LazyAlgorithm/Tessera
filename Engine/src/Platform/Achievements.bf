@@ -36,7 +36,15 @@ static class Achievements
 	static bool sStateLoaded;
 	static List<String> sUnlocked = new .() ~ DeleteContainerAndItems!(_);
 	static Dictionary<String, int32> sStats = new .() ~ DeleteDictionaryAndKeys!(_);
-	static List<(String title, String text, float left)> sToasts = new .() ~ { for (let t in _) { delete t.title; delete t.text; } delete _; };
+	static List<(String title, String text, float left)> sToasts = new .() ~
+		{
+			for (let t in _)
+			{
+				delete t.title;
+				delete t.text;
+			}
+			delete _;
+		};
 
 	/// Names the folder the local progress file is kept in; set from the project's name at start-up.
 	public static String SaveName = new .("Game") ~ delete _;
@@ -79,7 +87,11 @@ static class Achievements
 			return;
 		List<StringView> tokens = scope .();
 		List<String> storage = scope .();
-		defer { for (let s in storage) delete s; }
+		defer
+		{
+			for (let s in storage)
+				delete s;
+		}
 		for (let line in text.Split('\n'))
 		{
 			tokens.Clear();
@@ -89,11 +101,14 @@ static class Achievements
 			let info = new AchievementInfo();
 			info.id.Set(tokens[1]);
 			info.name.Set(tokens.Count > 2 ? tokens[2] : tokens[1]);
-			if (tokens.Count > 3) info.description.Set(tokens[3]);
+			if (tokens.Count > 3)
+				info.description.Set(tokens[3]);
 			for (int i = 4; i < tokens.Count; i++)
 			{
-				if (tokens[i] == "hidden") info.hidden = true;
-				if (tokens[i] == "local-only") info.localOnly = true;
+				if (tokens[i] == "hidden")
+					info.hidden = true;
+				if (tokens[i] == "local-only")
+					info.localOnly = true;
 			}
 			sDefinitions.Add(info);
 		}
@@ -132,7 +147,11 @@ static class Achievements
 			return;
 		List<StringView> tokens = scope .();
 		List<String> storage = scope .();
-		defer { for (let s in storage) delete s; }
+		defer
+		{
+			for (let s in storage)
+				delete s;
+		}
 		for (let line in text.Split('\n'))
 		{
 			tokens.Clear();
@@ -257,7 +276,8 @@ static class Achievements
 		}
 		LoadState();
 		ClearAndDeleteItems!(sUnlocked);
-		for (let key in sStats.Keys) delete key;
+		for (let key in sStats.Keys)
+			delete key;
 		sStats.Clear();
 		SaveState();
 	}
@@ -307,7 +327,8 @@ static class Achievements
 			toast.left -= Time.UnscaledDeltaTime;
 			if (toast.left <= 0)
 			{
-				delete toast.title; delete toast.text;
+				delete toast.title;
+				delete toast.text;
 				sToasts.RemoveAt(i);
 				continue;
 			}

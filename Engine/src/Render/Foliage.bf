@@ -228,6 +228,7 @@ class Foliage : Component
 	{
 		let cx = CellOf(local.x), cz = CellOf(local.z);
 		for (int32 dz = -1; dz <= 1; dz++)
+		{
 			for (int32 dx = -1; dx <= 1; dx++)
 			{
 				if (!mCells.TryGetValue(Key(cx + dx, cz + dz), let cell))
@@ -240,6 +241,7 @@ class Foliage : Component
 						return true;
 				}
 			}
+		}
 		return false;
 	}
 
@@ -370,7 +372,7 @@ class Foliage : Component
 			bool known;
 			let buried = Solid(world + Vector3(0, voxel * 0.05f, 0), out known);
 			if (!known)
-				continue;   // that part of the terrain is not loaded: leave the plant be
+				continue; // that part of the terrain is not loaded: leave the plant be
 			float air = 0, ground = 0;
 			bool found = false;
 			if (buried)
@@ -501,7 +503,7 @@ class Foliage : Component
 
 	// ---- saving: position (3 floats), turn and size (16 bits each), as base-64 text ----
 
-	const String cDigits = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+	const String Digits = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 	void Write()
 	{
@@ -512,8 +514,10 @@ class Foliage : Component
 			bytes.AddRange(Span<uint8>((uint8*)&position, 12));
 			uint16 turn = (uint16)Math.Clamp(plant.yaw / (Mathf.PI * 2) * 65535.0f, 0, 65535);
 			uint16 size = (uint16)Math.Clamp(plant.scale * 1000.0f, 1, 65535);
-			bytes.Add((uint8)(turn & 0xFF)); bytes.Add((uint8)(turn >> 8));
-			bytes.Add((uint8)(size & 0xFF)); bytes.Add((uint8)(size >> 8));
+			bytes.Add((uint8)(turn & 0xFF));
+			bytes.Add((uint8)(turn >> 8));
+			bytes.Add((uint8)(size & 0xFF));
+			bytes.Add((uint8)(size >> 8));
 		}
 		plants.Clear();
 		plants.Reserve(bytes.Count * 4 / 3 + 4);
@@ -523,10 +527,10 @@ class Foliage : Component
 			let b = ((i + 1) < bytes.Count) ? (uint32)bytes[i + 1] : (uint32)0;
 			let c = ((i + 2) < bytes.Count) ? (uint32)bytes[i + 2] : (uint32)0;
 			let group = (a << 16) | (b << 8) | c;
-			plants.Append(cDigits[(int)((group >> 18) & 63)]);
-			plants.Append(cDigits[(int)((group >> 12) & 63)]);
-			plants.Append(cDigits[(int)((group >> 6) & 63)]);
-			plants.Append(cDigits[(int)(group & 63)]);
+			plants.Append(Digits[(int)((group >> 18) & 63)]);
+			plants.Append(Digits[(int)((group >> 12) & 63)]);
+			plants.Append(Digits[(int)((group >> 6) & 63)]);
+			plants.Append(Digits[(int)(group & 63)]);
 		}
 		mSynced.Set(plants);
 	}
@@ -548,17 +552,24 @@ class Foliage : Component
 		for (let c in plants.RawChars)
 		{
 			int value = -1;
-			if (c >= 'A' && c <= 'Z') value = c - 'A';
-			else if (c >= 'a' && c <= 'z') value = c - 'a' + 26;
-			else if (c >= '0' && c <= '9') value = c - '0' + 52;
-			else if (c == '+') value = 62;
-			else if (c == '/') value = 63;
+			if (c >= 'A' && c <= 'Z')
+				value = c - 'A';
+			else if (c >= 'a' && c <= 'z')
+				value = c - 'a' + 26;
+			else if (c >= '0' && c <= '9')
+				value = c - '0' + 52;
+			else if (c == '+')
+				value = 62;
+			else if (c == '/')
+				value = 63;
 			if (value < 0)
 				continue;
 			group = (group << 6) | (uint32)value;
 			if (++have == 4)
 			{
-				bytes.Add((uint8)(group >> 16)); bytes.Add((uint8)(group >> 8)); bytes.Add((uint8)group);
+				bytes.Add((uint8)(group >> 16));
+				bytes.Add((uint8)(group >> 8));
+				bytes.Add((uint8)group);
 				group = 0;
 				have = 0;
 			}

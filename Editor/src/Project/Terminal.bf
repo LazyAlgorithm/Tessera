@@ -87,9 +87,9 @@ static class Terminal
 	{
 #if BF_PLATFORM_WINDOWS
 		let command = scope String("explorer ");
-#elif BF_PLATFORM_MACOS
+		#elif BF_PLATFORM_MACOS
 		let command = scope String("open ");
-#else
+		#else
 		let command = scope String("xdg-open ");
 #endif
 		Quote(path, command);

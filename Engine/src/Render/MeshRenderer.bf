@@ -10,27 +10,37 @@ class MeshRenderer : Component
 {
 	/// "builtin:cube", "builtin:sphere", ... or a model path relative to the project.
 	public String mesh = new .("builtin:cube") ~ delete _;
+	/// Tints the mesh (alpha below 1 makes it see-through).
 	public Color color = .White;
+	/// How metal-like the surface is, 0 to 1.
 	[Range(0, 1)]
 	public float metallic = 0.0f;
+	/// How rough the surface is: 0 is a mirror, 1 fully matt.
 	[Range(0, 1)]
 	public float roughness = 0.85f;
+	/// Light the surface gives off itself, whatever lights the scene.
 	public Color emissive = .Black;
+	/// How strong the emissive light is.
 	public float emissiveIntensity = 0.0f;
 	/// The glow is multiplied by the surface's own colour (vertex colours and texture): the bright parts of a model
 	/// glow in their own colour and the dark parts stay dark. Set Emissive to white to keep the colours as they are.
 	public bool emissiveFromColor = false;
 	/// Faceted shading computed per triangle: the low-poly look without duplicated vertices.
 	public bool flatShading = true;
+	/// Draws the colour and texture as they are, with no lighting.
 	public bool unlit = false;
+	/// Whether the mesh casts shadows.
 	public bool castShadows = true;
-    /// Baked diffuse irradiance, sampled using the mesh's second UV set.
-    public String lightmap = new .() ~ delete _;
-    public String lightmapDirection = new .() ~ delete _;
-    public String lightmapShadowmask = new .() ~ delete _;
-    public Vector4 lightmapScaleOffset = .(1,1,0,0);
-    /// RGBM multiplier/exponent and whether RGB needs sRGB decoding. Linear maps use (1,0,0,0).
-    public Vector4 lightmapDecode = .(1,0,0,0);
+	/// Baked diffuse irradiance, sampled using the mesh's second UV set.
+	public String lightmap = new .() ~ delete _;
+	/// The baked lightmap's direction map, if any (set when lighting is baked).
+	public String lightmapDirection = new .() ~ delete _;
+	/// The baked shadowmask, if any (set when lighting is baked).
+	public String lightmapShadowmask = new .() ~ delete _;
+	/// Where this mesh's part of the lightmap is: x and y scale its lightmap coordinates, z and w offset them.
+	public Vector4 lightmapScaleOffset = .(1, 1, 0, 0);
+	/// RGBM multiplier/exponent and whether RGB needs sRGB decoding. Linear maps use (1,0,0,0).
+	public Vector4 lightmapDecode = .(1, 0, 0, 0);
 	/// How far the object bends in the wind (Wind Zone components): 0 not at all, 1 like grass. It bends about its own
 	/// origin, more the higher up, so put the origin at the foot of a tree, a flag pole or a reed.
 	[Range(0, 2)]
@@ -123,7 +133,10 @@ class MeshRenderer : Component
 		own.Changed();
 		NetworkSync.MaterialChanged(this, 1, name, value);
 	}
+
+	/// Sets a number of the renderer's material (a copy of its own is made the first time).
 	public void SetMaterialFloat(StringView name, float value) => SetMaterialValue(name, .(value, 0, 0, 0));
+	/// Sets a colour of the renderer's material (a copy of its own is made the first time).
 	public void SetMaterialColor(StringView name, Color value) => SetMaterialValue(name, .(value.r, value.g, value.b, value.a));
 
 	/// World-space offset applied only when drawing. The network layer uses it to blend out corrections.
@@ -132,18 +145,24 @@ class MeshRenderer : Component
 	/// Optional world-space presentation correction; never changes transforms or colliders.
 	[NonSerialized]
 	public bool UseVisualCorrection;
+	/// The correction applied when drawing while UseVisualCorrection is on.
 	[NonSerialized]
 	public Matrix4 VisualCorrection = .Identity;
+	/// The world matrix the mesh is drawn with: its transform's, with VisualOffset and VisualCorrection applied.
 	public Matrix4 RenderMatrix
 	{
 		get
 		{
 			var world = Transform.LocalToWorld;
-			if (UseVisualCorrection) world = VisualCorrection * world;
-			world.m[12] += VisualOffset.x;world.m[13] += VisualOffset.y;world.m[14] += VisualOffset.z;
+			if (UseVisualCorrection)
+				world = VisualCorrection * world;
+			world.m[12] += VisualOffset.x;
+			world.m[13] += VisualOffset.y;
+			world.m[14] += VisualOffset.z;
 			return world;
 		}
 	}
+
 	/// A texture made at run time (a Compute Texture, say) to draw with instead of the one named by the
 	/// material or the Texture field. Set it invalid again to go back.
 	[NonSerialized]
@@ -155,6 +174,18 @@ class MeshRenderer : Component
 	bool mResolved;
 	bgfx.TextureHandle mTexture = .() { idx = uint16.MaxValue };
 	String mResolvedTexture = new .() ~ delete _;
+	int64 mLastDrawnFrame = -1;
+
+	/// The frame (Time.FrameCount) this renderer was last drawn on, in any view or shadow map; -1 if never.
+	/// A Skinned Mesh Renderer uses it to stop bending a mesh nobody can see.
+	public int64 LastDrawnFrame
+	{
+		get => mLastDrawnFrame;
+		set
+		{
+			mLastDrawnFrame = value;
+		}
+	}
 
 	public override void OnRegister() => Scene.Renderers.Add(this);
 	public override void OnUnregister() => Scene.Renderers.Remove(this);
@@ -163,7 +194,10 @@ class MeshRenderer : Component
 	public Mesh RuntimeMesh
 	{
 		get => mRuntimeMesh;
-		set { mRuntimeMesh = value; }
+		set
+		{
+			mRuntimeMesh = value;
+		}
 	}
 
 	/// One of several meshes a renderer draws, each with a material of its own (null: the renderer's own).
@@ -172,11 +206,13 @@ class MeshRenderer : Component
 		public Mesh mesh;
 		public Tessera.Material material;
 	}
+
 	/// Set from code (a Skinned Mesh Renderer whose model has several materials): drawn in place of the renderer's
 	/// mesh, each part with its own material. The renderer's color still tints all of them. Null or empty: the
 	/// renderer draws its one mesh as usual.
 	public List<Part> RuntimeParts;
 
+	/// The mesh drawn: RuntimeMesh if one is set, else the one named by the mesh field.
 	public Mesh ActiveMesh
 	{
 		get
@@ -193,6 +229,7 @@ class MeshRenderer : Component
 		}
 	}
 
+	/// The texture drawn with when the renderer has no material.
 	public bgfx.TextureHandle ActiveTexture
 	{
 		get
@@ -206,6 +243,7 @@ class MeshRenderer : Component
 		}
 	}
 
+	/// The box round the drawn mesh, in the world.
 	public Bounds WorldBounds
 	{
 		get
