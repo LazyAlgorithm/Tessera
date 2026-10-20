@@ -37,6 +37,7 @@ enum AudioRolloff : int32
 /// Nothing is opened until the first sound plays, so a game without audio never touches the sound card.
 static class Audio
 {
+	/// How a playing sound is set: volume, pitch, position and the rest (passed to the native mixer).
 	[CRepr] public struct Params
 	{
 		public Vector3 position;
@@ -119,7 +120,11 @@ static class Audio
 	public static bool Hrtf
 	{
 		get => sHrtf;
-		set { sHrtf = value; ApplyHrtf(); }
+		set
+		{
+			sHrtf = value;
+			ApplyHrtf();
+		}
 	}
 
 	/// How much of the headphone 3D effect is used, from 0 (the same as panning) to 1 (fully binaural, the
@@ -127,7 +132,11 @@ static class Audio
 	public static float HrtfStrength
 	{
 		get => sHrtfStrength;
-		set { sHrtfStrength = Mathf.Clamp01(value); ApplyHrtf(); }
+		set
+		{
+			sHrtfStrength = Mathf.Clamp01(value);
+			ApplyHrtf();
+		}
 	}
 
 	/// Scales the delay between the two ears, from 0.5 to 1.5; 1 is the measured head. Heads differ: a player
@@ -136,7 +145,11 @@ static class Audio
 	public static float HrtfHeadSize
 	{
 		get => sHrtfHeadSize;
-		set { sHrtfHeadSize = Mathf.Clamp(value, 0.5f, 1.5f); ApplyHrtf(); }
+		set
+		{
+			sHrtfHeadSize = Mathf.Clamp(value, 0.5f, 1.5f);
+			ApplyHrtf();
+		}
 	}
 
 	/// Brightens (above 0) or dulls (below 0) headphone 3D sound, in decibels from -12 to 12. Measured responses
@@ -144,14 +157,19 @@ static class Audio
 	public static float HrtfTreble
 	{
 		get => sHrtfTreble;
-		set { sHrtfTreble = Mathf.Clamp(value, -12, 12); ApplyHrtf(); }
+		set
+		{
+			sHrtfTreble = Mathf.Clamp(value, -12, 12);
+			ApplyHrtf();
+		}
 	}
 
 	/// Where a point in the world is as the listener hears it, in radians: azimuth to the right of straight
 	/// ahead, elevation upward.
 	public static void DirectionTo(Vector3 point, out float azimuth, out float elevation)
 	{
-		azimuth = 0; elevation = 0;
+		azimuth = 0;
+		elevation = 0;
 		let offset = point - sListenerPosition;
 		let distance = offset.Length;
 		if (distance < 0.0001f)
@@ -185,6 +203,7 @@ static class Audio
 		return true;
 	}
 
+	/// Stops every sound and closes the audio device.
 	public static void Shutdown()
 	{
 		for (let entry in sOneShots)
@@ -196,6 +215,7 @@ static class Audio
 		sTried = false;
 	}
 
+	/// The volume of everything, 0 to 1.
 	public static float MasterVolume
 	{
 		get => sMaster;
@@ -207,8 +227,10 @@ static class Audio
 		}
 	}
 
+	/// The volume of one group of sounds (music, effects...), 0 to 1.
 	public static float GetGroupVolume(AudioGroup group) => sGroupVolumes[(int)group];
 
+	/// Sets the volume of one group of sounds, 0 to 1.
 	public static void SetGroupVolume(AudioGroup group, float volume)
 	{
 		sGroupVolumes[(int)group] = Math.Max(volume, 0);
@@ -221,12 +243,16 @@ static class Audio
 	public static void SetListener(Vector3 positionIn, Vector3 forwardIn, Vector3 upIn)
 	{
 		sListenerPosition = positionIn;
-		if (forwardIn.LengthSquared > 0.0001f) sListenerForward = forwardIn.Normalized;
-		if (upIn.LengthSquared > 0.0001f) sListenerUp = upIn.Normalized;
+		if (forwardIn.LengthSquared > 0.0001f)
+			sListenerForward = forwardIn.Normalized;
+		if (upIn.LengthSquared > 0.0001f)
+			sListenerUp = upIn.Normalized;
 		sListenerSet = true;
 		if (!sReady)
 			return;
-		var position = positionIn; var forward = forwardIn; var up = upIn;
+		var position = positionIn;
+		var forward = forwardIn;
+		var up = upIn;
 		// Speed comes from how far the listener moved since last frame; it is what Doppler is measured against.
 		var velocity = Vector3.Zero;
 		if (sHaveLastListener && Time.UnscaledDeltaTime > 0.0001f)
@@ -262,6 +288,7 @@ static class Audio
 		OneShot(clip, group, parameters);
 	}
 
+	/// Settings for a sound playing normally.
 	public static Params Defaults()
 	{
 		Params parameters = default;
@@ -310,6 +337,7 @@ static class Audio
 		sOneShots.Add((source, parameters.position, parameters.spatial != 0));
 	}
 
+	/// How many sounds started with PlayOneShot are playing.
 	public static int ActiveOneShots => sOneShots.Count;
 
 	/// Once a frame, from the scene: places the listener at the camera if no Audio Listener did, works out the
@@ -329,10 +357,10 @@ static class Audio
 		float level = 0, roomSize = 0.5f, damping = 0.5f;
 		if (scene != null)
 		{
-			for (let component in scene.Components)
+			for (let component in scene.ComponentsOfType(typeof(AudioReverbZone)))
 			{
-				let zone = component as AudioReverbZone;
-				if (zone == null || !zone.IsActiveAndEnabled)
+				let zone = (AudioReverbZone)component;
+				if (!zone.IsActiveAndEnabled)
 					continue;
 				let weight = zone.WeightAt(sListenerPosition) * zone.amount;
 				if (weight > level)
@@ -371,5 +399,6 @@ static class Audio
 		return (int)tn_audio_read(stereo.Ptr, (uint32)(stereo.Length / 2));
 	}
 
+	/// The audio device's sample rate (48000 if it is not open).
 	public static int SampleRate => sReady ? (int)tn_audio_sample_rate() : 48000;
 }

@@ -4,6 +4,7 @@ using Bgfx;
 
 namespace Tessera;
 
+/// What kind of light a Light is.
 [Reflect(.All)]
 enum LightType : int32
 {
@@ -16,20 +17,29 @@ enum LightType : int32
 [Component]
 class Light : Component
 {
+	/// Directional (like the sun: everywhere, from one direction), point (from a point, all round) or spot (from a
+	/// point, in a cone).
 	public LightType type = .Directional;
+	/// The light's colour.
 	public Color color = .(1.0f, 0.96f, 0.88f);
+	/// How bright the light is.
 	public float intensity = 1.0f;
+	/// How far a point or spot light reaches, in metres.
 	public float range = 10.0f;
-    /// Physical inverse-square distance attenuation; intensity is then measured per square metre.
-    public bool inverseSquare = false;
-    /// Baked diffuse already supplies this light on surfaces with a lightmap.
-    public bool bakedOnly = false;
-    public int32 shadowMaskChannel = -1;
-    /// Negative keeps the engine default, 80% of Spot Angle.
-    public float innerSpotAngle = -1;
+	/// Physical inverse-square distance attenuation; intensity is then measured per square metre.
+	public bool inverseSquare = false;
+	/// Baked diffuse already supplies this light on surfaces with a lightmap.
+	public bool bakedOnly = false;
+	/// Which channel of baked shadowmasks holds this light's shadows (-1: none). Set when lighting is baked.
+	public int32 shadowMaskChannel = -1;
+	/// Negative keeps the engine default, 80% of Spot Angle.
+	public float innerSpotAngle = -1;
+	/// How wide a spot light's cone is, in degrees.
 	[Range(1, 170)]
 	public float spotAngle = 45.0f;
+	/// Whether the light casts shadows (only the sun's are drawn in real time).
 	public bool castShadows = true;
+	/// How dark the light's shadows are: 1 is fully dark, 0 none.
 	[Range(0, 1)]
 	public float shadowStrength = 1.0f;
 

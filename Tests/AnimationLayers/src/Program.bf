@@ -7,14 +7,25 @@ namespace AnimationLayersTests;
 
 class Program
 {
-	static bool Check(bool pass, StringView label) { Console.WriteLine(scope $"{pass ? "PASS" : "FAIL"}: {label}"); return pass; }
+	static bool Check(bool pass, StringView label)
+	{
+		Console.WriteLine(scope $"{pass ? "PASS" : "FAIL"}: {label}");
+		return pass;
+	}
+
 	const String cFolder = "/tmp/tessera-layers-test";
 	static Scene sScene;
 	static void Step(float seconds)
 	{
 		int steps = (int)Math.Ceiling(seconds / 0.02f);
-		for (int i < steps) { Time.DeltaTime = 0.02f; Time.UnscaledDeltaTime = 0.02f; sScene.Update(); }
+		for (int i < steps)
+		{
+			Time.DeltaTime = 0.02f;
+			Time.UnscaledDeltaTime = 0.02f;
+			sScene.Update();
+		}
 	}
+
 	static bool Near(float a, float b, float within = 0.01f) => Math.Abs(a - b) <= within;
 
 	/// A clip that holds one bone at an offset (in position x) the whole time.
@@ -51,17 +62,21 @@ class Program
 		Hold("forward.tanim", "Forward", "Hips", 0).AddTrack("Hips");
 		AnimationClip.Load("forward.tanim").FindTrack("Hips").SetKey(0, .(0, 0, 2), .Zero, .One);
 		AnimationClip.Load("forward.tanim").FindTrack("Hips").SetKey(1, .(0, 0, 2), .Zero, .One);
-		let left = AnimationClip.Create("left.tanim", "Left"); left.duration = 1;
+		let left = AnimationClip.Create("left.tanim", "Left");
+		left.duration = 1;
 		left.AddTrack("Hips").SetKey(0, .(-2, 0, 0), .Zero, .One);
 		left.FindTrack("Hips").SetKey(1, .(-2, 0, 0), .Zero, .One);
-		let right = AnimationClip.Create("right.tanim", "Right"); right.duration = 1;
+		let right = AnimationClip.Create("right.tanim", "Right");
+		right.duration = 1;
 		right.AddTrack("Hips").SetKey(0, .(2, 0, 0), .Zero, .One);
 		right.FindTrack("Hips").SetKey(1, .(2, 0, 0), .Zero, .One);
-		let centre = AnimationClip.Create("centre.tanim", "Centre"); centre.duration = 1;
+		let centre = AnimationClip.Create("centre.tanim", "Centre");
+		centre.duration = 1;
 		centre.AddTrack("Hips").SetKey(0, .Zero, .Zero, .One);
 		centre.FindTrack("Hips").SetKey(1, .Zero, .Zero, .One);
 		// The whole body waves its arm; the upper-body layer aims it instead.
-		let wave = AnimationClip.Create("wave.tanim", "Wave"); wave.duration = 1;
+		let wave = AnimationClip.Create("wave.tanim", "Wave");
+		wave.duration = 1;
 		wave.AddTrack("Arm").SetKey(0, .(5, 0, 0), .Zero, .One);
 		wave.FindTrack("Arm").SetKey(1, .(5, 0, 0), .Zero, .One);
 		wave.AddTrack("Legs").SetKey(0, .(1, 0, 0), .Zero, .One);
@@ -69,7 +84,9 @@ class Program
 		Hold("aim.tanim", "Aim", "Arm", 9);
 		Hold("aimlegs.tanim", "AimLegs", "Legs", 7);
 		// Recoil: from rest to a kick of 0.5 in x and 30 degrees, over its length; its first frame is rest.
-		let recoil = AnimationClip.Create("recoil.tanim", "Recoil"); recoil.duration = 1; recoil.loop = false;
+		let recoil = AnimationClip.Create("recoil.tanim", "Recoil");
+		recoil.duration = 1;
+		recoil.loop = false;
 		recoil.AddTrack("Arm").SetKey(0, .Zero, .Zero, .One);
 		recoil.FindTrack("Arm").SetKey(0.5f, .(0.5f, 0, 0), .(0, 0, 30), .One);
 		recoil.FindTrack("Arm").SetKey(1, .(0.5f, 0, 0), .(0, 0, 30), .One);
@@ -102,7 +119,8 @@ class Program
 			ok &= Check(Near(w[1], 1), "2D: on a clip's place is that clip alone");
 			plane.Weights(0.5f, 0.5f, w);
 			float sum = 0;
-			for (let x in w) sum += x;
+			for (let x in w)
+				sum += x;
 			ok &= Check(Near(sum, 1) && w[1] > 0.2f && w[3] > 0.2f && Near(w[2], 0), scope $"2D: between forward and right is mostly those two, and the weights add to 1 ({w[0]:0.00} {w[1]:0.00} {w[2]:0.00} {w[3]:0.00})");
 		}
 
@@ -161,7 +179,7 @@ class Program
 			&& loaded.states[1].blend.type == .Freeform2D && loaded.states[1].blend.parameterY == 2 && loaded.states[3].layer == 1 && loaded.transitions[2].layer == 2 && loaded.UsesLayers,
 			"layers, masks, blending and blend trees save and load again");
 		// A controller from before layers is all Base Layer, and does not use the layered path.
-		File.WriteAllText(scope $"{cFolder}/old.tcontroller", "controller 1\nstate \"Idle\" \"walk.tanim\" 1 1 0 0\ndefault 0\n").IgnoreError();
+		File.WriteAllText(scope $"{cFolder}/old.tcontroller" , "controller 1\nstate \"Idle\" \"walk.tanim\" 1 1 0 0\ndefault 0\n").IgnoreError();
 		let old = AnimatorController.Load("old.tcontroller");
 		ok &= Check(old != null && old.layers.Count == 1 && old.states[0].layer == 0 && !old.UsesLayers, "a controller from before layers loads as one Base Layer");
 

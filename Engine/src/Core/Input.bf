@@ -53,7 +53,10 @@ static class Input
 	public static bool LockCursor
 	{
 		get => sLockWanted;
-		set { sLockWanted = value; }
+		set
+		{
+			sLockWanted = value;
+		}
 	}
 
 	/// True while the mouse really is locked to the window: asked for, and allowed.
@@ -72,8 +75,8 @@ static class Input
 			return false;
 		switch (eventType)
 		{
-		case 0x300, 0x303: return true; // key down, text input
-		case 0x400, 0x401, 0x403: return true; // mouse motion, button down, wheel
+		case 0x300,0x303: return true; // key down, text input
+		case 0x400,0x401,0x403: return true; // mouse motion, button down, wheel
 		default: return false;
 		}
 	}
@@ -97,17 +100,25 @@ static class Input
 		SDL.SDL_GetRelativeMouseState(&x, &y);
 	}
 
+	/// Where the mouse is in the window, in pixels from its top left.
 	public static Vector2 MousePosition => sMousePosition;
+	/// How far the mouse moved this frame, in pixels (also while the cursor is locked).
 	public static Vector2 MouseDelta => Enabled ? sMouseDelta : .(0, 0);
+	/// How far the wheel turned this frame: positive away from you.
 	public static float MouseWheel => Enabled ? sWheel : 0;
 
+	/// Whether a key is held.
 	public static bool GetKey(KeyCode key) => Enabled && sKeys[(int)key];
+	/// Whether a key went down this frame.
 	public static bool GetKeyDown(KeyCode key) => Enabled && sKeys[(int)key] && !sPrevKeys[(int)key];
+	/// Whether a key came up this frame.
 	public static bool GetKeyUp(KeyCode key) => Enabled && !sKeys[(int)key] && sPrevKeys[(int)key];
 
 	/// button: 0 left, 1 right, 2 middle.
 	public static bool GetMouseButton(int button) => Enabled && (sButtons & ButtonMask(button)) != 0;
+	/// Whether a mouse button (0 left, 1 right, 2 middle) went down this frame.
 	public static bool GetMouseButtonDown(int button) => Enabled && (sButtons & ButtonMask(button)) != 0 && (sPrevButtons & ButtonMask(button)) == 0;
+	/// Whether a mouse button came up this frame.
 	public static bool GetMouseButtonUp(int button) => Enabled && (sButtons & ButtonMask(button)) == 0 && (sPrevButtons & ButtonMask(button)) != 0;
 
 	/// "Horizontal" (A/D, arrows) and "Vertical" (W/S, arrows), each -1..1.
@@ -123,6 +134,7 @@ static class Input
 	// SDL: left = 1, middle = 2, right = 3; mask bit is (1 << (button - 1)).
 	static uint32 ButtonMask(int button) => button == 0 ? 1 : (button == 1 ? 4 : 2);
 
+	/// The application passes the wheel's movement in here as it happens.
 	public static void OnWheel(float amount)
 	{
 		sPendingWheel += amount;
@@ -250,6 +262,7 @@ static class Input
 	public static bool SimulateOnly;
 	static Vector2 sPendingDelta;
 
+	/// For automated runs: moves to the next frame of simulated input (see SimulateOnly).
 	public static void SimulateStep(float deltaTime = 1.0f / 60)
 	{
 		sPrevKeys = sKeys;
@@ -267,12 +280,17 @@ static class Input
 		InputActions.Update();
 	}
 
+	/// For automated runs: holds or lets go of a key.
 	public static void SimulateKey(KeyCode key, bool down) => sKeys[(int)key] = down;
+	/// For automated runs: holds or lets go of a mouse button.
 	public static void SimulateMouseButton(int button, bool down) => sButtons = down ? (sButtons | ButtonMask(button)) : (sButtons & ~ButtonMask(button));
+	/// For automated runs: moves the mouse by an amount this frame.
 	public static void SimulateMouseDelta(Vector2 delta)
 	{
 		sMouseDelta = delta;
 		sPendingDelta = delta;
 	}
+
+	/// For automated runs: turns the wheel this frame.
 	public static void SimulateMouseWheel(float amount) => sWheel = amount;
 }

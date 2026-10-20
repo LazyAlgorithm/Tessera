@@ -532,40 +532,9 @@ static class SaveSystem
 
 	static void ApplyObjects(SaveNode data, Scene scene)
 	{
-		// Scene objects that had been destroyed.
-		let removed = data["removed"];
-		if (removed != null && removed.kind == .List)
-		{
-			for (let item in removed.items)
-			{
-				let gameObject = scene.FindById((uint32)item.AsInteger);
-				if (gameObject != null)
-					scene.Destroy(gameObject);
-			}
-		}
-		// Objects made while playing: the ones there now go, and the saved ones come back.
-		for (let gameObject in scene.Objects)
-		{
-			if (gameObject.IsDestroyed || gameObject.SpawnedFrom == null || gameObject.SpawnedFrom.IsEmpty || sInitial.Contains(gameObject.Id))
-				continue;
-			if (SpawnedRoot(gameObject) == gameObject && !OwnedByPlayer(gameObject) && HasSavedContent(gameObject))
-				scene.Destroy(gameObject);
-		}
+		RemoveDestroyed(data, scene);
 		let references = scope References() { scene = scene };
-		let spawned = data["spawned"];
-		if (spawned != null && spawned.kind == .List)
-		{
-			for (let entry in spawned.items)
-			{
-				let key = entry["key"];
-				let from = entry["from"];
-				if (key == null || from == null || from.kind != .String)
-					continue;
-				let made = Respawn(scene, from.text);
-				if (made != null)
-					references.byKey[new $"{key.AsInteger}"] = made;
-			}
-		}
+		RespawnSaved(data, scene, references);
 		let keys = data["references"];
 		if (keys != null && keys.kind == .List)
 		{
@@ -576,41 +545,10 @@ static class SaveSystem
 		if (objects == null || objects.kind != .Object)
 			return;
 		// Every object named anywhere in the save, found in the scene now.
-		void Resolve(StringView key)
-		{
-			if (references.byKey.ContainsKeyAlt(key))
-				return;
-			let parts = scope List<StringView>();
-			for (let part in key.Split('/'))
-				parts.Add(part);
-			if (parts.IsEmpty)
-				return;
-			uint32 id = 0;
-			if (uint32.Parse(parts[0]) case .Ok(let number))
-				id = number;
-			else
-				return;
-			GameObject found = null;
-			if (references.byKey.TryGetValueAlt(parts[0], let spawnedRoot))
-				found = spawnedRoot;
-			else if (sInitial.Contains(id))
-				found = scene.FindById(id);
-			for (int i = 1; i < parts.Count && found != null; i++)
-			{
-				if (!(int.Parse(parts[i]) case .Ok(let index)) || index < 0 || index >= found.Transform.Children.Count)
-				{
-					found = null;
-					break;
-				}
-				found = found.Transform.Children[index].GameObject;
-			}
-			if (found != null && !found.IsDestroyed)
-				references.byKey[new String(key)] = found;
-		}
 		for (let key in objects.keys)
-			Resolve(key);
+			Resolve(scene, references, key);
 		for (let key in references.keys)
-			Resolve(key);
+			Resolve(scene, references, key);
 
 		let loaded = scope List<Component>();
 		let componentKey = scope String();
@@ -638,5 +576,79 @@ static class SaveSystem
 		}
 		for (let component in loaded)
 			component.OnLoaded();
+	}
+
+	/// Destroys the scene's own objects that had been destroyed when the game was saved.
+	static void RemoveDestroyed(SaveNode data, Scene scene)
+	{
+		let removed = data["removed"];
+		if (removed == null || removed.kind != .List)
+			return;
+		for (let item in removed.items)
+		{
+			let gameObject = scene.FindById((uint32)item.AsInteger);
+			if (gameObject != null)
+				scene.Destroy(gameObject);
+		}
+	}
+
+	/// Objects made while playing: the ones there now go, and the saved ones are made again (each noted under its
+	/// key, for references to find).
+	static void RespawnSaved(SaveNode data, Scene scene, References references)
+	{
+		for (let gameObject in scene.Objects)
+		{
+			if (gameObject.IsDestroyed || gameObject.SpawnedFrom == null || gameObject.SpawnedFrom.IsEmpty || sInitial.Contains(gameObject.Id))
+				continue;
+			if (SpawnedRoot(gameObject) == gameObject && !OwnedByPlayer(gameObject) && HasSavedContent(gameObject))
+				scene.Destroy(gameObject);
+		}
+		let spawned = data["spawned"];
+		if (spawned == null || spawned.kind != .List)
+			return;
+		for (let entry in spawned.items)
+		{
+			let key = entry["key"];
+			let from = entry["from"];
+			if (key == null || from == null || from.kind != .String)
+				continue;
+			let made = Respawn(scene, from.text);
+			if (made != null)
+				references.byKey[new $"{key.AsInteger}" ] = made;
+		}
+	}
+
+	/// Finds the object a save's key names and notes it in references.byKey. A key is the object's id (or, for one
+	/// made while playing, its spawn key), then the index of a child at each level down: "12/0/3".
+	static void Resolve(Scene scene, References references, StringView key)
+	{
+		if (references.byKey.ContainsKeyAlt(key))
+			return;
+		let parts = scope List<StringView>();
+		for (let part in key.Split('/'))
+			parts.Add(part);
+		if (parts.IsEmpty)
+			return;
+		uint32 id = 0;
+		if (uint32.Parse(parts[0]) case .Ok(let number))
+			id = number;
+		else
+			return;
+		GameObject found = null;
+		if (references.byKey.TryGetValueAlt(parts[0], let spawnedRoot))
+			found = spawnedRoot;
+		else if (sInitial.Contains(id))
+			found = scene.FindById(id);
+		for (int i = 1; i < parts.Count && found != null; i++)
+		{
+			if (!(int.Parse(parts[i]) case .Ok(let index)) || index < 0 || index >= found.Transform.Children.Count)
+			{
+				found = null;
+				break;
+			}
+			found = found.Transform.Children[index].GameObject;
+		}
+		if (found != null && !found.IsDestroyed)
+			references.byKey[new String(key)] = found;
 	}
 }

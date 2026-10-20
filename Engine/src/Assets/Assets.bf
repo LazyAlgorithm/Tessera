@@ -12,6 +12,10 @@ static class Assets
 
 	static Dictionary<String, Mesh> sMeshes = new .() ~ DeleteDictionaryAndKeysAndValues!(_);
 	static Dictionary<String, uint16> sTextures = new .() ~ DeleteDictionaryAndKeys!(_);
+	/// Meshes that could not be loaded, with when to try again: things that ask every frame (particles, foliage)
+	/// would otherwise read the disk and log a warning every frame.
+	static Dictionary<String, int64> sMissingMeshes = new .() ~ DeleteDictionaryAndKeys!(_);
+	const int64 MissingRetryMicroseconds = 2000000;
 
 	public static readonly StringView[?] BuiltinMeshes = .("builtin:cube", "builtin:sphere", "builtin:capsule", "builtin:cylinder", "builtin:cone", "builtin:plane", "builtin:quad", "builtin:grass", "builtin:bush", "builtin:tree", "builtin:pine");
 
@@ -23,6 +27,9 @@ static class Assets
 			delete entry.value;
 		}
 		sMeshes.Clear();
+		for (let key in sMissingMeshes.Keys)
+			delete key;
+		sMissingMeshes.Clear();
 		for (let entry in sTextures)
 		{
 			if (Gfx.Initialized && entry.value != Gfx.WhiteTexture.idx)
@@ -123,6 +130,8 @@ static class Assets
 			return null;
 		if (sMeshes.TryGetValueAlt(path, let cached))
 			return cached;
+		if (sMissingMeshes.TryGetValueAlt(path, let retryAt) && Internal.GetTickCountMicro() < retryAt)
+			return null;
 
 		Mesh mesh = null;
 		if (path.StartsWith("builtin:"))
@@ -149,9 +158,16 @@ static class Assets
 		}
 		if (mesh == null)
 		{
-			Log.Warning(scope $"Mesh not found: {path}");
+			if (sMissingMeshes.TryAddAlt(path, let keyPtr, let valuePtr))
+			{
+				*keyPtr = new String(path);
+				Log.Warning(scope $"Mesh not found: {path}");
+			}
+			*valuePtr = Internal.GetTickCountMicro() + MissingRetryMicroseconds;
 			return null;
 		}
+		if (sMissingMeshes.GetAndRemoveAlt(path) case .Ok(let missing))
+			delete missing.key;
 		sMeshes[new String(path)] = mesh;
 		return mesh;
 	}
@@ -240,7 +256,8 @@ static class Assets
 				if (prim.uvs != null)
 					uv = .(prim.uvs[v * 2], prim.uvs[v * 2 + 1]); // glTF and Tessera both put V = 0 at the top of the image
 				mesh.AddVertex(world.TransformPoint(position), world.TransformDirection(normal).Normalized, color, uv);
-				if (prim.uv2s != null) mesh.Vertices.Back.uv2 = .(prim.uv2s[v * 2], prim.uv2s[v * 2 + 1]);
+				if (prim.uv2s != null)
+					mesh.Vertices.Back.uv2 = .(prim.uv2s[v * 2], prim.uv2s[v * 2 + 1]);
 			}
 			// Mirroring Z turns every triangle inside out, so swap two corners to face it outwards again.
 			for (uint32 i = 0; i + 2 < prim.indexCount; i += 3)

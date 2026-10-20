@@ -19,21 +19,21 @@ extension EditorApp
 	float mUiPreviewScale = 1;
 	int32 mUiPreviewSize = 2;
 
-	static readonly char8*[?] cUiTags = .("panel", "text", "button", "image", "input", "bar", "slider", "toggle", "canvas");
-	// Sized by cUiTags so that a tag added there without a name and a hint here does not compile.
-	static readonly char8*[cUiTags.Count] cUiTagNames = .("Panel", "Text", "Button", "Image", "Text Field", "Progress Bar", "Slider",
+	static readonly char8*[?] UiTags = .("panel", "text", "button", "image", "input", "bar", "slider", "toggle", "canvas");
+	// Sized by UiTags so that a tag added there without a name and a hint here does not compile.
+	static readonly char8*[UiTags.Count] UiTagNames = .("Panel", "Text", "Button", "Image", "Text Field", "Progress Bar", "Slider",
 		"Toggle", "Canvas");
-	static readonly char8*[cUiTags.Count] cUiTagHints = .("Groups and arranges other components", "A line of text", "Runs a method when pressed",
+	static readonly char8*[UiTags.Count] UiTagHints = .("Groups and arranges other components", "A line of text", "Runs a method when pressed",
 		"Shows a picture", "Lets the player type; bound to a field", "A bar filled by a bound number",
 		"A handle dragged between two numbers; calls a method when moved", "A switch that is on or off; calls a method when changed",
 		"An empty area that a method draws into every frame");
 
 	static StringView UiTagName(StringView tag)
 	{
-		for (int i < cUiTags.Count)
+		for (int i < UiTags.Count)
 		{
-			if (tag == StringView(cUiTags[i]))
-				return StringView(cUiTagNames[i]);
+			if (tag == StringView(UiTags[i]))
+				return StringView(UiTagNames[i]);
 		}
 		return tag;
 	}
@@ -74,11 +74,12 @@ extension EditorApp
 		UIDocumentData.StylePathFor(mUiPath, stylePath);
 		OpenScript(stylePath);
 	}
-	static readonly char8*[?] cUiStyleNames = .("width", "height", "padding", "margin", "gap", "flex-direction", "flex-grow", "align-items",
+
+	static readonly char8*[?] UiStyleNames = .("width", "height", "padding", "margin", "gap", "flex-direction", "flex-grow", "align-items",
 		"justify-content", "background-color", "color", "font-size", "border-radius", "border-width", "border-color", "text-align",
 		"position", "left", "top", "right", "bottom", "display");
 	// The view the document is laid out for; the preview is then drawn smaller or bigger to fit its panel.
-	static readonly (int32 w, int32 h, char8* name)[?] cUiSizes = .((960, 540, "960 x 540"), (1280, 720, "1280 x 720"), (1920, 1080, "1920 x 1080"),
+	static readonly (int32 w, int32 h, char8* name)[?] UiSizes = .((960, 540, "960 x 540"), (1280, 720, "1280 x 720"), (1920, 1080, "1920 x 1080"),
 		(2560, 1080, "2560 x 1080 (wide)"), (1024, 768, "1024 x 768 (4:3)"), (1950, 900, "1950 x 900 (phone)"), (900, 1950, "900 x 1950 (phone upright)"));
 
 	/// The view a document is designed for, taken from a UI Document in the open scene that shows it: its Reference
@@ -103,7 +104,8 @@ extension EditorApp
 
 	void OpenUI(StringView path)
 	{
-        mShowUI=true; mDockUI=true;
+		mShowUI = true;
+		mDockUI = true;
 		delete mUiData;
 		mUiData = new UIDocumentData();
 		mUiPath.Set(path);
@@ -115,9 +117,9 @@ extension EditorApp
 		// Start on the size the document is designed for, when a UI Document in the scene says what that is.
 		if (UiDesignSize(path, let designWidth, let designHeight))
 		{
-			for (int32 i < (int32)cUiSizes.Count)
+			for (int32 i < (int32)UiSizes.Count)
 			{
-				if (cUiSizes[i].h == (int32)designHeight && cUiSizes[i].w == (int32)designWidth)
+				if (UiSizes[i].h == (int32)designHeight && UiSizes[i].w == (int32)designWidth)
 					mUiPreviewSize = i;
 			}
 		}
@@ -243,38 +245,67 @@ extension EditorApp
 
 	void DrawUIEditor()
 	{
-        if (!mShowUI) return;
-        if (mDockUI && mAssetCenterDock!=0) { ImGui.SetNextWindowDockID(mAssetCenterDock); mDockUI=false; }
+		if (!mShowUI)
+			return;
+		if (mDockUI && mAssetCenterDock != 0)
+		{
+			ImGui.SetNextWindowDockID(mAssetCenterDock);
+			mDockUI = false;
+		}
 		if (mUiFocus && Time.FrameCount > 5)
 		{
 			ImGui.SetWindowFocus("UI");
 			mUiFocus = false;
 		}
-		if (!ImGui.Begin("UI", &mShowUI, ImGui.WindowFlags.NoScrollbar | ImGui.WindowFlags.NoScrollWithMouse))
+		if (ImGui.Begin("UI", &mShowUI, ImGui.WindowFlags.NoScrollbar | ImGui.WindowFlags.NoScrollWithMouse))
 		{
-			ImGui.End();
-			return;
+			if (mUiData == null || mUiData.root == null)
+				ImGui.TextDisabled("Create an interface with Project > + > UI Document, or double-click a .tui file.");
+			else
+				DrawUIEditorContents();
 		}
-		if (mUiData == null || mUiData.root == null)
-		{
-			ImGui.TextDisabled("Create an interface with Project > + > UI Document, or double-click a .tui file.");
-			ImGui.End();
-			return;
-		}
+		ImGui.End();
+	}
 
-		// ---- toolbar ----
-		if (ImGui.SmallButton("Save")) SaveUI();
+	void DrawUIEditorContents()
+	{
+		DrawUiToolbar();
+		let total = ImGui.GetContentRegionAvail();
+		let sideWidth = 250.0f;
+		ImGui.BeginChild("tree", .(sideWidth, 0), ImGui.ChildBorders);
+		DrawUiElementTree();
+		ImGui.EndChild();
 		ImGui.SameLine();
-		if (ImGui.SmallButton("Open HTML")) OpenUiSource(false);
+		ImGui.BeginChild("preview", .(Math.Max(total.x - sideWidth * 2 - 16, 100), 0), 0, ImGui.WindowFlags.NoScrollbar | ImGui.WindowFlags.NoScrollWithMouse);
+		DrawUiPreview();
+		ImGui.EndChild();
 		ImGui.SameLine();
-		if (ImGui.SmallButton("Open CSS")) OpenUiSource(true);
+		ImGui.BeginChild("properties", .(0, 0), ImGui.ChildBorders);
+		if (mUiSelected == null)
+			ImGui.TextWrapped("Click an element in the preview or the tree to edit it.");
+		else
+			DrawUiProperties(mUiSelected);
+		ImGui.EndChild();
+	}
+
+	/// Save, the HTML and CSS sources, and the screen size the preview stands for.
+	void DrawUiToolbar()
+	{
+		if (ImGui.SmallButton("Save"))
+			SaveUI();
+		ImGui.SameLine();
+		if (ImGui.SmallButton("Open HTML"))
+			OpenUiSource(false);
+		ImGui.SameLine();
+		if (ImGui.SmallButton("Open CSS"))
+			OpenUiSource(true);
 		ImGui.SameLine(0, 14);
 		ImGui.SetNextItemWidth(190);
-		if (ImGui.BeginCombo("##size", cUiSizes[mUiPreviewSize].name))
+		if (ImGui.BeginCombo("##size", UiSizes[mUiPreviewSize].name))
 		{
-			for (int32 i < (int32)cUiSizes.Count)
+			for (int32 i < (int32)UiSizes.Count)
 			{
-				if (ImGui.Selectable(cUiSizes[i].name, mUiPreviewSize == i))
+				if (ImGui.Selectable(UiSizes[i].name, mUiPreviewSize == i))
 					mUiPreviewSize = i;
 			}
 			ImGui.EndCombo();
@@ -286,42 +317,43 @@ extension EditorApp
 		ImGui.SameLine();
 		ImGui.TextDisabled(mUiStatus.CStr());
 		ImGui.Separator();
+	}
 
-		let total = ImGui.GetContentRegionAvail();
-		let sideWidth = 250.0f;
-
-		// ---- element tree ----
-		ImGui.BeginChild("tree", .(sideWidth, 0), ImGui.ChildBorders);
+	/// The components that can be added (inside the selection when it can hold others, otherwise beside it), and the
+	/// document's elements as a tree.
+	void DrawUiElementTree()
+	{
 		ImGui.TextDisabled("Components");
-		for (int32 i < (int32)cUiTags.Count)
+		for (int32 i < (int32)UiTags.Count)
 		{
-			if (ImGui.Selectable(scope String()..AppendF("+  {}", StringView(cUiTagNames[i])).CStr()))
+			if (ImGui.Selectable(scope String()..AppendF("+  {}", StringView(UiTagNames[i])).CStr()))
 			{
 				// New components go inside the selection when it can hold others, otherwise beside it.
 				var parent = mUiSelected ?? mUiData.root;
 				if (parent.tag != "panel")
 					parent = parent.parent ?? mUiData.root;
-				let created = parent.AddChild(StringView(cUiTags[i]));
+				let created = parent.AddChild(StringView(UiTags[i]));
 				if (UIDocumentData.IsTextTag(created.tag))
 					created.text.Set(created.tag == "button" ? "Button" : "Text");
 				mUiSelected = created;
 			}
 			if (ImGui.IsItemHovered())
-				ImGui.SetTooltip(cUiTagHints[i]);
+				ImGui.SetTooltip(UiTagHints[i]);
 		}
 		ImGui.Spacing();
 		ImGui.Separator();
 		ImGui.TextDisabled("Hierarchy");
 		for (let child in mUiData.root.children)
 			DrawUiTree(child, 0);
-		ImGui.EndChild();
-		ImGui.SameLine();
+	}
 
-		// ---- preview ----
-		ImGui.BeginChild("preview", .(Math.Max(total.x - sideWidth * 2 - 16, 100), 0), 0, ImGui.WindowFlags.NoScrollbar | ImGui.WindowFlags.NoScrollWithMouse);
+	/// The document laid out for the chosen screen and drawn at whatever scale shows all of it in the panel, as a UI
+	/// Document's Reference Height does in the game; a click selects the element under the mouse.
+	void DrawUiPreview()
+	{
 		let available = ImGui.GetContentRegionAvail();
-		let designW = (float)cUiSizes[mUiPreviewSize].w;
-		let designH = (float)cUiSizes[mUiPreviewSize].h;
+		let designW = (float)UiSizes[mUiPreviewSize].w;
+		let designH = (float)UiSizes[mUiPreviewSize].h;
 		// The document is laid out for the chosen screen and drawn at whatever scale shows all of it in the panel,
 		// as a UI Document's Reference Height does in the game: sizes in the document never outgrow the preview.
 		let scale = Math.Max(Math.Min(available.x / designW, available.y / designH), 0.02f);
@@ -354,17 +386,6 @@ extension EditorApp
 			let min = ImGui.Vec2(origin.x + mUiSelected.x * scale, origin.y + mUiSelected.y * scale);
 			ImGui.DrawRect(min, .(min.x + mUiSelected.width * scale, min.y + mUiSelected.height * scale), .(1.0f, 0.62f, 0.15f, 1), 0, 2);
 		}
-		ImGui.EndChild();
-		ImGui.SameLine();
-
-		// ---- properties ----
-		ImGui.BeginChild("properties", .(0, 0), ImGui.ChildBorders);
-		if (mUiSelected == null)
-			ImGui.TextWrapped("Click an element in the preview or the tree to edit it.");
-		else
-			DrawUiProperties(mUiSelected);
-		ImGui.EndChild();
-		ImGui.End();
 	}
 
 	void DrawUiProperties(UIElement element)
@@ -374,10 +395,10 @@ extension EditorApp
 			BeginProperty("Type");
 			if (ImGui.BeginCombo("##tag", scope String(UiTagName(element.tag)).CStr()))
 			{
-				for (int32 i < (int32)cUiTags.Count)
+				for (int32 i < (int32)UiTags.Count)
 				{
-					if (ImGui.Selectable(cUiTagNames[i], element.tag == StringView(cUiTags[i])))
-						element.tag.Set(StringView(cUiTags[i]));
+					if (ImGui.Selectable(UiTagNames[i], element.tag == StringView(UiTags[i])))
+						element.tag.Set(StringView(UiTags[i]));
 				}
 				ImGui.EndCombo();
 			}
@@ -429,7 +450,7 @@ extension EditorApp
 		ImGui.SetNextItemWidth(-1);
 		if (ImGui.BeginCombo("##addstyle", "Add style property..."))
 		{
-			for (let name in cUiStyleNames)
+			for (let name in UiStyleNames)
 			{
 				if (!element.style.Has(StringView(name)) && ImGui.Selectable(name))
 				{

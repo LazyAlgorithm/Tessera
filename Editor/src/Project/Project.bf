@@ -100,7 +100,7 @@ class Project
 		while (Path.EndsWith('/') && Path.Length > 1)
 			Path.RemoveFromEnd(1);
 		let text = scope String();
-		if (File.ReadAllText(scope $"{Path}/project.tessera", text) case .Err)
+		if (File.ReadAllText(scope $"{Path}/project.tessera" , text) case .Err)
 			return false;
 		for (let line in text.Split('\n'))
 		{
@@ -179,7 +179,7 @@ class Project
 			text.AppendF("library = {}\n", library);
 		if (!LinkFlags.IsEmpty)
 			text.AppendF("link = {}\n", LinkFlags);
-		File.WriteAllText(scope $"{Path}/project.tessera", text).IgnoreError();
+		File.WriteAllText(scope $"{Path}/project.tessera" , text).IgnoreError();
 	}
 
 	/// Path of the executable BeefBuild produces for this project.
@@ -187,9 +187,9 @@ class Project
 	{
 #if BF_PLATFORM_WINDOWS
 		outPath.AppendF("{}/build/{}_Win64/{}/{}.exe", Path, release ? "Release" : "Debug", Name, Name);
-#elif BF_PLATFORM_MACOS
+		#elif BF_PLATFORM_MACOS
 		outPath.AppendF("{}/build/{}_macOS/{}/{}", Path, release ? "Release" : "Debug", Name, Name);
-#else
+	#else
 		outPath.AppendF("{}/build/{}_Linux64/{}/{}", Path, release ? "Release" : "Debug", Name, Name);
 #endif
 	}
@@ -198,7 +198,7 @@ class Project
 	public static bool ReadLibraryName(StringView folder, String outName)
 	{
 		let text = scope String();
-		if (File.ReadAllText(scope $"{folder}/BeefProj.toml", text) case .Err)
+		if (File.ReadAllText(scope $"{folder}/BeefProj.toml" , text) case .Err)
 			return false;
 		for (var line in text.Split('\n'))
 		{
@@ -257,7 +257,14 @@ class Project
 	public void WriteBuildFiles()
 	{
 		List<(String name, String path)> libraries = scope .();
-		defer { for (let l in libraries) { delete l.name; delete l.path; } }
+		defer
+		{
+			for (let l in libraries)
+			{
+				delete l.name;
+				delete l.path;
+			}
+		}
 		CollectLibraries(libraries);
 
 		let space = scope String();
@@ -267,7 +274,7 @@ class Project
 		space.AppendF("}}\n\n[Workspace]\nStartupProject = \"{}\"\n", Name);
 		// Beef's own linker (LLVM's) on Windows: it needs Microsoft's libraries but not Microsoft's linker.
 		space.Append("\n[Configs.Debug.Win64]\nToolset = \"LLVM\"\n\n[Configs.Release.Win64]\nToolset = \"LLVM\"\n");
-		File.WriteAllText(scope $"{Path}/BeefSpace.toml", space).IgnoreError();
+		File.WriteAllText(scope $"{Path}/BeefSpace.toml" , space).IgnoreError();
 
 		let native = scope $"{EngineRoot}/build/native";
 		let link = scope $"-Wl,--start-group {native}/libtessera_native.a {native}/bgfx/cmake/bgfx/libbgfx.a {native}/bgfx/cmake/bimg/libbimg.a {native}/bgfx/cmake/bimg/libbimg_decode.a {native}/bgfx/cmake/bx/libbx.a {native}/SDL/libSDL3.a {native}/joltc/libjoltc.a {native}/_deps/joltphysics-build/libJolt.a {native}/enet/libenet.a -Wl,--end-group -lstdc++ -lm -ldl -lpthread -lGL -lX11 {LinkFlags}";
@@ -295,32 +302,37 @@ class Project
 		linkWin.Append("user32.lib gdi32.lib shell32.lib winmm.lib imm32.lib ole32.lib oleaut32.lib version.lib setupapi.lib advapi32.lib ws2_32.lib psapi.lib uuid.lib cfgmgr32.lib");
 		// The debug build also writes a map of where everything in it is: script reload links against that.
 		proj.AppendF("\n[Configs.Debug.Win64]\nCLibType = \"Static\"\nOtherLinkFlags = \"$(LinkFlags) {0} /MAP\"\n\n[Configs.Release.Win64]\nCLibType = \"Static\"\nOtherLinkFlags = \"$(LinkFlags) {0}\"\n", linkWin);
-		File.WriteAllText(scope $"{Path}/BeefProj.toml", proj).IgnoreError();
+		File.WriteAllText(scope $"{Path}/BeefProj.toml" , proj).IgnoreError();
 	}
 
-    /// Stages a shipping executable built against Tessera only, plus its runtime assets.
-    /// outputPath is the game's own folder; an earlier build of a game found there is replaced.
-    public bool BuildPlayer(StringView outputPath, BuildTarget target)
-    {
-        WriteBuildFiles();
-        Directory.CreateDirectory(scope $"{Path}/build").IgnoreError();
-        let command = scope String(Terminal.Python)..Append(' ');
-        Terminal.Quote(scope $"{EngineRoot}/tools/build_player.py", command);
-        command.Append(' '); Terminal.Quote(Path, command);
-        command.AppendF(" --platform {} --replace --output ", target.ToString(.. scope .())..ToLower()); Terminal.Quote(outputPath, command);
-        command.Append(" > "); Terminal.Quote(scope $"{Path}/build/build.log", command);
-        command.Append(" 2>&1");
-        return Terminal.Run(command) == 0;
-    }
+	/// Stages a shipping executable built against Tessera only, plus its runtime assets.
+	/// outputPath is the game's own folder; an earlier build of a game found there is replaced.
+	public bool BuildPlayer(StringView outputPath, BuildTarget target)
+	{
+		WriteBuildFiles();
+		Directory.CreateDirectory(scope $"{Path}/build").IgnoreError();
+		let command = scope String(Terminal.Python)..Append(' ');
+		Terminal.Quote(scope $"{EngineRoot}/tools/build_player.py" , command);
+		command.Append(' ');
+		Terminal.Quote(Path, command);
+		command.AppendF(" --platform {} --replace --output ", target.ToString(.. scope .())..ToLower());
+		Terminal.Quote(outputPath, command);
+		command.Append(" > ");
+		Terminal.Quote(scope $"{Path}/build/build.log" , command);
+		command.Append(" 2>&1");
+		return Terminal.Run(command) == 0;
+	}
 
 	/// Puts a copy of Tessera itself (launcher, editor, engine) for Linux or Windows in outputPath.
 	public bool PackageEngine(StringView outputPath, bool windows)
 	{
 		Directory.CreateDirectory(scope $"{Path}/build").IgnoreError();
 		let command = scope String(Terminal.Python)..Append(' ');
-		Terminal.Quote(scope $"{EngineRoot}/tools/package_engine.py", command);
-		command.AppendF(" --platform {} --folder ", windows ? "windows" : "linux"); Terminal.Quote(outputPath, command);
-		command.Append(" > "); Terminal.Quote(scope $"{Path}/build/build.log", command);
+		Terminal.Quote(scope $"{EngineRoot}/tools/package_engine.py" , command);
+		command.AppendF(" --platform {} --folder ", windows ? "windows" : "linux");
+		Terminal.Quote(outputPath, command);
+		command.Append(" > ");
+		Terminal.Quote(scope $"{Path}/build/build.log" , command);
 		command.Append(" 2>&1");
 		return Terminal.Run(command) == 0;
 	}
@@ -338,7 +350,7 @@ class Project
 		command.Append(" -workspace=");
 		Terminal.Quote(Path, command);
 		command.AppendF(" -config={} -verbosity=minimal > ", release ? "Release" : "Debug");
-		Terminal.Quote(scope $"{Path}/build/build.log", command);
+		Terminal.Quote(scope $"{Path}/build/build.log" , command);
 		command.Append(" 2>&1");
 		let exe = scope String();
 		GetExecutablePath(exe, release);
@@ -359,6 +371,6 @@ class Project
 
 	public void ReadBuildLog(String outText)
 	{
-		File.ReadAllText(scope $"{Path}/build/build.log", outText).IgnoreError();
+		File.ReadAllText(scope $"{Path}/build/build.log" , outText).IgnoreError();
 	}
 }

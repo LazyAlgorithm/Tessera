@@ -9,12 +9,21 @@ namespace Tessera;
 /// good however long it is kept.
 struct SaveHandle
 {
+	/// Which save or load this is.
 	public readonly int32 id;
-	public this(int32 id) { this.id = id; }
+	/// A handle on a save or load by its id.
+	public this(int32 id)
+	{
+		this.id = id;
+	}
+
+	/// Whether the save or load has finished, well or not.
 	public bool Done => SaveSystem.[Friend]OutcomeOf(id).done;
+	/// Whether it finished and worked.
 	public bool Succeeded => SaveSystem.[Friend]OutcomeOf(id).succeeded;
 	/// Loading: whether the slot held a save.
 	public bool Found => SaveSystem.[Friend]OutcomeOf(id).found;
+	/// Why it did not work (empty if it did).
 	public void Error(String text) => text.Append(SaveSystem.[Friend]OutcomeOf(id).error ?? "");
 }
 
@@ -22,9 +31,12 @@ struct SaveHandle
 /// (an upload to a server, say), from any thread. SaveSystem notices on the next frame and fires its events.
 class SaveTask
 {
+	/// Whether a task saves or loads.
 	public enum Kind { Save, Load }
 
+	/// Whether this task saves or loads.
 	public readonly Kind kind;
+	/// The save slot it is for.
 	public readonly String slot = new .() ~ delete _;
 	/// Saving: the bytes to keep. Loading: the storage puts the bytes it found here.
 	public readonly List<uint8> data = new .() ~ delete _;
@@ -36,16 +48,39 @@ class SaveTask
 	bool mApplied, mReported;
 	int32 mId;
 
+	/// A task for a slot.
 	public this(Kind kind, StringView slot)
 	{
 		this.kind = kind;
 		this.slot.Set(slot);
 	}
 
-	public bool Done { get { using (mLock.Enter()) return mDone; } }
-	public bool Succeeded { get { using (mLock.Enter()) return mSucceeded; } }
+	/// Whether the task has finished, well or not.
+	public bool Done
+	{
+		get
+		{
+			using (mLock.Enter()) return mDone;
+		}
+	}
+
+	/// Whether it finished and worked.
+	public bool Succeeded
+	{
+		get
+		{
+			using (mLock.Enter()) return mSucceeded;
+		}
+	}
+
 	/// Loading: whether the storage had a save in that slot.
-	public bool Found { get { using (mLock.Enter()) return mFound; } }
+	public bool Found
+	{
+		get
+		{
+			using (mLock.Enter()) return mFound;
+		}
+	}
 
 	/// Storage: the save is written, or the bytes are in data (found: false when the slot is empty).
 	public void Finish(bool succeeded, bool found = true)
@@ -82,10 +117,13 @@ class SaveTask
 /// Write and Read may finish at once or later, on any thread: call task.Finish (or Fail) when done.
 abstract class SaveStorage
 {
+	/// Writes a save task's data to its slot, then calls Finish on it (now or later, from any thread).
 	public abstract void Write(SaveTask task);
+	/// Reads a slot's data into a load task, then calls Finish on it.
 	public abstract void Read(SaveTask task);
 	/// Whether a slot holds a save. A storage that cannot tell without asking a server answers false.
 	public virtual bool Exists(StringView slot) => false;
+	/// Deletes a slot's save, if there is one.
 	public virtual void Delete(StringView slot) { }
 	/// The slots that hold saves, where the storage can list them.
 	public virtual void List(List<String> slots) { }
@@ -96,6 +134,7 @@ abstract class SaveStorage
 /// saving never leaves half a save.
 class FileSaveStorage : SaveStorage
 {
+	/// The folder the save files are in.
 	public readonly String folder = new .() ~ delete _;
 
 	/// GamePaths.Saves when folder is empty.
@@ -126,6 +165,7 @@ class FileSaveStorage : SaveStorage
 			fileName.Append("%00");
 	}
 
+	/// The slot a save file's name belongs to.
 	public static void SlotOf(StringView fileName, String slot)
 	{
 		for (int i = 0; i < fileName.Length; i++)

@@ -47,7 +47,7 @@ struct SavedAttribute : Attribute, IOnFieldInit
 /// Writes SaveFields for types with [Saved] fields. Runs inside the compiler.
 static class SaveCodegen
 {
-	const BindingFlags cOwnFields = .Instance | .Public | .NonPublic | .DeclaredOnly;
+	const BindingFlags OwnFields = .Instance | .Public | .NonPublic | .DeclaredOnly;
 
 	/// Whether the type declares any [Saved] field itself.
 	[Comptime]
@@ -55,7 +55,7 @@ static class SaveCodegen
 	{
 		if (type == null || !(type is TypeInstance))
 			return false;
-		for (let field in type.GetFields(cOwnFields))
+		for (let field in type.GetFields(OwnFields))
 		{
 			if (field.GetCustomAttribute<SavedAttribute>() case .Ok)
 				return true;
@@ -84,7 +84,7 @@ static class SaveCodegen
 		if (fieldInfo.IsStatic)
 			Runtime.FatalError(scope $"[Saved] is for instance fields; '{fieldInfo.Name}' is static. Keep shared values in a data asset.");
 		// The first marked field writes the code for all of them.
-		for (let field in owner.GetFields(cOwnFields))
+		for (let field in owner.GetFields(OwnFields))
 		{
 			if (field.GetCustomAttribute<SavedAttribute>() case .Ok)
 			{
@@ -120,7 +120,7 @@ static class SaveCodegen
 			code.Append("public void SaveFields(Tessera.SaveIO io) mut\n{\n");
 		else
 			code.Append("public virtual void SaveFields(Tessera.SaveIO io)\n{\n");
-		for (let field in owner.GetFields(cOwnFields))
+		for (let field in owner.GetFields(OwnFields))
 		{
 			if (!(field.GetCustomAttribute<SavedAttribute>() case .Ok(let saved)))
 				continue;
@@ -128,7 +128,7 @@ static class SaveCodegen
 				Runtime.FatalError(scope $"[Saved] is for instance fields; '{field.Name}' is static.");
 			let key = saved.key != null ? StringView(saved.key) : field.Name;
 			code.AppendF("\tif (io.Key(\"{}\"))\n\t{{\n", key);
-			Value(field.FieldType, scope $"this.{field.Name}", code, 0, scope $"{owner.GetFullName(.. scope .())}.{field.Name}");
+			Value(field.FieldType, scope $"this.{field.Name}" , code, 0, scope $"{owner.GetFullName(.. scope .())}.{field.Name}");
 			code.Append("\t}\n");
 		}
 		code.Append("}\n");
@@ -186,7 +186,7 @@ static class SaveCodegen
 		{
 			let count = sized.ElementCount;
 			code.AppendF("io.BeginList({0});\nfor (int __i{1} < {0})\n{{\nif (!io.Item()) break;\n", count, d);
-			Value(sized.UnderlyingType, scope $"{e}[__i{d}]", code, d + 1, fieldName);
+			Value(sized.UnderlyingType, scope $"{e}[__i{d}]" , code, d + 1, fieldName);
 			code.Append("}\nio.EndList();\n");
 			return;
 		}
@@ -198,107 +198,25 @@ static class SaveCodegen
 				let element = generic.GetGenericArg(0);
 				let rank = unspecialized == typeof(Array4<>) ? 4 : (unspecialized == typeof(Array3<>) ? 3 : (unspecialized == typeof(Array2<>) ? 2 : 1));
 				if (rank <= 1)
-				{
-					code.AppendF("{{\nint __n{0} = io.BeginList({1} == null ? -1 : {1}.Count);\n", d, e);
-					code.AppendF("if (io.Reading && __n{0} == -1 && {1} != null)\n{{\n", d, e);
-					DeleteItems(element, e, code, d);
-					code.AppendF("DeleteAndNullify!({});\n}}\n", e);
-					code.AppendF("else if (io.Reading && __n{0} >= 0 && ({1} == null || {1}.Count != __n{0}))\n{{\n", d, e);
-					code.AppendF("if ({} != null)\n{{\n", e);
-					DeleteItems(element, e, code, d);
-					code.AppendF("delete {0};\n}}\n{0} = new .[__n{1}];\n}}\n", e, d);
-					code.AppendF("if (__n{0} >= 0 && {1} != null)\n{{\nfor (int __i{0} < {1}.Count)\n{{\nif (!io.Item()) break;\n", d, e);
-					Value(element, scope $"{e}[__i{d}]", code, d + 1, fieldName);
-					code.Append("}\n}\nio.EndList();\n}\n");
-					return;
-				}
-				// T[,] and up: [ [lengths], [items row by row] ].
-				code.AppendF("{{\nint __n{0} = io.BeginList({1} == null ? -1 : 2);\n", d, e);
-				code.AppendF("if (__n{0} >= 0)\n{{\n", d);
-				for (int r < rank)
-					code.AppendF("int __a{0}_{1} = {2} == null ? 0 : {2}.GetLength({1});\n", d, r, e);
-				code.AppendF("if (io.Item())\n{{\nio.BeginList({});\n", rank);
-				for (int r < rank)
-					code.AppendF("if (io.Item()) io.Value(ref __a{0}_{1});\n", d, r);
-				code.Append("io.EndList();\n}\n");
-				let lengths = scope String();
-				let mismatch = scope String();
-				for (int r < rank)
-				{
-					if (r > 0) { lengths.Append(", "); mismatch.Append(" || "); }
-					lengths.AppendF("__a{0}_{1}", d, r);
-					mismatch.AppendF("{0}.GetLength({1}) != __a{2}_{1}", e, r, d);
-				}
-				code.AppendF("if (io.Reading && ({0} == null || {1}))\n{{\nif ({0} != null)\n{{\n", e, mismatch);
-				DeleteItems(element, e, code, d);
-				code.AppendF("delete {0};\n}}\n{0} = new .[{1}];\n}}\n", e, lengths);
-				code.AppendF("if (io.Item() && {0} != null)\n{{\nio.BeginList({0}.Count);\n", e);
-				let indexes = scope String();
-				for (int r < rank)
-				{
-					code.AppendF("for (int __i{0}_{1} < __a{0}_{1})\n", d, r);
-					if (r > 0) indexes.Append(", ");
-					indexes.AppendF("__i{0}_{1}", d, r);
-				}
-				code.Append("{\nif (!io.Item()) break;\n");
-				Value(element, scope $"{e}[{indexes}]", code, d + 1, fieldName);
-				code.Append("}\nio.EndList();\n}\n}\n");
-				code.AppendF("else if (io.Reading && __n{0} == -1 && {1} != null)\n{{\n", d, e);
-				DeleteItems(element, e, code, d);
-				code.AppendF("DeleteAndNullify!({});\n}}\nio.EndList();\n}}\n", e);
+					ArrayValue(element, e, code, d, fieldName);
+				else
+					MultiArrayValue(element, rank, e, code, d, fieldName);
 				return;
 			}
 			if (unspecialized == typeof(List<>))
 			{
-				let element = generic.GetGenericArg(0);
-				code.AppendF("{{\nint __n{0} = io.BeginList({1} == null ? -1 : {1}.Count);\n", d, e);
-				code.AppendF("if (io.Reading && __n{0} >= -1)\n{{\nif ({1} == null && __n{0} >= 0) {1} = new .();\nif ({1} != null)\n{{\n", d, e);
-				DeleteItems(element, e, code, d);
-				code.AppendF("{0}.Clear();\nfor (int __k{1} < __n{1}) {0}.Add(default);\n}}\n}}\n", e, d);
-				code.AppendF("if (__n{0} >= 0 && {1} != null)\n{{\nfor (int __i{0} < {1}.Count)\n{{\nif (!io.Item()) break;\n", d, e);
-				Value(element, scope $"{e}[__i{d}]", code, d + 1, fieldName);
-				code.Append("}\n}\nio.EndList();\n}\n");
+				ListValue(generic.GetGenericArg(0), e, code, d, fieldName);
 				return;
 			}
 			if (unspecialized == typeof(Queue<>) || unspecialized == typeof(HashSet<>) || unspecialized == typeof(LinkedList<>))
 			{
-				let element = generic.GetGenericArg(0);
 				let add = unspecialized == typeof(LinkedList<>) ? "AddLast" : "Add";
-				code.AppendF("{{\nint __n{0} = io.BeginList({1} == null ? -1 : {1}.Count);\n", d, e);
-				code.AppendF("if (io.Writing && __n{0} >= 0)\n{{\nfor (var __v{0} in {1})\n{{\nio.Item();\nvar __t{0} = __v{0};\n", d, e);
-				Value(element, scope $"__t{d}", code, d + 1, fieldName);
-				code.Append("}\n}\n");
-				code.AppendF("else if (io.Reading && __n{0} >= -1)\n{{\nif ({1} == null && __n{0} >= 0) {1} = new .();\nif ({1} != null)\n{{\n", d, e);
-				DeleteItems(element, e, code, d);
-				code.AppendF("{0}.Clear();\nfor (int __i{1} < __n{1})\n{{\nif (!io.Item()) break;\ncomptype({2}) __t{1} = default;\n", e, d, (int)element.TypeId);
-				Value(element, scope $"__t{d}", code, d + 1, fieldName);
-				code.AppendF("{0}.{1}(__t{2});\n}}\n}}\n}}\nio.EndList();\n}}\n", e, add, d);
+				CollectionValue(generic.GetGenericArg(0), add, e, code, d, fieldName);
 				return;
 			}
 			if (unspecialized == typeof(Dictionary<,>))
 			{
-				let keyType = generic.GetGenericArg(0);
-				let valueType = generic.GetGenericArg(1);
-				code.AppendF("{{\nint __n{0} = io.BeginList({1} == null ? -1 : {1}.Count);\n", d, e);
-				code.AppendF("if (io.Writing && __n{0} >= 0)\n{{\nfor (var __kv{0} in {1})\n{{\nio.Item();\nio.BeginList(2);\nio.Item();\nvar __k{0} = __kv{0}.key;\n", d, e);
-				Value(keyType, scope $"__k{d}", code, d + 1, fieldName);
-				code.AppendF("io.Item();\nvar __v{0} = __kv{0}.value;\n", d);
-				Value(valueType, scope $"__v{d}", code, d + 1, fieldName);
-				code.Append("io.EndList();\n}\n}\n");
-				code.AppendF("else if (io.Reading && __n{0} >= -1)\n{{\nif ({1} == null && __n{0} >= 0) {1} = new .();\nif ({1} != null)\n{{\n", d, e);
-				if (Owned(keyType) || Owned(valueType))
-				{
-					code.AppendF("for (var __x{0} in {1})\n{{\n", d, e);
-					if (Owned(keyType)) code.AppendF("delete __x{}.key;\n", d);
-					if (Owned(valueType)) code.AppendF("delete __x{}.value;\n", d);
-					code.Append("}\n");
-				}
-				code.AppendF("{0}.Clear();\nfor (int __i{1} < __n{1})\n{{\nif (!io.Item()) break;\ncomptype({2}) __k{1} = default;\ncomptype({3}) __v{1} = default;\n", e, d, (int)keyType.TypeId, (int)valueType.TypeId);
-				code.Append("if (io.BeginList(2) >= 0)\n{\nif (io.Item())\n{\n");
-				Value(keyType, scope $"__k{d}", code, d + 1, fieldName);
-				code.Append("}\nif (io.Item())\n{\n");
-				Value(valueType, scope $"__v{d}", code, d + 1, fieldName);
-				code.AppendF("}}\n}}\nio.EndList();\n{0}[__k{1}] = __v{1};\n}}\n}}\n}}\nio.EndList();\n}}\n", e, d);
+				DictionaryValue(generic.GetGenericArg(0), generic.GetGenericArg(1), e, code, d, fieldName);
 				return;
 			}
 		}
@@ -311,5 +229,122 @@ static class SaveCodegen
 			return;
 		}
 		Runtime.FatalError(scope $"[Saved] cannot keep {fieldName}: values of type {t.GetFullName(.. scope .())} cannot be saved. Mark the fields of that type [Saved], or save something it is made from.");
+	}
+
+	/// T[]: [items], or null.
+	[Comptime]
+	static void ArrayValue(Type element, StringView e, String code, int d, StringView fieldName)
+	{
+		code.AppendF("{{\nint __n{0} = io.BeginList({1} == null ? -1 : {1}.Count);\n", d, e);
+		code.AppendF("if (io.Reading && __n{0} == -1 && {1} != null)\n{{\n", d, e);
+		DeleteItems(element, e, code, d);
+		code.AppendF("DeleteAndNullify!({});\n}}\n", e);
+		code.AppendF("else if (io.Reading && __n{0} >= 0 && ({1} == null || {1}.Count != __n{0}))\n{{\n", d, e);
+		code.AppendF("if ({} != null)\n{{\n", e);
+		DeleteItems(element, e, code, d);
+		code.AppendF("delete {0};\n}}\n{0} = new .[__n{1}];\n}}\n", e, d);
+		code.AppendF("if (__n{0} >= 0 && {1} != null)\n{{\nfor (int __i{0} < {1}.Count)\n{{\nif (!io.Item()) break;\n", d, e);
+		Value(element, scope $"{e}[__i{d}]" , code, d + 1, fieldName);
+		code.Append("}\n}\nio.EndList();\n}\n");
+	}
+
+	/// T[,] and up: [ [lengths], [items row by row] ], or null.
+	[Comptime]
+	static void MultiArrayValue(Type element, int rank, StringView e, String code, int d, StringView fieldName)
+	{
+		code.AppendF("{{\nint __n{0} = io.BeginList({1} == null ? -1 : 2);\n", d, e);
+		code.AppendF("if (__n{0} >= 0)\n{{\n", d);
+		for (int r < rank)
+			code.AppendF("int __a{0}_{1} = {2} == null ? 0 : {2}.GetLength({1});\n", d, r, e);
+		code.AppendF("if (io.Item())\n{{\nio.BeginList({});\n", rank);
+		for (int r < rank)
+			code.AppendF("if (io.Item()) io.Value(ref __a{0}_{1});\n", d, r);
+		code.Append("io.EndList();\n}\n");
+		let lengths = scope String();
+		let mismatch = scope String();
+		for (int r < rank)
+		{
+			if (r > 0)
+			{
+				lengths.Append(", ");
+				mismatch.Append(" || ");
+			}
+			lengths.AppendF("__a{0}_{1}", d, r);
+			mismatch.AppendF("{0}.GetLength({1}) != __a{2}_{1}", e, r, d);
+		}
+		code.AppendF("if (io.Reading && ({0} == null || {1}))\n{{\nif ({0} != null)\n{{\n", e, mismatch);
+		DeleteItems(element, e, code, d);
+		code.AppendF("delete {0};\n}}\n{0} = new .[{1}];\n}}\n", e, lengths);
+		code.AppendF("if (io.Item() && {0} != null)\n{{\nio.BeginList({0}.Count);\n", e);
+		let indexes = scope String();
+		for (int r < rank)
+		{
+			code.AppendF("for (int __i{0}_{1} < __a{0}_{1})\n", d, r);
+			if (r > 0)
+				indexes.Append(", ");
+			indexes.AppendF("__i{0}_{1}", d, r);
+		}
+		code.Append("{\nif (!io.Item()) break;\n");
+		Value(element, scope $"{e}[{indexes}]" , code, d + 1, fieldName);
+		code.Append("}\nio.EndList();\n}\n}\n");
+		code.AppendF("else if (io.Reading && __n{0} == -1 && {1} != null)\n{{\n", d, e);
+		DeleteItems(element, e, code, d);
+		code.AppendF("DeleteAndNullify!({});\n}}\nio.EndList();\n}}\n", e);
+	}
+
+	/// List<T>: [items], or null.
+	[Comptime]
+	static void ListValue(Type element, StringView e, String code, int d, StringView fieldName)
+	{
+		code.AppendF("{{\nint __n{0} = io.BeginList({1} == null ? -1 : {1}.Count);\n", d, e);
+		code.AppendF("if (io.Reading && __n{0} >= -1)\n{{\nif ({1} == null && __n{0} >= 0) {1} = new .();\nif ({1} != null)\n{{\n", d, e);
+		DeleteItems(element, e, code, d);
+		code.AppendF("{0}.Clear();\nfor (int __k{1} < __n{1}) {0}.Add(default);\n}}\n}}\n", e, d);
+		code.AppendF("if (__n{0} >= 0 && {1} != null)\n{{\nfor (int __i{0} < {1}.Count)\n{{\nif (!io.Item()) break;\n", d, e);
+		Value(element, scope $"{e}[__i{d}]" , code, d + 1, fieldName);
+		code.Append("}\n}\nio.EndList();\n}\n");
+	}
+
+	/// Queue<T>, HashSet<T> and LinkedList<T>: [items] in their own order, or null. `add` is how an item goes in.
+	[Comptime]
+	static void CollectionValue(Type element, StringView add, StringView e, String code, int d, StringView fieldName)
+	{
+		code.AppendF("{{\nint __n{0} = io.BeginList({1} == null ? -1 : {1}.Count);\n", d, e);
+		code.AppendF("if (io.Writing && __n{0} >= 0)\n{{\nfor (var __v{0} in {1})\n{{\nio.Item();\nvar __t{0} = __v{0};\n", d, e);
+		Value(element, scope $"__t{d}" , code, d + 1, fieldName);
+		code.Append("}\n}\n");
+		code.AppendF("else if (io.Reading && __n{0} >= -1)\n{{\nif ({1} == null && __n{0} >= 0) {1} = new .();\nif ({1} != null)\n{{\n", d, e);
+		DeleteItems(element, e, code, d);
+		code.AppendF("{0}.Clear();\nfor (int __i{1} < __n{1})\n{{\nif (!io.Item()) break;\ncomptype({2}) __t{1} = default;\n", e, d, (int)element.TypeId);
+		Value(element, scope $"__t{d}" , code, d + 1, fieldName);
+		code.AppendF("{0}.{1}(__t{2});\n}}\n}}\n}}\nio.EndList();\n}}\n", e, add, d);
+	}
+
+	/// Dictionary<K, V>: [ [key, value], ... ], or null.
+	[Comptime]
+	static void DictionaryValue(Type keyType, Type valueType, StringView e, String code, int d, StringView fieldName)
+	{
+		code.AppendF("{{\nint __n{0} = io.BeginList({1} == null ? -1 : {1}.Count);\n", d, e);
+		code.AppendF("if (io.Writing && __n{0} >= 0)\n{{\nfor (var __kv{0} in {1})\n{{\nio.Item();\nio.BeginList(2);\nio.Item();\nvar __k{0} = __kv{0}.key;\n", d, e);
+		Value(keyType, scope $"__k{d}" , code, d + 1, fieldName);
+		code.AppendF("io.Item();\nvar __v{0} = __kv{0}.value;\n", d);
+		Value(valueType, scope $"__v{d}" , code, d + 1, fieldName);
+		code.Append("io.EndList();\n}\n}\n");
+		code.AppendF("else if (io.Reading && __n{0} >= -1)\n{{\nif ({1} == null && __n{0} >= 0) {1} = new .();\nif ({1} != null)\n{{\n", d, e);
+		if (Owned(keyType) || Owned(valueType))
+		{
+			code.AppendF("for (var __x{0} in {1})\n{{\n", d, e);
+			if (Owned(keyType))
+				code.AppendF("delete __x{}.key;\n", d);
+			if (Owned(valueType))
+				code.AppendF("delete __x{}.value;\n", d);
+			code.Append("}\n");
+		}
+		code.AppendF("{0}.Clear();\nfor (int __i{1} < __n{1})\n{{\nif (!io.Item()) break;\ncomptype({2}) __k{1} = default;\ncomptype({3}) __v{1} = default;\n", e, d, (int)keyType.TypeId, (int)valueType.TypeId);
+		code.Append("if (io.BeginList(2) >= 0)\n{\nif (io.Item())\n{\n");
+		Value(keyType, scope $"__k{d}" , code, d + 1, fieldName);
+		code.Append("}\nif (io.Item())\n{\n");
+		Value(valueType, scope $"__v{d}" , code, d + 1, fieldName);
+		code.AppendF("}}\n}}\nio.EndList();\n{0}[__k{1}] = __v{1};\n}}\n}}\n}}\nio.EndList();\n}}\n", e, d);
 	}
 }

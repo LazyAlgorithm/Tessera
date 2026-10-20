@@ -13,20 +13,41 @@ namespace Tessera;
 ///   --headless                                         no window or renderer (dedicated servers)
 class Application
 {
+	/// The window's title.
 	public String Title = new .("Tessera") ~ delete _;
+	/// The SDL window.
 	public void* Window;
+	/// The window's width, in pixels.
 	public int32 Width = 1600;
+	/// The window's height, in pixels.
 	public int32 Height = 900;
 	/// The window's size for the interface, in points: the same as Width and Height except on a screen with more
 	/// than one pixel to a point (phones, high-density laptops), where the interface library measures in points and
 	/// draws its text and shapes at full sharpness by itself.
 	public float InterfaceWidth = 1600;
 	public float InterfaceHeight = 900;
-	public bool Running = true;
+	/// False ends the program after this frame: `Application.Instance.Running = false` (or Quit) is how a game
+	/// quits. In the editor, while the game is playing, it stops Play instead and leaves the editor open, so the same
+	/// game code works in both. Close always ends the program.
+	public bool Running
+	{
+		get => mRunning;
+		set
+		{
+			if (!value && mRunning && OnQuitRequested())
+				return;
+			mRunning = value;
+		}
+	}
+
+	/// Running with no window and no graphics (a dedicated server).
 	public bool Headless;
+	/// Opens the window maximized.
 	public bool StartMaximized;
+	/// The command line, without the program's name.
 	public List<String> Args = new .() ~ DeleteContainerAndItems!(_);
 
+	bool mRunning = true;
 	int32 mRendererOverride = -1;
 	int64 mFrameLimit = -1;
 	String mScreenshotPath = new .() ~ delete _;
@@ -34,8 +55,23 @@ class Application
 	double mAccumulator;
 	uint64 mLastTicks;
 
+	/// The application that is running.
 	public static Application Instance;
 
+	/// Quits the game: a built game closes; in the editor, Play stops.
+	public static void Quit()
+	{
+		if (Instance != null)
+			Instance.Running = false;
+	}
+
+	/// Ends the program, even in the editor while playing.
+	public void Close() => mRunning = false;
+
+	/// Something asked to quit (Running set to false, or Quit). Return true to have handled it and keep running.
+	protected virtual bool OnQuitRequested() => false;
+
+	/// Sets Instance to this application.
 	public this()
 	{
 		Instance = this;
@@ -67,6 +103,7 @@ class Application
 	protected virtual void OnRender() { }
 	protected virtual void OnShutdown() { }
 
+	/// Whether a switch is on the command line.
 	public bool HasArg(StringView name)
 	{
 		for (let arg in Args)
@@ -120,6 +157,7 @@ class Application
 			GameWindow.StartsFullscreen = false;
 	}
 
+	/// Opens the window and runs frames until Running is false; returns the program's exit code.
 	public int Run(String[] args)
 	{
 		for (let arg in args)
@@ -202,17 +240,17 @@ class Application
 			{
 				switch (event.type)
 				{
-				case SDL.EVENT_QUIT, SDL.EVENT_WINDOW_CLOSE_REQUESTED:
-					Running = false;
+				case SDL.EVENT_QUIT,SDL.EVENT_WINDOW_CLOSE_REQUESTED:
+					Close();
 				case SDL.EVENT_WINDOW_PIXEL_SIZE_CHANGED:
 					Width = event.WindowData1;
 					Height = event.WindowData2;
 					Gfx.Resize(Width, Height);
 				case SDL.EVENT_MOUSE_WHEEL:
 					Input.OnWheel(event.WheelY);
-				case SDL.EVENT_GAMEPAD_ADDED, SDL.EVENT_GAMEPAD_REMOVED:
+				case SDL.EVENT_GAMEPAD_ADDED,SDL.EVENT_GAMEPAD_REMOVED:
 					Gamepad.Rescan();
-				case SDL.EVENT_FINGER_DOWN, SDL.EVENT_FINGER_UP, SDL.EVENT_FINGER_MOTION, SDL.EVENT_FINGER_CANCELED:
+				case SDL.EVENT_FINGER_DOWN,SDL.EVENT_FINGER_UP,SDL.EVENT_FINGER_MOTION,SDL.EVENT_FINGER_CANCELED:
 					Touch.OnEvent(ref event);
 				default:
 				}
@@ -282,9 +320,10 @@ class Application
 		}
 
 		if (mFrameLimit > 0 && Time.FrameCount >= mFrameLimit)
-			Running = false;
+			Close();
 	}
 
+	/// Frees everything the application started (audio, loaders, graphics, the window).
 	public void Shutdown()
 	{
 		AntiCheat.Release();

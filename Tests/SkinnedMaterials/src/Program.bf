@@ -14,7 +14,8 @@ class Program
 	static bool Check(bool pass, StringView label)
 	{
 		Console.WriteLine(scope $"{pass ? "PASS" : "FAIL"}: {label}");
-		if (!pass) sFailures++;
+		if (!pass)
+			sFailures++;
 		return pass;
 	}
 
@@ -31,7 +32,7 @@ class Program
 		let armour = model.Parts[1];
 		Check(skin.name == "Skin" && armour.name == "Armour", scope $"{file}: parts are named after the file's materials");
 		Check(skin.indices.Count == 6 && armour.indices.Count == 6, scope $"{file}: each part has its own triangles");
-		Check(skin.material.texture == scope $"{path}#image0" && skin.material.normalMap == scope $"{path}#image1", scope $"{file}: the base colour and normal textures come from the file");
+		Check(skin.material.texture == scope $"{path}#image0" && skin.material.normalMap == scope $"{path}#image1" , scope $"{file}: the base colour and normal textures come from the file");
 		Check(Math.Abs(skin.material.normalStrength - 0.5f) < 0.001f && Math.Abs(skin.material.metallic - 0.1f) < 0.001f && Math.Abs(skin.material.roughness - 0.7f) < 0.001f, scope $"{file}: normal scale, metallic and roughness come from the file");
 		Check(skin.material.blend == .Opaque && !skin.material.doubleSided && !skin.material.flatShading, scope $"{file}: an opaque, one-sided, smooth-shaded part");
 		Check(armour.material.texture == scope $"{path}#image2" && armour.material.normalMap.IsEmpty, scope $"{file}: the second part has its own texture and no normal map");

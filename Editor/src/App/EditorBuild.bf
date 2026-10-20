@@ -9,15 +9,24 @@ namespace Tessera.Editor;
 /// Building: script rebuilds, restarts and game builds.
 extension EditorApp
 {
-    void RebuildAndReload()
-    {
-        if (mReloadReady) { SaveAllScripts(); QueueScriptReload(); return; }
-        FullRebuildAndRestart();
-    }
+	void RebuildAndReload()
+	{
+		if (mReloadReady)
+		{
+			SaveAllScripts();
+			QueueScriptReload();
+			return;
+		}
+		FullRebuildAndRestart();
+	}
 
-    void FullRebuildAndRestart()
-    {
-        if (mCheckRunning) { mStatus.Set("Wait for script compilation to finish before a full rebuild."); return; }
+	void FullRebuildAndRestart()
+	{
+		if (mCheckRunning)
+		{
+			mStatus.Set("Wait for script compilation to finish before a full rebuild.");
+			return;
+		}
 		let project = Project.Current;
 		if (mPlay != .Edit)
 			StopPlay();
@@ -48,35 +57,41 @@ extension EditorApp
 			Terminal.Quote(mScene.Path, command);
 		}
 		Terminal.RunDetached(command);
-		Running = false;
+		Close();
 	}
 
-    void BuildGame()
-    {
-        let project = Project.Current;
-        if (mCheckRunning) { mStatus.Set("Wait for the script error check to finish, then build again."); return; }
-        SaveAllScripts();
-        if (mPlay == .Edit) SaveScene();
-        // The game only loads compiled shaders, so they must be current before it is packaged.
-        CompileStaleShaders();
-        let output = scope String();
-        BuildOutputFolder(output);
-        Log.Info(scope $"Building the {(mBuildEditor ? "editor" : "game")} for {(mBuildTarget == .Web ? "the web" : mBuildTarget.ToString(.. scope .()))}...");
-        mBuildSucceeded = mBuildEditor ? project.PackageEngine(output, mBuildTarget == .Windows) : project.BuildPlayer(output, mBuildTarget);
-        if (mBuildSucceeded)
-        {
-            Log.Info(scope $"{(mBuildEditor ? "Editor" : "Game")} packaged at {output}");
-            mBuildMessage.Set(scope $"Built. The {(mBuildEditor ? "editor" : "game")} is in {output}");
-        }
-        else
-        {
-            let log = scope String(); project.ReadBuildLog(log);
-            Log.Error(log);
-            // The last line of the log is the reason; the whole log is in the Console.
-            let lines = scope List<StringView>(log.Split('\n', .RemoveEmptyEntries));
-            mBuildMessage.Set(scope $"The build failed: {(lines.IsEmpty ? "see the Console." : lines.Back)}");
-        }
-    }
+	void BuildGame()
+	{
+		let project = Project.Current;
+		if (mCheckRunning)
+		{
+			mStatus.Set("Wait for the script error check to finish, then build again.");
+			return;
+		}
+		SaveAllScripts();
+		if (mPlay == .Edit)
+			SaveScene();
+		// The game only loads compiled shaders, so they must be current before it is packaged.
+		CompileStaleShaders();
+		let output = scope String();
+		BuildOutputFolder(output);
+		Log.Info(scope $"Building the {(mBuildEditor ? "editor" : "game")} for {(mBuildTarget == .Web ? "the web" : mBuildTarget.ToString(.. scope .()))}...");
+		mBuildSucceeded = mBuildEditor ? project.PackageEngine(output, mBuildTarget == .Windows) : project.BuildPlayer(output, mBuildTarget);
+		if (mBuildSucceeded)
+		{
+			Log.Info(scope $"{(mBuildEditor ? "Editor" : "Game")} packaged at {output}");
+			mBuildMessage.Set(scope $"Built. The {(mBuildEditor ? "editor" : "game")} is in {output}");
+		}
+		else
+		{
+			let log = scope String();
+			project.ReadBuildLog(log);
+			Log.Error(log);
+			// The last line of the log is the reason; the whole log is in the Console.
+			let lines = scope List<StringView>(log.Split('\n', .RemoveEmptyEntries));
+			mBuildMessage.Set(scope $"The build failed: {(lines.IsEmpty ? "see the Console." : lines.Back)}");
+		}
+	}
 
 	void CreateScript(StringView name)
 	{

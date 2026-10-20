@@ -101,7 +101,10 @@ abstract class DataAsset
 	{
 		let paths = scope List<String>();
 		FilesOf(type, paths);
-		defer { ClearAndDeleteItems!(paths); }
+		defer
+		{
+			ClearAndDeleteItems!(paths);
+		}
 		if (paths.IsEmpty)
 			return false;
 		path.Set(paths[0]);
@@ -116,7 +119,10 @@ abstract class DataAsset
 		sFileOfType = new .();
 		let root = scope String(Assets.ProjectPath);
 		let files = scope List<String>();
-		defer { ClearAndDeleteItems!(files); }
+		defer
+		{
+			ClearAndDeleteItems!(files);
+		}
 		if (AssetPack.Mounted)
 			AssetPack.FilesIn(root, files);
 		else

@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using Tessera;
+
 namespace VoxelObjectTests;
 
 class Program
@@ -15,7 +16,10 @@ class Program
 	{
 		int n = 0;
 		for (let d in voxels.[Friend]mDensity)
-			if (d > 0) n++;
+		{
+			if (d > 0)
+				n++;
+		}
 		return n;
 	}
 
@@ -132,8 +136,10 @@ class Program
 		let whole = Solid(wallVoxels);
 		// A slot right through, a third of the way along.
 		for (float y = -0.6f; y <= 0.6f; y += 0.08f)
+		{
 			for (float z = -0.6f; z <= 0.6f; z += 0.08f)
 				wallVoxels.Carve(.(0.2f, y, z), 0.09f);
+		}
 		GameObject fragment = null;
 		for (let object in scene.[Friend]mObjects)
 		{

@@ -16,11 +16,15 @@ class AudioSource : Component
 {
 	/// Sound file, relative to the project's asset folder: WAV, OGG, MP3 or FLAC.
 	public String audioClip = new .() ~ delete _;
+	/// Which volume setting the sound follows (effects, music, voice...).
 	public AudioGroup group = .Effects;
 	/// Music and other per-player audio can opt out of network playback events.
 	public bool localOnly = false;
+	/// How loud the sound is, 0 to 1.
 	[Range(0, 1)] public float volume = 1;
+	/// How fast (and so how high) the sound plays: 1 is as recorded.
 	[Range(0.1f, 3)] public float pitch = 1;
+	/// Plays the sound over and over.
 	public bool loop = false;
 	/// Start playing when the scene starts.
 	public bool playOnStart = true;
@@ -32,6 +36,7 @@ class AudioSource : Component
 	public float minDistance = 1;
 	/// No quieter beyond this distance (silent, with Linear rolloff).
 	public float maxDistance = 40;
+	/// How the sound gets quieter with distance.
 	public AudioRolloff rolloff = .Inverse;
 	/// Pitch shift as the source and listener move relative to each other. 0 turns it off.
 	[Range(0, 3)] public float doppler = 1;
@@ -56,9 +61,10 @@ class AudioSource : Component
 	float mOcclusion, mOcclusionTarget, mOcclusionTimer;
 	bool mWantsPlay;
 
-	const float cOccludedCutoff = 900;
-	const float cOccludedVolume = 0.55f;
+	const float OccludedCutoff = 900;
+	const float OccludedVolume = 0.55f;
 
+	/// Whether the sound is playing now.
 	public bool IsPlaying => mSource != null && Audio.tn_audio_source_playing(mSource) != 0;
 	/// Length of the loaded sound in seconds; 0 until it has been loaded by playing.
 	public float Length => mSource != null ? Audio.tn_audio_source_length(mSource) : 0;
@@ -66,8 +72,13 @@ class AudioSource : Component
 	public float Time
 	{
 		get => mSource != null ? Audio.tn_audio_source_time(mSource) : 0;
-		set { if (mSource != null) Audio.tn_audio_source_seek(mSource, value); }
+		set
+		{
+			if (mSource != null)
+				Audio.tn_audio_source_seek(mSource, value);
+		}
 	}
+
 	/// How blocked the sound currently is, 0 clear to 1 fully behind something.
 	public float Occlusion => mOcclusion;
 
@@ -107,7 +118,8 @@ class AudioSource : Component
 	/// who controls the object is heard by everyone.
 	public void Play()
 	{
-		if (!localOnly) NetworkSync.AudioPlayed(this, 0, "", 1);
+		if (!localOnly)
+			NetworkSync.AudioPlayed(this, 0, "", 1);
 		if (!Load())
 			return;
 		// The first frame must already be in the right place, not at the origin.
@@ -123,9 +135,11 @@ class AudioSource : Component
 		Play();
 	}
 
+	/// Stops the sound.
 	public void Stop()
 	{
-		if (!localOnly) NetworkSync.AudioPlayed(this, 1, "", 1);
+		if (!localOnly)
+			NetworkSync.AudioPlayed(this, 1, "", 1);
 		if (mSource != null)
 			Audio.tn_audio_source_stop(mSource);
 	}
@@ -137,6 +151,7 @@ class AudioSource : Component
 			Audio.tn_audio_source_stop(mSource);
 	}
 
+	/// Carries on a paused sound from where it was.
 	public void Resume()
 	{
 		if (mSource != null)
@@ -147,7 +162,8 @@ class AudioSource : Component
 	/// interrupting what it is already playing. Any number can overlap: footsteps, shots, impacts.
 	public void PlayOneShot(StringView clip, float volumeScale = 1)
 	{
-		if (!localOnly) NetworkSync.AudioPlayed(this, 2, clip, volumeScale);
+		if (!localOnly)
+			NetworkSync.AudioPlayed(this, 2, clip, volumeScale);
 		if (spatial)
 			Audio.PlayOneShot(clip, Transform.Position, volume * volumeScale, group, minDistance, maxDistance);
 		else
@@ -223,8 +239,8 @@ class AudioSource : Component
 				let far = Mathf.Clamp01(((position - Audio.ListenerPosition).Length - parameters.minDistance) / (parameters.maxDistance - parameters.minDistance));
 				cutoff = Mathf.Lerp(22000, 5500, far);
 			}
-			cutoff = Mathf.Lerp(cutoff, Math.Min(cutoff, cOccludedCutoff), mOcclusion);
-			level *= Mathf.Lerp(1, cOccludedVolume, mOcclusion);
+			cutoff = Mathf.Lerp(cutoff, Math.Min(cutoff, OccludedCutoff), mOcclusion);
+			level *= Mathf.Lerp(1, OccludedVolume, mOcclusion);
 			parameters.reverbSend = Mathf.Clamp01(Math.Max(reverbSend, Audio.ReverbLevel));
 		}
 		else

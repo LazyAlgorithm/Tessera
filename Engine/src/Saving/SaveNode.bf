@@ -100,10 +100,33 @@ class SaveNode
 	public double AsNumber => kind == .Float ? number : (kind == .Int ? (double)integer : (kind == .Bool ? integer : 0));
 	public int64 AsInteger => kind == .Int || kind == .Bool ? integer : (kind == .Float ? (int64)Math.Round(number) : 0);
 
-	public static SaveNode MakeInt(int64 value) { let node = new SaveNode(.Int); node.integer = value; return node; }
-	public static SaveNode MakeFloat(double value) { let node = new SaveNode(.Float); node.number = value; return node; }
-	public static SaveNode MakeBool(bool value) { let node = new SaveNode(.Bool); node.integer = value ? 1 : 0; return node; }
-	public static SaveNode MakeString(StringView value) { let node = new SaveNode(.String); node.text.Set(value); return node; }
+	public static SaveNode MakeInt(int64 value)
+	{
+		let node = new SaveNode(.Int);
+		node.integer = value;
+		return node;
+	}
+
+	public static SaveNode MakeFloat(double value)
+	{
+		let node = new SaveNode(.Float);
+		node.number = value;
+		return node;
+	}
+
+	public static SaveNode MakeBool(bool value)
+	{
+		let node = new SaveNode(.Bool);
+		node.integer = value ? 1 : 0;
+		return node;
+	}
+
+	public static SaveNode MakeString(StringView value)
+	{
+		let node = new SaveNode(.String);
+		node.text.Set(value);
+		return node;
+	}
 
 	public SaveNode Clone()
 	{
@@ -126,16 +149,16 @@ class SaveNode
 
 	// ---- bytes ----
 
-	const uint32 cMagic = 0x56415354; // "TSAV"
-	const int32 cVersion = 1;
+	const uint32 Magic = 0x56415354; // "TSAV"
+	const int32 FormatVersion = 1;
 
 	/// The compact form: a header, the tree, and a checksum of it.
 	public void ToBytes(List<uint8> output)
 	{
 		let body = scope List<uint8>();
 		Write(body);
-		AddU32(output, cMagic);
-		AddU32(output, (uint32)cVersion);
+		AddU32(output, Magic);
+		AddU32(output, (uint32)FormatVersion);
 		AddU32(output, (uint32)body.Count);
 		AddU32(output, Crc32(body));
 		output.AddRange(body);
@@ -144,7 +167,7 @@ class SaveNode
 	/// Reads what ToBytes wrote. Null when the data is not a save, is from a newer format, or is damaged.
 	public static SaveNode FromBytes(Span<uint8> data)
 	{
-		if (data.Length < 16 || U32(data, 0) != cMagic || U32(data, 4) > (uint32)cVersion)
+		if (data.Length < 16 || U32(data, 0) != Magic || U32(data, 4) > (uint32)FormatVersion)
 			return null;
 		let size = (int)U32(data, 8);
 		if (size != data.Length - 16)
@@ -187,7 +210,7 @@ class SaveNode
 		case .String:
 			AddVarInt(output, (uint64)text.Length);
 			output.AddRange(Span<uint8>((uint8*)text.Ptr, text.Length));
-		case .List, .Object:
+		case .List,.Object:
 			AddVarInt(output, (uint64)items.Count);
 			for (int i < items.Count)
 			{
@@ -238,7 +261,7 @@ class SaveNode
 			let node = MakeString(StringView((char8*)data.Ptr + at, (int)length));
 			at += (int)length;
 			return node;
-		case .List, .Object:
+		case .List,.Object:
 			uint64 count;
 			if (!ReadVarInt(data, ref at, out count) || count > (uint64)(data.Length - at)) return null;
 			let node = new SaveNode(kind);
@@ -247,12 +270,20 @@ class SaveNode
 				if (kind == .Object)
 				{
 					uint64 length;
-					if (!ReadVarInt(data, ref at, out length) || length > (uint64)(data.Length - at)) { delete node; return null; }
+					if (!ReadVarInt(data, ref at, out length) || length > (uint64)(data.Length - at))
+					{
+						delete node;
+						return null;
+					}
 					node.keys.Add(new String(StringView((char8*)data.Ptr + at, (int)length)));
 					at += (int)length;
 				}
 				let item = Read(data, ref at, depth + 1);
-				if (item == null) { delete node; return null; }
+				if (item == null)
+				{
+					delete node;
+					return null;
+				}
 				node.items.Add(item);
 			}
 			return node;
@@ -344,23 +375,27 @@ class SaveNode
 			output.Append('[');
 			for (int i < items.Count)
 			{
-				if (i > 0) output.Append(',');
+				if (i > 0)
+					output.Append(',');
 				NewLine(depth + 1);
 				items[i].WriteText(output, depth < 0 ? -1 : depth + 1);
 			}
-			if (items.Count > 0) NewLine(depth);
+			if (items.Count > 0)
+				NewLine(depth);
 			output.Append(']');
 		case .Object:
 			output.Append('{');
 			for (int i < items.Count)
 			{
-				if (i > 0) output.Append(',');
+				if (i > 0)
+					output.Append(',');
 				NewLine(depth + 1);
 				Quote(output, keys[i]);
 				output.Append(depth < 0 ? ":" : ": ");
 				items[i].WriteText(output, depth < 0 ? -1 : depth + 1);
 			}
-			if (items.Count > 0) NewLine(depth);
+			if (items.Count > 0)
+				NewLine(depth);
 			output.Append('}');
 		}
 	}
@@ -445,62 +480,118 @@ class SaveNode
 		return false;
 	}
 
+	/// The deepest lists and objects may go inside each other, so that a damaged file cannot exhaust the stack.
+	const int MaxDepth = 256;
+
 	static SaveNode ParseValue(StringView text, ref int at, int depth)
 	{
 		SkipSpace(text, ref at);
-		if (at >= text.Length || depth > 256)
+		if (at >= text.Length || depth > MaxDepth)
 			return null;
 		let c = text[at];
 		if (c == '{' || c == '[')
+			return ParseContainer(text, ref at, depth, c == '{');
+		if (c == '"')
+			return ParseText(text, ref at);
+		if (text.Substring(at).StartsWith("true"))
 		{
-			let isObject = c == '{';
-			let node = new SaveNode(isObject ? .Object : .List);
+			at += 4;
+			return MakeBool(true);
+		}
+		if (text.Substring(at).StartsWith("false"))
+		{
+			at += 5;
+			return MakeBool(false);
+		}
+		if (text.Substring(at).StartsWith("null"))
+		{
+			at += 4;
+			return new SaveNode(.Null);
+		}
+		return ParseNumber(text, ref at);
+	}
+
+	/// An object `{"key": value, ...}` or a list `[value, ...]`, from its opening bracket. Null if it is malformed.
+	static SaveNode ParseContainer(StringView text, ref int at, int depth, bool isObject)
+	{
+		let close = isObject ? '}' : ']';
+		let node = new SaveNode(isObject ? .Object : .List);
+		at++;
+		SkipSpace(text, ref at);
+		if (at < text.Length && text[at] == close)
+		{
 			at++;
+			return node;
+		}
+		while (true)
+		{
 			SkipSpace(text, ref at);
-			if (at < text.Length && text[at] == (isObject ? '}' : ']'))
+			if (isObject && !ParseKey(text, ref at, node))
+				break;
+			let item = ParseValue(text, ref at, depth + 1);
+			if (item == null)
+				break;
+			node.items.Add(item);
+			SkipSpace(text, ref at);
+			if (at >= text.Length)
+				break;
+			if (text[at] == ',')
+			{
+				at++;
+				continue;
+			}
+			if (text[at] == close)
 			{
 				at++;
 				return node;
 			}
-			while (true)
-			{
-				SkipSpace(text, ref at);
-				if (isObject)
-				{
-					let key = new String();
-					if (!ParseString(text, ref at, key)) { delete key; delete node; return null; }
-					SkipSpace(text, ref at);
-					if (at >= text.Length || text[at] != ':') { delete key; delete node; return null; }
-					at++;
-					node.keys.Add(key);
-				}
-				let item = ParseValue(text, ref at, depth + 1);
-				if (item == null) { delete node; return null; }
-				node.items.Add(item);
-				SkipSpace(text, ref at);
-				if (at >= text.Length) { delete node; return null; }
-				if (text[at] == ',') { at++; continue; }
-				if (text[at] == (isObject ? '}' : ']')) { at++; return node; }
-				delete node;
-				return null;
-			}
+			break;
 		}
-		if (c == '"')
+		delete node;
+		return null;
+	}
+
+	/// An object's `"key":`, added to its keys.
+	static bool ParseKey(StringView text, ref int at, SaveNode node)
+	{
+		let key = new String();
+		if (!ParseString(text, ref at, key))
 		{
-			let node = new SaveNode(.String);
-			if (!ParseString(text, ref at, node.text)) { delete node; return null; }
-			// Numbers JSON cannot write.
-			if (node.text == "NaN" || node.text == "Infinity" || node.text == "-Infinity")
-			{
-				let value = node.text == "NaN" ? double.NaN : (node.text == "Infinity" ? double.PositiveInfinity : double.NegativeInfinity);
-				delete node;
-				return MakeFloat(value);
-			}
-			return node;
+			delete key;
+			return false;
 		}
-		if (text.Substring(at).StartsWith("true")) { at += 4; return MakeBool(true); }
-		if (text.Substring(at).StartsWith("false")) { at += 5; return MakeBool(false); }
-		if (text.Substring(at).StartsWith("null")) { at += 4; return new SaveNode(.Null); }
+		SkipSpace(text, ref at);
+		if (at >= text.Length || text[at] != ':')
+		{
+			delete key;
+			return false;
+		}
+		at++;
+		node.keys.Add(key);
+		return true;
+	}
+
+	/// A string; one of the numbers JSON cannot write ("NaN", "Infinity", "-Infinity"), written as text, is read back as that number.
+	static SaveNode ParseText(StringView text, ref int at)
+	{
+		let node = new SaveNode(.String);
+		if (!ParseString(text, ref at, node.text))
+		{
+			delete node;
+			return null;
+		}
+		if (node.text == "NaN" || node.text == "Infinity" || node.text == "-Infinity")
+		{
+			let value = node.text == "NaN" ? double.NaN : (node.text == "Infinity" ? double.PositiveInfinity : double.NegativeInfinity);
+			delete node;
+			return MakeFloat(value);
+		}
+		return node;
+	}
+
+	/// A whole number, or (with a point or an exponent) a floating-point one.
+	static SaveNode ParseNumber(StringView text, ref int at)
+	{
 		let start = at;
 		var fraction = false;
 		while (at < text.Length && (text[at].IsDigit || text[at] == '-' || text[at] == '+' || text[at] == '.' || text[at] == 'e' || text[at] == 'E'))

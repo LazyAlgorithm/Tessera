@@ -11,11 +11,26 @@ struct Quaternion
 	public float z;
 	public float w;
 
-	public this() { x = 0; y = 0; z = 0; w = 1; }
-	public this(float x, float y, float z, float w) { this.x = x; this.y = y; this.z = z; this.w = w; }
+	public this()
+	{
+		x = 0;
+		y = 0;
+		z = 0;
+		w = 1;
+	}
 
+	public this(float x, float y, float z, float w)
+	{
+		this.x = x;
+		this.y = y;
+		this.z = z;
+		this.w = w;
+	}
+
+	/// No rotation.
 	public static Quaternion Identity => .(0, 0, 0, 1);
 
+	/// A turn of some degrees about an axis.
 	public static Quaternion AngleAxis(float degrees, Vector3 axis)
 	{
 		let half = degrees * Mathf.Deg2Rad * 0.5f;
@@ -24,8 +39,10 @@ struct Quaternion
 		return .(n.x * s, n.y * s, n.z * s, Math.Cos(half));
 	}
 
+	/// A rotation from angles in degrees about X, Y and Z.
 	public static Quaternion Euler(Vector3 degrees) => Euler(degrees.x, degrees.y, degrees.z);
 
+	/// A rotation from angles in degrees: Z (roll) first, then X (pitch), then Y (yaw).
 	public static Quaternion Euler(float xDeg, float yDeg, float zDeg)
 	{
 		let qx = AngleAxis(xDeg, .(1, 0, 0));
@@ -34,6 +51,7 @@ struct Quaternion
 		return qy * qx * qz;
 	}
 
+	/// The rotation as angles in degrees about X, Y and Z (the inverse of Euler).
 	public Vector3 EulerAngles
 	{
 		get
@@ -58,6 +76,7 @@ struct Quaternion
 		}
 	}
 
+	/// The same rotation, its length made exactly one (rotations combined many times drift).
 	public Quaternion Normalized
 	{
 		get
@@ -70,8 +89,10 @@ struct Quaternion
 		}
 	}
 
+	/// The opposite rotation (for a normalized quaternion).
 	public Quaternion Conjugate => .(-x, -y, -z, w);
 
+	/// Rotation b, then a.
 	public static Quaternion operator *(Quaternion a, Quaternion b)
 	{
 		return .(
@@ -81,6 +102,7 @@ struct Quaternion
 			a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z);
 	}
 
+	/// A vector turned by the rotation.
 	public static Vector3 operator *(Quaternion q, Vector3 v)
 	{
 		let u = Vector3(q.x, q.y, q.z);
@@ -88,8 +110,10 @@ struct Quaternion
 		return v + t * q.w + Vector3.Cross(u, t);
 	}
 
+	/// How alike two rotations are: 1 or -1 when the same.
 	public static float Dot(Quaternion a, Quaternion b) => a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
 
+	/// The rotation a fraction t of the way from a to b, turning evenly, the short way round.
 	public static Quaternion Slerp(Quaternion a, Quaternion bIn, float t)
 	{
 		var b = bIn;
@@ -126,10 +150,13 @@ struct Quaternion
 		return FromBasis(r, u, f);
 	}
 
+	/// The rotation that turns the axes onto right, up and forward directions (at right angles to each other).
 	public static Quaternion FromBasis(Vector3 r, Vector3 u, Vector3 f)
 	{
 		// Columns of the rotation matrix are r, u, f.
-		let m00 = r.x; let m11 = u.y; let m22 = f.z;
+		let m00 = r.x;
+		let m11 = u.y;
+		let m22 = f.z;
 		let trace = m00 + m11 + m22;
 		Quaternion q;
 		if (trace > 0)

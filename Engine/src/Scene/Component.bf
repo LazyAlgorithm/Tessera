@@ -15,7 +15,9 @@ struct ComponentAttribute : Attribute
 
 /// Save a supported private field and expose it in the Inspector.
 [AttributeUsage(.Field, .ReflectAttribute)]
-struct ShowInInspectorAttribute : Attribute {}
+struct ShowInInspectorAttribute : Attribute
+{
+}
 
 /// Keep a public field out of the Inspector (it is still saved).
 [AttributeUsage(.Field, .ReflectAttribute)]
@@ -32,15 +34,20 @@ struct NonSerializedAttribute : Attribute
 /// Show an integer field as a choice of the project's layers (Project Settings), by name, with "None" for -1:
 ///   [Layer] public int32 viewmodelLayer = -1;
 [AttributeUsage(.Field, .ReflectAttribute)]
-struct LayerAttribute : Attribute {}
+struct LayerAttribute : Attribute
+{
+}
 
 /// Show a numeric field as a slider.
 [AttributeUsage(.Field, .ReflectAttribute)]
 struct RangeAttribute : Attribute
 {
+	/// The slider's lowest value.
 	public float min;
+	/// The slider's highest value.
 	public float max;
 
+	/// A slider from min to max.
 	public this(float min, float max)
 	{
 		this.min = min;
@@ -62,11 +69,16 @@ abstract class Component
 	bool mStarted;
 	bool mRegistered;
 
+	/// The object this component is on.
 	public GameObject GameObject => mGameObject;
+	/// The transform of the object this component is on.
 	public Transform Transform => mGameObject.Transform;
+	/// The scene the component's object is in.
 	public Scene Scene => mGameObject.Scene;
+	/// Whether Awake has run (it runs when play starts, or when the component is added while playing).
 	public bool IsAwake => mAwake;
 
+	/// Whether the component runs. Switching it while playing calls OnEnable or OnDisable.
 	public bool Enabled
 	{
 		get => mEnabled;
@@ -77,7 +89,10 @@ abstract class Component
 			mEnabled = value;
 			if (mAwake && mGameObject.Scene.IsPlaying)
 			{
-				if (value) OnEnable(); else OnDisable();
+				if (value)
+					OnEnable();
+				else
+					OnDisable();
 			}
 		}
 	}
@@ -85,22 +100,32 @@ abstract class Component
 	/// True when this component is enabled and its object is active in the hierarchy.
 	public bool IsActiveAndEnabled => mEnabled && mGameObject.ActiveInHierarchy;
 
+	/// The first component of a type on the same object, or null.
 	public T GetComponent<T>() where T : Component => mGameObject.GetComponent<T>();
 
 	// ---- gameplay callbacks (play mode only) ----
+	/// Called once when play starts (or when the component is added while playing), before any Start.
 	public virtual void Awake() { }
+	/// Called when the component starts running: after Awake, and whenever it or its object is switched back on.
 	public virtual void OnEnable() { }
+	/// Called once, before the component's first Update.
 	public virtual void Start() { }
+	/// Called at the fixed tick rate (Time.FixedDeltaTime apart), with physics: the place for movement and forces.
 	public virtual void FixedUpdate() { }
+	/// Called once a frame while playing.
 	public virtual void Update() { }
+	/// Called once a frame after every Update: the place for cameras that follow something.
 	public virtual void LateUpdate() { }
+	/// Called when the component stops running: switched off, its object switched off, or before OnDestroy.
 	public virtual void OnDisable() { }
+	/// Called when the component or its object is destroyed while playing.
 	public virtual void OnDestroy() { }
 
 	// ---- engine callbacks (edit and play mode) ----
 	/// Called when the component joins a scene, including in the editor. Engine components
 	/// use it to add themselves to the scene's render / physics lists.
 	public virtual void OnRegister() { }
+	/// Called when the component leaves a scene, including in the editor: the counterpart of OnRegister.
 	public virtual void OnUnregister() { }
 	/// Called every frame in edit and play mode (streaming, procedural generation).
 	public virtual void OnFrame() { }

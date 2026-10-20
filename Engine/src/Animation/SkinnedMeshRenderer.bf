@@ -52,7 +52,13 @@ class SkinnedMeshRenderer : Component
 	bool mAttachPending;
 	Transform[] mBones ~ delete _;
 	bool mBonesFor;
+	bool mSkinnedOnce;
+	int32 mStagger = sNextStagger++;
+	static int32 sNextStagger;
 	static List<SkinnedMeshRenderer> sAll = new .() ~ delete _;
+
+	/// While nothing draws the model, its mesh is bent only on every this many frames.
+	const int HiddenSkinInterval = 8;
 
 	/// The object for a bone, by the bone's name in the model, when Expose Bones is on; else null.
 	public Transform Bone(StringView name)
@@ -167,9 +173,27 @@ class SkinnedMeshRenderer : Component
 		mDone[index] = true;
 	}
 
+	/// Whether to bend the mesh this frame. Bending is most of an animated model's cost, so it is done every frame
+	/// only while some view or shadow map draws the model. While none does (off screen and too far away to cast a
+	/// shadow), it is done on every eighth frame, so the pose and bounds it is found again with are recent, and on a
+	/// dedicated server, which draws nothing, not at all. The animation itself keeps playing either way.
+	bool ShouldSkin()
+	{
+		if (Application.Instance != null && Application.Instance.Headless)
+			return false;
+		if (!mSkinnedOnce)
+			return true;
+		let renderer = GetComponent<MeshRenderer>();
+		if (renderer == null || renderer.LastDrawnFrame >= Time.FrameCount - 1)
+			return true;
+		return (Time.FrameCount + mStagger) % HiddenSkinInterval == 0;
+	}
+
 	void SkinNow()
 	{
 		if (mModel == null || mMesh == null || mBones == null || mBones.Count != mModel.Joints.Count)
+			return;
+		if (!ShouldSkin())
 			return;
 		for (int i < mDone.Count)
 			mDone[i] = false;
@@ -322,6 +346,7 @@ class SkinnedMeshRenderer : Component
 		}
 		mResolvedMaterials.Set("\n");
 		mAttachPending = true;
+		mSkinnedOnce = false;
 		SyncBones();
 		if (!clip.IsEmpty)
 			Play(clip, 0);
@@ -434,11 +459,13 @@ class SkinnedMeshRenderer : Component
 					let bone = mBones[i];
 					if (bone == null || bone.GameObject.IsDestroyed)
 						continue;
-					Vector3 position, scale; Quaternion rotation;
+					Vector3 position, scale;
+					Quaternion rotation;
 					SamplePose(mCurrent, mTime, i, out position, out rotation, out scale);
 					if (weight < 1.0f && mPrevious != null)
 					{
-						Vector3 fromPosition, fromScale; Quaternion fromRotation;
+						Vector3 fromPosition, fromScale;
+						Quaternion fromRotation;
 						SamplePose(mPrevious, mPreviousTime, i, out fromPosition, out fromRotation, out fromScale);
 						position = Vector3.Lerp(fromPosition, position, weight);
 						rotation = Quaternion.Slerp(fromRotation, rotation, weight);
@@ -451,6 +478,8 @@ class SkinnedMeshRenderer : Component
 			}
 			return;
 		}
+		if (!ShouldSkin())
+			return;
 		for (int i < mDone.Count)
 			mDone[i] = false;
 		for (int i < mModel.Joints.Count)
@@ -488,6 +517,7 @@ class SkinnedMeshRenderer : Component
 		}
 		mMesh.Bounds = bounds;
 		mMesh.UpdateDynamic();
+		mSkinnedOnce = true;
 		for (let part in mParts)
 			part.mesh.Bounds = bounds;
 	}

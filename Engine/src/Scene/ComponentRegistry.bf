@@ -1,17 +1,18 @@
 using System;
 using System.Collections;
 using System.Reflection;
+using System.Threading;
 
 namespace Tessera;
 
 enum FieldKind
 {
 	Float,
-    Double,
-    Char,
-    Vector4,
-    Int3,
-    Matrix4,
+	Double,
+	Char,
+	Vector4,
+	Int3,
+	Matrix4,
 	Int,
 	Bool,
 	Vector2,
@@ -84,7 +85,12 @@ static class ComponentRegistry
 
 	public static void Refresh()
 	{
-		if (sInfos != null) { DeleteContainerAndItems!(sInfos); sInfos = null; }
+		if (sInfos != null)
+		{
+			DeleteContainerAndItems!(sInfos);
+			sInfos = null;
+		}
+		ClearFieldCache();
 		// Scripts were reloaded: loaded data assets are of the old classes.
 		DataAsset.ClearCache();
 		Build();
@@ -133,10 +139,16 @@ static class ComponentRegistry
 
 	public static bool AssignReference(FieldRef field, GameObject go, int index = -1)
 	{
-		if (go == null) { *(Object*)field.ptr = null; return true; }
+		if (go == null)
+		{
+			*(Object*)field.ptr = null;
+			return true;
+		}
 		Object value = null;
-		if (field.type == typeof(GameObject)) value = go;
-		else if (field.type == typeof(Transform)) value = go.Transform;
+		if (field.type == typeof(GameObject))
+			value = go;
+		else if (field.type == typeof(Transform))
+			value = go.Transform;
 		else
 		{
 			for (int i < go.Components.Count)
@@ -144,7 +156,10 @@ static class ComponentRegistry
 				if (index >= 0 && i != index) continue;
 				let component = go.Components[i];
 				if (component.GetType() == field.type || component.GetType().IsSubtypeOf(field.type))
-				{ value = component; break; }
+				{
+					value = component;
+					break;
+				}
 			}
 		}
 		if (value == null) return false;
@@ -155,17 +170,67 @@ static class ComponentRegistry
 	/// Collects the serializable fields of a component, base class fields first.
 	public static void GetFields(Component component, List<FieldRef> fields, bool forReload = false) => GetFields(component, typeof(Component), fields, forReload);
 
+	/// Which fields one class has, worked out once: reading attributes through reflection is slow, and the scene
+	/// asks for the same classes' fields again and again (destroying objects, saving, the Inspector, networking).
+	struct LayoutKey : IHashable
+	{
+		public Type type;
+		public Type stopAt;
+		public bool forReload;
+
+		public int GetHashCode() => ((int)Internal.UnsafeCastToPtr(type) * 31) ^ ((int)Internal.UnsafeCastToPtr(stopAt) * 7) ^ (forReload ? 1 : 0);
+
+		public static bool operator ==(LayoutKey a, LayoutKey b) => a.type == b.type && a.stopAt == b.stopAt && a.forReload == b.forReload;
+	}
+
+	/// Each class's fields with `ptr` holding the field's offset in the object rather than an address.
+	static Dictionary<LayoutKey, List<FieldRef>> sLayouts = new .() ~ DeleteDictionaryAndValues!(_);
+	static Monitor sLayoutLock = new .() ~ delete _;
+
+	/// Forgets every class's fields. Script reload changes classes in place, so it must be called after one.
+	public static void ClearFieldCache()
+	{
+		using (sLayoutLock.Enter())
+		{
+			for (let layout in sLayouts.Values)
+				delete layout;
+			sLayouts.Clear();
+		}
+	}
+
 	/// The same for any object (a data asset), with the fields of the classes from stopAt down.
 	public static void GetFields(Object target, Type stopAt, List<FieldRef> fields, bool forReload = false)
 	{
+		LayoutKey key;
+		key.type = target.GetType();
+		key.stopAt = stopAt;
+		key.forReload = forReload;
+		let basePtr = (uint8*)Internal.UnsafeCastToPtr(target);
+		using (sLayoutLock.Enter())
+		{
+			if (!sLayouts.TryGetValue(key, var layout))
+			{
+				layout = new List<FieldRef>();
+				BuildLayout(key.type, stopAt, forReload, layout);
+				sLayouts[key] = layout;
+			}
+			for (var field in layout)
+			{
+				field.ptr = basePtr + (int)field.ptr;
+				fields.Add(field);
+			}
+		}
+	}
+
+	static void BuildLayout(Type targetType, Type stopAt, bool forReload, List<FieldRef> fields)
+	{
 		List<TypeInstance> chain = scope .();
-		var type = target.GetType() as TypeInstance;
+		var type = targetType as TypeInstance;
 		while (type != null && type != stopAt)
 		{
 			chain.Add(type);
 			type = type.BaseType;
 		}
-		let basePtr = (uint8*)Internal.UnsafeCastToPtr(target);
 		for (int i = chain.Count - 1; i >= 0; i--)
 		{
 			for (let field in chain[i].GetFields(.Instance | .Public | .NonPublic | .DeclaredOnly))
@@ -179,27 +244,42 @@ static class ComponentRegistry
 
 				FieldRef fieldRef = default;
 				let fieldType = field.FieldType;
-				let storage=FieldNumbers.Storage(fieldType);
-                if (storage == typeof(float)) fieldRef.kind = .Float;
-                else if(storage==typeof(double)) fieldRef.kind=.Double;
-                else if(fieldType.IsEnum && storage.IsInteger && fieldType.Size<=8) fieldRef.kind=.Enum;
-                else if(storage.IsInteger) fieldRef.kind=.Int;
-                else if(storage==typeof(char8) || storage==typeof(char16) || storage==typeof(char32)) fieldRef.kind=.Char;
-                else if(fieldType==typeof(Vector4)) fieldRef.kind=.Vector4;
-                else if(fieldType==typeof(Int3)) fieldRef.kind=.Int3;
-                else if(fieldType==typeof(Matrix4)) fieldRef.kind=.Matrix4;
-				else if (fieldType == typeof(bool)) fieldRef.kind = .Bool;
-				else if (fieldType == typeof(Vector2)) fieldRef.kind = .Vector2;
-				else if (fieldType == typeof(Vector3)) fieldRef.kind = .Vector3;
-				else if (fieldType == typeof(Quaternion)) fieldRef.kind = .Quaternion;
-				else if (fieldType == typeof(Color)) fieldRef.kind = .Color;
-				else if (fieldType == typeof(String)) fieldRef.kind = .String;
-				else if (fieldType == typeof(GameObject) || fieldType == typeof(Transform) || fieldType == typeof(Component) || fieldType.IsSubtypeOf(typeof(Component))) fieldRef.kind = .ObjectReference;
+				let storage = FieldNumbers.Storage(fieldType);
+				if (storage == typeof(float))
+					fieldRef.kind = .Float;
+				else if (storage == typeof(double))
+					fieldRef.kind = .Double;
+				else if (fieldType.IsEnum && storage.IsInteger && fieldType.Size <= 8)
+					fieldRef.kind = .Enum;
+				else if (storage.IsInteger)
+					fieldRef.kind = .Int;
+				else if (storage == typeof(char8) || storage == typeof(char16) || storage == typeof(char32))
+					fieldRef.kind = .Char;
+				else if (fieldType == typeof(Vector4))
+					fieldRef.kind = .Vector4;
+				else if (fieldType == typeof(Int3))
+					fieldRef.kind = .Int3;
+				else if (fieldType == typeof(Matrix4))
+					fieldRef.kind = .Matrix4;
+				else if (fieldType == typeof(bool))
+					fieldRef.kind = .Bool;
+				else if (fieldType == typeof(Vector2))
+					fieldRef.kind = .Vector2;
+				else if (fieldType == typeof(Vector3))
+					fieldRef.kind = .Vector3;
+				else if (fieldType == typeof(Quaternion))
+					fieldRef.kind = .Quaternion;
+				else if (fieldType == typeof(Color))
+					fieldRef.kind = .Color;
+				else if (fieldType == typeof(String))
+					fieldRef.kind = .String;
+				else if (fieldType == typeof(GameObject) || fieldType == typeof(Transform) || fieldType == typeof(Component) || fieldType.IsSubtypeOf(typeof(Component)))
+					fieldRef.kind = .ObjectReference;
 				else continue;
 
 				fieldRef.name = field.Name;
 				fieldRef.type = fieldType;
-				fieldRef.ptr = basePtr + field.MemberOffset;
+				fieldRef.ptr = (void*)(int)field.MemberOffset;
 				fieldRef.hidden = field.GetCustomAttribute<HideInInspectorAttribute>() case .Ok;
 				fieldRef.sync = field.GetCustomAttribute<SyncAttribute>() case .Ok;
 				fieldRef.isLayer = field.GetCustomAttribute<LayerAttribute>() case .Ok;

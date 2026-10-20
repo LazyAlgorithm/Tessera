@@ -73,24 +73,37 @@ extension EditorApp
 		if (typing)
 			return;
 		let ctrl = ImGui.IsKeyDown(ImGui.Key.LeftCtrl);
-		if (ctrl && ImGui.IsKeyPressed(ImGui.Key.S)) SaveScene();
-		if (ctrl && ImGui.IsKeyPressed(ImGui.Key.P)) TogglePlay();
-		if (ctrl && ImGui.IsKeyPressed(ImGui.Key.R)) RequestRebuild();
+		if (ctrl && ImGui.IsKeyPressed(ImGui.Key.S))
+			SaveScene();
+		if (ctrl && ImGui.IsKeyPressed(ImGui.Key.P))
+			TogglePlay();
+		if (ctrl && ImGui.IsKeyPressed(ImGui.Key.R))
+			RequestRebuild();
 		if (mPlay == .Playing && mGameFocused)
 			return;
-		if (ctrl && ImGui.IsKeyPressed(ImGui.Key.D)) DuplicateSelected();
+		if (ctrl && ImGui.IsKeyPressed(ImGui.Key.D))
+			DuplicateSelected();
 		if (ctrl && ImGui.IsKeyPressed(ImGui.Key.Z))
 		{
-			if (ImGui.IsKeyDown(ImGui.Key.LeftShift)) Redo(); else Undo();
+			if (ImGui.IsKeyDown(ImGui.Key.LeftShift))
+				Redo();
+			else
+				Undo();
 		}
-		if (ctrl && ImGui.IsKeyPressed(ImGui.Key.Y)) Redo();
-		if (ImGui.IsKeyPressed(ImGui.Key.Delete)) DeleteSelected();
+		if (ctrl && ImGui.IsKeyPressed(ImGui.Key.Y))
+			Redo();
+		if (ImGui.IsKeyPressed(ImGui.Key.Delete))
+			DeleteSelected();
 		if (!mFlying && !ctrl)
 		{
-			if (ImGui.IsKeyPressed(ImGui.Key.W)) mGizmoOperation = 0;
-			if (ImGui.IsKeyPressed(ImGui.Key.E)) mGizmoOperation = 1;
-			if (ImGui.IsKeyPressed(ImGui.Key.R)) mGizmoOperation = 2;
-			if (ImGui.IsKeyPressed(ImGui.Key.F)) FocusSelected();
+			if (ImGui.IsKeyPressed(ImGui.Key.W))
+				mGizmoOperation = 0;
+			if (ImGui.IsKeyPressed(ImGui.Key.E))
+				mGizmoOperation = 1;
+			if (ImGui.IsKeyPressed(ImGui.Key.R))
+				mGizmoOperation = 2;
+			if (ImGui.IsKeyPressed(ImGui.Key.F))
+				FocusSelected();
 		}
 	}
 }

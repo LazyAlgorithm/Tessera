@@ -4,27 +4,29 @@ using System.Collections;
 namespace Tessera;
 
 [Reflect(.All)]
-enum RemoteSnapshotFormat : int32 { Legacy, ExactTransform, QuantizedTransform }
+enum RemoteSnapshotFormat : int32
+{
+	Legacy, ExactTransform, QuantizedTransform }
 
 /// Marks an object as replicated. The server owns its state; clients predict it locally and are corrected.
 [Component]
 class NetworkIdentity : Component
 {
 	public const int HistorySize = 128;
-    /// Send exact transform/body snapshots for small or precision-sensitive objects.
-    public bool fullPrecision;
-    BodyState mSentFull;
-    /// Remote snapshot format only; the owning client's prediction always receives exact BodyState.
-    public RemoteSnapshotFormat remoteFormat = .Legacy;
-    /// Minimum server ticks between remote updates; zero uses the session snapshot interval.
-    public int32 remoteIntervalTicks;
-    /// Suppress periodic sleeping refreshes after a reliable final transform. Off by default.
-    public bool dormantWhenSleeping;
-    /// Distance filtering applies only to objects opting in. Zero session radius disables it.
-    public bool distanceFiltered;
-    /// Higher values are serviced first when a session has a bandwidth budget.
-    public int32 snapshotPriority;
-    public bool SnapshotSleeping => dormantWhenSleeping && GetComponent<Rigidbody>()?.IsSleeping == true;
+	/// Send exact transform/body snapshots for small or precision-sensitive objects.
+	public bool fullPrecision;
+	BodyState mSentFull;
+	/// Remote snapshot format only; the owning client's prediction always receives exact BodyState.
+	public RemoteSnapshotFormat remoteFormat = .Legacy;
+	/// Minimum server ticks between remote updates; zero uses the session snapshot interval.
+	public int32 remoteIntervalTicks;
+	/// Suppress periodic sleeping refreshes after a reliable final transform. Off by default.
+	public bool dormantWhenSleeping;
+	/// Distance filtering applies only to objects opting in. Zero session radius disables it.
+	public bool distanceFiltered;
+	/// Higher values are serviced first when a session has a bandwidth budget.
+	public int32 snapshotPriority;
+	public bool SnapshotSleeping => dormantWhenSleeping && GetComponent<Rigidbody>()?.IsSleeping == true;
 
 
 	/// 0 means owned by the server; otherwise the id of the controlling client.
@@ -116,12 +118,12 @@ class NetworkIdentity : Component
 	public void NoteSnapshot(uint32 number, bool includeFullState = false)
 	{
 		let now = NetPack.Pack(Transform.Position, Transform.Rotation);
-        if(fullPrecision)
-        {
-            let exact=CaptureState();
-            if(mSentOnce && (!includeFullState || (exact.linearVelocity-mSentFull.linearVelocity).LengthSquared<1.0e-12f && (exact.angularVelocity-mSentFull.angularVelocity).LengthSquared<1.0e-12f && exact.prediction0==mSentFull.prediction0 && exact.prediction1==mSentFull.prediction1) && (exact.position-mSentFull.position).LengthSquared<1.0e-12f && Math.Abs(Quaternion.Dot(exact.rotation,mSentFull.rotation))>0.9999999f && exact.prediction0.w==mSentFull.prediction0.w) return;
-            mSentFull=exact;
-        }
+		if (fullPrecision)
+		{
+			let exact = CaptureState();
+			if (mSentOnce && (!includeFullState || (exact.linearVelocity - mSentFull.linearVelocity).LengthSquared < 1.0e-12f && (exact.angularVelocity - mSentFull.angularVelocity).LengthSquared < 1.0e-12f && exact.prediction0 == mSentFull.prediction0 && exact.prediction1 == mSentFull.prediction1) && (exact.position - mSentFull.position).LengthSquared < 1.0e-12f && Math.Abs(Quaternion.Dot(exact.rotation, mSentFull.rotation)) > 0.9999999f && exact.prediction0.w == mSentFull.prediction0.w) return;
+			mSentFull = exact;
+		}
 		else if (mSentOnce && now.Same(Sent))
 			return;
 		mSentOnce = true;
@@ -137,28 +139,31 @@ class NetworkIdentity : Component
 		public uint32 tick;
 		public Vector3 position;
 		public Quaternion rotation;
-        public Vector3 linearVelocity, angularVelocity;
-        public bool hasVelocity;
-        public bool stationary;
+		public Vector3 linearVelocity, angularVelocity;
+		public bool hasVelocity;
+		public bool stationary;
 	}
 
 	// Enough for the server to look back half a second, which is what lag compensation uses them for there.
-	const int cKeys = 32;
-	Key[cKeys] mKeys;
+	const int MaxKeys = 32;
+	Key[MaxKeys] mKeys;
 	int32 mKeyCount;
 
 	public bool HasKeys => mKeyCount > 0;
 	public uint32 NewestKeyTick => mKeyCount > 0 ? mKeys[mKeyCount - 1].tick : 0;
-	public void ClearKeys() { mKeyCount = 0; }
+	public void ClearKeys()
+	{
+		mKeyCount = 0;
+	}
 
 	/// Adds what the server said the object was doing at one of its ticks. Old news is ignored.
 	public void PushKey(uint32 tick, Vector3 position, Quaternion rotation, bool stationary = false)
 	{
 		if (mKeyCount > 0 && (int32)(tick - mKeys[mKeyCount - 1].tick) <= 0)
 			return;
-		if (mKeyCount == cKeys)
+		if (mKeyCount == MaxKeys)
 		{
-			for (int i = 1; i < cKeys; i++)
+			for (int i = 1; i < MaxKeys; i++)
 				mKeys[i - 1] = mKeys[i];
 			mKeyCount--;
 		}
@@ -172,15 +177,15 @@ class NetworkIdentity : Component
 			PushKey(tick, mKeys[mKeyCount - 1].position, mKeys[mKeyCount - 1].rotation);
 	}
 
-    /// Preserve authoritative rigidbody velocities instead of estimating them across an impact.
-    public void PushBodyKey(uint32 tick, BodyState state, bool stationary = false)
-    {
-        if (mKeyCount > 0 && (int32)(tick - mKeys[mKeyCount - 1].tick) <= 0) return;
-        PushKey(tick, state.position, state.rotation, stationary);
-        mKeys[mKeyCount - 1].linearVelocity = stationary ? .Zero : state.linearVelocity;
-        mKeys[mKeyCount - 1].angularVelocity = stationary ? .Zero : state.angularVelocity;
-        mKeys[mKeyCount - 1].hasVelocity = true;
-    }
+	/// Preserve authoritative rigidbody velocities instead of estimating them across an impact.
+	public void PushBodyKey(uint32 tick, BodyState state, bool stationary = false)
+	{
+		if (mKeyCount > 0 && (int32)(tick - mKeys[mKeyCount - 1].tick) <= 0) return;
+		PushKey(tick, state.position, state.rotation, stationary);
+		mKeys[mKeyCount - 1].linearVelocity = stationary ? .Zero : state.linearVelocity;
+		mKeys[mKeyCount - 1].angularVelocity = stationary ? .Zero : state.angularVelocity;
+		mKeys[mKeyCount - 1].hasVelocity = true;
+	}
 
 	/// Where the object was at a (fractional) server tick. Past the newest key it carries on as it was going for
 	/// at most maxAhead ticks, then waits. False if the server has said nothing about it yet.
@@ -192,10 +197,11 @@ class NetworkIdentity : Component
 		let newest = mKeys[mKeyCount - 1];
 		state.position = newest.position;
 		state.rotation = newest.rotation;
-        if (newest.hasVelocity)
-        {
-            state.linearVelocity = newest.linearVelocity;state.angularVelocity = newest.angularVelocity;
-        }
+		if (newest.hasVelocity)
+		{
+			state.linearVelocity = newest.linearVelocity;
+			state.angularVelocity = newest.angularVelocity;
+		}
 		if (mKeyCount == 1 || newest.stationary && tick >= newest.tick)
 			return true;
 		if (tick >= (double)newest.tick)
@@ -208,14 +214,14 @@ class NetworkIdentity : Component
 				state.linearVelocity = newest.hasVelocity ? newest.linearVelocity : (newest.position - before.position) / (span * Time.FixedDeltaTime);
 				let ahead = Math.Min((float)(tick - (double)newest.tick), maxAhead);
 				state.position = newest.position + state.linearVelocity * (ahead * Time.FixedDeltaTime);
-                let angularSpeed = state.angularVelocity.Length;
-                if (newest.hasVelocity && angularSpeed > 0.000001f)
-                {
-                    let halfAngle = angularSpeed * ahead * Time.FixedDeltaTime * 0.5f;
-                    let axis = state.angularVelocity / angularSpeed;
-                    let sine = Math.Sin(halfAngle);
-                    state.rotation = Quaternion(axis.x*sine,axis.y*sine,axis.z*sine,Math.Cos(halfAngle)) * newest.rotation;
-                }
+				let angularSpeed = state.angularVelocity.Length;
+				if (newest.hasVelocity && angularSpeed > 0.000001f)
+				{
+					let halfAngle = angularSpeed * ahead * Time.FixedDeltaTime * 0.5f;
+					let axis = state.angularVelocity / angularSpeed;
+					let sine = Math.Sin(halfAngle);
+					state.rotation = Quaternion(axis.x * sine, axis.y * sine, axis.z * sine, Math.Cos(halfAngle)) * newest.rotation;
+				}
 			}
 			return true;
 		}
@@ -236,8 +242,9 @@ class NetworkIdentity : Component
 			}
 			state.position = Vector3.Lerp(from.position, to.position, amount);
 			state.rotation = Quaternion.Slerp(from.rotation, to.rotation, amount);
-            state.linearVelocity = from.hasVelocity && to.hasVelocity ? Vector3.Lerp(from.linearVelocity,to.linearVelocity,amount) : (to.position - from.position) / (span * Time.FixedDeltaTime);
-            if (from.hasVelocity && to.hasVelocity) state.angularVelocity = Vector3.Lerp(from.angularVelocity,to.angularVelocity,amount);
+			state.linearVelocity = from.hasVelocity && to.hasVelocity ? Vector3.Lerp(from.linearVelocity, to.linearVelocity, amount) : (to.position - from.position) / (span * Time.FixedDeltaTime);
+			if (from.hasVelocity && to.hasVelocity)
+				state.angularVelocity = Vector3.Lerp(from.angularVelocity, to.angularVelocity, amount);
 			return true;
 		}
 		return true;
@@ -260,12 +267,15 @@ class NetworkIdentity : Component
 	{
 		let body = GetComponent<Rigidbody>();
 		if (body != null && body.HasBody)
-        {
-            var bodyState=body.State;
-            for(let component in GameObject.Components)
-                if(let behaviour=component as NetworkBehaviour) behaviour.CaptureBodyPredictionState(ref bodyState);
-            return bodyState;
-        }
+		{
+			var bodyState = body.State;
+			for (let component in GameObject.Components)
+			{
+				if (let behaviour = component as NetworkBehaviour)
+					behaviour.CaptureBodyPredictionState(ref bodyState);
+			}
+			return bodyState;
+		}
 		BodyState state = default;
 		state.position = Transform.Position;
 		state.rotation = Transform.Rotation;
@@ -278,15 +288,21 @@ class NetworkIdentity : Component
 			state.angularVelocity = .(Math.Min(controller.AirTime, 1000), 0, 0);
 		}
 		for (let component in GameObject.Components)
-			if (let behaviour = component as NetworkBehaviour) behaviour.CapturePredictionState(ref state);
+		{
+			if (let behaviour = component as NetworkBehaviour)
+				behaviour.CapturePredictionState(ref state);
+		}
 		return state;
 	}
 
 	public void ApplyState(BodyState state)
 	{
-        // A hybrid motor may need to create/disable its body before this state's velocities are applied.
-        for(let component in GameObject.Components)
-            if(let behaviour=component as NetworkBehaviour) behaviour.PreparePredictionState(state);
+		// A hybrid motor may need to create/disable its body before this state's velocities are applied.
+		for (let component in GameObject.Components)
+		{
+			if (let behaviour = component as NetworkBehaviour)
+				behaviour.PreparePredictionState(state);
+		}
 		let body = GetComponent<Rigidbody>();
 		if (body != null && body.HasBody)
 			body.SetState(state);
@@ -296,7 +312,10 @@ class NetworkIdentity : Component
 			GetComponent<CharacterController>()?.Teleport(state.position, state.linearVelocity, state.angularVelocity.x);
 		}
 		for (let component in GameObject.Components)
-			if (let behaviour = component as NetworkBehaviour) behaviour.RestorePredictionState(state);
+		{
+			if (let behaviour = component as NetworkBehaviour)
+				behaviour.RestorePredictionState(state);
+		}
 	}
 }
 
@@ -329,10 +348,10 @@ abstract class NetworkBehaviour : Component
 	/// Custom transform-based motors can store rewindable simulation state in the unused velocity slots.
 	/// Do not override slots owned by a Rigidbody or CharacterController on the same object.
 	public virtual void CapturePredictionState(ref BodyState state) { }
-    /// Extra motor metadata alongside an active body's actual velocities.
-    public virtual void CaptureBodyPredictionState(ref BodyState state) { }
-    /// Restore a motor/body mode before the transform and velocities are applied.
-    public virtual void PreparePredictionState(BodyState state) { }
+	/// Extra motor metadata alongside an active body's actual velocities.
+	public virtual void CaptureBodyPredictionState(ref BodyState state) { }
+	/// Restore a motor/body mode before the transform and velocities are applied.
+	public virtual void PreparePredictionState(BodyState state) { }
 	public virtual void RestorePredictionState(BodyState state) { }
 
 	/// Called once per tick on the owning client to sample the local controls.

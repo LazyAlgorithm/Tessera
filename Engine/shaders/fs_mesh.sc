@@ -62,7 +62,7 @@ float visibilitySmith(float ndotv, float ndotl, float a)
 	return gv * gl / (4.0 * ndotv * ndotl + 1.0e-4);
 }
 
-vec3 brdf(vec3 n, vec3 v, vec3 l, vec3 albedo, float metallic, float roughness)
+vec3 brdf(vec3 n, vec3 v, vec3 l, vec3 albedo, float metallic, float roughness, float specularLevel)
 {
 	vec3 h = normalize(v + l);
 	float ndotl = max(dot(n, l), 0.0);
@@ -70,7 +70,7 @@ vec3 brdf(vec3 n, vec3 v, vec3 l, vec3 albedo, float metallic, float roughness)
 	float ndoth = max(dot(n, h), 0.0);
 	float vdoth = max(dot(v, h), 0.0);
 	float a = roughness * roughness;
-	vec3 f0 = mix(vec3_splat(0.04), albedo, metallic);
+	vec3 f0 = mix(vec3_splat(0.04 * specularLevel), albedo, metallic);
 	vec3 fresnel = f0 + (vec3_splat(1.0) - f0) * pow(1.0 - vdoth, 5.0);
 	vec3 specular = fresnel * (distributionGGX(ndoth, a) * visibilitySmith(ndotv, ndotl, a));
 	vec3 diffuse = albedo * (1.0 - metallic) * (1.0 / PI);
@@ -144,6 +144,7 @@ void main()
 	float alpha = v_color0.a * tex.a;
 	float metallic = u_material.x;
 	float roughness = u_material.y;
+	float specularLevel = 1.0;
 	// With "emissive from colour" the bright parts of a model glow in their own colour and its dark parts do not.
 	vec3 emissive = u_emissive.rgb * mix(vec3_splat(1.0), albedo, u_surface.z);
 //@SURFACE
@@ -228,7 +229,7 @@ void main()
 	// stand in for one. It is what keeps a smooth metal from looking black where no light shines on it directly.
 	vec3 mirrored = reflect(-v, n);
 	vec3 surroundings = mix(u_ambientGround.rgb, u_ambientSky.rgb, clamp(mirrored.y * 0.5 + 0.5, 0.0, 1.0));
-	vec3 f0 = mix(vec3_splat(0.04), albedo, metallic);
+	vec3 f0 = mix(vec3_splat(0.04 * specularLevel), albedo, metallic);
 	float grazing = pow(1.0 - max(dot(n, v), 0.0), 5.0);
 	vec3 reflectance = f0 + (max(vec3_splat(1.0 - roughness), f0) - f0) * grazing;
 	color += surroundings * reflectance * (1.0 - roughness * 0.75) * metallic * occlusion;
@@ -242,7 +243,7 @@ void main()
         int channel = int(u_lightCount.y - 1.0);
         shadow = min(shadow,bakedMask[channel]);
     }
-	color += brdf(n, v, u_sunDir.xyz, albedo, metallic, roughness) * u_sunColor.rgb * shadow * PI;
+	color += brdf(n, v, u_sunDir.xyz, albedo, metallic, roughness, specularLevel) * u_sunColor.rgb * shadow * PI;
 
 	for (int i = 0; i < MAX_LIGHTS; i++)
 	{
@@ -273,7 +274,7 @@ void main()
                 atten *= smoothstep(u_lightDirSpot[i].w,u_lightParams[i].x,cosAngle);
             }
             if (u_lightParams[i].z > 0.5) atten *= bakedMask[int(u_lightParams[i].z - 1.0)];
-            color += brdf(n,v,l,albedo,metallic,roughness) * u_lightColor[i].rgb * atten * PI;
+            color += brdf(n,v,l,albedo,metallic,roughness,specularLevel) * u_lightColor[i].rgb * atten * PI;
         }
 	}
 

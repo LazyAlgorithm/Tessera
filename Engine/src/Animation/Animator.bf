@@ -65,8 +65,10 @@ class Animator : Component
 	AnimationClip FindClip(StringView nameOrPath)
 	{
 		for (let clip in mClips)
+		{
 			if (clip.name == nameOrPath)
 				return clip;
+		}
 		if (nameOrPath.EndsWith(".tanim"))
 		{
 			let clip = AnimationClip.Load(nameOrPath);
@@ -119,6 +121,7 @@ class Animator : Component
 		let index = Parameter(name);
 		return index >= 0 && index < mParameters.Count ? mParameters[index] : 0;
 	}
+
 	public int32 GetInteger(StringView name) => (int32)Math.Round(GetFloat(name));
 	public bool GetBool(StringView name) => GetFloat(name) != 0;
 	/// A parameter's value by its position in the controller, for showing live values.
@@ -432,14 +435,30 @@ class Animator : Component
 		let count = mBones.Count;
 		if (mPosePosition != null && mPosePosition.Count == count)
 			return;
-		delete mPosePosition; delete mPoseRotation; delete mPoseScale;
-		delete mLayerPosition; delete mLayerRotation; delete mLayerScale;
-		delete mZeroPosition; delete mZeroRotation; delete mZeroScale;
-		delete mTrack; delete mZeroTrack; delete mMasked;
-		mPosePosition = new .[count]; mPoseRotation = new .[count]; mPoseScale = new .[count];
-		mLayerPosition = new .[count]; mLayerRotation = new .[count]; mLayerScale = new .[count];
-		mZeroPosition = new .[count]; mZeroRotation = new .[count]; mZeroScale = new .[count];
-		mTrack = new .[count]; mZeroTrack = new .[count]; mMasked = new .[count];
+		delete mPosePosition;
+		delete mPoseRotation;
+		delete mPoseScale;
+		delete mLayerPosition;
+		delete mLayerRotation;
+		delete mLayerScale;
+		delete mZeroPosition;
+		delete mZeroRotation;
+		delete mZeroScale;
+		delete mTrack;
+		delete mZeroTrack;
+		delete mMasked;
+		mPosePosition = new .[count];
+		mPoseRotation = new .[count];
+		mPoseScale = new .[count];
+		mLayerPosition = new .[count];
+		mLayerRotation = new .[count];
+		mLayerScale = new .[count];
+		mZeroPosition = new .[count];
+		mZeroRotation = new .[count];
+		mZeroScale = new .[count];
+		mTrack = new .[count];
+		mZeroTrack = new .[count];
+		mMasked = new .[count];
 	}
 
 	/// A layer's pose now, cross-fading from its previous state, into mLayer*; mTrack says how much each bone moves.
@@ -476,58 +495,75 @@ class Animator : Component
 		EnsurePoseArrays();
 		if (mSkinned != null)
 			mSkinned.posedByAnimator = mSkinned.exposeBones;
+		// Only the machine that decides (the server, or the owner) moves between states; the others follow it.
 		let decides = NetworkSync.IsMine(this);
 		for (int32 l < (int32)mLayers.Count)
-		{
-			let run = mLayers[l];
-			if (run.state < 0 || run.state >= mController.states.Count || mController.states[run.state].layer != l)
-			{
-				run.state = -1;
-				if (!decides)
-					continue;
-				let first = mController.DefaultStateOf(l);
-				if (first < 0)
-					continue;
-				EnterLayerState(first, 0);
-			}
-			let state = mController.states[run.state];
-			let step = Time.DeltaTime * speed * state.speed;
-			run.time += step;
-			run.previousTime += step;
-			run.fade += Time.DeltaTime;
-			if (l == 0)
-				mStateTime = run.time;
-			if (!decides || (run.previous >= 0 && run.fade < run.fadeDuration))
-				continue;
-			let normalized = run.time / Math.Max(LayeredLength(run.state), 0.0001f);
-			for (let transition in mController.transitions)
-			{
-				if (mController.LayerOf(transition) != l)
-					continue;
-				if ((transition.from != run.state && transition.from != -1) || (transition.to == run.state && transition.from == -1))
-					continue;
-				if (transition.to < 0 || transition.to >= mController.states.Count || mController.states[transition.to].layer != l)
-					continue;
-				if (transition.hasExitTime && normalized < transition.exitTime)
-					continue;
-				if (transition.conditions.Count == 0 && !transition.hasExitTime)
-					continue;
-				bool all = true;
-				for (let condition in transition.conditions)
-					all &= Holds(condition);
-				if (!all)
-					continue;
-				for (let condition in transition.conditions)
-				{
-					if (condition.parameter < mController.parameters.Count && mController.parameters[condition.parameter].type == .Trigger)
-						SetParameter(condition.parameter, 0);
-				}
-				EnterLayerState(transition.to, transition.duration);
-				break;
-			}
-		}
+			AdvanceLayer(l, decides);
+		BlendLayers();
+		ApplyPose();
+	}
 
-		// ---- the pose: the Base Layer, then each layer above it ----
+	/// Moves a layer's clock on, and (on the machine that decides) into its first state or along a transition.
+	void AdvanceLayer(int32 l, bool decides)
+	{
+		let run = mLayers[l];
+		if (run.state < 0 || run.state >= mController.states.Count || mController.states[run.state].layer != l)
+		{
+			run.state = -1;
+			if (!decides)
+				return;
+			let first = mController.DefaultStateOf(l);
+			if (first < 0)
+				return;
+			EnterLayerState(first, 0);
+		}
+		let state = mController.states[run.state];
+		let step = Time.DeltaTime * speed * state.speed;
+		run.time += step;
+		run.previousTime += step;
+		run.fade += Time.DeltaTime;
+		if (l == 0)
+			mStateTime = run.time;
+		if (decides && !(run.previous >= 0 && run.fade < run.fadeDuration))
+			TakeLayerTransition(l, run);
+	}
+
+	/// Takes the first transition out of the layer's state whose exit time has come and whose conditions all hold.
+	void TakeLayerTransition(int32 l, LayerRun run)
+	{
+		let normalized = run.time / Math.Max(LayeredLength(run.state), 0.0001f);
+		for (let transition in mController.transitions)
+		{
+			if (mController.LayerOf(transition) != l)
+				continue;
+			if ((transition.from != run.state && transition.from != -1) || (transition.to == run.state && transition.from == -1))
+				continue;
+			if (transition.to < 0 || transition.to >= mController.states.Count || mController.states[transition.to].layer != l)
+				continue;
+			if (transition.hasExitTime && normalized < transition.exitTime)
+				continue;
+			if (transition.conditions.Count == 0 && !transition.hasExitTime)
+				continue;
+			bool all = true;
+			for (let condition in transition.conditions)
+				all &= Holds(condition);
+			if (!all)
+				continue;
+			// A trigger is used up by the transition it fires.
+			for (let condition in transition.conditions)
+			{
+				if (condition.parameter < mController.parameters.Count && mController.parameters[condition.parameter].type == .Trigger)
+					SetParameter(condition.parameter, 0);
+			}
+			EnterLayerState(transition.to, transition.duration);
+			return;
+		}
+	}
+
+	/// The pose: the rest pose, then the Base Layer, then each layer above it, overriding or added on by its weight
+	/// and only on the bones its mask lets through.
+	void BlendLayers()
+	{
 		for (int b < mBones.Count)
 		{
 			mPosePosition[b] = mBones[b].restPosition;
@@ -554,15 +590,7 @@ class Animator : Component
 					continue;
 				let amount = weight * Math.Min(mTrack[b], 1);
 				if (additive)
-				{
-					// What the clip does relative to its own first frame, added on.
-					mPosePosition[b] = mPosePosition[b] + (mLayerPosition[b] - mZeroPosition[b]) * amount;
-					let delta = (mZeroRotation[b].Conjugate * mLayerRotation[b]).Normalized;
-					mPoseRotation[b] = (mPoseRotation[b] * Quaternion.Slerp(.Identity, delta, amount)).Normalized;
-					let zero = mZeroScale[b];
-					let grow = Vector3(zero.x != 0 ? mLayerScale[b].x / zero.x : 1, zero.y != 0 ? mLayerScale[b].y / zero.y : 1, zero.z != 0 ? mLayerScale[b].z / zero.z : 1);
-					mPoseScale[b] = mPoseScale[b] * Vector3.Lerp(.One, grow, amount);
-				}
+					AddLayerBone(b, amount);
 				else
 				{
 					mPosePosition[b] = Vector3.Lerp(mPosePosition[b], mLayerPosition[b], amount);
@@ -571,6 +599,21 @@ class Animator : Component
 				}
 			}
 		}
+	}
+
+	/// An additive layer's bone: what the clip does relative to its own first frame, added on.
+	void AddLayerBone(int b, float amount)
+	{
+		mPosePosition[b] = mPosePosition[b] + (mLayerPosition[b] - mZeroPosition[b]) * amount;
+		let delta = (mZeroRotation[b].Conjugate * mLayerRotation[b]).Normalized;
+		mPoseRotation[b] = (mPoseRotation[b] * Quaternion.Slerp(.Identity, delta, amount)).Normalized;
+		let zero = mZeroScale[b];
+		let grow = Vector3(zero.x != 0 ? mLayerScale[b].x / zero.x : 1, zero.y != 0 ? mLayerScale[b].y / zero.y : 1, zero.z != 0 ? mLayerScale[b].z / zero.z : 1);
+		mPoseScale[b] = mPoseScale[b] * Vector3.Lerp(.One, grow, amount);
+	}
+
+	void ApplyPose()
+	{
 		for (int b < mBones.Count)
 		{
 			let bone = mBones[b];
@@ -811,14 +854,18 @@ class Animator : Component
 	/// The pose a child had before any animation moved it, which keys are measured from.
 	public bool RestPose(Transform child, out Vector3 position, out Quaternion rotation, out Vector3 scale)
 	{
-		position = .Zero; rotation = .Identity; scale = .(1, 1, 1);
+		position = .Zero;
+		rotation = .Identity;
+		scale = .(1, 1, 1);
 		if (mBones.Count == 0)
 			Collect(Transform);
 		for (let bone in mBones)
 		{
 			if (bone.transform == child)
 			{
-				position = bone.restPosition; rotation = bone.restRotation; scale = bone.restScale;
+				position = bone.restPosition;
+				rotation = bone.restRotation;
+				scale = bone.restScale;
 				return true;
 			}
 		}

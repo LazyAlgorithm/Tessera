@@ -1,13 +1,14 @@
 using System;
 using System.IO;
+
 namespace Tessera;
 
 /// Runs a project as a game: the start scene in play mode, rendered straight to the window.
 class GameApp : Application
 {
 	public String GameName = new .("Tessera") ~ delete _;
-    public String StartScene = new .("Scenes/Main.tscene") ~ delete _;
-    Scene mScene ~ delete _;
+	public String StartScene = new .("Scenes/Main.tscene") ~ delete _;
+	Scene mScene ~ delete _;
 	RenderView mView ~ delete _;
 	bool mGui;
 
@@ -36,14 +37,18 @@ class GameApp : Application
 		return true;
 	}
 
-    protected virtual bool LoadScene(Scene scene, StringView overridePath)
-    {
-        let path = scope String();
-        Assets.ResolvePath(overridePath.IsEmpty ? (StringView)StartScene : overridePath, path);
-        if (!AssetPack.Exists(path)) { Log.Error(scope $"Start scene missing: {path}"); return false; }
-        SceneSerializer.LoadFromFile(scene, path);
-        return true;
-    }
+	protected virtual bool LoadScene(Scene scene, StringView overridePath)
+	{
+		let path = scope String();
+		Assets.ResolvePath(overridePath.IsEmpty ? (StringView)StartScene : overridePath, path);
+		if (!AssetPack.Exists(path))
+		{
+			Log.Error(scope $"Start scene missing: {path}");
+			return false;
+		}
+		SceneSerializer.LoadFromFile(scene, path);
+		return true;
+	}
 
 	protected override void OnFixedUpdate()
 	{

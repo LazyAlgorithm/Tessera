@@ -34,7 +34,7 @@ static class ShaderCompiler
 
 	static bool Template(StringView engineRoot, StringView name, String text)
 	{
-		return File.ReadAllText(scope $"{engineRoot}/Engine/shaders/{name}", text, true) case .Ok;
+		return File.ReadAllText(scope $"{engineRoot}/Engine/shaders/{name}" , text, true) case .Ok;
 	}
 
 	/// Writes the full shader source a shader file becomes. For a surface shader: the fragment and vertex stages.
@@ -76,6 +76,80 @@ static class ShaderCompiler
 #else
 			output.AppendF("{}/build/native/bgfx/cmake/bgfx/shaderc", engineRoot);
 #endif
+	}
+
+	/// What compiling a shader's stages needs: where things are, and where messages go.
+	struct StageJob
+	{
+		public StringView engineRoot;
+		public StringView shaderPath;
+		/// The shader compiler (bgfx's shaderc).
+		public StringView shaderc;
+		/// A temporary folder for the generated source and the compiler's messages.
+		public StringView work;
+		/// The shader's compiled name.
+		public StringView name;
+		public StringView outputRoot;
+		public String log;
+	}
+
+	/// Compiles one stage (vertex, fragment or compute) for every backend. False when it fails for the backend this
+	/// machine draws with.
+	static bool CompileStage(StageJob stage, StringView source, StringView suffix, StringView type)
+	{
+		bool usable = true;
+		let sourcePath = scope $"{stage.work}/{stage.name}_{suffix}.sc";
+		File.WriteAllText(sourcePath, source).IgnoreError();
+		for (int t < sTargets.Count)
+		{
+			let target = sTargets[t];
+			let folder = scope $"{stage.outputRoot}/{target.folder}";
+			Directory.CreateDirectory(folder).IgnoreError();
+			let output = scope $"{folder}/{stage.name}_{suffix}.bin";
+			let messages = scope $"{stage.work}/{stage.name}_{suffix}_{target.folder}.log";
+			let command = scope String();
+			ShadercCommand(stage, target, type, sourcePath, output, messages, command);
+			if (Terminal.Run(command) == 0)
+				continue;
+			File.Delete(output).IgnoreError();
+			// Only the backend this machine draws with decides whether the shader works here; the others
+			// are extras for other platforms, and say so once.
+			if (t == 0)
+			{
+				usable = false;
+				let said = scope String();
+				File.ReadAllText(messages, said, true).IgnoreError();
+				int shown = 0;
+				for (let line in said.Split('\n', .RemoveEmptyEntries))
+				{
+					// shaderc echoes the whole source around an error; the lines that say what is wrong are these.
+					if ((line.Contains("rror") || line.Contains("ERROR")) && shown++ < 8)
+						stage.log.AppendF("{} ({} stage): {}\n", stage.shaderPath, type, line);
+				}
+				if (shown == 0)
+					stage.log.AppendF("{} ({} stage): the shader compiler failed without saying why\n", stage.shaderPath, type);
+			}
+			else
+				stage.log.AppendF("{}: not compiled for {} (other backends are unaffected)\n", stage.shaderPath, target.folder);
+		}
+		return usable;
+	}
+
+	/// The shaderc command line for one stage and backend, its messages sent to `messages`.
+	static void ShadercCommand(StageJob stage, (StringView folder, StringView profile, StringView platform) target, StringView type, StringView sourcePath, StringView output, StringView messages, String command)
+	{
+		Terminal.Quote(stage.shaderc, command);
+		command.Append(" -f ");
+		Terminal.Quote(sourcePath, command);
+		command.Append(" -o ");
+		Terminal.Quote(output, command);
+		command.AppendF(" --type {} --platform {} -p {} -i ", type, target.platform, target.profile);
+		Terminal.Quote(scope $"{stage.engineRoot}/Engine/shaders/include" , command);
+		command.Append(" --varyingdef ");
+		Terminal.Quote(scope $"{stage.engineRoot}/Engine/shaders/varying.def.sc" , command);
+		command.Append(" -O 3 > ");
+		Terminal.Quote(messages, command);
+		command.Append(" 2>&1");
 	}
 
 	/// Compiles one shader file (a project path) for every backend. Messages from the compiler are added to log.
@@ -128,57 +202,21 @@ static class ShaderCompiler
 		let outputRoot = scope String();
 		outputRoot.AppendF("{}/Shaders/Compiled", Assets.ProjectPath);
 
+		StageJob stage;
+		stage.engineRoot = engineRoot;
+		stage.shaderPath = shaderPath;
+		stage.shaderc = shaderc;
+		stage.work = work;
+		stage.name = name;
+		stage.outputRoot = outputRoot;
+		stage.log = log;
 		bool usable = true;
-		void Stage(StringView source, StringView suffix, StringView type)
-		{
-			let sourcePath = scope $"{work}/{name}_{suffix}.sc";
-			File.WriteAllText(sourcePath, source).IgnoreError();
-			for (int t < sTargets.Count)
-			{
-				let target = sTargets[t];
-				let folder = scope $"{outputRoot}/{target.folder}";
-				Directory.CreateDirectory(folder).IgnoreError();
-				let output = scope $"{folder}/{name}_{suffix}.bin";
-				let messages = scope $"{work}/{name}_{suffix}_{target.folder}.log";
-				let command = scope String();
-				Terminal.Quote(shaderc, command);
-				command.Append(" -f "); Terminal.Quote(sourcePath, command);
-				command.Append(" -o "); Terminal.Quote(output, command);
-				command.AppendF(" --type {} --platform {} -p {} -i ", type, target.platform, target.profile);
-				Terminal.Quote(scope $"{engineRoot}/Engine/shaders/include", command);
-				command.Append(" --varyingdef "); Terminal.Quote(scope $"{engineRoot}/Engine/shaders/varying.def.sc", command);
-				command.Append(" -O 3 > "); Terminal.Quote(messages, command);
-				command.Append(" 2>&1");
-				if (Terminal.Run(command) == 0)
-					continue;
-				File.Delete(output).IgnoreError();
-				// Only the backend this machine draws with decides whether the shader works here; the others
-				// are extras for other platforms, and say so once.
-				if (t == 0)
-				{
-					usable = false;
-					let said = scope String();
-					File.ReadAllText(messages, said, true).IgnoreError();
-					int shown = 0;
-					for (let line in said.Split('\n', .RemoveEmptyEntries))
-					{
-						// shaderc echoes the whole source around an error; the lines that say what is wrong are these.
-						if ((line.Contains("rror") || line.Contains("ERROR")) && shown++ < 8)
-							log.AppendF("{} ({} stage): {}\n", shaderPath, type, line);
-					}
-					if (shown == 0)
-						log.AppendF("{} ({} stage): the shader compiler failed without saying why\n", shaderPath, type);
-				}
-				else
-					log.AppendF("{}: not compiled for {} (other backends are unaffected)\n", shaderPath, target.folder);
-			}
-		}
 		if (shader.IsCompute)
-			Stage(compute, "cs", "compute");
+			usable &= CompileStage(stage, compute, "cs", "compute");
 		else
 		{
-			Stage(vertex, "vs", "vertex");
-			Stage(fragment, "fs", "fragment");
+			usable &= CompileStage(stage, vertex, "vs", "vertex");
+			usable &= CompileStage(stage, fragment, "fs", "fragment");
 		}
 		// Running materials pick the new program up on their next draw.
 		ShaderAsset.Reloaded(shaderPath);
@@ -194,14 +232,14 @@ static class ShaderCompiler
 			let name = scope String();
 			entry.GetFileName(name);
 			if (name.EndsWith(".tshader") || name.EndsWith(".tcompute"))
-				output.Add(new String(scope $"{folder}/{name}".Substring(root.Length + 1)));
+				output.Add(new String(scope $"{folder}/{name}" .Substring(root.Length + 1)));
 		}
 		for (let entry in Directory.EnumerateDirectories(folder))
 		{
 			let name = scope String();
 			entry.GetFileName(name);
 			if (!name.StartsWith('.') && name != "Compiled" && name != "build")
-				Collect(scope $"{folder}/{name}", root, output, depth + 1);
+				Collect(scope $"{folder}/{name}" , root, output, depth + 1);
 		}
 	}
 
@@ -210,7 +248,11 @@ static class ShaderCompiler
 	public static int CompileProject(StringView engineRoot, String log, bool everything = false)
 	{
 		List<String> shaders = scope .();
-		defer { for (let s in shaders) delete s; }
+		defer
+		{
+			for (let s in shaders)
+				delete s;
+		}
 		Collect(Assets.ProjectPath, Assets.ProjectPath, shaders, 0);
 		int failed = 0;
 		for (let shaderPath in shaders)

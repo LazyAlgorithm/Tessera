@@ -139,27 +139,28 @@ static class Steam
 	static function char8*(void* friends, uint64 id) sGetPlayerNickname;
 	static function bool(void* friends, uint64 id, bool nameOnly) sRequestUserInformation;
 	static function int32(void* friends, uint64 id) sGetFriendPersonaState;
-    // Steamworks FriendGameInfo_t: CGameID, IP, two ports, CSteamID (24 bytes).
-    public struct FriendGameInfo
-    {
-        public uint64 gameId;
-        public uint32 ip;
-        public uint16 gamePort,queryPort;
-        public uint64 lobby;
-    }
-    static function bool(void* friends,uint64 id,FriendGameInfo* game) sGetFriendGamePlayed;
+	// Steamworks FriendGameInfo_t: CGameID, IP, two ports, CSteamID (24 bytes).
+	public struct FriendGameInfo
+	{
+		public uint64 gameId;
+		public uint32 ip;
+		public uint16 gamePort, queryPort;
+		public uint64 lobby;
+	}
+
+	static function bool(void* friends, uint64 id, FriendGameInfo* game) sGetFriendGamePlayed;
 	static function bool(void* friends, char8* key, char8* value) sSetRichPresence;
 	static function void(void* friends) sClearRichPresence;
 	static function char8*(void* friends, uint64 id, char8* key) sGetFriendRichPresence;
 	static function bool(void* friends, uint64 id, char8* connect) sInviteUserToGame;
 	static function bool(void* friends, uint64 id, int32 flags) sHasFriend;
 	static function void(void* callback, int32 id) sRegisterCallback;
-	const int32 cFriendFlagImmediate = 0x04;
+	const int32 FriendFlagImmediate = 0x04;
 
 	/// How many Steam friends the signed-in user has. 0 without Steam.
-	public static int FriendCount => sReady && sFriends != null && sGetFriendCount != null ? (int)sGetFriendCount(sFriends, cFriendFlagImmediate) : 0;
+	public static int FriendCount => sReady && sFriends != null && sGetFriendCount != null ? (int)sGetFriendCount(sFriends, FriendFlagImmediate) : 0;
 	/// The Steam ID of a friend, by position in the list (0 to FriendCount - 1).
-	public static uint64 FriendAt(int index) => sReady && sFriends != null && sGetFriendByIndex != null ? sGetFriendByIndex(sFriends, (int32)index, cFriendFlagImmediate) : 0;
+	public static uint64 FriendAt(int index) => sReady && sFriends != null && sGetFriendByIndex != null ? sGetFriendByIndex(sFriends, (int32)index, FriendFlagImmediate) : 0;
 
 	public static void FriendName(uint64 id, String name)
 	{
@@ -176,27 +177,36 @@ static class Steam
 		if (!sReady || sFriends == null || id == 0) return;
 		if (sGetPlayerNickname != null)
 		{
-			let nickname = sGetPlayerNickname(sFriends,id);
-			if (nickname != null && nickname[0] != 0) { name.Append(nickname);return; }
+			let nickname = sGetPlayerNickname(sFriends, id);
+			if (nickname != null && nickname[0] != 0)
+			{
+				name.Append(nickname);
+				return;
+			}
 		}
-		if (id == UserId) { name.Append(UserName);return; }
-		if (sRequestUserInformation != null) sRequestUserInformation(sFriends,id,true);
-		FriendName(id,name);
+		if (id == UserId)
+		{
+			name.Append(UserName);
+			return;
+		}
+		if (sRequestUserInformation != null)
+			sRequestUserInformation(sFriends, id, true);
+		FriendName(id, name);
 	}
 
 	/// Whether a Steam ID belongs to one of the signed-in user's friends. False without Steam.
-	public static bool IsFriend(uint64 id) => sReady && sFriends != null && sHasFriend != null && sHasFriend(sFriends, id, cFriendFlagImmediate);
+	public static bool IsFriend(uint64 id) => sReady && sFriends != null && sHasFriend != null && sHasFriend(sFriends, id, FriendFlagImmediate);
 
 	/// Whether a friend is signed in to Steam at the moment (online, away, busy and so on: anything but offline).
 	public static bool FriendOnline(uint64 id) => sReady && sFriends != null && sGetFriendPersonaState != null && sGetFriendPersonaState(sFriends, id) != 0;
 
-    /// App ID of the game a friend is playing, or 0 when unavailable. Uses Steam's game state, not rich presence.
-    public static uint32 FriendAppId(uint64 id)
-    {
-        if(!sReady || sFriends==null || sGetFriendGamePlayed==null)return 0;
-        FriendGameInfo game=default;
-        return sGetFriendGamePlayed(sFriends,id,&game) ? (uint32)(game.gameId & 0xFFFFFF) : 0;
-    }
+	/// App ID of the game a friend is playing, or 0 when unavailable. Uses Steam's game state, not rich presence.
+	public static uint32 FriendAppId(uint64 id)
+	{
+		if (!sReady || sFriends == null || sGetFriendGamePlayed == null) return 0;
+		FriendGameInfo game = default;
+		return sGetFriendGamePlayed(sFriends, id, &game) ? (uint32)(game.gameId & 0xFFFFFF) : 0;
+	}
 
 	/// Publishes a named piece of text about what this player is doing; friends running the same game can read it
 	/// with FriendPresence. An empty value removes the key. Steam itself shows the "status" key in the friends list,
@@ -248,16 +258,18 @@ static class Steam
 		public uint8 flags;
 		public int32 callbackId;
 	}
+
 	static void*[3] sJoinMethods;
 	static CallbackObject sJoinCallback;
-	const int32 cJoinRequested = 337; // GameRichPresenceJoinRequested_t: the friend's ID (8 bytes), then the text.
+	const int32 JoinRequested = 337; // GameRichPresenceJoinRequested_t: the friend's ID (8 bytes), then the text.
 
 	static void OnJoinRequested(void* self, void* data)
 	{
 		sJoinRequest.Set(StringView((char8*)data + 8));
 		sJoinPending = true;
 	}
-	static void OnJoinResult(void* self, void* data, bool failed, uint64 call) {}
+
+	static void OnJoinResult(void* self, void* data, bool failed, uint64 call) { }
 	static int32 JoinRequestSize(void* self) => 264;
 
 	static void ListenForJoinRequests()
@@ -273,7 +285,7 @@ static class Steam
 		sJoinMethods = .((void*)run, (void*)result, (void*)size);
 #endif
 		sJoinCallback.methods = (void**)&sJoinMethods;
-		sRegisterCallback(&sJoinCallback, cJoinRequested);
+		sRegisterCallback(&sJoinCallback, JoinRequested);
 	}
 
 	public static uint64 UserId => sReady && sUser != null && sGetSteamID != null ? sGetSteamID(sUser) : 0;
@@ -315,25 +327,16 @@ static class Steam
 		return null;
 	}
 
-	static bool Load()
+	/// Opens the first Steam client library found: where TESSERA_STEAM_LIB says, beside the program, in the project
+	/// (or its Libraries folder), or in the Steam runtime. Null if there is none.
+	static void* FindLibrary(StringView fileName)
 	{
-		if (sTried)
-			return sLibrary != null;
-		sTried = true;
-#if BF_PLATFORM_WASM
-		// A web page cannot load the Steam client library: the game runs as if Steam were not there.
-		if (sTried)
-			return false;
-		let fileName = "";
-#elif BF_PLATFORM_WINDOWS
-		let fileName = "steam_api64.dll";
-#elif BF_PLATFORM_MACOS
-		let fileName = "libsteam_api.dylib";
-#else
-		let fileName = "libsteam_api.so";
-#endif
 		List<String> candidates = scope .();
-		defer { for (let c in candidates) delete c; }
+		defer
+		{
+			for (let c in candidates)
+				delete c;
+		}
 		let fromEnvironment = scope String();
 		if (Environment.GetEnvironmentVariable("TESSERA_STEAM_LIB", fromEnvironment) case .Ok && !fromEnvironment.IsEmpty)
 			candidates.Add(new String(fromEnvironment));
@@ -355,15 +358,16 @@ static class Steam
 		{
 			if (!File.Exists(candidate))
 				continue;
-			sLibrary = OpenLibrary(candidate.CStr());
-			if (sLibrary != null)
-				break;
+			let library = OpenLibrary(candidate.CStr());
+			if (library != null)
+				return library;
 		}
-		if (sLibrary == null)
-		{
-			sError.Set(scope $"{fileName} was not found. Put the file from the Steamworks SDK in the project Libraries folder or beside the executable.");
-			return false;
-		}
+		return null;
+	}
+
+	/// Looks up every Steam function the engine calls (those the library lacks stay null).
+	static void BindFunctions()
+	{
 		sInitFlat = (.)Symbol("SteamAPI_InitFlat");
 		sInitPlain = (.)Symbol("SteamAPI_Init");
 		sGetFriendCount = (.)Symbol("SteamAPI_ISteamFriends_GetFriendCount");
@@ -372,7 +376,7 @@ static class Steam
 		sGetPlayerNickname = (.)Symbol("SteamAPI_ISteamFriends_GetPlayerNickname");
 		sRequestUserInformation = (.)Symbol("SteamAPI_ISteamFriends_RequestUserInformation");
 		sGetFriendPersonaState = (.)Symbol("SteamAPI_ISteamFriends_GetFriendPersonaState");
-        sGetFriendGamePlayed = (.)Symbol("SteamAPI_ISteamFriends_GetFriendGamePlayed");
+		sGetFriendGamePlayed = (.)Symbol("SteamAPI_ISteamFriends_GetFriendGamePlayed");
 		sSetRichPresence = (.)Symbol("SteamAPI_ISteamFriends_SetRichPresence");
 		sClearRichPresence = (.)Symbol("SteamAPI_ISteamFriends_ClearRichPresence");
 		sGetFriendRichPresence = (.)Symbol("SteamAPI_ISteamFriends_GetFriendRichPresence");
@@ -413,6 +417,32 @@ static class Steam
 		sSetStatInt = (.)Symbol("SteamAPI_ISteamUserStats_SetStatInt32");
 		sGetStatInt = (.)Symbol("SteamAPI_ISteamUserStats_GetStatInt32");
 		sResetAllStats = (.)Symbol("SteamAPI_ISteamUserStats_ResetAllStats");
+	}
+
+	static bool Load()
+	{
+		if (sTried)
+			return sLibrary != null;
+		sTried = true;
+#if BF_PLATFORM_WASM
+		// A web page cannot load the Steam client library: the game runs as if Steam were not there.
+		if (sTried)
+			return false;
+		let fileName = "";
+		#elif BF_PLATFORM_WINDOWS
+		let fileName = "steam_api64.dll";
+		#elif BF_PLATFORM_MACOS
+		let fileName = "libsteam_api.dylib";
+		#else
+		let fileName = "libsteam_api.so";
+#endif
+		sLibrary = FindLibrary(fileName);
+		if (sLibrary == null)
+		{
+			sError.Set(scope $"{fileName} was not found. Put the file from the Steamworks SDK in the project Libraries folder or beside the executable.");
+			return false;
+		}
+		BindFunctions();
 		if ((sInitFlat == null && sInitPlain == null) || sRunCallbacks == null)
 		{
 			sError.Set("The Steam library is too old: it has no flat API. Use the one from a current Steamworks SDK.");
@@ -519,12 +549,12 @@ static class Steam
 class SteamTransport : NetTransport
 {
 	// Connection states reported by Steam.
-	const int32 cConnecting = 1;
-	const int32 cConnected = 3;
-	const int32 cClosedByPeer = 4;
-	const int32 cProblem = 5;
-	const int32 cSendUnreliable = 0;
-	const int32 cSendReliable = 8;
+	const int32 StateConnecting = 1;
+	const int32 StateConnected = 3;
+	const int32 StateClosedByPeer = 4;
+	const int32 StateProblem = 5;
+	const int32 SendUnreliable = 0;
+	const int32 SendReliable = 8;
 
 	static List<SteamTransport> sLive = new .() ~ delete _;
 	/// Print every connection state change, for diagnosing connection problems.
@@ -542,7 +572,10 @@ class SteamTransport : NetTransport
 	/// Set by the Network Session before it starts; 0 uses the project's App ID, or Valve's test app 480.
 	public static uint32 AppId;
 
-	public ~this() { Close(); }
+	public ~this()
+	{
+		Close();
+	}
 
 	bool Open()
 	{
@@ -618,7 +651,7 @@ class SteamTransport : NetTransport
 		// SteamNetConnectionRealTimeStatus_t starts with the connection state; the rest is not needed here.
 		uint8[512] status = default;
 		if (Steam.GetConnectionRealTimeStatus(Steam.Sockets, connection, &status, 0, null) != 1)
-			return cProblem;
+			return StateProblem;
 		return *(int32*)&status;
 	}
 
@@ -628,7 +661,8 @@ class SteamTransport : NetTransport
 		// SteamNetConnectionStatusChangedCallback_t starts with the connection handle.
 		let connection = *(uint32*)info;
 		let state = StateOf(connection);
-		if (Trace) Log.Info(scope $"Steam connection {connection} is now in state {state}.");
+		if (Trace)
+			Log.Info(scope $"Steam connection {connection} is now in state {state}.");
 		for (let transport in sLive)
 			transport.Changed(connection, state);
 	}
@@ -640,7 +674,7 @@ class SteamTransport : NetTransport
 		event.peer = (void*)(int)connection;
 		switch (state)
 		{
-		case cConnecting:
+		case StateConnecting:
 			// Someone is knocking on the listen socket.
 			if (mListen != 0 && !known && connection != mServer)
 			{
@@ -652,14 +686,14 @@ class SteamTransport : NetTransport
 				else
 					Steam.CloseConnection(Steam.Sockets, connection, 0, null, false);
 			}
-		case cConnected:
+		case StateConnected:
 			if (known && !mEstablished.Contains(connection))
 			{
 				mEstablished.Add(connection);
 				event.kind = .Connected;
 				mQueued.Add(event);
 			}
-		case cClosedByPeer, cProblem:
+		case StateClosedByPeer,StateProblem:
 			if (known)
 			{
 				mConnections.Remove(connection);
@@ -709,7 +743,7 @@ class SteamTransport : NetTransport
 	public override void Send(void* peer, Span<uint8> data, bool reliable)
 	{
 		if (mOpen && peer != null)
-			Steam.SendMessageToConnection(Steam.Sockets, (uint32)(int)peer, data.Ptr, (uint32)data.Length, reliable ? cSendReliable : cSendUnreliable, null);
+			Steam.SendMessageToConnection(Steam.Sockets, (uint32)(int)peer, data.Ptr, (uint32)data.Length, reliable ? SendReliable : SendUnreliable, null);
 	}
 
 	public override void Disconnect(void* peer)
@@ -741,7 +775,9 @@ class SteamTransport : NetTransport
 			Steam.CloseListenSocket(Steam.Sockets, mListen);
 		if (mPollGroup != 0 && Steam.DestroyPollGroup != null)
 			Steam.DestroyPollGroup(Steam.Sockets, mPollGroup);
-		mListen = 0; mPollGroup = 0; mServer = 0;
+		mListen = 0;
+		mPollGroup = 0;
+		mServer = 0;
 		mQueued.Clear();
 		sLive.Remove(this);
 		mOpen = false;

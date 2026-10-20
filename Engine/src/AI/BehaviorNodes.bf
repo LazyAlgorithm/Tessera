@@ -15,7 +15,11 @@ class BTRoot : BTNode
 class BTSequence : BTNode
 {
 	int mIndex;
-	protected override void OnStart(BTContext context) { mIndex = 0; }
+	protected override void OnStart(BTContext context)
+	{
+		mIndex = 0;
+	}
+
 	protected override BTStatus OnTick(BTContext context)
 	{
 		while (mIndex < children.Count)
@@ -33,7 +37,11 @@ class BTSequence : BTNode
 class BTSelector : BTNode
 {
 	int mIndex;
-	protected override void OnStart(BTContext context) { mIndex = 0; }
+	protected override void OnStart(BTContext context)
+	{
+		mIndex = 0;
+	}
+
 	protected override BTStatus OnTick(BTContext context)
 	{
 		while (mIndex < children.Count)
@@ -97,8 +105,10 @@ class BTParallel : BTNode
 		{
 			// A child that already finished this run keeps its result.
 			let result = (child.status == .Success || child.status == .Failure) && child.lastTick >= mStarted ? child.status : child.Tick(context);
-			if (result == .Success) succeeded++;
-			else if (result == .Failure) failed++;
+			if (result == .Success)
+				succeeded++;
+			else if (result == .Failure)
+				failed++;
 		}
 		BTStatus outcome = .Running;
 		if (requireAll)
@@ -112,8 +122,12 @@ class BTParallel : BTNode
 		}
 		return outcome;
 	}
+
 	int32 mStarted;
-	protected override void OnStart(BTContext context) { mStarted = context.tick; }
+	protected override void OnStart(BTContext context)
+	{
+		mStarted = context.tick;
+	}
 }
 
 class BTInvert : BTNode
@@ -139,7 +153,11 @@ class BTAlwaysSucceed : BTNode
 class BTRepeat : BTNode
 {
 	int mDone;
-	protected override void OnStart(BTContext context) { mDone = 0; }
+	protected override void OnStart(BTContext context)
+	{
+		mDone = 0;
+	}
+
 	protected override BTStatus OnTick(BTContext context)
 	{
 		if (children.Count == 0) return .Failure;
@@ -183,7 +201,11 @@ class BTCooldown : BTNode
 class BTTimeout : BTNode
 {
 	float mElapsed;
-	protected override void OnStart(BTContext context) { mElapsed = 0; }
+	protected override void OnStart(BTContext context)
+	{
+		mElapsed = 0;
+	}
+
 	protected override BTStatus OnTick(BTContext context)
 	{
 		if (children.Count == 0) return .Failure;
@@ -208,6 +230,7 @@ class BTWait : BTNode
 		let high = Math.Max(Number(1), low);
 		mLeft = low + (high - low) * (float)context.random.NextDouble();
 	}
+
 	protected override BTStatus OnTick(BTContext context)
 	{
 		mLeft -= context.deltaTime;
@@ -261,6 +284,7 @@ class BTCallMethod : BTNode
 		}
 		return .Failure;
 	}
+
 	bool mWarned;
 }
 
@@ -406,7 +430,7 @@ class BTCanSee : BTNode
 		if (!key.IsEmpty)
 		{
 			context.blackboard.SetObject(key, found);
-			context.blackboard.SetVector(scope $"{key}.position", found.Transform.Position);
+			context.blackboard.SetVector(scope $"{key}.position" , found.Transform.Position);
 		}
 		return .Success;
 	}
@@ -424,7 +448,7 @@ class BTIsNear : BTNode
 		if (!key.IsEmpty)
 		{
 			context.blackboard.SetObject(key, found);
-			context.blackboard.SetVector(scope $"{key}.position", found.Transform.Position);
+			context.blackboard.SetVector(scope $"{key}.position" , found.Transform.Position);
 		}
 		return .Success;
 	}
@@ -444,7 +468,10 @@ abstract class BTMove : BTNode
 	/// Keep asking for the destination, for targets that move.
 	protected virtual bool Follow => false;
 
-	protected override void OnStart(BTContext context) { mAsked = false; }
+	protected override void OnStart(BTContext context)
+	{
+		mAsked = false;
+	}
 
 	protected override BTStatus OnTick(BTContext context)
 	{
@@ -456,7 +483,8 @@ abstract class BTMove : BTNode
 			Vector3 point;
 			if (!Destination(context, out point))
 			{
-				if (mAsked) mover.StopMovement();
+				if (mAsked)
+					mover.StopMovement();
 				return .Failure;
 			}
 			mover.SetDestination(point, Speed, StopDistance);
@@ -479,7 +507,11 @@ class BTMoveToPosition : BTMove
 {
 	protected override float Speed => Number(1);
 	protected override float StopDistance => Number(2);
-	protected override bool Destination(BTContext context, out Vector3 point) { point = Vector(0); return true; }
+	protected override bool Destination(BTContext context, out Vector3 point)
+	{
+		point = Vector(0);
+		return true;
+	}
 }
 
 class BTMoveToObject : BTMove
@@ -518,6 +550,7 @@ class BTPatrol : BTMove
 		base.OnStart(context);
 		mIndex++;
 	}
+
 	protected override bool Destination(BTContext context, out Vector3 point)
 	{
 		point = default;
@@ -527,6 +560,7 @@ class BTPatrol : BTMove
 		point = route.Transform.Children[mIndex % route.Transform.Children.Count].Position;
 		return true;
 	}
+
 	protected override void OnEnd(BTContext context, bool aborted)
 	{
 		base.OnEnd(context, aborted);
@@ -549,7 +583,12 @@ class BTWander : BTMove
 		let distance = Number(0) * Math.Sqrt((float)context.random.NextDouble());
 		mPoint = context.runner.Home + Vector3(Math.Cos(angle), 0, Math.Sin(angle)) * distance;
 	}
-	protected override bool Destination(BTContext context, out Vector3 point) { point = mPoint; return true; }
+
+	protected override bool Destination(BTContext context, out Vector3 point)
+	{
+		point = mPoint;
+		return true;
+	}
 }
 
 class BTStopMoving : BTNode

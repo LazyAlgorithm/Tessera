@@ -300,16 +300,20 @@ class AnimatorController
 	public int32 FindParameter(StringView name)
 	{
 		for (int32 i < (int32)parameters.Count)
+		{
 			if (parameters[i].name == name)
 				return i;
+		}
 		return -1;
 	}
 
 	public int32 FindState(StringView name)
 	{
 		for (int32 i < (int32)states.Count)
+		{
 			if (states[i].name == name)
 				return i;
+		}
 		return -1;
 	}
 
@@ -375,8 +379,10 @@ class AnimatorController
 				transitions.RemoveAt(i);
 				continue;
 			}
-			if (transition.from > index) transition.from--;
-			if (transition.to > index) transition.to--;
+			if (transition.from > index)
+				transition.from--;
+			if (transition.to > index)
+				transition.to--;
 		}
 		if (defaultState == index)
 			defaultState = 0;
@@ -403,10 +409,14 @@ class AnimatorController
 		{
 			if (state.blend == null)
 				continue;
-			if (state.blend.parameterX == index) state.blend.parameterX = -1;
-			else if (state.blend.parameterX > index) state.blend.parameterX--;
-			if (state.blend.parameterY == index) state.blend.parameterY = -1;
-			else if (state.blend.parameterY > index) state.blend.parameterY--;
+			if (state.blend.parameterX == index)
+				state.blend.parameterX = -1;
+			else if (state.blend.parameterX > index)
+				state.blend.parameterX--;
+			if (state.blend.parameterY == index)
+				state.blend.parameterY = -1;
+			else if (state.blend.parameterY > index)
+				state.blend.parameterY--;
 		}
 		for (let transition in transitions)
 		{
@@ -470,6 +480,35 @@ class AnimatorController
 			Log.Error(scope $"Could not save {fullPath}");
 	}
 
+	/// After reading: anything pointing at a state or layer that is not there is dropped (or put on the Base Layer)
+	/// rather than trusted.
+	void DropBrokenLinks()
+	{
+		for (int i = transitions.Count - 1; i >= 0; i--)
+		{
+			let t = transitions[i];
+			if (t.to < 0 || t.to >= states.Count || t.from < -1 || t.from >= states.Count)
+			{
+				delete t;
+				transitions.RemoveAt(i);
+			}
+		}
+		defaultState = Math.Clamp(defaultState, 0, Math.Max((int32)states.Count - 1, 0));
+		// A file from before layers has none written: it is all the Base Layer.
+		if (layers.Count == 0)
+			AddLayer("Base Layer");
+		for (let state in states)
+		{
+			if (state.layer >= layers.Count)
+				state.layer = 0;
+		}
+		for (let t in transitions)
+		{
+			if (t.layer >= layers.Count)
+				t.layer = 0;
+		}
+	}
+
 	public bool Read(StringView fullPath)
 	{
 		let text = scope String();
@@ -484,7 +523,11 @@ class AnimatorController
 		State lastState = null;
 		List<StringView> tokens = scope .();
 		List<String> storage = scope .();
-		defer { for (let s in storage) delete s; }
+		defer
+		{
+			for (let s in storage)
+				delete s;
+		}
 		for (let line in text.Split('\n'))
 		{
 			tokens.Clear();
@@ -560,30 +603,7 @@ class AnimatorController
 				}
 			}
 		}
-		// Anything pointing at a state that is not there is dropped rather than trusted.
-		for (int i = transitions.Count - 1; i >= 0; i--)
-		{
-			let t = transitions[i];
-			if (t.to < 0 || t.to >= states.Count || t.from < -1 || t.from >= states.Count)
-			{
-				delete t;
-				transitions.RemoveAt(i);
-			}
-		}
-		defaultState = Math.Clamp(defaultState, 0, Math.Max((int32)states.Count - 1, 0));
-		// A file from before layers has none written: it is all the Base Layer.
-		if (layers.Count == 0)
-			AddLayer("Base Layer");
-		for (let state in states)
-		{
-			if (state.layer >= layers.Count)
-				state.layer = 0;
-		}
-		for (let t in transitions)
-		{
-			if (t.layer >= layers.Count)
-				t.layer = 0;
-		}
+		DropBrokenLinks();
 		Revision++;
 		return true;
 	}

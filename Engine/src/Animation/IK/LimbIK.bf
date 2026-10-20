@@ -101,7 +101,8 @@ class LimbIK : IKComponent
 	{
 		if (tip == null || target == null)
 			return;
-		Vector3 position; Quaternion rotation;
+		Vector3 position;
+		Quaternion rotation;
 		// Measured on the pose from before IK, which is the one being looked at when the weight is 0.
 		let saved = tip.LocalRotation;
 		if (InputPose(tip, out position, out rotation))

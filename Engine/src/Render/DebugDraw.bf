@@ -6,10 +6,13 @@ namespace Tessera;
 /// A per-frame list of colored line segments.
 class LineBatch
 {
+	/// Two vertices for each line (three for each triangle in a batch of triangles).
 	public List<LineVertex> Vertices = new .() ~ delete _;
 
+	/// Removes everything.
 	public void Clear() => Vertices.Clear();
 
+	/// Adds a line, in the world.
 	public void Line(Vector3 a, Vector3 b, Color color)
 	{
 		let packed = color.ToABGR();
@@ -29,9 +32,12 @@ class LineBatch
 		let packed = color.ToABGR();
 		LineVertex v;
 		v.color = packed;
-		v.position = a; Vertices.Add(v);
-		v.position = b; Vertices.Add(v);
-		v.position = c; Vertices.Add(v);
+		v.position = a;
+		Vertices.Add(v);
+		v.position = b;
+		Vertices.Add(v);
+		v.position = c;
+		Vertices.Add(v);
 	}
 
 	/// A filled quad from four corners in order around its edge.
@@ -50,13 +56,24 @@ class LineBatch
 			let p = Vector3((i & 1) != 0 ? bounds.max.x : bounds.min.x, (i & 2) != 0 ? bounds.max.y : bounds.min.y, (i & 4) != 0 ? bounds.max.z : bounds.min.z);
 			c[i] = matrix.TransformPoint(p);
 		}
-		Line(c[0], c[1], color); Line(c[2], c[3], color); Line(c[4], c[5], color); Line(c[6], c[7], color);
-		Line(c[0], c[2], color); Line(c[1], c[3], color); Line(c[4], c[6], color); Line(c[5], c[7], color);
-		Line(c[0], c[4], color); Line(c[1], c[5], color); Line(c[2], c[6], color); Line(c[3], c[7], color);
+		Line(c[0], c[1], color);
+		Line(c[2], c[3], color);
+		Line(c[4], c[5], color);
+		Line(c[6], c[7], color);
+		Line(c[0], c[2], color);
+		Line(c[1], c[3], color);
+		Line(c[4], c[6], color);
+		Line(c[5], c[7], color);
+		Line(c[0], c[4], color);
+		Line(c[1], c[5], color);
+		Line(c[2], c[6], color);
+		Line(c[3], c[7], color);
 	}
 
+	/// Adds a box's edges.
 	public void Box(Bounds bounds, Color color) => Box(bounds, .Identity, color);
 
+	/// Adds a circle facing a direction.
 	public void Circle(Vector3 center, Vector3 normal, float radius, Color color, int segments = 32)
 	{
 		let n = normal.Normalized;
@@ -72,6 +89,7 @@ class LineBatch
 		}
 	}
 
+	/// Adds three circles round a point, one on each axis.
 	public void Sphere(Vector3 center, float radius, Color color)
 	{
 		Circle(center, .(1, 0, 0), radius, color);
@@ -88,9 +106,18 @@ class LineBatch
 		{
 			c[i] = invViewProj.Project(.((i & 1) != 0 ? 1.0f : -1.0f, (i & 2) != 0 ? 1.0f : -1.0f, (i & 4) != 0 ? 1.0f : zNear));
 		}
-		Line(c[0], c[1], color); Line(c[2], c[3], color); Line(c[4], c[5], color); Line(c[6], c[7], color);
-		Line(c[0], c[2], color); Line(c[1], c[3], color); Line(c[4], c[6], color); Line(c[5], c[7], color);
-		Line(c[0], c[4], color); Line(c[1], c[5], color); Line(c[2], c[6], color); Line(c[3], c[7], color);
+		Line(c[0], c[1], color);
+		Line(c[2], c[3], color);
+		Line(c[4], c[5], color);
+		Line(c[6], c[7], color);
+		Line(c[0], c[2], color);
+		Line(c[1], c[3], color);
+		Line(c[4], c[6], color);
+		Line(c[5], c[7], color);
+		Line(c[0], c[4], color);
+		Line(c[1], c[5], color);
+		Line(c[2], c[6], color);
+		Line(c[3], c[7], color);
 	}
 
 	/// Ground grid on the XZ plane centred near a point.
@@ -114,14 +141,18 @@ static class DebugDraw
 {
 	public static LineBatch Lines = new .() ~ delete _;
 
+	/// Draws a line this frame, in the game and the editor.
 	public static void Line(Vector3 a, Vector3 b, Color color) => Lines.Line(a, b, color);
+	/// Draws a box's edges this frame.
 	public static void Box(Bounds bounds, Color color) => Lines.Box(bounds, color);
+	/// Draws a sphere's outline this frame.
 	public static void Sphere(Vector3 center, float radius, Color color) => Lines.Sphere(center, radius, color);
 }
 
 /// Editor-only helpers; drawn in the Scene view and never in the Game view or a built player.
 static class Gizmos
 {
+	/// Lines to draw in the Scene view this frame; cleared after every frame.
 	public static LineBatch Lines = new .() ~ delete _;
 	/// Filled, usually see-through shapes; add them with Triangle or Quad.
 	public static LineBatch Triangles = new .() ~ delete _;

@@ -42,6 +42,8 @@ static class WebRtc
 }
 
 #if BF_PLATFORM_WASM
+/// The NetTransport behind WebRtc: peer-to-peer data channels, run by tools/web/shell/tessera-net.js and reached
+/// through the tn_rtc_* calls.
 class WebRtcTransport : NetTransport
 {
 	[CLink] public static extern char8* tn_rtc_host(char8* app, char8* code);
@@ -55,7 +57,10 @@ class WebRtcTransport : NetTransport
 
 	bool mOpen;
 
-	public ~this() { Close(); }
+	public ~this()
+	{
+		Close();
+	}
 
 	public override bool Host(uint16 port)
 	{

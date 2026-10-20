@@ -132,6 +132,7 @@ class ComputeEffect : Component
 		mValues[property.slot] = value;
 		mSet[property.slot] = true;
 	}
+
 	public void SetFloat(StringView name, float value) => SetVector(name, .(value, 0, 0, 0));
 	public void SetColor(StringView name, Color value) => SetVector(name, .(value.r, value.g, value.b, value.a));
 

@@ -8,8 +8,18 @@ namespace Tessera;
 /// Ordered name/value list used for attributes and style properties.
 class UIProps
 {
-	public List<(String key, String value)> items = new .() ~ { for (let i in _) { delete i.key; delete i.value; } delete _; };
+	/// The names and values, in the order they were set.
+	public List<(String key, String value)> items = new .() ~
+		{
+			for (let i in _)
+			{
+				delete i.key;
+				delete i.value;
+			}
+			delete _;
+		};
 
+	/// Sets a value (replacing one of the same name).
 	public void Set(StringView key, StringView value)
 	{
 		for (let item in items)
@@ -23,6 +33,7 @@ class UIProps
 		items.Add((new String(key), new String(value)));
 	}
 
+	/// A value, or fallback.
 	public StringView Get(StringView key, StringView fallback = default)
 	{
 		for (let item in items)
@@ -33,8 +44,10 @@ class UIProps
 		return fallback;
 	}
 
+	/// Whether there is a non-empty value for a name.
 	public bool Has(StringView key) => !Get(key).IsEmpty;
 
+	/// Removes a value.
 	public void Remove(StringView key)
 	{
 		for (int i < items.Count)
@@ -49,9 +62,14 @@ class UIProps
 		}
 	}
 
+	/// Removes every value.
 	public void Clear()
 	{
-		for (let i in items) { delete i.key; delete i.value; }
+		for (let i in items)
+		{
+			delete i.key;
+			delete i.value;
+		}
 		items.Clear();
 	}
 
@@ -77,7 +95,9 @@ class UIProps
 /// Tags: panel, text, button, image, input, bar, slider, toggle, canvas.
 class UIElement
 {
+	/// What the element is: panel, text, button, image, slider, toggle, bar, input or canvas.
 	public String tag = new .("panel") ~ delete _;
+	/// Its text.
 	public String text = new .() ~ delete _;
 	/// id, class, onclick, onload, src, bind ...
 	public UIProps attributes = new .() ~ delete _;
@@ -85,8 +105,11 @@ class UIElement
 	public UIProps style = new .() ~ delete _;
 	/// Final style after the stylesheet and inheritance were applied.
 	public UIProps computed = new .() ~ delete _;
+	/// The elements inside it.
 	public List<UIElement> children = new .() ~ DeleteContainerAndItems!(_);
+	/// The element it is inside, or null for the document's root.
 	public UIElement parent;
+	/// Whether it (and everything inside it) is drawn.
 	public bool visible = true;
 	/// The number a slider is set to (between its min and max attributes), 1 or 0 for a toggle, and the fill
 	/// of a bar that has no bind (0 to 1).
@@ -97,11 +120,15 @@ class UIElement
 	public float screenScale = 1;
 
 	// Layout results, relative to the document's top-left corner.
+	/// Where layout put it, in the document's units, relative to the document.
 	public float x, y, width, height;
+	/// The size it would like, worked out by layout.
 	public Vector2 desired;
 
+	/// Its id attribute (empty if it has none).
 	public StringView Id => attributes.Get("id");
 
+	/// Whether its class attribute names a class.
 	public bool HasClass(StringView name)
 	{
 		for (let part in attributes.Get("class").Split(' ', .RemoveEmptyEntries))
@@ -112,6 +139,7 @@ class UIElement
 		return false;
 	}
 
+	/// Sets its text.
 	public void SetText(StringView value) => text.Set(value);
 
 	/// Gives the element a class it does not have yet, or takes one away: SetClass("selected", isSelected).
@@ -150,9 +178,11 @@ class UIElement
 		}
 		return copy;
 	}
+
 	/// Changes one style property from code, e.g. SetStyle("background-color", "#c0392b").
 	public void SetStyle(StringView name, StringView value) => style.Set(name, value);
 
+	/// Adds a new element of a tag inside it.
 	public UIElement AddChild(StringView childTag)
 	{
 		let child = new UIElement();
@@ -162,6 +192,7 @@ class UIElement
 		return child;
 	}
 
+	/// The element with an id, this one or anything inside it, or null.
 	public UIElement Find(StringView id)
 	{
 		if (Id == id)
@@ -177,6 +208,7 @@ class UIElement
 
 	// ---- style helpers ----
 
+	/// A style value as a number (its computed style), or fallback.
 	public float Number(StringView name, float fallback = 0)
 	{
 		var value = computed.Get(name);
@@ -239,6 +271,7 @@ class UIElement
 		}
 	}
 
+	/// A style value as a colour, or fallback.
 	public Color ColorOf(StringView name, Color fallback)
 	{
 		Color color;
@@ -247,6 +280,7 @@ class UIElement
 		return fallback;
 	}
 
+	/// Reads a CSS colour: #rgb, #rrggbb, #rrggbbaa, rgb(), rgba() or a name.
 	public static bool ParseColor(StringView textIn, out Color color)
 	{
 		color = .(0, 0, 0, 0);
@@ -257,13 +291,27 @@ class UIElement
 		switch (text)
 		{
 		case "transparent": return true;
-		case "white": color = .White; return true;
-		case "black": color = .Black; return true;
-		case "red": color = .(0.9f, 0.2f, 0.2f); return true;
-		case "green": color = .(0.2f, 0.75f, 0.3f); return true;
-		case "blue": color = .(0.2f, 0.45f, 0.9f); return true;
-		case "yellow": color = .(0.95f, 0.8f, 0.2f); return true;
-		case "gray", "grey": color = .(0.5f, 0.5f, 0.5f); return true;
+		case "white":
+			color = .White;
+			return true;
+		case "black":
+			color = .Black;
+			return true;
+		case "red":
+			color = .(0.9f, 0.2f, 0.2f);
+			return true;
+		case "green":
+			color = .(0.2f, 0.75f, 0.3f);
+			return true;
+		case "blue":
+			color = .(0.2f, 0.45f, 0.9f);
+			return true;
+		case "yellow":
+			color = .(0.95f, 0.8f, 0.2f);
+			return true;
+		case "gray","grey":
+			color = .(0.5f, 0.5f, 0.5f);
+			return true;
 		}
 		if (text.StartsWith('#'))
 		{

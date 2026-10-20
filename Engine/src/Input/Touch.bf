@@ -64,7 +64,7 @@ static class Touch
 				}
 			}
 			sLastTouchTime = Time.RealTime;
-		case SDL.EVENT_FINGER_UP, SDL.EVENT_FINGER_CANCELED:
+		case SDL.EVENT_FINGER_UP,SDL.EVENT_FINGER_CANCELED:
 			for (let finger in sFingers)
 			{
 				if (finger.id == FingerId(ref event))
@@ -175,6 +175,7 @@ class TouchControl
 		let margin = TouchControls.EdgeMargin * unit;
 		return .(anchor.x * screen.x + offset.x * scale * unit + (1 - 2 * anchor.x) * margin.x, anchor.y * screen.y + offset.y * scale * unit + (1 - 2 * anchor.y) * margin.y);
 	}
+
 	public float RadiusPixels(Vector2 screen) => radius * TouchControls.Scale * TouchControls.Unit(screen);
 
 	/// A button: touched this frame and not the last.

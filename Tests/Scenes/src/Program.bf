@@ -2,19 +2,31 @@ using System;
 using System.Collections;
 using System.IO;
 using Tessera;
+
 namespace SceneTests;
 
 [Component]
 class Counter : Component
 {
 	public static int Awake_, Destroyed;
-	public override void Awake() { Awake_++; }
-	public override void OnDestroy() { Destroyed++; }
+	public override void Awake()
+	{
+		Awake_++;
+	}
+
+	public override void OnDestroy()
+	{
+		Destroyed++;
+	}
 }
 
 class Program
 {
-	static bool Check(bool pass, StringView label) { Console.WriteLine(scope $"{pass ? "PASS" : "FAIL"}: {label}"); return pass; }
+	static bool Check(bool pass, StringView label)
+	{
+		Console.WriteLine(scope $"{pass ? "PASS" : "FAIL"}: {label}");
+		return pass;
+	}
 
 	public static int Main(String[] args)
 	{

@@ -20,9 +20,17 @@ extension EditorApp
 
 	void DrawProjectConfigSettings()
 	{
-		bool changed = false;
+		bool changed = DrawLayerSettings();
+		changed |= DrawTagSettings();
+		changed |= DrawWorldStateSettings();
+		if (changed)
+			SaveProjectConfig();
+	}
 
-		// ---- physics layers ----
+	/// The physics layers: their names, Add Layer, and which collide. True when something changed.
+	bool DrawLayerSettings()
+	{
+		bool changed = false;
 		ImGui.SeparatorText("Physics Layers");
 		ImGui.TextWrapped("Name up to 32 layers. Each object is on one (set at the top of the Inspector); the table says which layers collide, and ray and shape queries can be limited to some layers. Changes apply from the next Play.");
 		List<int32> named = scope .();
@@ -75,41 +83,52 @@ extension EditorApp
 			}
 		}
 		if (named.Count > 1)
-		{
-			ImGui.Spacing();
-			ImGui.TextDisabled("Which layers collide (ticked: they do)");
-			if (ImGui.BeginTable("collisions", (int32)named.Count + 1, ImGui.TableFlags.BordersInnerH | ImGui.TableFlags.BordersInnerV | ImGui.TableFlags.BordersOuter | ImGui.TableFlags.SizingFixedFit))
-			{
-				ImGui.TableSetupColumn("");
-				for (let layer in named)
-					ImGui.TableSetupColumn(scope String(ProjectConfig.LayerName(layer)).CStr());
-				ImGui.TableHeadersRow();
-				for (let a in named)
-				{
-					ImGui.TableNextRow();
-					ImGui.TableNextColumn();
-					ImGui.Text(ProjectConfig.LayerName(a));
-					for (let b in named)
-					{
-						ImGui.TableNextColumn();
-						// Each pair once: the lower triangle mirrors the upper.
-						if (b < a)
-							continue;
-						ImGui.PushID(a * 64 + b);
-						var collide = ProjectConfig.LayersCollide(a, b);
-						if (ImGui.Checkbox("##c", ref collide))
-						{
-							ProjectConfig.SetLayersCollide(a, b, collide);
-							changed = true;
-						}
-						ImGui.PopID();
-					}
-				}
-				ImGui.EndTable();
-			}
-		}
+			changed |= DrawCollisionMatrix(named);
+		return changed;
+	}
 
-		// ---- tags ----
+	/// Which layers collide, as a table of ticks: each pair once, the lower triangle mirroring the upper.
+	static bool DrawCollisionMatrix(List<int32> named)
+	{
+		bool changed = false;
+		ImGui.Spacing();
+		ImGui.TextDisabled("Which layers collide (ticked: they do)");
+		if (ImGui.BeginTable("collisions", (int32)named.Count + 1, ImGui.TableFlags.BordersInnerH | ImGui.TableFlags.BordersInnerV | ImGui.TableFlags.BordersOuter | ImGui.TableFlags.SizingFixedFit))
+		{
+			ImGui.TableSetupColumn("");
+			for (let layer in named)
+				ImGui.TableSetupColumn(scope String(ProjectConfig.LayerName(layer)).CStr());
+			ImGui.TableHeadersRow();
+			for (let a in named)
+			{
+				ImGui.TableNextRow();
+				ImGui.TableNextColumn();
+				ImGui.Text(ProjectConfig.LayerName(a));
+				for (let b in named)
+				{
+					ImGui.TableNextColumn();
+					// Each pair once: the lower triangle mirrors the upper.
+					if (b < a)
+						continue;
+					ImGui.PushID(a * 64 + b);
+					var collide = ProjectConfig.LayersCollide(a, b);
+					if (ImGui.Checkbox("##c", ref collide))
+					{
+						ProjectConfig.SetLayersCollide(a, b, collide);
+						changed = true;
+					}
+					ImGui.PopID();
+				}
+			}
+			ImGui.EndTable();
+		}
+		return changed;
+	}
+
+	/// The project's tags: each with a button that removes it, and a box to add one. True when something changed.
+	bool DrawTagSettings()
+	{
+		bool changed = false;
 		ImGui.SeparatorText("Tags");
 		ImGui.TextWrapped("Labels for objects, set in the Inspector. Scripts find tagged objects quickly with Scene.FindWithTag and FindAllWithTag; behaviour trees can look for them too.");
 		String removeTag = null;
@@ -136,8 +155,13 @@ extension EditorApp
 			mNewTag.Clear();
 			changed = true;
 		}
+		return changed;
+	}
 
-		// ---- world states ----
+	/// The world states: each one's name, a box to add one, and Remove Last. True when something changed.
+	bool DrawWorldStateSettings()
+	{
+		bool changed = false;
 		ImGui.SeparatorText("World States");
 		ImGui.TextWrapped("Versions of the same place that the game switches between (a past and a present, a real and a dream world). Each object is in all of them unless set otherwise in the Inspector; Scene.WorldState switches which one is shown, collides, is heard and is walked on, all at once.");
 		for (int32 i < (int32)ProjectConfig.WorldStates.Count)
@@ -173,9 +197,7 @@ extension EditorApp
 				changed = true;
 			}
 		}
-
-		if (changed)
-			SaveProjectConfig();
+		return changed;
 	}
 
 	/// Layer, tags and world states of an object, under its name in the Inspector.

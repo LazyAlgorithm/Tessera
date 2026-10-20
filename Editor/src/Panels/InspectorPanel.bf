@@ -82,7 +82,7 @@ extension EditorApp
 					let name = scope String();
 					Path.GetFileNameWithoutExtension(renderer.material, name);
 					ImGui.Dummy(.(0, 6));
-					if (ImGui.CollapsingHeader(scope $"{name}  (Material)###materialheader".CStr(), ImGui.TreeFlags.DefaultOpen))
+					if (ImGui.CollapsingHeader(scope $"{name}  (Material)###materialheader" .CStr(), ImGui.TreeFlags.DefaultOpen))
 						DrawMaterialInspector(renderer.material);
 				}
 				DrawInspectorScriptDrop(selected);
@@ -99,22 +99,34 @@ extension EditorApp
 		bool changed = false;
 		if (ImGui.CollapsingHeader("Lighting", ImGui.TreeFlags.DefaultOpen) && BeginPropertyTable("lighting"))
 		{
-			BeginProperty("Ambient Sky"); changed |= ImGui.ColorEdit3("##as", ref env.ambientSky);
-			BeginProperty("Ambient Ground"); changed |= ImGui.ColorEdit3("##ag", ref env.ambientGround);
-			BeginProperty("Ambient Intensity"); changed |= ImGui.SliderFloat("##ai", ref env.ambientIntensity, 0, 2);
-			BeginProperty("Exposure"); changed |= ImGui.SliderFloat("##ex", ref env.exposure, 0.1f, 4);
-			BeginProperty("Bloom"); changed |= ImGui.SliderFloat("##bl", ref env.bloom, 0, 2);
-			BeginProperty("Bloom Threshold"); changed |= ImGui.SliderFloat("##bt", ref env.bloomThreshold, 0, 4);
-			BeginProperty("Shadow Distance"); changed |= ImGui.DragFloat("##sd", ref env.shadowDistance, 1, 10, 1000);
+			BeginProperty("Ambient Sky");
+			changed |= ImGui.ColorEdit3("##as", ref env.ambientSky);
+			BeginProperty("Ambient Ground");
+			changed |= ImGui.ColorEdit3("##ag", ref env.ambientGround);
+			BeginProperty("Ambient Intensity");
+			changed |= ImGui.SliderFloat("##ai", ref env.ambientIntensity, 0, 2);
+			BeginProperty("Exposure");
+			changed |= ImGui.SliderFloat("##ex", ref env.exposure, 0.1f, 4);
+			BeginProperty("Bloom");
+			changed |= ImGui.SliderFloat("##bl", ref env.bloom, 0, 2);
+			BeginProperty("Bloom Threshold");
+			changed |= ImGui.SliderFloat("##bt", ref env.bloomThreshold, 0, 4);
+			BeginProperty("Shadow Distance");
+			changed |= ImGui.DragFloat("##sd", ref env.shadowDistance, 1, 10, 1000);
 			ImGui.EndTable();
 		}
 		if (ImGui.CollapsingHeader("Sky and Fog", ImGui.TreeFlags.DefaultOpen) && BeginPropertyTable("sky"))
 		{
-			BeginProperty("Zenith"); changed |= ImGui.ColorEdit3("##sz", ref env.skyZenith);
-			BeginProperty("Horizon"); changed |= ImGui.ColorEdit3("##sh", ref env.skyHorizon);
-			BeginProperty("Ground"); changed |= ImGui.ColorEdit3("##sg", ref env.skyGround);
-			BeginProperty("Fog Color"); changed |= ImGui.ColorEdit3("##fc", ref env.fogColor);
-			BeginProperty("Fog Density"); changed |= ImGui.DragFloat("##fd", ref env.fogDensity, 0.0002f, 0, 0.2f, "%.4f");
+			BeginProperty("Zenith");
+			changed |= ImGui.ColorEdit3("##sz", ref env.skyZenith);
+			BeginProperty("Horizon");
+			changed |= ImGui.ColorEdit3("##sh", ref env.skyHorizon);
+			BeginProperty("Ground");
+			changed |= ImGui.ColorEdit3("##sg", ref env.skyGround);
+			BeginProperty("Fog Color");
+			changed |= ImGui.ColorEdit3("##fc", ref env.fogColor);
+			BeginProperty("Fog Density");
+			changed |= ImGui.DragFloat("##fd", ref env.fogDensity, 0.0002f, 0, 0.2f, "%.4f");
 			ImGui.EndTable();
 		}
 		changed |= DrawScreenEffectsSettings(env);
@@ -126,7 +138,54 @@ extension EditorApp
 
 	void DrawObjectInspector(GameObject gameObject)
 	{
-		// ---- header: icon, active toggle, name ----
+		DrawObjectHeader(gameObject);
+		if (gameObject.IsFolder)
+		{
+			DrawFolderInspector(gameObject);
+			return;
+		}
+		DrawObjectConfig(gameObject);
+		DrawTransformSection(gameObject.Transform);
+
+		// What the components' menus asked for is done after they are all drawn.
+		Component remove = null;
+		int move = 0;
+		int moveIndex = -1;
+		List<FieldRef> fields = scope .();
+		for (int index = 0; index < gameObject.Components.Count; index++)
+		{
+			let component = gameObject.Components[index];
+			ImGui.PushID(Internal.UnsafeCastToPtr(component));
+			switch (DrawComponentSection(gameObject, index, fields))
+			{
+			case .Remove:
+				remove = component;
+			case .MoveUp:
+				move = -1;
+				moveIndex = index;
+			case .MoveDown:
+				move = 1;
+				moveIndex = index;
+			case .None:
+			}
+			ImGui.PopID();
+		}
+		if (moveIndex >= 0)
+		{
+			Swap!(gameObject.Components[moveIndex], gameObject.Components[moveIndex + move]);
+			MarkDirty();
+		}
+		if (remove != null)
+		{
+			gameObject.RemoveComponent(remove);
+			MarkDirty();
+		}
+		DrawAddComponent(gameObject);
+	}
+
+	/// The object's icon, active toggle and name.
+	void DrawObjectHeader(GameObject gameObject)
+	{
 		ImGui.AlignTextToFramePadding();
 		ImGui.TextColored(gameObject.IsFolder ? Icons.FolderColor : Icons.ObjectColor, ObjectIcon(gameObject));
 		ImGui.SameLine();
@@ -141,147 +200,189 @@ extension EditorApp
 		if (ImGui.InputText("##name", gameObject.Name))
 			MarkDirty();
 		ImGui.Spacing();
+	}
 
-		if (gameObject.IsFolder)
-		{
-			ImGui.Separator();
-			ImGui.Spacing();
-			ImGui.TextWrapped("Folder. It only groups objects in the Hierarchy: it has no transform or components and does not affect its children.");
-			ImGui.Spacing();
-			if (ImGui.Button("Convert to GameObject"))
-			{
-				gameObject.IsFolder = false;
-				MarkDirty();
-			}
-			return;
-		}
-
-		DrawObjectConfig(gameObject);
-
-		// ---- Transform ----
+	void DrawFolderInspector(GameObject gameObject)
+	{
 		ImGui.Separator();
-		if (ImGui.CollapsingHeader(scope String()..AppendF("{}  Transform", StringView(Icons.Transform)).CStr(), ImGui.TreeFlags.DefaultOpen) && BeginPropertyTable("transform"))
+		ImGui.Spacing();
+		ImGui.TextWrapped("Folder. It only groups objects in the Hierarchy: it has no transform or components and does not affect its children.");
+		ImGui.Spacing();
+		if (ImGui.Button("Convert to GameObject"))
 		{
-			let transform = gameObject.Transform;
-			var position = transform.LocalPosition;
-			var euler = transform.LocalEulerAngles;
-			var scale = transform.LocalScale;
-			BeginProperty("Position");
-			if (DrawVector3("pos", ref position, 0.05f)) { transform.LocalPosition = position; MarkDirty(); }
-			BeginProperty("Rotation");
-			if (DrawVector3("rot", ref euler, 0.5f)) { transform.LocalEulerAngles = euler; MarkDirty(); }
-			BeginProperty("Scale");
-			if (DrawVector3("scl", ref scale, 0.02f)) { transform.LocalScale = scale; MarkDirty(); }
+			gameObject.IsFolder = false;
+			MarkDirty();
+		}
+	}
+
+	void DrawTransformSection(Transform transform)
+	{
+		ImGui.Separator();
+		if (!ImGui.CollapsingHeader(scope String()..AppendF("{}  Transform", StringView(Icons.Transform)).CStr(), ImGui.TreeFlags.DefaultOpen) || !BeginPropertyTable("transform"))
+			return;
+		var position = transform.LocalPosition;
+		var euler = transform.LocalEulerAngles;
+		var scale = transform.LocalScale;
+		BeginProperty("Position");
+		if (DrawVector3("pos", ref position, 0.05f))
+		{
+			transform.LocalPosition = position;
+			MarkDirty();
+		}
+		BeginProperty("Rotation");
+		if (DrawVector3("rot", ref euler, 0.5f))
+		{
+			transform.LocalEulerAngles = euler;
+			MarkDirty();
+		}
+		BeginProperty("Scale");
+		if (DrawVector3("scl", ref scale, 0.02f))
+		{
+			transform.LocalScale = scale;
+			MarkDirty();
+		}
+		ImGui.EndTable();
+	}
+
+	/// What a component's menu asked to be done with it.
+	enum ComponentRequest
+	{
+		None,
+		Remove,
+		MoveUp,
+		MoveDown
+	}
+
+	/// A component's header (enable toggle, icon, menu) and, unfolded, its fields and tools.
+	ComponentRequest DrawComponentSection(GameObject gameObject, int index, List<FieldRef> fields)
+	{
+		let component = gameObject.Components[index];
+		let info = ComponentRegistry.Find(component.GetType());
+		let title = scope String();
+		NiceName(info != null ? (StringView)info.name : "Component", title);
+		ImGui.Separator();
+		// The label leaves room for the enable checkbox and icon drawn over the header.
+		let open = ImGui.CollapsingHeader(scope String()..AppendF("            {}###header", title).CStr(), ImGui.TreeFlags.DefaultOpen | ImGui.TreeFlags.AllowOverlap);
+		let request = DrawComponentMenu(gameObject, index);
+		ImGui.SameLine(30);
+		ImGui.PushStyleVar(ImGui.StyleVar.FramePadding, ImGui.Vec2(1, 1));
+		bool enabled = component.Enabled;
+		if (ImGui.Checkbox("##enabled", ref enabled))
+		{
+			component.Enabled = enabled;
+			MarkDirty();
+		}
+		ImGui.PopStyleVar();
+		ImGui.SameLine(54);
+		ImGui.TextColored(Icons.ComponentColor, ComponentIcon(info != null ? (StringView)info.name : ""));
+		ImGui.SameLine(ImGui.GetWindowWidth() - 30);
+		if (ImGui.SmallButton(Icons.Menu))
+			ImGui.OpenPopup("ComponentMenu");
+		if (!open)
+			return request;
+
+		fields.Clear();
+		ComponentRegistry.GetFields(component, fields);
+		bool changed = false;
+		if (fields.Count > 0 && BeginPropertyTable("fields"))
+		{
+			for (let field in fields)
+			{
+				if (!field.hidden)
+					changed |= DrawField(field);
+			}
 			ImGui.EndTable();
 		}
-
-		// ---- components ----
-		Component remove = null;
-		int move = 0;
-		int moveIndex = -1;
-		List<FieldRef> fields = scope .();
-		for (int index = 0; index < gameObject.Components.Count; index++)
+		if (changed)
 		{
-			let component = gameObject.Components[index];
-			let info = ComponentRegistry.Find(component.GetType());
-			let title = scope String();
-			NiceName(info != null ? (StringView)info.name : "Component", title);
-			ImGui.PushID(Internal.UnsafeCastToPtr(component));
-			ImGui.Separator();
-			// The label leaves room for the enable checkbox and icon drawn over the header.
-			let open = ImGui.CollapsingHeader(scope String()..AppendF("            {}###header", title).CStr(), ImGui.TreeFlags.DefaultOpen | ImGui.TreeFlags.AllowOverlap);
-			if (ImGui.BeginPopupContextItem("ComponentMenu"))
+			component.OnValidate();
+			MarkDirty();
+		}
+		DrawComponentTools(component);
+		return request;
+	}
+
+	/// The menu on a component's header (right-click, or its ≡ button).
+	ComponentRequest DrawComponentMenu(GameObject gameObject, int index)
+	{
+		if (!ImGui.BeginPopupContextItem("ComponentMenu"))
+			return .None;
+		let component = gameObject.Components[index];
+		var request = ComponentRequest.None;
+		if (ImGui.MenuItem("Reset"))
+		{
+			ResetComponent(component);
+			MarkDirty();
+		}
+		if (ImGui.MenuItem("Copy Component"))
+			mComponentClipboard.Copy(component);
+		if (ImGui.MenuItem("Paste Component Values", null, false, mComponentClipboard.CanPaste(component)))
+		{
+			mComponentClipboard.PasteValues(component);
+			MarkDirty();
+		}
+		if (ImGui.MenuItem("Paste Component As New", null, false, mComponentClipboard.HasData))
+		{
+			mComponentClipboard.PasteNew(gameObject);
+			MarkDirty();
+		}
+		if (ImGui.MenuItem("Move Up", null, false, index > 0))
+			request = .MoveUp;
+		if (ImGui.MenuItem("Move Down", null, false, index < gameObject.Components.Count - 1))
+			request = .MoveDown;
+		ImGui.Separator();
+		if (ImGui.MenuItem("Remove Component"))
+			request = .Remove;
+		ImGui.EndPopup();
+		return request;
+	}
+
+	/// The extra buttons and lists some components have under their fields.
+	void DrawComponentTools(Component component)
+	{
+		if (let surface = component as NavigationSurface)
+			DrawNavigationTools(surface);
+		if (let source = component as AudioSource)
+			DrawAudioTools(source);
+		if (let pose = component as ViewmodelPose)
+			DrawViewmodelPoseTools(pose);
+		if (let limb = component as LimbIK)
+			DrawLimbIKTools(limb);
+		if (let foliage = component as Foliage)
+			DrawFoliageTools(foliage);
+		if (let hand = component as HandPose)
+			DrawHandPoseTools(hand);
+		if (let feet = component as FootPlacement)
+			DrawFootPlacementTools(feet);
+		if (let terrain = component as VoxelTerrain)
+			DrawTerrainTools(terrain);
+		else if (let voxels = component as VoxelObject)
+			DrawVoxelObjectTools(voxels);
+		else if (let skinned = component as SkinnedMeshRenderer)
+			DrawSkinnedClips(skinned);
+	}
+
+	/// A rigged model's parts, and the clips found in its file: click one to play it.
+	void DrawSkinnedClips(SkinnedMeshRenderer skinned)
+	{
+		if (skinned.Model == null)
+			return;
+		ImGui.TextDisabled(scope String()..AppendF("{} bones, {} clips", skinned.Model.Joints.Count, skinned.Model.Clips.Count).CStr());
+		DrawSkinnedParts(skinned);
+		for (let animation in skinned.Model.Clips)
+		{
+			if (ImGui.Selectable(animation.name.CStr(), skinned.CurrentClip == animation.name))
 			{
-				if (ImGui.MenuItem("Reset")) { ResetComponent(component); MarkDirty(); }
-                if (ImGui.MenuItem("Copy Component")) mComponentClipboard.Copy(component);
-                if (ImGui.MenuItem("Paste Component Values", null, false, mComponentClipboard.CanPaste(component)))
-                { mComponentClipboard.PasteValues(component); MarkDirty(); }
-                if (ImGui.MenuItem("Paste Component As New", null, false, mComponentClipboard.HasData))
-                { mComponentClipboard.PasteNew(gameObject); MarkDirty(); }
-				if (ImGui.MenuItem("Move Up", null, false, index > 0)) { move = -1; moveIndex = index; }
-				if (ImGui.MenuItem("Move Down", null, false, index < gameObject.Components.Count - 1)) { move = 1; moveIndex = index; }
-				ImGui.Separator();
-				if (ImGui.MenuItem("Remove Component")) remove = component;
-				ImGui.EndPopup();
-			}
-			ImGui.SameLine(30);
-			ImGui.PushStyleVar(ImGui.StyleVar.FramePadding, ImGui.Vec2(1, 1));
-			bool enabled = component.Enabled;
-			if (ImGui.Checkbox("##enabled", ref enabled))
-			{
-				component.Enabled = enabled;
+				skinned.clip.Set(animation.name);
+				skinned.Play(animation.name);
 				MarkDirty();
 			}
-			ImGui.PopStyleVar();
-			ImGui.SameLine(54);
-			ImGui.TextColored(Icons.ComponentColor, ComponentIcon(info != null ? (StringView)info.name : ""));
-			ImGui.SameLine(ImGui.GetWindowWidth() - 30);
-			if (ImGui.SmallButton(Icons.Menu))
-				ImGui.OpenPopup("ComponentMenu");
+		}
+	}
 
-			if (open)
-			{
-				fields.Clear();
-				ComponentRegistry.GetFields(component, fields);
-				bool changed = false;
-				if (fields.Count > 0 && BeginPropertyTable("fields"))
-				{
-					for (let field in fields)
-					{
-						if (!field.hidden)
-							changed |= DrawField(field);
-					}
-					ImGui.EndTable();
-				}
-				if (changed)
-				{
-					component.OnValidate();
-					MarkDirty();
-				}
-				if(component is NavigationSurface) DrawNavigationTools((NavigationSurface)component);
-				if(component is AudioSource) DrawAudioTools((AudioSource)component);
-				if (component is ViewmodelPose) DrawViewmodelPoseTools((ViewmodelPose)component);
-				if (component is LimbIK) DrawLimbIKTools((LimbIK)component);
-				if (component is Foliage) DrawFoliageTools((Foliage)component);
-				if (component is HandPose) DrawHandPoseTools((HandPose)component);
-				if (component is FootPlacement) DrawFootPlacementTools((FootPlacement)component);
-				if (component is VoxelTerrain)
-					DrawTerrainTools((VoxelTerrain)component);
-				else if (component is VoxelObject)
-					DrawVoxelObjectTools((VoxelObject)component);
-				else if (component is SkinnedMeshRenderer)
-				{
-					// List the clips found in the file; click one to play it.
-					let skinned = (SkinnedMeshRenderer)component;
-					if (skinned.Model != null)
-					{
-						ImGui.TextDisabled(scope String()..AppendF("{} bones, {} clips", skinned.Model.Joints.Count, skinned.Model.Clips.Count).CStr());
-						DrawSkinnedParts(skinned);
-						for (let animation in skinned.Model.Clips)
-						{
-							if (ImGui.Selectable(animation.name.CStr(), skinned.CurrentClip == animation.name))
-							{
-								skinned.clip.Set(animation.name);
-								skinned.Play(animation.name);
-								MarkDirty();
-							}
-						}
-					}
-				}
-			}
-			ImGui.PopID();
-		}
-		if (moveIndex >= 0)
-		{
-			Swap!(gameObject.Components[moveIndex], gameObject.Components[moveIndex + move]);
-			MarkDirty();
-		}
-		if (remove != null)
-		{
-			gameObject.RemoveComponent(remove);
-			MarkDirty();
-		}
-
+	/// The Add Component button and its menu: components by category, or those matching what is typed.
+	void DrawAddComponent(GameObject gameObject)
+	{
 		ImGui.Separator();
 		ImGui.Spacing();
 		ImGui.Spacing();
@@ -289,41 +390,61 @@ extension EditorApp
 		ImGui.SetCursorPosX((ImGui.GetWindowWidth() - width) * 0.5f);
 		if (ImGui.Button("Add Component", .(width, 26)))
 		{
-			mScriptCatalog.Refresh(Assets.ProjectPath,Project.Current.Name);
+			mScriptCatalog.Refresh(Assets.ProjectPath, Project.Current.Name);
 			mComponentSearch.Clear();
-            mFocusComponentSearch = true;
+			mFocusComponentSearch = true;
 			ImGui.OpenPopup("AddComponent");
 		}
-		if (ImGui.BeginPopup("AddComponent"))
+		if (!ImGui.BeginPopup("AddComponent"))
+			return;
+		ImGui.SetNextItemWidth(260);
+		if (mFocusComponentSearch)
 		{
-			ImGui.SetNextItemWidth(260);
-            if (mFocusComponentSearch) { ImGui.SetKeyboardFocusHere(); mFocusComponentSearch = false; }
-			ImGui.InputText("##filter", mComponentSearch, 0, "Search");
-			ImGui.BeginChild("list", .(260, 320));
-            for (let category in StringView[?]("Rendering", "Physics", "Animation", "Audio", "UI", "Particles", "World", "Networking", "AI", "Scripts"))
-            {
-                bool searching = !mComponentSearch.IsEmpty;
-                if (!searching && !ImGui.BeginMenu(scope String(category).CStr())) continue;
-                for (let info in ComponentRegistry.Types)
-                {
-                    if (!mScriptCatalog.IsVisible(info)) continue;
-                    if (ComponentCategory(info.fullName, info.name) != category) continue;
-                    let label = scope String(); NiceName(info.name, label);
-                    if (searching && !info.name.Contains(mComponentSearch,true) && !label.Contains(mComponentSearch,true)
-                        && !category.Contains(mComponentSearch,true)) continue;
-                    if (ImGui.Selectable(scope $"{StringView(ComponentIcon(info.name))}  {label}##{info.fullName}"))
-                    { gameObject.AddComponent(info.type); MarkDirty(); ImGui.CloseCurrentPopup(); }
-                }
-                if (!searching) ImGui.EndMenu();
-            }
-            if (mComponentClipboard.HasData)
-            {
-                ImGui.Separator();
-                if (ImGui.Selectable("Paste Copied Component"))
-                { mComponentClipboard.PasteNew(gameObject); MarkDirty(); ImGui.CloseCurrentPopup(); }
-            }
-			ImGui.EndChild();
-			ImGui.EndPopup();
+			ImGui.SetKeyboardFocusHere();
+			mFocusComponentSearch = false;
+		}
+		ImGui.InputText("##filter", mComponentSearch, 0, "Search");
+		ImGui.BeginChild("list", .(260, 320));
+		let searching = !mComponentSearch.IsEmpty;
+		for (let category in StringView[?]("Rendering", "Physics", "Animation", "Audio", "UI", "Particles", "World", "Networking", "AI", "Scripts"))
+		{
+			if (!searching && !ImGui.BeginMenu(scope String(category).CStr()))
+				continue;
+			AddComponentChoices(gameObject, category, searching);
+			if (!searching)
+				ImGui.EndMenu();
+		}
+		if (mComponentClipboard.HasData)
+		{
+			ImGui.Separator();
+			if (ImGui.Selectable("Paste Copied Component"))
+			{
+				mComponentClipboard.PasteNew(gameObject);
+				MarkDirty();
+				ImGui.CloseCurrentPopup();
+			}
+		}
+		ImGui.EndChild();
+		ImGui.EndPopup();
+	}
+
+	/// The components of one category that can be added (those matching the search, when searching).
+	void AddComponentChoices(GameObject gameObject, StringView category, bool searching)
+	{
+		for (let info in ComponentRegistry.Types)
+		{
+			if (!mScriptCatalog.IsVisible(info) || ComponentCategory(info.fullName, info.name) != category)
+				continue;
+			let label = scope String();
+			NiceName(info.name, label);
+			if (searching && !info.name.Contains(mComponentSearch, true) && !label.Contains(mComponentSearch, true) && !category.Contains(mComponentSearch, true))
+				continue;
+			if (ImGui.Selectable(scope $"{StringView(ComponentIcon(info.name))}  {label}##{info.fullName}"))
+			{
+				gameObject.AddComponent(info.type);
+				MarkDirty();
+				ImGui.CloseCurrentPopup();
+			}
 		}
 	}
 
@@ -340,7 +461,11 @@ extension EditorApp
 		ComponentRegistry.GetFields(component, to);
 		List<StringView> tokens = scope .();
 		List<String> storage = scope .();
-		defer { for (let s in storage) delete s; }
+		defer
+		{
+			for (let s in storage)
+				delete s;
+		}
 		for (int i < Math.Min(from.Count, to.Count))
 		{
 			let text = scope String();
@@ -379,20 +504,20 @@ extension EditorApp
 		return changed;
 	}
 
-    static StringView ComponentCategory(StringView fullName, StringView name)
-    {
-        if (!fullName.StartsWith("Tessera.")) return "Scripts";
-        if (name == "Camera" || name == "Light" || name == "MeshRenderer") return "Rendering";
-        if (name == "Rigidbody" || name.EndsWith("Collider") || name == "CharacterController") return "Physics";
-        if (name == "SkinnedMeshRenderer" || name == "Animator") return "Animation";
-        if (name == "UIDocument") return "UI";
-        if (name.StartsWith("Audio")) return "Audio";
-        if(name.StartsWith("Navigation") || name.StartsWith("BehaviorTree")) return "AI";
-        if (name == "ParticleSystem") return "Particles";
-        if (name.StartsWith("Voxel") || name == "SpawnPoint") return "World";
-        if (name.StartsWith("Network") || name == "CharacterMotor") return "Networking";
-        return "Scripts";
-    }
+	static StringView ComponentCategory(StringView fullName, StringView name)
+	{
+		if (!fullName.StartsWith("Tessera.")) return "Scripts";
+		if (name == "Camera" || name == "Light" || name == "MeshRenderer") return "Rendering";
+		if (name == "Rigidbody" || name.EndsWith("Collider") || name == "CharacterController") return "Physics";
+		if (name == "SkinnedMeshRenderer" || name == "Animator") return "Animation";
+		if (name == "UIDocument") return "UI";
+		if (name.StartsWith("Audio")) return "Audio";
+		if (name.StartsWith("Navigation") || name.StartsWith("BehaviorTree")) return "AI";
+		if (name == "ParticleSystem") return "Particles";
+		if (name.StartsWith("Voxel") || name == "SpawnPoint") return "World";
+		if (name.StartsWith("Network") || name == "CharacterMotor") return "Networking";
+		return "Scripts";
+	}
 
 	static char8* ComponentIcon(StringView typeName)
 	{
@@ -444,18 +569,27 @@ extension EditorApp
 			return DrawInteger(field);
 		case .Bool:
 			return ImGui.Checkbox("##v", ref *(bool*)field.ptr);
-        case .Double: return DrawDouble(field);
-        case .Char:
-            let text=scope String();let value=FieldNumbers.ReadUnsigned(field);if(value!=0) text.Append((char32)value);
-            if(ImGui.InputText("##v",text)) return FieldNumbers.WriteUnsigned(field,text.IsEmpty ? 0 : (uint64)text.GetChar32(0).c);
-            return false;
-        case .Vector2: return DragVector("##v",&((Vector2*)field.ptr).x,2,0.02f);
-        case .Vector4: return DragVector("##v",&((Vector4*)field.ptr).x,4,0.02f);
-        case .Int3: return DragIntegerVector("##v",&((Int3*)field.ptr).x,3);
-        case .Matrix4:
-            bool changed=false;let matrix=(Matrix4*)field.ptr;
-            for(int i<4) {ImGui.PushID((int32)i);changed |= DragVector("##row",&matrix.m[i*4],4,0.02f);ImGui.PopID();}
-            return changed;
+		case .Double: return DrawDouble(field);
+		case .Char:
+			let text = scope String();
+			let value = FieldNumbers.ReadUnsigned(field);
+			if (value != 0)
+				text.Append((char32)value);
+			if (ImGui.InputText("##v", text)) return FieldNumbers.WriteUnsigned(field, text.IsEmpty ? 0 : (uint64)text.GetChar32(0).c);
+			return false;
+		case .Vector2: return DragVector("##v", &((Vector2*)field.ptr).x, 2, 0.02f);
+		case .Vector4: return DragVector("##v", &((Vector4*)field.ptr).x, 4, 0.02f);
+		case .Int3: return DragIntegerVector("##v", &((Int3*)field.ptr).x, 3);
+		case .Matrix4:
+			bool changed = false;
+			let matrix = (Matrix4*)field.ptr;
+			for (int i < 4)
+			{
+				ImGui.PushID((int32)i);
+				changed |= DragVector("##row", &matrix.m[i * 4], 4, 0.02f);
+				ImGui.PopID();
+			}
+			return changed;
 		case .Vector3:
 			return DrawVector3("v", ref *(Vector3*)field.ptr, 0.05f);
 		case .Quaternion:
@@ -468,31 +602,44 @@ extension EditorApp
 			return false;
 		case .Color:
 			return ImGui.ColorEdit4("##v", ref *(Color*)field.ptr, ImGui.ColorFlags.Float);
-        case .String:
-            let original=*(String*)field.ptr;
-            let temporary=scope String();let text=original!=null ? original : temporary;
-            bool changed;
-            if(field.name=="mesh" || field.name=="model" || field.name=="texture" || field.name=="document" || field.name=="prefab" || field.name=="tree" || field.name=="controller" || field.name=="material" || field.name=="interiorMaterial" || field.name=="scene" || field.name=="shader" || field.name=="bakedData" || field.name=="audioClip" || field.name.EndsWith("Prefab"))
-                changed=DrawAssetPicker(text,field.name);
-            else changed=ImGui.InputText("##v",text);
-            if(changed && original==null) *(String*)field.ptr=new String(text);
-            return changed;
+		case .String:
+			let original = *(String*)field.ptr;
+			let temporary = scope String();
+			let text = original != null ? original : temporary;
+			bool changed;
+			if (field.name == "mesh" || field.name == "model" || field.name == "texture" || field.name == "document" || field.name == "prefab" || field.name == "tree" || field.name == "controller" || field.name == "material" || field.name == "interiorMaterial" || field.name == "scene" || field.name == "shader" || field.name == "bakedData" || field.name == "audioClip" || field.name.EndsWith("Prefab"))
+				changed = DrawAssetPicker(text, field.name);
+			else
+				changed = ImGui.InputText("##v", text);
+			if (changed && original == null)
+				*(String*)field.ptr = new String(text);
+			return changed;
 		case .ObjectReference:
 			return DrawObjectPicker(field);
 
-        case .Enum:
-            bool hasNames=false;for(let entry in Enum.GetEnumerator(field.type)) {hasNames=true;break;}
-            if(!hasNames) return DrawInteger(field);
-            let current=scope String();Enum.EnumToString(field.type,current,FieldNumbers.EnumValue(field));
-            bool changed=false;
-            if(ImGui.BeginCombo("##v",current.CStr()))
-            {
-                for(let (name,value) in Enum.GetEnumerator(field.type))
-                    if(ImGui.Selectable(scope String(name).CStr(),value==FieldNumbers.EnumValue(field)))
-                    {changed=FieldNumbers.Signed(field) ? FieldNumbers.WriteSigned(field,value) : FieldNumbers.WriteUnsigned(field,(uint64)value);}
-                ImGui.EndCombo();
-            }
-            return changed;
+		case .Enum:
+			bool hasNames = false;
+			for (let entry in Enum.GetEnumerator(field.type))
+			{
+				hasNames = true;
+				break;
+			}
+			if (!hasNames) return DrawInteger(field);
+			let current = scope String();
+			Enum.EnumToString(field.type, current, FieldNumbers.EnumValue(field));
+			bool changed = false;
+			if (ImGui.BeginCombo("##v", current.CStr()))
+			{
+				for (let (name, value) in Enum.GetEnumerator(field.type))
+				{
+					if (ImGui.Selectable(scope String(name).CStr(), value == FieldNumbers.EnumValue(field)))
+					{
+						changed = FieldNumbers.Signed(field) ? FieldNumbers.WriteSigned(field, value) : FieldNumbers.WriteUnsigned(field, (uint64)value);
+					}
+				}
+				ImGui.EndCombo();
+			}
+			return changed;
 		}
 	}
 
@@ -500,12 +647,12 @@ extension EditorApp
 	{
 		if (kind == "mesh" || kind == "model") return IsModelFile(path);
 		if (kind == "texture") return IsImageFile(path);
-        if(kind=="bakedData") return HasExtension(path,".tnav");
-        if(kind=="audioClip") return IsAudioFile(path);
-        if(kind=="tree") return HasExtension(path,".tbt");
-        if(kind=="controller") return HasExtension(path,".tcontroller");
-        if(kind=="material" || kind=="interiorMaterial") return HasExtension(path,".tmat");
-        if(kind=="shader") return HasExtension(path,".tcompute");
+		if (kind == "bakedData") return HasExtension(path, ".tnav");
+		if (kind == "audioClip") return IsAudioFile(path);
+		if (kind == "tree") return HasExtension(path, ".tbt");
+		if (kind == "controller") return HasExtension(path, ".tcontroller");
+		if (kind == "material" || kind == "interiorMaterial") return HasExtension(path, ".tmat");
+		if (kind == "shader") return HasExtension(path, ".tcompute");
 		if (kind == "document") return HasExtension(path, ".tui");
 		if (kind == "scene") return HasExtension(path, ".tscene");
 		return HasExtension(path, ".tprefab");
@@ -516,16 +663,24 @@ extension EditorApp
 		bool changed = false;
 		for (let entry in Directory.EnumerateFiles(folder))
 		{
-			let name = scope String(); entry.GetFileName(name);
+			let name = scope String();
+			entry.GetFileName(name);
 			if (IsHidden(name) || !AcceptAssetKind(name, kind)) continue;
-			let relative = scope String(); ToRelative(scope $"{folder}/{name}", relative);
+			let relative = scope String();
+			ToRelative(scope $"{folder}/{name}" , relative);
 			if (ImGui.Selectable(relative.CStr(), path == relative))
-			{ path.Set(relative); changed = true; ImGui.CloseCurrentPopup(); }
+			{
+				path.Set(relative);
+				changed = true;
+				ImGui.CloseCurrentPopup();
+			}
 		}
 		for (let entry in Directory.EnumerateDirectories(folder))
 		{
-			let name = scope String(); entry.GetFileName(name);
-			if (!IsHidden(name)) changed |= DrawAssetChoices(scope $"{folder}/{name}", kind, path);
+			let name = scope String();
+			entry.GetFileName(name);
+			if (!IsHidden(name))
+				changed |= DrawAssetChoices(scope $"{folder}/{name}" , kind, path);
 		}
 		return changed;
 	}
@@ -535,23 +690,39 @@ extension EditorApp
 		ImGui.SetNextItemWidth(-28);
 		bool changed = ImGui.InputText("##v", path);
 		// The text field is the drop target; begin it before drawing another item.
-		let drag=ImGui.GetDragDropPayload();
-        if (drag!=null && ImGui.PayloadIsType(drag,"ASSET") && AcceptAssetKind(StringView((char8*)drag.data,drag.dataSize),kind)
-            && ImGui.BeginDragDropTarget())
-        {
-            let payload = ImGui.AcceptDragDropPayload("ASSET");
-            if (payload != null && AcceptAssetKind(StringView((char8*)payload.data, payload.dataSize), kind))
-			{ path.Set(StringView((char8*)payload.data, payload.dataSize)); changed = true; }
+		let drag = ImGui.GetDragDropPayload();
+		if (drag != null && ImGui.PayloadIsType(drag, "ASSET") && AcceptAssetKind(StringView((char8*)drag.data, drag.dataSize), kind)
+			&& ImGui.BeginDragDropTarget())
+		{
+			let payload = ImGui.AcceptDragDropPayload("ASSET");
+			if (payload != null && AcceptAssetKind(StringView((char8*)payload.data, payload.dataSize), kind))
+			{
+				path.Set(StringView((char8*)payload.data, payload.dataSize));
+				changed = true;
+			}
 			ImGui.EndDragDropTarget();
 		}
 		ImGui.SameLine();
-		if (ImGui.Button("...")) ImGui.OpenPopup("AssetPicker");
+		if (ImGui.Button("..."))
+			ImGui.OpenPopup("AssetPicker");
 		if (ImGui.BeginPopup("AssetPicker"))
 		{
-			if (ImGui.Selectable("None", path.IsEmpty)) { path.Clear(); changed = true; }
+			if (ImGui.Selectable("None", path.IsEmpty))
+			{
+				path.Clear();
+				changed = true;
+			}
 			if (kind == "mesh")
+			{
 				for (let name in Assets.BuiltinMeshes)
-					if (ImGui.Selectable(scope String(name).CStr(), path == name)) { path.Set(name); changed = true; }
+				{
+					if (ImGui.Selectable(scope String(name).CStr(), path == name))
+					{
+						path.Set(name);
+						changed = true;
+					}
+				}
+			}
 			ImGui.Separator();
 			changed |= DrawAssetChoices(Assets.ProjectPath, kind, path);
 			ImGui.EndPopup();
@@ -572,31 +743,35 @@ extension EditorApp
 			if (payload != null && payload.dataSize == sizeof(uint32))
 			{
 				let go = mScene.FindById(*(uint32*)payload.data);
-				if (go != null) changed = ComponentRegistry.AssignReference(field, go);
+				if (go != null)
+					changed = ComponentRegistry.AssignReference(field, go);
 			}
 			ImGui.EndDragDropTarget();
 		}
 		ImGui.SameLine();
-		if (ImGui.Button("...")) ImGui.OpenPopup("ObjectPicker");
+		if (ImGui.Button("..."))
+			ImGui.OpenPopup("ObjectPicker");
 		if (ImGui.BeginPopup("ObjectPicker"))
 		{
-			if (ImGui.Selectable("None", target == null)) changed = ComponentRegistry.AssignReference(field, null);
+			if (ImGui.Selectable("None", target == null))
+				changed = ComponentRegistry.AssignReference(field, null);
 			for (let go in mScene.Objects)
 			{
 				ImGui.PushID((int32)go.Id);
 				if (field.type == typeof(GameObject) || field.type == typeof(Transform))
 				{
-					if (ImGui.Selectable(go.Name.CStr(), target == go)) changed = ComponentRegistry.AssignReference(field, go);
+					if (ImGui.Selectable(go.Name.CStr(), target == go))
+						changed = ComponentRegistry.AssignReference(field, go);
 				}
 				else for (int i < go.Components.Count)
-				{
-					let component = go.Components[i];
-					if (component.GetType() != field.type && !component.GetType().IsSubtypeOf(field.type)) continue;
-					ImGui.PushID((int32)i);
-					if (ImGui.Selectable(scope $"{go.Name} ({component.GetType()})".CStr(), *(Object*)field.ptr == component))
-						changed = ComponentRegistry.AssignReference(field, go, i);
-					ImGui.PopID();
-				}
+					{
+						let component = go.Components[i];
+						if (component.GetType() != field.type && !component.GetType().IsSubtypeOf(field.type)) continue;
+						ImGui.PushID((int32)i);
+						if (ImGui.Selectable(scope $"{go.Name} ({component.GetType()})" .CStr(), *(Object*)field.ptr == component))
+							changed = ComponentRegistry.AssignReference(field, go, i);
+						ImGui.PopID();
+					}
 				ImGui.PopID();
 			}
 			ImGui.EndPopup();

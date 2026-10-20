@@ -8,7 +8,6 @@ namespace Tessera.Editor;
 /// Creates new projects from built-in templates.
 static class ProjectGenerator
 {
-
 	public static bool IsValidName(StringView name)
 	{
 		if (name.IsEmpty || name.Length > 48 || name[0].IsDigit)
@@ -87,19 +86,9 @@ static class ProjectGenerator
 			Log.Error(scope $"Could not write {path}");
 	}
 
-	/// Creates the folder structure and source files. sample adds a voxel world with a networked player.
-	public static bool Create(StringView folder, StringView name, StringView engineRoot, bool sample, String error)
+	/// The project's folders: src (the assets) with its usual subfolders, and Libraries.
+	static bool CreateFolders(StringView folder, String error)
 	{
-		if (!IsValidName(name))
-		{
-			error.Set("Project names use letters, digits and underscores, and start with a letter.");
-			return false;
-		}
-		if (Directory.Exists(folder) && File.Exists(scope $"{folder}/project.tessera"))
-		{
-			error.Set("A project already exists in that folder.");
-			return false;
-		}
 		for (let sub in StringView[?]("", "/src", "/src/Scripts", "/src/Scenes", "/src/Models", "/src/Textures", "/src/Prefabs", "/Libraries"))
 		{
 			if (Directory.CreateDirectory(scope $"{folder}{sub}") case .Err)
@@ -111,19 +100,14 @@ static class ProjectGenerator
 				}
 			}
 		}
+		return true;
+	}
 
-		let project = scope Project();
-		project.Name.Set(name);
-		project.Path.Set(folder);
-		project.EngineRoot.Set(engineRoot);
-		project.Save();
-
-		project.WriteBuildFiles();
-
-		Write(scope $"{folder}/.gitignore", "build/\nrecovery/\nBeefSpace.toml\nBeefProj.toml\n");
-
-		// Program.bf is plumbing and is hidden in the editor; game start-up code lives in Scripts/GameSetup.bf.
-		Write(scope $"{folder}/src/Program.bf", scope String()..AppendF("""
+	/// The scripts every new project starts with: Program.bf (plumbing, hidden in the editor), GameSetup.bf where
+	/// the game's start-up code goes, and the sample's Spinner, FollowCamera, Digger and Hud.
+	static void WriteStarterScripts(StringView folder, StringView name)
+	{
+		Write(scope $"{folder}/src/Program.bf" , scope String()..AppendF("""
 			using System;
 			using Tessera.Editor;
 
@@ -141,7 +125,7 @@ static class ProjectGenerator
 
 			""", name));
 
-		Write(scope $"{folder}/src/Scripts/GameSetup.bf", scope String()..AppendF("""
+		Write(scope $"{folder}/src/Scripts/GameSetup.bf" , scope String()..AppendF("""
 			using System;
 			using Tessera;
 
@@ -187,7 +171,7 @@ static class ProjectGenerator
 
 			""", name));
 
-		Write(scope $"{folder}/src/Scripts/Spinner.bf", scope String()..AppendF("""
+		Write(scope $"{folder}/src/Scripts/Spinner.bf" , scope String()..AppendF("""
 			using System;
 			using Tessera;
 
@@ -207,7 +191,7 @@ static class ProjectGenerator
 
 			""", name));
 
-		Write(scope $"{folder}/src/Scripts/FollowCamera.bf", scope String()..AppendF("""
+		Write(scope $"{folder}/src/Scripts/FollowCamera.bf" , scope String()..AppendF("""
 			using System;
 			using Tessera;
 
@@ -240,7 +224,7 @@ static class ProjectGenerator
 
 			""", name));
 
-		Write(scope $"{folder}/src/Scripts/Digger.bf", scope String()..AppendF("""
+		Write(scope $"{folder}/src/Scripts/Digger.bf" , scope String()..AppendF("""
 			using System;
 			using Tessera;
 
@@ -281,7 +265,7 @@ static class ProjectGenerator
 
 			""", name));
 
-		Write(scope $"{folder}/src/Scripts/Hud.bf", scope String()..AppendF("""
+		Write(scope $"{folder}/src/Scripts/Hud.bf" , scope String()..AppendF("""
 			using System;
 			using Tessera;
 
@@ -313,6 +297,35 @@ static class ProjectGenerator
 			}}
 
 			""", name));
+	}
+
+	/// Creates the folder structure and source files. sample adds a voxel world with a networked player.
+	public static bool Create(StringView folder, StringView name, StringView engineRoot, bool sample, String error)
+	{
+		if (!IsValidName(name))
+		{
+			error.Set("Project names use letters, digits and underscores, and start with a letter.");
+			return false;
+		}
+		if (Directory.Exists(folder) && File.Exists(scope $"{folder}/project.tessera"))
+		{
+			error.Set("A project already exists in that folder.");
+			return false;
+		}
+		if (!CreateFolders(folder, error))
+			return false;
+
+		let project = scope Project();
+		project.Name.Set(name);
+		project.Path.Set(folder);
+		project.EngineRoot.Set(engineRoot);
+		project.Save();
+
+		project.WriteBuildFiles();
+
+		Write(scope $"{folder}/.gitignore" , "build/\nrecovery/\nBeefSpace.toml\nBeefProj.toml\n");
+
+		WriteStarterScripts(folder, name);
 
 		// The first scene is built by the editor the first time the project opens.
 		// Shared sample content: the animated character, its clips and the script that drives them.
@@ -329,17 +342,17 @@ static class ProjectGenerator
 				if (fileName.EndsWith(".txt"))
 				{
 					let text = scope String();
-					if (File.ReadAllText(scope $"{common}/{sub}/{fileName}", text, true) case .Err)
+					if (File.ReadAllText(scope $"{common}/{sub}/{fileName}" , text, true) case .Err)
 						continue;
 					text.Replace("{NAMESPACE}", name);
 					fileName.Replace(".txt", "");
-					Write(scope $"{folder}/src/{sub}/{fileName}", text);
+					Write(scope $"{folder}/src/{sub}/{fileName}" , text);
 				}
 				else
-					File.Copy(scope $"{common}/{sub}/{fileName}", scope $"{folder}/src/{sub}/{fileName}").IgnoreError();
+					File.Copy(scope $"{common}/{sub}/{fileName}" , scope $"{folder}/src/{sub}/{fileName}").IgnoreError();
 			}
 		}
-		Write(scope $"{folder}/.template", sample ? "sample" : "empty");
+		Write(scope $"{folder}/.template" , sample ? "sample" : "empty");
 		return true;
 	}
 }

@@ -71,11 +71,29 @@ class NodeGraph
 		case .Float:
 			GlslNumber(v[0], code);
 		case .Vector2:
-			code.Append("vec2("); GlslNumber(v[0], code); code.Append(", "); GlslNumber(v[1], code); code.Append(')');
+			code.Append("vec2(");
+			GlslNumber(v[0], code);
+			code.Append(", ");
+			GlslNumber(v[1], code);
+			code.Append(')');
 		case .Vector3:
-			code.Append("vec3("); GlslNumber(v[0], code); code.Append(", "); GlslNumber(v[1], code); code.Append(", "); GlslNumber(v[2], code); code.Append(')');
+			code.Append("vec3(");
+			GlslNumber(v[0], code);
+			code.Append(", ");
+			GlslNumber(v[1], code);
+			code.Append(", ");
+			GlslNumber(v[2], code);
+			code.Append(')');
 		case .Color:
-			code.Append("vec4("); GlslNumber(v[0], code); code.Append(", "); GlslNumber(v[1], code); code.Append(", "); GlslNumber(v[2], code); code.Append(", "); GlslNumber(v[3], code); code.Append(')');
+			code.Append("vec4(");
+			GlslNumber(v[0], code);
+			code.Append(", ");
+			GlslNumber(v[1], code);
+			code.Append(", ");
+			GlslNumber(v[2], code);
+			code.Append(", ");
+			GlslNumber(v[3], code);
+			code.Append(')');
 		case .String:
 			// A property's name: an identifier in the shader.
 			NodeLibrary.Identifier(value.IsEmpty ? (StringView)"value" : value, code);
@@ -343,7 +361,11 @@ class NodeGraph
 			return false;
 		List<StringView> tokens = scope .();
 		List<String> storage = scope .();
-		defer { for (let s in storage) delete s; }
+		defer
+		{
+			for (let s in storage)
+				delete s;
+		}
 		for (let line in text.Split('\n'))
 		{
 			tokens.Clear();
@@ -745,7 +767,11 @@ class NodeGraph
 		}
 		text.Append("// Generated from a shader graph by the Tessera editor.\n// Edit the graph and save it again; changes made here are overwritten.\n");
 		List<String> declared = scope .();
-		defer { for (let d in declared) delete d; }
+		defer
+		{
+			for (let d in declared)
+				delete d;
+		}
 		for (let node in nodes)
 		{
 			if (!node.def.key.StartsWith("shader.prop."))
@@ -772,11 +798,36 @@ class NodeGraph
 		// Which output-node input is which, by position: see NodeLibrary's "shader.output".
 		bool Connected(int32 pin) => FindLinkTo(output.id, pin, let ignored);
 		text.Append("\nsurface {\n");
-		if (Connected(0)) { text.Append("\talbedo = toLinear3("); InputCode(output, 0, text, 0); text.Append(");\n"); }
-		if (Connected(1)) { text.Append("\talpha = "); InputCode(output, 1, text, 0); text.Append(";\n"); }
-		if (Connected(2)) { text.Append("\tmetallic = "); InputCode(output, 2, text, 0); text.Append(";\n"); }
-		if (Connected(3)) { text.Append("\troughness = "); InputCode(output, 3, text, 0); text.Append(";\n"); }
-		if (Connected(4)) { text.Append("\temissive += toLinear3("); InputCode(output, 4, text, 0); text.Append(");\n"); }
+		if (Connected(0))
+		{
+			text.Append("\talbedo = toLinear3(");
+			InputCode(output, 0, text, 0);
+			text.Append(");\n");
+		}
+		if (Connected(1))
+		{
+			text.Append("\talpha = ");
+			InputCode(output, 1, text, 0);
+			text.Append(";\n");
+		}
+		if (Connected(2))
+		{
+			text.Append("\tmetallic = ");
+			InputCode(output, 2, text, 0);
+			text.Append(";\n");
+		}
+		if (Connected(3))
+		{
+			text.Append("\troughness = ");
+			InputCode(output, 3, text, 0);
+			text.Append(";\n");
+		}
+		if (Connected(4))
+		{
+			text.Append("\temissive += toLinear3(");
+			InputCode(output, 4, text, 0);
+			text.Append(");\n");
+		}
 		text.Append("}\n");
 		if (Connected(5))
 		{
@@ -817,11 +868,19 @@ class NodeGraph
 		BaseClass(baseClass);
 		code.AppendF("using System;\nusing Tessera;\n\nnamespace {};\n\n[Component]\nclass {} : {}\n{{\n", namespaceName, className, baseClass);
 		List<String> fields = scope .();
-		defer { for (let s in fields) delete s; }
+		defer
+		{
+			for (let s in fields)
+				delete s;
+		}
 		EmitFields(fields, code);
 		// One method per kind of event in the graph; events of the same kind run one after another.
 		List<String> methods = scope .();
-		defer { for (let m in methods) delete m; }
+		defer
+		{
+			for (let m in methods)
+				delete m;
+		}
 		for (let node in nodes)
 		{
 			if (node.def.kind != .Event || node.def.key == "sub.entry")
@@ -867,7 +926,13 @@ class NodeGraph
 		// Subgraphs used here (and any they use) become private methods of this component.
 		List<String> pending = scope .();
 		List<String> done = scope .();
-		defer { for (let s in pending) delete s; for (let s in done) delete s; }
+		defer
+		{
+			for (let s in pending)
+				delete s;
+			for (let s in done)
+				delete s;
+		}
 		CollectSubgraphs(pending);
 		while (pending.Count > 0)
 		{

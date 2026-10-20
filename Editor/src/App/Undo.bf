@@ -18,7 +18,7 @@ class UndoStep
 /// scene steps that the terrain takes in place.
 extension EditorApp
 {
-	const int cMaxUndo = 64;
+	const int MaxUndo = 64;
 
 	List<UndoStep> mUndoStack = new .() ~ DeleteContainerAndItems!(_);
 	List<UndoStep> mRedoStack = new .() ~ DeleteContainerAndItems!(_);
@@ -41,7 +41,7 @@ extension EditorApp
 	void PushUndo(UndoStep step)
 	{
 		mUndoStack.Add(step);
-		if (mUndoStack.Count > cMaxUndo)
+		if (mUndoStack.Count > MaxUndo)
 		{
 			delete mUndoStack[0];
 			mUndoStack.RemoveAt(0);
@@ -220,7 +220,11 @@ extension EditorApp
 
 		// Terrains made again keep the sculpting that is not saved yet.
 		Dictionary<uint32, Object> keptEdits = scope .();
-		defer { for (let entry in keptEdits) delete entry.value; }
+		defer
+		{
+			for (let entry in keptEdits)
+				delete entry.value;
+		}
 		for (let block in before)
 		{
 			if (afterIds.Contains(block.id) && !rebuild.Contains(block.id))
@@ -266,11 +270,15 @@ extension EditorApp
 		bool Tiles(StringView line) => line.StartsWith("field tiles ") || line.StartsWith("field nextTileId ") || line.StartsWith("field plants ");
 		let a = scope String(), b = scope String();
 		for (let line in before.Split('\n'))
+		{
 			if (!Tiles(line))
 				a..Append(line).Append('\n');
+		}
 		for (let line in after.Split('\n'))
+		{
 			if (!Tiles(line))
 				b..Append(line).Append('\n');
+		}
 		if (a != b)
 			return false;
 		let owner = mScene.FindById(id);

@@ -240,7 +240,8 @@ static class IKSystem
 		IKComponent first = null;
 		for (let component in sAll)
 		{
-			Vector3 p; Quaternion r;
+			Vector3 p;
+			Quaternion r;
 			if (component.InputPose(bone, out p, out r) && (first == null || component.Order < first.Order))
 			{
 				first = component;
@@ -254,7 +255,8 @@ static class IKSystem
 	/// True when an IK component in the scene moves this bone.
 	public static bool Drives(Transform bone)
 	{
-		Vector3 p; Quaternion r;
+		Vector3 p;
+		Quaternion r;
 		return InputPose(bone, out p, out r);
 	}
 

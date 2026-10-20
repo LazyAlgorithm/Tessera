@@ -14,44 +14,70 @@ class Transform
 	Matrix4 mWorld = .Identity;
 	bool mDirty = true;
 
+	/// The objects directly under this one, in Hierarchy order. Use SetParent to move one.
 	public List<Transform> Children = new .() ~ delete _;
 	/// Incremented whenever the world transform may have changed.
 	public uint32 Version;
 
+	/// The transform of an object; every GameObject makes its own.
 	public this(GameObject gameObject)
 	{
 		mGameObject = gameObject;
 	}
 
+	/// The object this transform belongs to.
 	public GameObject GameObject => mGameObject;
+	/// The transform this one is under, or null at the top of the scene.
 	public Transform Parent => mParent;
 
+	/// The position relative to the parent (in the world, for an object with no parent).
 	public Vector3 LocalPosition
 	{
 		get => mLocalPosition;
-		set { mLocalPosition = value; MarkDirty(); }
+		set
+		{
+			mLocalPosition = value;
+			MarkDirty();
+		}
 	}
 
+	/// The rotation relative to the parent.
 	public Quaternion LocalRotation
 	{
 		get => mLocalRotation;
-		set { mLocalRotation = value; MarkDirty(); }
+		set
+		{
+			mLocalRotation = value;
+			MarkDirty();
+		}
 	}
 
+	/// The size relative to the parent: 1 on each axis is unchanged.
 	public Vector3 LocalScale
 	{
 		get => mLocalScale;
-		set { mLocalScale = value; MarkDirty(); }
+		set
+		{
+			mLocalScale = value;
+			MarkDirty();
+		}
 	}
 
+	/// LocalRotation as angles in degrees about X, Y and Z.
 	public Vector3 LocalEulerAngles
 	{
 		get => mLocalRotation.EulerAngles;
-		set { mLocalRotation = Quaternion.Euler(value); MarkDirty(); }
+		set
+		{
+			mLocalRotation = Quaternion.Euler(value);
+			MarkDirty();
+		}
 	}
 
+	/// The local position, rotation and scale as one matrix.
 	public Matrix4 LocalMatrix => Matrix4.TRS(mLocalPosition, mLocalRotation, mLocalScale);
 
+	/// The matrix from this object's own space to the world, through every parent.
 	public Matrix4 LocalToWorld
 	{
 		get
@@ -65,8 +91,10 @@ class Transform
 		}
 	}
 
+	/// The matrix from the world to this object's own space.
 	public Matrix4 WorldToLocal => LocalToWorld.Inverse;
 
+	/// The position in the world. Setting it moves the object so that it ends up there, whatever its parents.
 	public Vector3 Position
 	{
 		get => LocalToWorld.Translation;
@@ -80,6 +108,7 @@ class Transform
 		}
 	}
 
+	/// The rotation in the world.
 	public Quaternion Rotation
 	{
 		get => mParent != null ? (mParent.Rotation * mLocalRotation).Normalized : mLocalRotation;
@@ -93,22 +122,31 @@ class Transform
 		}
 	}
 
+	/// Rotation as angles in degrees about X, Y and Z.
 	public Vector3 EulerAngles
 	{
 		get => Rotation.EulerAngles;
-		set { Rotation = Quaternion.Euler(value); }
+		set
+		{
+			Rotation = Quaternion.Euler(value);
+		}
 	}
 
+	/// The direction the object faces (its +Z), in the world.
 	public Vector3 Forward => Rotation * Vector3.Forward;
+	/// The object's right (its +X), in the world.
 	public Vector3 Right => Rotation * Vector3.Right;
+	/// The object's up (its +Y), in the world.
 	public Vector3 Up => Rotation * Vector3.Up;
 
+	/// Sets the world position and rotation together.
 	public void SetPositionAndRotation(Vector3 position, Quaternion rotation)
 	{
 		Position = position;
 		Rotation = rotation;
 	}
 
+	/// Moves the object by an offset in world space.
 	public void Translate(Vector3 delta)
 	{
 		Position = Position + delta;
@@ -121,6 +159,7 @@ class Transform
 		MarkDirty();
 	}
 
+	/// Turns the object to face a point in the world, keeping its up as near world up as it can.
 	public void LookAt(Vector3 target)
 	{
 		let direction = target - Position;
@@ -128,9 +167,12 @@ class Transform
 			Rotation = Quaternion.LookRotation(direction, Vector3.Up);
 	}
 
+	/// A point from this object's own space to the world.
 	public Vector3 TransformPoint(Vector3 local) => LocalToWorld.TransformPoint(local);
+	/// A point from the world to this object's own space.
 	public Vector3 InverseTransformPoint(Vector3 world) => WorldToLocal.TransformPoint(world);
 
+	/// Whether this transform is the other or anywhere under it.
 	public bool IsChildOf(Transform other)
 	{
 		var t = this;

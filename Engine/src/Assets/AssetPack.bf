@@ -72,10 +72,10 @@ static class AssetPack
 	public static void MountGame(StringView root)
 	{
 		sRoot.Set(root);
-		if (!Mount(scope $"{root}/game.tpak", root))
+		if (!Mount(scope $"{root}/game.tpak" , root))
 			return;
 		let list = scope String();
-		if (ReadAllText(scope $"{root}/packs.txt", list) case .Err)
+		if (ReadAllText(scope $"{root}/packs.txt" , list) case .Err)
 			return;
 		for (let line in list.Split('\n'))
 		{

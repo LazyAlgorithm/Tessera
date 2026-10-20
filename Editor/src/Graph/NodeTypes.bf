@@ -72,8 +72,17 @@ class NodeDef
 		return p;
 	}
 
-	public NodeDef In(StringView name, PinType type, StringView typeName = "", StringView fallback = "") { inputs.Add(Pin(name, type, typeName, fallback)); return this; }
-	public NodeDef Out(StringView name, PinType type, StringView typeName = "", StringView code = "") { outputs.Add(Pin(name, type, typeName, code)); return this; }
+	public NodeDef In(StringView name, PinType type, StringView typeName = "", StringView fallback = "")
+	{
+		inputs.Add(Pin(name, type, typeName, fallback));
+		return this;
+	}
+
+	public NodeDef Out(StringView name, PinType type, StringView typeName = "", StringView code = "")
+	{
+		outputs.Add(Pin(name, type, typeName, code));
+		return this;
+	}
 
 	/// True when the node runs in a flow and also hands back values, which are kept in local variables.
 	public bool HasResults
@@ -83,13 +92,17 @@ class NodeDef
 			if (kind != .Action)
 				return false;
 			for (let pin in outputs)
+			{
 				if (pin.type != .Flow)
 					return true;
+			}
 			return false;
 		}
 	}
 }
 
+/// One node placed in a visual-scripting graph: what kind it is, where it sits, and the values typed into its
+/// unconnected inputs.
 class GraphNode
 {
 	public int32 id;

@@ -18,10 +18,17 @@ static class EditorMain
 		for (int i < args.Count)
 		{
 			let arg = args[i];
-			if (arg == "--editor") editor = true;
-			else if (arg == "--server") { server = true; NetworkSession.ModeOverride = .Server; }
-			else if (arg == "--host") NetworkSession.ModeOverride = .Host;
-			else if (arg == "--bot") NetworkSession.BotOverride = true;
+			if (arg == "--editor")
+				editor = true;
+			else if (arg == "--server")
+			{
+				server = true;
+				NetworkSession.ModeOverride = .Server;
+			}
+			else if (arg == "--host")
+				NetworkSession.ModeOverride = .Host;
+			else if (arg == "--bot")
+				NetworkSession.BotOverride = true;
 			else if (arg == "--connect" && i + 1 < args.Count)
 			{
 				NetworkSession.ModeOverride = .Client;
@@ -66,8 +73,8 @@ static class EditorMain
 			return app.Run(args);
 		}
 		let app = scope PlayerApp();
-        app.GameName.Set(project.Name);
-        app.StartScene.Set(project.StartScene);
+		app.GameName.Set(project.Name);
+		app.StartScene.Set(project.StartScene);
 		app.Headless = server;
 		return app.Run(args);
 	}
@@ -107,7 +114,7 @@ static class EditorMain
 			return;
 		}
 		let template = scope String();
-		File.ReadAllText(scope $"{project.Path}/.template", template).IgnoreError();
+		File.ReadAllText(scope $"{project.Path}/.template" , template).IgnoreError();
 		template.Trim();
 		if (template == "sample")
 			SceneTemplates.BuildSample(scene, project.Name);
@@ -121,12 +128,13 @@ static class EditorMain
 	}
 }
 
-// Development player retains editor-only first-run scene templates.
+/// The game run on its own from a development build (no --editor): it keeps the editor's first-run scene
+/// templates, which built games do not have.
 class PlayerApp : GameApp
 {
-    protected override bool LoadScene(Scene scene, StringView overridePath)
-    {
-        EditorMain.LoadStartScene(scene, overridePath);
-        return true;
-    }
+	protected override bool LoadScene(Scene scene, StringView overridePath)
+	{
+		EditorMain.LoadStartScene(scene, overridePath);
+		return true;
+	}
 }

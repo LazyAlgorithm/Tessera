@@ -11,7 +11,8 @@ class Program
 	static bool Check(bool pass, StringView label)
 	{
 		Console.WriteLine(scope $"{pass ? "PASS" : "FAIL"}: {label}");
-		if (!pass) sFailures++;
+		if (!pass)
+			sFailures++;
 		return pass;
 	}
 
@@ -75,14 +76,15 @@ class Program
 
 		// ---- collision between layers ----
 		{
-			let scene = scope Scene(); Scene.Active = scene;
+			let scene = scope Scene();
+			Scene.Active = scene;
 			scene.StartPlay();
 			Floor(scene, "Floor", .(0, 0, 0), 0);
 			let solid = Crate(scene, "Solid", .(-2, 3, 0), 0);
 			let passing = Crate(scene, "Ghost", .(2, 3, 0), ghost);
 			Run(scene, 180);
 			Check(Math.Abs(solid.Transform.Position.y - 1) < 0.1f && passing.Transform.Position.y < -5,
-				scope $"a body on a layer that does not collide with the floor's falls through it; one that does rests on it ({solid.Transform.Position.y:0.00}, {passing.Transform.Position.y:0.0})");
+scope $"a body on a layer that does not collide with the floor's falls through it; one that does rests on it ({solid.Transform.Position.y:0.00}, {passing.Transform.Position.y:0.0})");
 			// Moved to a layer that collides, it lands on what is below.
 			let below = passing.Transform.Position.y - 15;
 			Floor(scene, "Low floor", .(2, below, 0), props);
@@ -94,7 +96,8 @@ class Program
 
 		// ---- queries with layer masks ----
 		{
-			let scene = scope Scene(); Scene.Active = scene;
+			let scene = scope Scene();
+			Scene.Active = scene;
 			let near = Floor(scene, "Near", .(0, 0, 0), ghost);
 			let far = Floor(scene, "Far", .(0, -5, 0), 0);
 			RaycastHit hit;
@@ -156,7 +159,8 @@ class Program
 
 		// ---- world states ----
 		{
-			let scene = scope Scene(); Scene.Active = scene;
+			let scene = scope Scene();
+			Scene.Active = scene;
 			scene.StartPlay();
 			let material = ProjectConfig.WorldStateNamed("Material"), echo = ProjectConfig.WorldStateNamed("Echo");
 			let floor = Floor(scene, "Material floor", .(0, 0, 0), 0);
@@ -176,18 +180,23 @@ class Program
 			Check(!child.InActiveWorld && child.EffectiveWorldStates == ~(1u << material) && child.InWorldState(material) && floor.InActiveWorld && !bridge.InActiveWorld,
 				"an object's effective world states are its own less its parents' (what drawing, sound and picking go by)");
 			int32 changes = 0;
-			scene.WorldStateChanged.Add(new [&] (from, to) => { changes++; });
+			scene.WorldStateChanged.Add(new [&] (from, to) =>
+				{
+					changes++;
+				}
+				);
 			scene.WorldState = echo;
 			Run(scene, 120);
 			Check(changes == 1 && crate.Transform.Position.y < -5 && scene.Physics.Raycast(.(20, 10, 0), .Down, 50, out hit) && scene.Physics.Raycast(.(40, 10, 0), .Down, 50, out hit),
-				scope $"one switch: the first state's floor is gone (the crate on it falls), the second state's objects are there ({crate.Transform.Position.y:0.0})");
+scope $"one switch: the first state's floor is gone (the crate on it falls), the second state's objects are there ({crate.Transform.Position.y:0.0})");
 			Check(scene.SetWorldState("Material") && scene.WorldState == material && scene.Physics.Raycast(.(0, 10, 0), .Down, 50, out hit) && !scene.SetWorldState("Nowhere"), "switching back by name");
 			scene.StopPlay();
 		}
 
 		// ---- world states: what is walked on ----
 		{
-			let scene = scope Scene(); Scene.Active = scene;
+			let scene = scope Scene();
+			Scene.Active = scene;
 			let material = ProjectConfig.WorldStateNamed("Material"), echo = ProjectConfig.WorldStateNamed("Echo");
 			GameObject Ground(StringView name, Vector3 position, int32 leftOutOf)
 			{

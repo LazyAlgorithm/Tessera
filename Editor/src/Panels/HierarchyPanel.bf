@@ -109,10 +109,14 @@ extension EditorApp
 		if (ImGui.BeginPopupContextItem())
 		{
 			mSelectedId = gameObject.Id;
-			if (ImGui.MenuItem("Duplicate")) DuplicateSelected();
-			if (ImGui.MenuItem("Delete")) DeleteSelected();
-			if (ImGui.MenuItem("Frame in Scene")) FocusSelected();
-			if (ImGui.MenuItem("Save as Prefab")) SaveSelectedAsPrefab();
+			if (ImGui.MenuItem("Duplicate"))
+				DuplicateSelected();
+			if (ImGui.MenuItem("Delete"))
+				DeleteSelected();
+			if (ImGui.MenuItem("Frame in Scene"))
+				FocusSelected();
+			if (ImGui.MenuItem("Save as Prefab"))
+				SaveSelectedAsPrefab();
 			ImGui.Separator();
 			DrawCreateMenu();
 			ImGui.EndPopup();

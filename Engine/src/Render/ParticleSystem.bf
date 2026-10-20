@@ -18,26 +18,40 @@ class ParticleSystem : Component
 		public float seed;
 	}
 
+	/// The mesh each particle is drawn with.
 	public String mesh = new .("builtin:cube") ~ delete _;
+	/// The most particles alive at once.
 	public int32 maxParticles = 500;
 	/// Particles per second.
 	public float rate = 40.0f;
 	/// Emit this many at once when the system starts (for explosions and puffs).
 	public int32 burst = 0;
+	/// Keeps emitting; off, it stops after one lifetime's worth.
 	public bool looping = true;
+	/// How long each particle lives, in seconds.
 	public float lifetime = 2.0f;
+	/// How fast particles leave, in metres a second.
 	public float speed = 4.0f;
+	/// How far from straight up (the object's +Y) particles may leave, in degrees: 0 a line, 180 every way.
 	[Range(0, 180)]
 	public float spreadAngle = 25.0f;
 	/// Radius of the sphere particles start in.
 	public float emitRadius = 0.1f;
+	/// How particles are pulled, in metres a second squared.
 	public Vector3 gravity = .(0, -4.0f, 0);
+	/// How quickly particles slow down, as if through air.
 	public float drag = 0.2f;
+	/// How big a particle is when it is made.
 	public float startSize = 0.25f;
+	/// How big it is when it dies (in between, it changes evenly).
 	public float endSize = 0.0f;
+	/// How fast particles spin, in degrees a second.
 	public float spinSpeed = 180.0f;
+	/// A particle's colour when it is made.
 	public Color startColor = .(1.0f, 0.75f, 0.3f, 1);
+	/// Its colour when it dies.
 	public Color endColor = .(0.8f, 0.15f, 0.05f, 1);
+	/// Draws particles in their own colours, with no lighting (sparks, flames).
 	public bool unlit = true;
 	/// Simulate in world space, so moving the emitter leaves a trail.
 	public bool worldSpace = true;
@@ -48,7 +62,9 @@ class ParticleSystem : Component
 	bool mBurstDone;
 	Bounds mBounds;
 
+	/// How many particles are alive now.
 	public int32 AliveCount => (int32)mParticles.Count;
+	/// The box round the living particles, in the world.
 	public Bounds WorldBounds => mBounds;
 
 	public override void OnRegister() => Scene.Particles.Add(this);

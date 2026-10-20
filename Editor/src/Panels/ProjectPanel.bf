@@ -34,19 +34,22 @@ extension EditorApp
 	int32 mNewItemKind = -1; // 0 folder, 1 script, 2 scene
 	ProjectFolderMonitor mFolderMonitor = new .() ~ delete _;
 	ScriptComponentCatalog mScriptCatalog = new .() ~ delete _;
-    Stopwatch mFolderScanClock = new .(true) ~ delete _;
+	Stopwatch mFolderScanClock = new .(true) ~ delete _;
 
-    void PollProjectFolders()
-    {
-        if (mFolderScanClock.ElapsedMilliseconds < 1000) return;
-        mFolderScanClock.Restart();
-        if (!mFolderMonitor.Poll(Assets.ProjectPath)) return;
-		mScriptCatalog.Refresh(Assets.ProjectPath,Project.Current.Name);
-        if (!Directory.Exists(mBrowsePath)) mBrowsePath.Set(Assets.ProjectPath);
-        if (!File.Exists(mSelectedAsset) && !Directory.Exists(mSelectedAsset)) mSelectedAsset.Clear();
-        RefreshAssetList();
-        NodeLibrary.RefreshSubgraphs(Assets.ProjectPath);
-    }
+	void PollProjectFolders()
+	{
+		if (mFolderScanClock.ElapsedMilliseconds < 1000) return;
+		mFolderScanClock.Restart();
+		if (!mFolderMonitor.Poll(Assets.ProjectPath)) return;
+		mScriptCatalog.Refresh(Assets.ProjectPath, Project.Current.Name);
+		if (!Directory.Exists(mBrowsePath))
+			mBrowsePath.Set(Assets.ProjectPath);
+		if (!File.Exists(mSelectedAsset) && !Directory.Exists(mSelectedAsset))
+			mSelectedAsset.Clear();
+		RefreshAssetList();
+		NodeLibrary.RefreshSubgraphs(Assets.ProjectPath);
+	}
+
 	float mTileSize = 76;
 	bool mOpenRename;
 	bool mOpenDelete;
@@ -123,7 +126,7 @@ extension EditorApp
 			if (name.EndsWith(".tshader") && File.Exists(scope $"{folder}/{name.Substring(0, name.Length - 8)}.tsgraph"))
 				continue;
 			if (!recursive || name.Contains(mProjectSearch, true))
-				AddEntry(name, scope $"{folder}/{name}", false);
+				AddEntry(name, scope $"{folder}/{name}" , false);
 		}
 	}
 
@@ -144,142 +147,16 @@ extension EditorApp
 			let projectDock = ImGui.GetWindowDockID();
 			if (projectDock != 0)
 				mBottomDock = projectDock;
-			let assetRoot = Assets.ProjectPath;
 			if (mListedPath != mBrowsePath || mListedSearch != mProjectSearch)
 				RefreshAssetList();
-
-			// ---- header: create menu, breadcrumb, search, icon size ----
-			if (ImGui.Button("+"))
-				ImGui.OpenPopup("ProjectCreate");
-			if (ImGui.BeginPopup("ProjectCreate"))
-			{
-				DrawProjectCreateMenu();
-				ImGui.EndPopup();
-			}
-			ImGui.SameLine();
-			DrawBreadcrumb();
-			let right = ImGui.GetWindowWidth();
-			ImGui.SameLine(Math.Max(right - 330, 260));
-			ImGui.SetNextItemWidth(200);
-			ImGui.InputText("##projectsearch", mProjectSearch, 0, "Search");
-			ImGui.SameLine();
-			ImGui.SetNextItemWidth(100);
-			ImGui.SliderFloat("##tilesize", ref mTileSize, 48, 128, "");
-			ImGui.Separator();
-
-			// ---- left: folder tree ----
+			DrawProjectHeader();
 			ImGui.BeginChild("folders", .(210, 0), ImGui.ChildBorders);
-			var rootFlags = ImGui.TreeFlags.DefaultOpen | ImGui.TreeFlags.OpenOnArrow | ImGui.TreeFlags.SpanAvailWidth;
-			if (mBrowsePath == assetRoot)
-				rootFlags |= ImGui.TreeFlags.Selected;
-			let rootOpen = ImGui.TreeNode(scope String()..AppendF("{}  Assets###root", StringView(Icons.Folder)).CStr(), rootFlags);
-			if (ImGui.IsItemClicked(0) && !ImGui.IsItemToggledOpen())
-				mBrowsePath.Set(assetRoot);
-			AcceptMoveInto(assetRoot);
-			if (rootOpen)
-			{
-				DrawFolderTree(assetRoot);
-				ImGui.TreePop();
-			}
+			DrawProjectFolders(Assets.ProjectPath);
 			ImGui.EndChild();
 			ImGui.SameLine();
-
-			// ---- right: icon grid ----
 			ImGui.BeginChild("grid");
-			let avail = ImGui.GetContentRegionAvail();
-			let cell = mTileSize + 14;
-			let columns = Math.Max(1, (int)(avail.x / cell));
-			let labelHeight = ImGui.GetTextLineHeight() * 2 + 4;
-			AssetEntry activate = null;
-			for (int i < mAssetEntries.Count)
-			{
-				let entry = mAssetEntries[i];
-				if (i % columns != 0)
-					ImGui.SameLine(0, 6);
-				ImGui.PushID((int32)i);
-				let tileMin = ImGui.GetCursorScreenPos();
-				ImGui.InvisibleButton("tile", .(mTileSize + 8, mTileSize + labelHeight));
-				let hovered = ImGui.IsItemHovered();
-				let selected = mSelectedAsset == entry.path;
-				if (ImGui.IsItemClicked(0))
-				{
-					mSelectedAsset.Set(entry.path);
-					// A material clicked here is what the Inspector shows, until an object is selected again.
-					mInspectAsset = entry.name.EndsWith(".tmat") || entry.name.EndsWith(".tdata");
-				}
-				if (hovered && ImGui.IsMouseDoubleClicked(0))
-					activate = entry;
-				if (selected || hovered)
-					ImGui.DrawRectFilled(tileMin, .(tileMin.x + mTileSize + 8, tileMin.y + mTileSize + labelHeight), selected ? Color(0.17f, 0.36f, 0.53f, 0.9f) : Color(1, 1, 1, 0.06f), 4);
-				DrawAssetIcon(entry, .(tileMin.x + 4, tileMin.y + 4), mTileSize);
-				DrawTileLabel(entry.name, .(tileMin.x + 2, tileMin.y + mTileSize + 6), mTileSize + 4);
-
-				if (ImGui.BeginDragDropSource())
-				{
-					let relative = scope String();
-					ToRelative(entry.path, relative);
-					ImGui.SetDragDropPayload("ASSET", relative.Ptr, relative.Length);
-					ImGui.Text(entry.name);
-					ImGui.EndDragDropSource();
-				}
-				if (entry.isFolder)
-					AcceptMoveInto(entry.path);
-				if (ImGui.BeginPopupContextItem("tilemenu"))
-				{
-					mSelectedAsset.Set(entry.path);
-					if (ImGui.MenuItem("Open"))
-						activate = entry;
-					if (entry.name.EndsWith(".tgraph"))
-					{
-						if (ImGui.MenuItem("View Generated Code"))
-							ViewGraphCode(entry.path);
-						if (ImGui.MenuItem("Convert to Script"))
-							ConvertGraphToScript(entry.path);
-					}
-					else if (entry.name.EndsWith(".bf") || entry.name.EndsWith(".tui") || entry.name.EndsWith(".tcss") || entry.name.EndsWith(".tshader") || entry.name.EndsWith(".tcompute"))
-					{
-						if (ImGui.MenuItem("Open in Code Editor"))
-							OpenScript(entry.path);
-					}
-					if (ImGui.MenuItem("Rename", "F2"))
-						BeginRename(entry.path);
-					if (ImGui.MenuItem("Delete"))
-					{
-						mDeletePath.Set(entry.path);
-						mOpenDelete = true;
-					}
-					ImGui.Separator();
-					if (ImGui.MenuItem("Show in File Manager"))
-						ShowInFileManager(entry.isFolder ? (StringView)entry.path : mBrowsePath);
-					ImGui.EndPopup();
-				}
-				ImGui.PopID();
-			}
-			if (mAssetEntries.Count == 0)
-				ImGui.TextDisabled(mProjectSearch.IsEmpty ? "This folder is empty. Right-click to create, or drop files here." : "Nothing matches the search.");
-
-			// Empty space: deselect, context menu.
-			let rest = ImGui.GetContentRegionAvail();
-			ImGui.InvisibleButton("##gridspace", .(Math.Max(rest.x, 1), Math.Max(rest.y, 24)));
-			if (ImGui.IsItemClicked(0))
-				mSelectedAsset.Clear();
-			if (ImGui.BeginPopupContextItem("gridmenu"))
-			{
-				DrawProjectCreateMenu();
-				ImGui.Separator();
-				if (ImGui.MenuItem("Show in File Manager"))
-					ShowInFileManager(mBrowsePath);
-				if (ImGui.MenuItem("Refresh"))
-					RefreshAssetList();
-				ImGui.EndPopup();
-			}
-			if (ImGui.IsWindowFocused() && !mSelectedAsset.IsEmpty && (ImGui.tn_imgui_capture_flags() & 4) == 0)
-			{
-				if (ImGui.IsKeyPressed(ImGui.Key.F2))
-					BeginRename(mSelectedAsset);
-			}
+			let activate = DrawAssetGrid();
 			ImGui.EndChild();
-
 			if (activate != null)
 				ActivateAsset(activate);
 		}
@@ -292,6 +169,161 @@ extension EditorApp
 			mPendingMoveFrom.Clear();
 		}
 		DrawProjectPopups();
+	}
+
+	/// The create menu, the breadcrumb of the folder shown, the search box and the icon size.
+	void DrawProjectHeader()
+	{
+		if (ImGui.Button("+"))
+			ImGui.OpenPopup("ProjectCreate");
+		if (ImGui.BeginPopup("ProjectCreate"))
+		{
+			DrawProjectCreateMenu();
+			ImGui.EndPopup();
+		}
+		ImGui.SameLine();
+		DrawBreadcrumb();
+		let right = ImGui.GetWindowWidth();
+		ImGui.SameLine(Math.Max(right - 330, 260));
+		ImGui.SetNextItemWidth(200);
+		ImGui.InputText("##projectsearch", mProjectSearch, 0, "Search");
+		ImGui.SameLine();
+		ImGui.SetNextItemWidth(100);
+		ImGui.SliderFloat("##tilesize", ref mTileSize, 48, 128, "");
+		ImGui.Separator();
+	}
+
+	/// The folder tree on the left, from the asset folder down.
+	void DrawProjectFolders(StringView assetRoot)
+	{
+		var rootFlags = ImGui.TreeFlags.DefaultOpen | ImGui.TreeFlags.OpenOnArrow | ImGui.TreeFlags.SpanAvailWidth;
+		if (mBrowsePath == assetRoot)
+			rootFlags |= ImGui.TreeFlags.Selected;
+		let rootOpen = ImGui.TreeNode(scope String()..AppendF("{}  Assets###root", StringView(Icons.Folder)).CStr(), rootFlags);
+		if (ImGui.IsItemClicked(0) && !ImGui.IsItemToggledOpen())
+			mBrowsePath.Set(assetRoot);
+		AcceptMoveInto(assetRoot);
+		if (rootOpen)
+		{
+			DrawFolderTree(assetRoot);
+			ImGui.TreePop();
+		}
+	}
+
+	/// The icons of what is in the folder shown (or matches the search), and the menu on the empty space. Returns the
+	/// asset double-clicked or opened from its menu, or null.
+	AssetEntry DrawAssetGrid()
+	{
+		AssetEntry activate = null;
+		let avail = ImGui.GetContentRegionAvail();
+		let cell = mTileSize + 14;
+		let columns = Math.Max(1, (int)(avail.x / cell));
+		let labelHeight = ImGui.GetTextLineHeight() * 2 + 4;
+		for (int i < mAssetEntries.Count)
+		{
+			if (i % columns != 0)
+				ImGui.SameLine(0, 6);
+			ImGui.PushID((int32)i);
+			if (DrawAssetTile(mAssetEntries[i], labelHeight))
+				activate = mAssetEntries[i];
+			ImGui.PopID();
+		}
+		if (mAssetEntries.Count == 0)
+			ImGui.TextDisabled(mProjectSearch.IsEmpty ? "This folder is empty. Right-click to create, or drop files here." : "Nothing matches the search.");
+
+		// Empty space: deselect, context menu.
+		let rest = ImGui.GetContentRegionAvail();
+		ImGui.InvisibleButton("##gridspace", .(Math.Max(rest.x, 1), Math.Max(rest.y, 24)));
+		if (ImGui.IsItemClicked(0))
+			mSelectedAsset.Clear();
+		if (ImGui.BeginPopupContextItem("gridmenu"))
+		{
+			DrawProjectCreateMenu();
+			ImGui.Separator();
+			if (ImGui.MenuItem("Show in File Manager"))
+				ShowInFileManager(mBrowsePath);
+			if (ImGui.MenuItem("Refresh"))
+				RefreshAssetList();
+			ImGui.EndPopup();
+		}
+		if (ImGui.IsWindowFocused() && !mSelectedAsset.IsEmpty && (ImGui.tn_imgui_capture_flags() & 4) == 0)
+		{
+			if (ImGui.IsKeyPressed(ImGui.Key.F2))
+				BeginRename(mSelectedAsset);
+		}
+		return activate;
+	}
+
+	/// One asset's tile: its icon and name, selected by a click, dragged to move it or drop it on an object. True
+	/// when it is to be opened (double-clicked, or Open from its menu).
+	bool DrawAssetTile(AssetEntry entry, float labelHeight)
+	{
+		bool activate = false;
+		let tileMin = ImGui.GetCursorScreenPos();
+		ImGui.InvisibleButton("tile", .(mTileSize + 8, mTileSize + labelHeight));
+		let hovered = ImGui.IsItemHovered();
+		let selected = mSelectedAsset == entry.path;
+		if (ImGui.IsItemClicked(0))
+		{
+			mSelectedAsset.Set(entry.path);
+			// A material clicked here is what the Inspector shows, until an object is selected again.
+			mInspectAsset = entry.name.EndsWith(".tmat") || entry.name.EndsWith(".tdata");
+		}
+		if (hovered && ImGui.IsMouseDoubleClicked(0))
+			activate = true;
+		if (selected || hovered)
+			ImGui.DrawRectFilled(tileMin, .(tileMin.x + mTileSize + 8, tileMin.y + mTileSize + labelHeight), selected ? Color(0.17f, 0.36f, 0.53f, 0.9f) : Color(1, 1, 1, 0.06f), 4);
+		DrawAssetIcon(entry, .(tileMin.x + 4, tileMin.y + 4), mTileSize);
+		DrawTileLabel(entry.name, .(tileMin.x + 2, tileMin.y + mTileSize + 6), mTileSize + 4);
+
+		if (ImGui.BeginDragDropSource())
+		{
+			let relative = scope String();
+			ToRelative(entry.path, relative);
+			ImGui.SetDragDropPayload("ASSET", relative.Ptr, relative.Length);
+			ImGui.Text(entry.name);
+			ImGui.EndDragDropSource();
+		}
+		if (entry.isFolder)
+			AcceptMoveInto(entry.path);
+		if (DrawAssetMenu(entry))
+			activate = true;
+		return activate;
+	}
+
+	/// The menu on an asset's tile. True when Open was chosen.
+	bool DrawAssetMenu(AssetEntry entry)
+	{
+		if (!ImGui.BeginPopupContextItem("tilemenu"))
+			return false;
+		bool open = false;
+		mSelectedAsset.Set(entry.path);
+		if (ImGui.MenuItem("Open"))
+			open = true;
+		if (entry.name.EndsWith(".tgraph"))
+		{
+			if (ImGui.MenuItem("View Generated Code"))
+				ViewGraphCode(entry.path);
+			if (ImGui.MenuItem("Convert to Script"))
+				ConvertGraphToScript(entry.path);
+		}
+		else if (entry.name.EndsWith(".bf") || entry.name.EndsWith(".tui") || entry.name.EndsWith(".tcss") || entry.name.EndsWith(".tshader") || entry.name.EndsWith(".tcompute"))
+		{
+			if (ImGui.MenuItem("Open in Code Editor"))
+				OpenScript(entry.path);
+		}
+		if (ImGui.MenuItem("Rename", "F2"))
+			BeginRename(entry.path);
+		if (ImGui.MenuItem("Delete"))
+		{
+			mDeletePath.Set(entry.path);
+			mOpenDelete = true;
+		}
+		ImGui.Separator();
+		if (ImGui.MenuItem("Show in File Manager"))
+			ShowInFileManager(entry.isFolder ? (StringView)entry.path : mBrowsePath);
+		ImGui.EndPopup();
+		return open;
 	}
 
 	void DrawBreadcrumb()
@@ -324,7 +356,11 @@ extension EditorApp
 	void DrawFolderTree(StringView folder)
 	{
 		List<String> names = scope .();
-		defer { for (let n in names) delete n; }
+		defer
+		{
+			for (let n in names)
+				delete n;
+		}
 		for (let entry in Directory.EnumerateDirectories(folder))
 		{
 			let name = new String();
@@ -409,6 +445,69 @@ extension EditorApp
 		RefreshAssetList();
 	}
 
+	/// The coloured band and label a file of some kind shows when it has no picture of its own.
+	struct FileBadge
+	{
+		public StringView suffix;
+		public Color color;
+		public char8* tag;
+
+		public this(StringView suffix, Color color, char8* tag)
+		{
+			this.suffix = suffix;
+			this.color = color;
+			this.tag = tag;
+		}
+	}
+
+	static FileBadge[?] sFileBadges = .(
+		.(".bf", .(0.25f, 0.47f, 0.76f, 1), "BF"),
+		.(".tscene", .(0.52f, 0.38f, 0.72f, 1), "SCENE"),
+		.(".voxels", .(0.58f, 0.44f, 0.30f, 1), "VOXEL"),
+		.(".tprefab", .(0.24f, 0.56f, 0.78f, 1), "PREFAB"),
+		.(".tui", .(0.20f, 0.60f, 0.62f, 1), "UI"),
+		.(".tcss", .(0.20f, 0.48f, 0.70f, 1), "CSS"),
+		.(".tnav", .(0.20f, 0.42f, 0.66f, 1), "NAV"),
+		.(".tgraph", .(0.50f, 0.34f, 0.66f, 1), "GRAPH"),
+		.(".tsgraph", .(0.40f, 0.62f, 0.30f, 1), "SHADER"),
+		.(".tbt", .(0.70f, 0.44f, 0.20f, 1), "TREE"),
+		.(".tcontroller", .(0.78f, 0.48f, 0.14f, 1), "ANIMATOR"),
+		.(".tanim", .(0.30f, 0.55f, 0.75f, 1), "CLIP"),
+		.(".tmat", .(0.62f, 0.36f, 0.66f, 1), "MATERIAL"),
+		.(".tdata", .(0.20f, 0.60f, 0.52f, 1), "DATA"),
+		.(".tshader", .(0.40f, 0.62f, 0.30f, 1), "SHADER"),
+		.(".tcompute", .(0.30f, 0.62f, 0.50f, 1), "COMPUTE"),
+		.(".toml", .(0.36f, 0.36f, 0.38f, 1), "CFG"),
+		.(".tessera", .(0.36f, 0.36f, 0.38f, 1), "CFG"));
+
+	/// A file's badge, by its extension (models and sounds by their many formats); grey "FILE" for anything else.
+	static void FileBadgeOf(StringView name, out Color color, out char8* tag)
+	{
+		for (let badge in sFileBadges)
+		{
+			if (name.EndsWith(badge.suffix))
+			{
+				color = badge.color;
+				tag = badge.tag;
+				return;
+			}
+		}
+		if (IsModelFile(name))
+		{
+			color = .(0.30f, 0.62f, 0.44f, 1);
+			tag = "MESH";
+			return;
+		}
+		if (IsAudioFile(name))
+		{
+			color = .(0.35f, 0.72f, 0.80f, 1);
+			tag = "AUDIO";
+			return;
+		}
+		color = .(0.42f, 0.42f, 0.44f, 1);
+		tag = "FILE";
+	}
+
 	void DrawAssetIcon(AssetEntry entry, ImGui.Vec2 min, float size)
 	{
 		let max = ImGui.Vec2(min.x + size, min.y + size);
@@ -436,28 +535,9 @@ extension EditorApp
 			ImGui.DrawImage(preview, .(min.x + size * 0.04f, min.y + size * 0.04f), .(max.x - size * 0.04f, max.y - size * 0.04f), false);
 			return;
 		}
-		Color color = .(0.42f, 0.42f, 0.44f, 1);
-		char8* tag = "FILE";
-		if (entry.name.EndsWith(".bf")) { color = .(0.25f, 0.47f, 0.76f, 1); tag = "BF"; }
-		else if (entry.name.EndsWith(".tscene")) { color = .(0.52f, 0.38f, 0.72f, 1); tag = "SCENE"; }
-		else if (IsModelFile(entry.name)) { color = .(0.30f, 0.62f, 0.44f, 1); tag = "MESH"; }
-		else if (entry.name.EndsWith(".voxels")) { color = .(0.58f, 0.44f, 0.30f, 1); tag = "VOXEL"; }
-		else if (entry.name.EndsWith(".tprefab")) { color = .(0.24f, 0.56f, 0.78f, 1); tag = "PREFAB"; }
-		else if (entry.name.EndsWith(".tui")) { color = .(0.20f, 0.60f, 0.62f, 1); tag = "UI"; }
-		else if (entry.name.EndsWith(".tcss")) { color = .(0.20f, 0.48f, 0.70f, 1); tag = "CSS"; }
-        else if(entry.name.EndsWith(".tnav")) {color=.(0.20f,0.42f,0.66f,1);tag="NAV";}
-		else if (entry.name.EndsWith(".tgraph")) { color = .(0.50f, 0.34f, 0.66f, 1); tag = "GRAPH"; }
-		else if (entry.name.EndsWith(".tsgraph")) { color = .(0.40f, 0.62f, 0.30f, 1); tag = "SHADER"; }
-		else if (entry.name.EndsWith(".tbt")) { color = .(0.70f, 0.44f, 0.20f, 1); tag = "TREE"; }
-		else if (entry.name.EndsWith(".tcontroller")) { color = .(0.78f, 0.48f, 0.14f, 1); tag = "ANIMATOR"; }
-		else if (entry.name.EndsWith(".tanim")) { color = .(0.30f, 0.55f, 0.75f, 1); tag = "CLIP"; }
-		else if (entry.name.EndsWith(".tmat")) { color = .(0.62f, 0.36f, 0.66f, 1); tag = "MATERIAL"; }
-		else if (entry.name.EndsWith(".tdata")) { color = .(0.20f, 0.60f, 0.52f, 1); tag = "DATA"; }
-		else if (entry.name.EndsWith(".tshader")) { color = .(0.40f, 0.62f, 0.30f, 1); tag = "SHADER"; }
-		else if (entry.name.EndsWith(".tcompute")) { color = .(0.30f, 0.62f, 0.50f, 1); tag = "COMPUTE"; }
-		else if (IsAudioFile(entry.name)) { color = .(0.35f, 0.72f, 0.80f, 1); tag = "AUDIO"; }
-		else if (entry.name.EndsWith(".tanim")) { color = .(0.78f, 0.46f, 0.24f, 1); tag = "ANIM"; }
-		else if (entry.name.EndsWith(".toml") || entry.name.EndsWith(".tessera")) { color = .(0.36f, 0.36f, 0.38f, 1); tag = "CFG"; }
+		Color color;
+		char8* tag;
+		FileBadgeOf(entry.name, out color, out tag);
 		// A sheet of paper with a coloured band.
 		let left = min.x + size * 0.18f;
 		let rightEdge = max.x - size * 0.18f;
@@ -494,19 +574,32 @@ extension EditorApp
 
 	void DrawProjectCreateMenu()
 	{
-		if (ImGui.MenuItem("Folder")) BeginNewItem(0, "New Folder");
-		if (ImGui.MenuItem("Script")) BeginNewItem(1, "NewScript");
-		if (ImGui.MenuItem("Scene")) BeginNewItem(2, "NewScene");
-		if (ImGui.MenuItem("Graph (visual script)")) BeginNewItem(3, "NewGraph");
-		if (ImGui.MenuItem("Subgraph (reusable node)")) BeginNewItem(5, "NewSubgraph");
-		if (ImGui.MenuItem("Behavior Tree")) BeginNewItem(6, "NewTree");
-		if (ImGui.MenuItem("Animator Controller")) BeginNewItem(7, "NewController");
-		if (ImGui.MenuItem("Animation Clip")) BeginNewItem(8, "NewClip");
-		if (ImGui.MenuItem("Material")) BeginNewItem(9, "NewMaterial");
-		if (ImGui.MenuItem("Shader Graph (visual shader)")) BeginNewItem(12, "NewShaderGraph");
-		if (ImGui.MenuItem("Shader (code)")) BeginNewItem(10, "NewShader");
-		if (ImGui.MenuItem("Compute Shader")) BeginNewItem(11, "NewCompute");
-		if (ImGui.MenuItem("UI Document")) BeginNewItem(4, "NewUI");
+		if (ImGui.MenuItem("Folder"))
+			BeginNewItem(0, "New Folder");
+		if (ImGui.MenuItem("Script"))
+			BeginNewItem(1, "NewScript");
+		if (ImGui.MenuItem("Scene"))
+			BeginNewItem(2, "NewScene");
+		if (ImGui.MenuItem("Graph (visual script)"))
+			BeginNewItem(3, "NewGraph");
+		if (ImGui.MenuItem("Subgraph (reusable node)"))
+			BeginNewItem(5, "NewSubgraph");
+		if (ImGui.MenuItem("Behavior Tree"))
+			BeginNewItem(6, "NewTree");
+		if (ImGui.MenuItem("Animator Controller"))
+			BeginNewItem(7, "NewController");
+		if (ImGui.MenuItem("Animation Clip"))
+			BeginNewItem(8, "NewClip");
+		if (ImGui.MenuItem("Material"))
+			BeginNewItem(9, "NewMaterial");
+		if (ImGui.MenuItem("Shader Graph (visual shader)"))
+			BeginNewItem(12, "NewShaderGraph");
+		if (ImGui.MenuItem("Shader (code)"))
+			BeginNewItem(10, "NewShader");
+		if (ImGui.MenuItem("Compute Shader"))
+			BeginNewItem(11, "NewCompute");
+		if (ImGui.MenuItem("UI Document"))
+			BeginNewItem(4, "NewUI");
 		if (ImGui.BeginMenu("Data Asset"))
 		{
 			let types = scope List<Type>();
@@ -587,7 +680,11 @@ extension EditorApp
 
 	void DrawProjectPopups()
 	{
-		if (mOpenNewItem) { ImGui.OpenPopup("Create Asset"); mOpenNewItem = false; }
+		if (mOpenNewItem)
+		{
+			ImGui.OpenPopup("Create Asset");
+			mOpenNewItem = false;
+		}
 		if (ImGui.BeginPopupModal("Create Asset", null, ImGui.WindowFlags.AlwaysAutoResize))
 		{
 			ImGui.Text(mNewItemKind == 0 ? "Folder name" : (mNewItemKind == 1 ? "Script class name" : (mNewItemKind == 3 ? "Graph name (becomes the component's class name)" : (mNewItemKind == 6 ? "Behavior tree name" : (mNewItemKind == 7 ? "Animator controller name" : (mNewItemKind == 8 ? "Animation clip name" : (mNewItemKind == 9 ? "Material name" : (mNewItemKind == 10 ? "Shader name" : (mNewItemKind == 11 ? "Compute shader name" : (mNewItemKind == 12 ? "Shader graph name" : "Scene name"))))))))));
@@ -606,7 +703,11 @@ extension EditorApp
 			ImGui.EndPopup();
 		}
 
-		if (mOpenRename) { ImGui.OpenPopup("Rename"); mOpenRename = false; }
+		if (mOpenRename)
+		{
+			ImGui.OpenPopup("Rename");
+			mOpenRename = false;
+		}
 		if (ImGui.BeginPopupModal("Rename", null, ImGui.WindowFlags.AlwaysAutoResize))
 		{
 			ImGui.SetNextItemWidth(300);
@@ -634,7 +735,11 @@ extension EditorApp
 			ImGui.EndPopup();
 		}
 
-		if (mOpenDelete) { ImGui.OpenPopup("Delete Asset"); mOpenDelete = false; }
+		if (mOpenDelete)
+		{
+			ImGui.OpenPopup("Delete Asset");
+			mOpenDelete = false;
+		}
 		if (ImGui.BeginPopupModal("Delete Asset", null, ImGui.WindowFlags.AlwaysAutoResize))
 		{
 			let name = scope String();
@@ -771,7 +876,8 @@ extension EditorApp
 		GameObject gameObject = null;
 		if (HasExtension(relative, ".tui"))
 		{
-			let name = scope String(); Path.GetFileNameWithoutExtension(relative, name);
+			let name = scope String();
+			Path.GetFileNameWithoutExtension(relative, name);
 			mSelectedId = 0;
 			gameObject = CreateObject(name);
 			gameObject.AddComponent<UIDocument>().document.Set(relative);

@@ -33,7 +33,7 @@ static class WebPlatform
 		tn_web_loading_done();
 		// fps 0: follow the display (requestAnimationFrame). simulateInfiniteLoop 1: leave Run here for good, so
 		// nothing the caller made on its stack is torn down while the game is still using it.
-		emscripten_set_main_loop(=> BrowserFrame, 0, 1);
+		emscripten_set_main_loop( => BrowserFrame, 0, 1);
 	}
 
 	static void BrowserFrame()

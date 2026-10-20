@@ -6,6 +6,7 @@ namespace Tessera;
 /// Everything a NetworkScript does must come from here, never from Input directly.
 struct TickInput
 {
+	/// This tick's controls, as sent.
 	public NetInput raw;
 	/// The previous tick's controls, for telling a new press from a held key.
 	public NetInput previous;
@@ -14,6 +15,7 @@ struct TickInput
 	public Vector2 Move => .(raw.moveX, raw.moveZ);
 	/// Where the player is looking, in degrees: turned with the mouse.
 	public float Yaw => raw.yaw;
+	/// How far up or down the player looks, in degrees.
 	public float Pitch => raw.pitch;
 	/// Move turned to face where the player looks: the direction to walk in, on the ground plane.
 	public Vector3 MoveDirection
@@ -26,17 +28,26 @@ struct TickInput
 			return direction;
 		}
 	}
+
+	/// Which way the player looks.
 	public Quaternion LookRotation => Quaternion.Euler(raw.pitch, raw.yaw, 0);
 
+	/// Whether a button is held this tick.
 	public bool Held(InputButton button) => raw.GetButton((int)button);
 	/// True only on the tick the button went down.
 	public bool Pressed(InputButton button) => raw.GetButton((int)button) && !previous.GetButton((int)button);
+	/// Whether a button came up this tick.
 	public bool Released(InputButton button) => !raw.GetButton((int)button) && previous.GetButton((int)button);
 
+	/// Whether Jump is held.
 	public bool Jump => Held(.Jump);
+	/// Whether Sprint is held.
 	public bool Sprint => Held(.Sprint);
+	/// Whether Crouch is held.
 	public bool Crouch => Held(.Crouch);
+	/// Whether Fire is held.
 	public bool Fire => Held(.Fire);
+	/// Whether Use is held.
 	public bool Use => Held(.Use);
 }
 
@@ -97,6 +108,7 @@ abstract class NetworkScript : NetworkBehaviour
 	public bool mouseLook = true;
 	/// Only turn while the right mouse button is held, leaving the cursor free otherwise.
 	public bool holdRightMouseToLook = true;
+	/// Degrees turned per pixel of mouse movement.
 	public float mouseSensitivity = 0.15f;
 
 	float mYaw;
@@ -105,6 +117,7 @@ abstract class NetworkScript : NetworkBehaviour
 
 	/// The view direction built up from the mouse on this machine.
 	public float Yaw { get => mYaw; set => mYaw = value; }
+	/// How far up or down this machine's player looks, in degrees (it is sent with the controls).
 	public float Pitch { get => mPitch; set => mPitch = value; }
 	/// True while a tick is being run again after a correction from the server.
 	public bool IsReplaying => Scene.Network != null && Scene.Network.Replaying;

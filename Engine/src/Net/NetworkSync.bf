@@ -137,12 +137,7 @@ static class NetworkSync
 			return null;
 		if (!viaIdentity)
 			return network.Scene.FindById(id);
-		for (let identity in network.Identities)
-		{
-			if (identity.NetId == id)
-				return identity.GameObject;
-		}
-		return null;
+		return network.FindIdentity(id)?.GameObject;
 	}
 
 	/// The object that names a component across machines: the nearest ancestor with a Network Identity, or the
@@ -212,8 +207,12 @@ static class NetworkSync
 			return false;
 		let payload = scope NetWriter();
 		WriteObject(payload, terrain.GameObject);
-		payload.Write(center); payload.Write(radius); payload.Write(strength);
-		payload.Write<int32>((int32)mode); payload.Write(paintLayer); payload.Write(flattenHeight);
+		payload.Write(center);
+		payload.Write(radius);
+		payload.Write(strength);
+		payload.Write<int32>((int32)mode);
+		payload.Write(paintLayer);
+		payload.Write(flattenHeight);
 		if (network.IsServer)
 		{
 			Broadcast(network, MsgTerrainBrush, payload, true);
@@ -229,8 +228,12 @@ static class NetworkSync
 		if (network == null)
 			return;
 		let target = ReadObject(ref reader, network);
-		let center = reader.Read<Vector3>(); let radius = reader.Read<float>(); let strength = reader.Read<float>();
-		let mode = reader.Read<int32>(); let paintLayer = reader.Read<int32>(); let flattenHeight = reader.Read<float>();
+		let center = reader.Read<Vector3>();
+		let radius = reader.Read<float>();
+		let strength = reader.Read<float>();
+		let mode = reader.Read<int32>();
+		let paintLayer = reader.Read<int32>();
+		let flattenHeight = reader.Read<float>();
 		let terrain = target?.GetComponent<VoxelTerrain>();
 		if (!reader.Ok || terrain == null || !Finite(center) || !radius.IsFinite || !strength.IsFinite || !flattenHeight.IsFinite || mode < 0 || mode > (int32)VoxelBrush.Paint)
 			return;
@@ -250,7 +253,8 @@ static class NetworkSync
 		let payload = scope NetWriter();
 		WriteObject(payload, voxels.GameObject);
 		// In the object's own space: a boulder that has rolled is not in exactly the same place on every machine.
-		payload.Write(voxels.Transform.InverseTransformPoint(point)); payload.Write(radius);
+		payload.Write(voxels.Transform.InverseTransformPoint(point));
+		payload.Write(radius);
 		if (network.IsServer)
 		{
 			Broadcast(network, MsgVoxelCarve, payload, true);
@@ -266,7 +270,8 @@ static class NetworkSync
 		if (network == null)
 			return;
 		let target = ReadObject(ref reader, network);
-		let point = reader.Read<Vector3>(); let radius = reader.Read<float>();
+		let point = reader.Read<Vector3>();
+		let radius = reader.Read<float>();
 		let voxels = target?.GetComponent<VoxelObject>();
 		if (!reader.Ok || voxels == null || !Finite(point) || !radius.IsFinite)
 			return;
@@ -287,8 +292,11 @@ static class NetworkSync
 	{
 		payload.Write<uint32>(controller.GetComponent<NetworkIdentity>().NetId);
 		payload.Write<int32>((int32)controller.shape);
-		payload.Write(controller.radius); payload.Write(controller.height);
-		payload.Write(controller.boxSize); payload.Write(controller.edgeRadius); payload.Write(controller.center);
+		payload.Write(controller.radius);
+		payload.Write(controller.height);
+		payload.Write(controller.boxSize);
+		payload.Write(controller.edgeRadius);
+		payload.Write(controller.center);
 	}
 
 	/// Called after a controller's shape changed locally. The server tells everyone; a client asks the server,
@@ -313,16 +321,14 @@ static class NetworkSync
 			return;
 		let netId = reader.Read<uint32>();
 		let shape = reader.Read<int32>();
-		let radius = reader.Read<float>(); let height = reader.Read<float>();
-		let boxSize = reader.Read<Vector3>(); let edgeRadius = reader.Read<float>(); let center = reader.Read<Vector3>();
+		let radius = reader.Read<float>();
+		let height = reader.Read<float>();
+		let boxSize = reader.Read<Vector3>();
+		let edgeRadius = reader.Read<float>();
+		let center = reader.Read<Vector3>();
 		if (!reader.Ok || shape < 0 || shape > (int32)CharacterShape.Box || !radius.IsFinite || !height.IsFinite || !Finite(boxSize) || !edgeRadius.IsFinite || !Finite(center))
 			return;
-		NetworkIdentity identity = null;
-		for (let candidate in network.Identities)
-		{
-			if (candidate.NetId == netId)
-				identity = candidate;
-		}
+		let identity = network.FindIdentity(netId);
 		let controller = identity?.GetComponent<CharacterController>();
 		if (controller == null)
 			return;
@@ -337,8 +343,12 @@ static class NetworkSync
 		if (identity.ownerId == sender)
 		{
 			let old = (controller.shape, controller.radius, controller.height, controller.boxSize, controller.edgeRadius, controller.center);
-			controller.shape = (CharacterShape)shape; controller.radius = radius; controller.height = height;
-			controller.boxSize = boxSize; controller.edgeRadius = edgeRadius; controller.center = center;
+			controller.shape = (CharacterShape)shape;
+			controller.radius = radius;
+			controller.height = height;
+			controller.boxSize = boxSize;
+			controller.edgeRadius = edgeRadius;
+			controller.center = center;
 			if (controller.ApplyShape())
 				return; // which told everyone
 			(controller.shape, controller.radius, controller.height, controller.boxSize, controller.edgeRadius, controller.center) = old;
@@ -673,10 +683,10 @@ static class NetworkSync
 		case .Double: return 8;
 		case .Bool: return 1;
 		case .Vector2: return 8;
-		case .Vector3, .Int3: return 12;
-		case .Vector4, .Quaternion, .Color: return 16;
+		case .Vector3,.Int3: return 12;
+		case .Vector4,.Quaternion,.Color: return 16;
 		case .Matrix4: return 64;
-		case .Int, .Enum, .Char: return (int32)field.type.Size;
+		case .Int,.Enum,.Char: return (int32)field.type.Size;
 		default: return 0;
 		}
 	}
@@ -778,24 +788,21 @@ static class NetworkSync
 			data[i] = reader.Read<uint8>();
 		if (!reader.Ok)
 			return;
-		for (let identity in network.Identities)
-		{
-			if (identity.NetId != netId)
-				continue;
-			let list = Slots(identity);
-			if (index >= list.slots.Count)
-				return;
-			let slot = list.slots[index];
-			if (slot.isString)
-			{
-				let text = *(String*)slot.ptr;
-				if (text != null)
-					text..Clear().Append(StringView((char8*)&data[0], length));
-			}
-			else if (length == slot.size)
-				Internal.MemCpy(slot.ptr, &data[0], length);
+		let identity = network.FindIdentity(netId);
+		if (identity == null)
 			return;
+		let list = Slots(identity);
+		if (index >= list.slots.Count)
+			return;
+		let slot = list.slots[index];
+		if (slot.isString)
+		{
+			let text = *(String*)slot.ptr;
+			if (text != null)
+				text..Clear().Append(StringView((char8*)&data[0], length));
 		}
+		else if (length == slot.size)
+			Internal.MemCpy(slot.ptr, &data[0], length);
 	}
 
 	// ---- late joiners ----

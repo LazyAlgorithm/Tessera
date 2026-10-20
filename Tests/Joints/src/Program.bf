@@ -1,11 +1,16 @@
 using System;
 using System.Collections;
 using Tessera;
+
 namespace JointTests;
 
 class Program
 {
-	static bool Check(bool pass, StringView label) { Console.WriteLine(scope $"{pass ? "PASS" : "FAIL"}: {label}"); return pass; }
+	static bool Check(bool pass, StringView label)
+	{
+		Console.WriteLine(scope $"{pass ? "PASS" : "FAIL"}: {label}");
+		return pass;
+	}
 
 	static Rigidbody Box(Scene scene, StringView name, Vector3 position, Vector3 size, bool kinematic = false, bool debris = false)
 	{
@@ -31,7 +36,8 @@ class Program
 		bool ok = true;
 		// A weight on a ball joint under a fixed point swings instead of falling.
 		{
-			let scene = scope Scene(); Scene.Active = scene;
+			let scene = scope Scene();
+			Scene.Active = scene;
 			scene.StartPlay();
 			let post = Box(scene, "Post", .(0, 10, 0), .(0.2f, 0.2f, 0.2f), true);
 			let weight = Box(scene, "Weight", .(2, 10, 0), .(0.4f, 0.4f, 0.4f));
@@ -57,7 +63,8 @@ class Program
 		}
 		// A cone limit keeps a limb from swinging further than it should.
 		{
-			let scene = scope Scene(); Scene.Active = scene;
+			let scene = scope Scene();
+			Scene.Active = scene;
 			scene.StartPlay();
 			let post = Box(scene, "Post", .(0, 10, 0), .(0.2f, 0.2f, 0.2f), true);
 			let limb = Box(scene, "Limb", .(0, 9, 0), .(0.2f, 0.2f, 0.2f));
@@ -78,7 +85,8 @@ class Program
 		}
 		// Debris lies on scenery, and nothing else notices it.
 		{
-			let scene = scope Scene(); Scene.Active = scene;
+			let scene = scope Scene();
+			Scene.Active = scene;
 			scene.StartPlay();
 			let floor = scene.CreateGameObject("Floor");
 			floor.AddComponent<BoxCollider>().size = .(20, 1, 20);
@@ -107,7 +115,10 @@ class Program
 			scene.Physics.OverlapSphere(rubble.Transform.Position, 0.3f, hits);
 			bool found = false;
 			for (let hit in hits)
-				if (hit.gameObject == rubble.GameObject) found = true;
+			{
+				if (hit.gameObject == rubble.GameObject)
+					found = true;
+			}
 			ok &= Check(!found && scene.Physics.IsDebris(rubble.BodyId) && !scene.Physics.IsDebris(crate.BodyId), "overlaps do not report it");
 			scene.StopPlay();
 		}

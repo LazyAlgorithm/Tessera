@@ -40,6 +40,7 @@ static class Jolt
 		public Vector3 normal;
 		public float penetrationDepth;
 	}
+
 	/// Mirrors TnCharacterState in native/tessera_physics.cpp.
 	[CRepr] public struct CharacterState
 	{
@@ -51,11 +52,20 @@ static class Jolt
 		public int32 groundState;
 		public uint32 groundBody;
 	}
+
 	[CLink] public static extern void* tn_character_create(void* system, void* shape, Vector3* position, Quaternion* rotation, float maxSlopeRadians, float mass, float maxStrength, float supportHeight, uint32 layer, uint64 userData, bool innerBody, bool soft);
 	[CLink] public static extern void tn_character_destroy(void* character, void* system);
 	[CLink] public static extern uint32 tn_character_inner_body(void* character);
 	[CLink] public static extern void tn_physics_set_debris(uint32 bodyId, bool debris);
 	[CLink] public static extern void* tn_joint_create(void* system, uint32 bodyA, uint32 bodyB, Vector3* anchor, Vector3* axis, float halfConeAngle);
+	[CLink] public static extern void* tn_hinge_create(void* system, uint32 bodyA, uint32 bodyB, Vector3* anchor, Vector3* axis, Vector3* childAxis, Vector3* childNormal);
+	[CLink] public static extern void* tn_slider_create(void* system, uint32 a, uint32 b, Vector3* anchor, Vector3* childAnchor, Vector3* axis, Vector3* childAxis, Vector3* childNormal, float travel);
+	[CLink] public static extern void tn_slider_spring(void* slider, float stiffness, float damping);
+	[CLink] public static extern float tn_slider_position(void* slider);
+	[CLink] public static extern void tn_hinge_motor(void* hinge, float speed, float torque, float angle, int32 mode, float response, float maximumSpeed);
+	[CLink] public static extern float tn_hinge_angle(void* hinge);
+	[CLink] public static extern void* JPH_CylinderShape_Create(float halfHeight, float radius);
+	[CLink] public static extern void tn_joint_filters_clear(void* system);
 	[CLink] public static extern void tn_joint_destroy(void* system, void* joint);
 	[CLink] public static extern void tn_character_get_state(void* character, CharacterState* state);
 	[CLink] public static extern void tn_character_move(void* character, void* system, uint32 layer, Vector3* velocity, float deltaTime, float stepUp, float stepDown, float stepForwardTest, bool soft, CharacterState* state);

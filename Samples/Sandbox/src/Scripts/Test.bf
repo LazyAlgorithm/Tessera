@@ -15,9 +15,9 @@ class Test : Component
 
 	public override void Update()
 	{
-			if (Input.GetKeyDown(.Space))
-			{
-				particalSystem.Enabled = !particalSystem.Enabled;
-			}
+		if (Input.GetKeyDown(.Space))
+		{
+			particalSystem.Enabled = !particalSystem.Enabled;
+		}
 	}
 }

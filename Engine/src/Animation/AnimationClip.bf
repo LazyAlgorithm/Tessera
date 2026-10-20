@@ -203,7 +203,11 @@ class AnimationClip
 		Track track = null;
 		List<StringView> tokens = scope .();
 		List<String> storage = scope .();
-		defer { for (let s in storage) delete s; }
+		defer
+		{
+			for (let s in storage)
+				delete s;
+		}
 		for (let line in text.Split('\n'))
 		{
 			tokens.Clear();

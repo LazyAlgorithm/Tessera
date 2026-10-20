@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <limits>
 #include <unordered_set>
+#include <unordered_map>
+#include <algorithm>
 #include <utility>
 #include <vector>
 
@@ -284,8 +286,43 @@ extern "C" JPH_Constraint* tn_joint_create(JPH_PhysicsSystem* system, uint32_t b
     return constraint;
 }
 
+// Connected parts may overlap during articulation; leave their world contacts intact.
+struct JointPair { JPH_Constraint* joint; uint32_t a, b; };
+struct JointContacts { JPH_SimShapeFilter* filter = nullptr; std::vector<JointPair> pairs; };
+static std::unordered_map<JPH_PhysicsSystem*, JointContacts*> jointContacts;
+static bool JPH_API_CALL connectedCollision(void* user, const JPH_Body* a, const JPH_Shape*,
+    const JPH_SubShapeID*, const JPH_Body* b, const JPH_Shape*, const JPH_SubShapeID*) {
+    auto* state = static_cast<JointContacts*>(user);
+    const auto idA=JPH_Body_GetID(a), idB=JPH_Body_GetID(b);
+    for (const auto& pair : state->pairs)
+        if ((pair.a==idA && pair.b==idB) || (pair.a==idB && pair.b==idA)) return false;
+    return true;
+}
+static void suppressConnectedCollision(JPH_PhysicsSystem* system, JPH_Constraint* joint, uint32_t a, uint32_t b) {
+    auto*& state=jointContacts[system];
+    if (!state) {
+        state=new JointContacts();
+        static const JPH_SimShapeFilter_Procs procs{connectedCollision};
+        JPH_SimShapeFilter_SetProcs(&procs);
+        state->filter=JPH_SimShapeFilter_Create(state);
+        JPH_PhysicsSystem_SetSimShapeFilter(system,state->filter);
+    }
+    state->pairs.push_back({joint,a,b});
+}
+extern "C" void tn_joint_filters_clear(JPH_PhysicsSystem* system) {
+    auto it=jointContacts.find(system); if(it==jointContacts.end()) return;
+    JPH_PhysicsSystem_SetSimShapeFilter(system,nullptr);
+    JPH_SimShapeFilter_Destroy(it->second->filter); delete it->second;
+    jointContacts.erase(it);
+}
+
 extern "C" void tn_joint_destroy(JPH_PhysicsSystem* system, JPH_Constraint* constraint) {
     if (constraint == nullptr) return;
+    auto it=jointContacts.find(system);
+    if(it!=jointContacts.end()) {
+        auto& pairs=it->second->pairs;
+        pairs.erase(std::remove_if(pairs.begin(),pairs.end(),[constraint](const JointPair& p){return p.joint==constraint;}),pairs.end());
+    }
     JPH_PhysicsSystem_RemoveConstraint(system, constraint);
     JPH_Constraint_Destroy(constraint);
 }
@@ -320,4 +357,89 @@ extern "C" void tn_physics_rescale_body_mass(JPH_PhysicsSystem* system, uint32_t
             JPH_MotionProperties_ScaleToMass(properties, mass);
     }
     JPH_BodyLockInterface_UnlockWrite(locks, &lock);
+}
+
+// Revolute bearing with a real single-axis Jolt constraint. Kept behind the C ABI.
+extern "C" JPH_Constraint* tn_hinge_create(JPH_PhysicsSystem* system, uint32_t bodyA, uint32_t bodyB,
+    const JPH_Vec3* anchor, const JPH_Vec3* axis, const JPH_Vec3* childAxis, const JPH_Vec3* childNormal) {
+    const auto* locks = JPH_PhysicsSystem_GetBodyLockInterfaceNoLock(system);
+    JPH_BodyLockWrite a, b;
+    JPH_BodyLockInterface_LockWrite(locks, bodyA, &a);
+    JPH_BodyLockInterface_LockWrite(locks, bodyB, &b);
+    JPH_Constraint* constraint = nullptr;
+    if (a.body && b.body && a.body != b.body) {
+        JPH_HingeConstraintSettings settings;
+        JPH_HingeConstraintSettings_Init(&settings);
+        settings.base.numVelocityStepsOverride = 40;
+        settings.base.numPositionStepsOverride = 12;
+        settings.space = JPH_ConstraintSpace_WorldSpace;
+        settings.point1 = settings.point2 = toR(anchor);
+        settings.hingeAxis1 = *axis; settings.hingeAxis2 = *childAxis;
+        JPH_Vec3 normal = std::abs(axis->y) < 0.8f ? JPH_Vec3{-axis->z, 0, axis->x} : JPH_Vec3{0, -axis->z, axis->y};
+        float length = std::sqrt(normal.x*normal.x + normal.y*normal.y + normal.z*normal.z);
+        normal.x/=length; normal.y/=length; normal.z/=length;
+        settings.normalAxis1 = normal; settings.normalAxis2 = *childNormal;
+        settings.motorSettings.springSettings.frequencyOrStiffness = 2;
+        settings.motorSettings.springSettings.damping = 1;
+        constraint = (JPH_Constraint*)JPH_HingeConstraint_Create(&settings, a.body, b.body);
+    }
+    JPH_BodyLockInterface_UnlockWrite(locks, &b);
+    JPH_BodyLockInterface_UnlockWrite(locks, &a);
+    if (constraint) { JPH_PhysicsSystem_AddConstraint(system, constraint); suppressConnectedCollision(system,constraint,bodyA,bodyB); }
+    return constraint;
+}
+extern "C" void tn_hinge_motor(JPH_Constraint* raw, float speed, float torque, float angle, int mode, float response, float maximumSpeed) {
+    auto* hinge = (JPH_HingeConstraint*)raw;
+    JPH_MotorSettings motor;
+    JPH_HingeConstraint_GetMotorSettings(hinge, &motor);
+    motor.minTorqueLimit = -std::abs(torque);
+    motor.maxTorqueLimit = std::abs(torque);
+    JPH_HingeConstraint_SetMotorSettings(hinge, &motor);
+    // A bounded angular-velocity servo stays stable across lightweight carriers and heavy wheels.
+    if(mode==2) speed=std::fmax(-maximumSpeed,std::fmin(maximumSpeed,std::remainder(angle-JPH_HingeConstraint_GetCurrentAngle(hinge),6.28318530718f)*response));
+    JPH_HingeConstraint_SetTargetAngularVelocity(hinge, speed);
+    JPH_HingeConstraint_SetTargetAngle(hinge, angle);
+    JPH_HingeConstraint_SetMotorState(hinge, mode != 0 ? JPH_MotorState_Velocity : JPH_MotorState_Off);
+}
+extern "C" float tn_hinge_angle(JPH_Constraint* hinge) {
+    return JPH_HingeConstraint_GetCurrentAngle((JPH_HingeConstraint*)hinge);
+}
+
+extern "C" JPH_Constraint* tn_slider_create(JPH_PhysicsSystem* system, uint32_t bodyA, uint32_t bodyB,
+    const JPH_Vec3* anchor, const JPH_Vec3* childAnchor, const JPH_Vec3* axis,
+    const JPH_Vec3* childAxis, const JPH_Vec3* childNormal, float travel) {
+    const auto* locks=JPH_PhysicsSystem_GetBodyLockInterfaceNoLock(system);
+    JPH_BodyLockWrite a,b;
+    JPH_BodyLockInterface_LockWrite(locks,bodyA,&a); JPH_BodyLockInterface_LockWrite(locks,bodyB,&b);
+    JPH_Constraint* result=nullptr;
+    if(a.body && b.body && a.body!=b.body) {
+        JPH_SliderConstraintSettings settings; JPH_SliderConstraintSettings_Init(&settings);
+        settings.base.numVelocityStepsOverride=40; settings.base.numPositionStepsOverride=12;
+        settings.space=JPH_ConstraintSpace_WorldSpace; settings.autoDetectPoint=false;
+        settings.point1=toR(anchor); settings.point2=toR(childAnchor);
+        settings.sliderAxis1=*axis; settings.sliderAxis2=*childAxis;
+        JPH_Vec3 normal=std::abs(axis->y)<0.8f ? JPH_Vec3{-axis->z,0,axis->x} : JPH_Vec3{0,-axis->z,axis->y};
+        float len=std::sqrt(normal.x*normal.x+normal.y*normal.y+normal.z*normal.z);
+        normal.x/=len; normal.y/=len; normal.z/=len;
+        settings.normalAxis1=normal; settings.normalAxis2=*childNormal;
+        settings.limitsMin=-std::abs(travel); settings.limitsMax=std::abs(travel);
+        result=(JPH_Constraint*)JPH_SliderConstraint_Create(&settings,a.body,b.body);
+    }
+    JPH_BodyLockInterface_UnlockWrite(locks,&b); JPH_BodyLockInterface_UnlockWrite(locks,&a);
+    if(result) { JPH_PhysicsSystem_AddConstraint(system,result); suppressConnectedCollision(system,result,bodyA,bodyB); }
+    return result;
+}
+extern "C" void tn_slider_spring(JPH_Constraint* raw,float stiffness,float damping) {
+    auto* slider=(JPH_SliderConstraint*)raw;
+    JPH_MotorSettings settings; JPH_SliderConstraint_GetMotorSettings(slider,&settings);
+    settings.springSettings.mode=JPH_SpringMode_StiffnessAndDamping;
+    settings.springSettings.frequencyOrStiffness=std::fmax(1,stiffness);
+    settings.springSettings.damping=std::fmax(0,damping);
+    settings.minForceLimit=-1000000; settings.maxForceLimit=1000000;
+    JPH_SliderConstraint_SetMotorSettings(slider,&settings);
+    JPH_SliderConstraint_SetTargetPosition(slider,0);
+    JPH_SliderConstraint_SetMotorState(slider,JPH_MotorState_Position);
+}
+extern "C" float tn_slider_position(JPH_Constraint* slider) {
+    return JPH_SliderConstraint_GetCurrentPosition((JPH_SliderConstraint*)slider);
 }

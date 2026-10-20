@@ -4,6 +4,7 @@ using System.IO;
 
 namespace Tessera;
 
+/// What a behaviour tree node says after a tick.
 enum BTStatus : int32
 {
 	/// Not run yet, or stopped before it finished.
@@ -13,6 +14,7 @@ enum BTStatus : int32
 	Failure
 }
 
+/// The kinds of behaviour tree node.
 enum BTKind
 {
 	/// Where the tree starts; one child.
@@ -27,31 +29,53 @@ enum BTKind
 	Condition
 }
 
+/// The kinds of setting a node can have.
 enum BTParamType { Number, Bool, Text, Vector }
 
+/// One setting of a node kind: its name, kind and default.
 struct BTParam
 {
+	/// The setting's name, as the editor shows it.
 	public String name;
+	/// What kind of value it is.
 	public BTParamType type;
+	/// Its value until it is set.
 	public String fallback;
 }
 
 /// A kind of behaviour tree node: what it is called, the settings it takes and how to make one.
 class BTNodeDef
 {
+	/// Makes a node of this kind.
 	public delegate BTNode Factory();
 
+	/// The kind's key, as tree files name it.
 	public String key = new .() ~ delete _;
+	/// Its name in the editor.
 	public String title = new .() ~ delete _;
+	/// Where the editor's menu lists it.
 	public String category = new .() ~ delete _;
+	/// What it does, shown in the editor.
 	public String description = new .() ~ delete _;
+	/// Root, composite, decorator, action or condition.
 	public BTKind kind;
-	public List<BTParam> parameters = new .() ~ { for (let p in _) { delete p.name; delete p.fallback; } delete _; };
+	/// Its settings.
+	public List<BTParam> parameters = new .() ~
+		{
+			for (let p in _)
+			{
+				delete p.name;
+				delete p.fallback;
+			}
+			delete _;
+		};
+	/// Makes a running node of this kind.
 	public Factory create ~ delete _;
 
 	/// How many children a node of this kind may have.
 	public int MaxChildren => kind == .Composite ? int.MaxValue : ((kind == .Decorator || kind == .Root) ? 1 : 0);
 
+	/// Adds a setting; returns the kind, so that calls can follow each other.
 	public BTNodeDef With(StringView name, BTParamType type, StringView fallback)
 	{
 		BTParam p;
@@ -62,6 +86,7 @@ class BTNodeDef
 		return this;
 	}
 
+	/// Sets what it does; returns the kind.
 	public BTNodeDef Describe(StringView text)
 	{
 		description.Set(text);
@@ -72,16 +97,22 @@ class BTNodeDef
 /// One node as stored in a .tbt file and shown in the editor.
 class BTNodeData
 {
+	/// The node's id in its tree.
 	public int32 id;
+	/// Its kind.
 	public BTNodeDef def;
+	/// Where it is in the editor.
 	public Vector2 position;
 	/// One value per parameter of the definition, written the way the editor shows it.
 	public List<String> values = new .() ~ DeleteContainerAndItems!(_);
 }
 
+/// A link from a parent node to one of its children.
 struct BTLink
 {
+	/// The parent's id.
 	public int32 parent;
+	/// The child's id.
 	public int32 child;
 }
 
@@ -89,11 +120,15 @@ struct BTLink
 /// in the order they are laid out on the canvas.
 class BehaviorTreeData
 {
+	/// The tree's name.
 	public String name = new .("NewTree") ~ delete _;
+	/// Its nodes.
 	public List<BTNodeData> nodes = new .() ~ DeleteContainerAndItems!(_);
+	/// Parent-to-child links; a parent's children run in the order of their places from left to right.
 	public List<BTLink> links = new .() ~ delete _;
 	int32 mNextId = 1;
 
+	/// A node by id, or null.
 	public BTNodeData Find(int32 id)
 	{
 		for (let node in nodes)
@@ -104,6 +139,7 @@ class BehaviorTreeData
 		return null;
 	}
 
+	/// The Root node, or null.
 	public BTNodeData Root
 	{
 		get
@@ -117,6 +153,7 @@ class BehaviorTreeData
 		}
 	}
 
+	/// Adds a node of a kind (with the next free id, if none is given).
 	public BTNodeData AddNode(BTNodeDef def, Vector2 position, int32 id = 0)
 	{
 		let node = new BTNodeData();
@@ -130,6 +167,7 @@ class BehaviorTreeData
 		return node;
 	}
 
+	/// Removes a node and its links.
 	public void RemoveNode(BTNodeData node)
 	{
 		for (int i = links.Count - 1; i >= 0; i--)
@@ -141,6 +179,7 @@ class BehaviorTreeData
 		delete node;
 	}
 
+	/// The id of a node's parent, or 0.
 	public int32 ParentOf(int32 child)
 	{
 		for (let link in links)
@@ -185,9 +224,21 @@ class BehaviorTreeData
 		let to = Find(child);
 		if (from == null || to == null || parent == child)
 			return false;
-		if (from.def.MaxChildren == 0) { error?.Set(scope $"{from.def.title} cannot have children."); return false; }
-		if (to.def.kind == .Root) { error?.Set("Root cannot be a child."); return false; }
-		if (IsAncestor(child, parent)) { error?.Set("That link would make a loop."); return false; }
+		if (from.def.MaxChildren == 0)
+		{
+			error?.Set(scope $"{from.def.title} cannot have children.");
+			return false;
+		}
+		if (to.def.kind == .Root)
+		{
+			error?.Set("Root cannot be a child.");
+			return false;
+		}
+		if (IsAncestor(child, parent))
+		{
+			error?.Set("That link would make a loop.");
+			return false;
+		}
 		for (int i = links.Count - 1; i >= 0; i--)
 		{
 			if (links[i].child == child || (from.def.MaxChildren == 1 && links[i].parent == parent))
@@ -200,6 +251,7 @@ class BehaviorTreeData
 		return true;
 	}
 
+	/// Removes a node's link to its parent (asChild), or to its children.
 	public void Disconnect(int32 node, bool asChild)
 	{
 		for (int i = links.Count - 1; i >= 0; i--)
@@ -209,6 +261,7 @@ class BehaviorTreeData
 		}
 	}
 
+	/// Writes the tree to a .tbt file.
 	public void Save(StringView path)
 	{
 		let text = scope String();
@@ -225,6 +278,7 @@ class BehaviorTreeData
 		File.WriteAllText(path, text).IgnoreError();
 	}
 
+	/// Reads a .tbt file into the tree. False if it could not be read.
 	public bool Load(StringView path)
 	{
 		let text = scope String();
@@ -232,7 +286,11 @@ class BehaviorTreeData
 			return false;
 		List<StringView> tokens = scope .();
 		List<String> storage = scope .();
-		defer { for (let s in storage) delete s; }
+		defer
+		{
+			for (let s in storage)
+				delete s;
+		}
 		for (let line in text.Split('\n'))
 		{
 			tokens.Clear();
@@ -261,7 +319,9 @@ class BehaviorTreeData
 /// What a tree remembers between ticks, shared by all of its nodes: a target that was seen, a flag, a position.
 class Blackboard
 {
+	/// What kind of value a blackboard entry holds.
 	public enum Kind { Number, Flag, Vector, Object }
+	/// One blackboard entry.
 	public struct Value
 	{
 		public Kind kind;
@@ -270,6 +330,7 @@ class Blackboard
 		public uint32 objectId;
 	}
 
+	/// Every entry, by key.
 	public Dictionary<String, Value> Values = new .() ~ DeleteDictionaryAndKeys!(_);
 
 	void Store(StringView key, Value value)
@@ -280,20 +341,55 @@ class Blackboard
 			Values[new String(key)] = value;
 	}
 
+	/// Whether there is an entry for a key.
 	public bool Has(StringView key) => Values.ContainsKeyAlt(key);
 
+	/// Forgets an entry.
 	public void Clear(StringView key)
 	{
 		if (Values.GetAndRemoveAlt(key) case .Ok(let pair))
 			delete pair.key;
 	}
 
-	public void SetNumber(StringView key, float number) { Value v = default; v.kind = .Number; v.number = number; Store(key, v); }
-	public void SetFlag(StringView key, bool flag) { Value v = default; v.kind = .Flag; v.number = flag ? 1 : 0; Store(key, v); }
-	public void SetVector(StringView key, Vector3 vector) { Value v = default; v.kind = .Vector; v.vector = vector; Store(key, v); }
-	public void SetObject(StringView key, GameObject object) { Value v = default; v.kind = .Object; v.objectId = object != null ? object.Id : 0; Store(key, v); }
+	/// Remembers a number.
+	public void SetNumber(StringView key, float number)
+	{
+		Value v = default;
+		v.kind = .Number;
+		v.number = number;
+		Store(key, v);
+	}
 
+	/// Remembers yes or no.
+	public void SetFlag(StringView key, bool flag)
+	{
+		Value v = default;
+		v.kind = .Flag;
+		v.number = flag ? 1 : 0;
+		Store(key, v);
+	}
+
+	/// Remembers a point or direction.
+	public void SetVector(StringView key, Vector3 vector)
+	{
+		Value v = default;
+		v.kind = .Vector;
+		v.vector = vector;
+		Store(key, v);
+	}
+
+	/// Remembers an object.
+	public void SetObject(StringView key, GameObject object)
+	{
+		Value v = default;
+		v.kind = .Object;
+		v.objectId = object != null ? object.Id : 0;
+		Store(key, v);
+	}
+
+	/// A remembered number, or fallback.
 	public float GetNumber(StringView key, float fallback = 0) => Values.TryGetValueAlt(key, let v) ? v.number : fallback;
+	/// A remembered yes or no (no if there is none).
 	public bool GetFlag(StringView key) => Values.TryGetValueAlt(key, let v) && v.number != 0;
 
 	/// The object stored under a key, or null if there is none or it no longer exists.
@@ -342,15 +438,22 @@ class Blackboard
 /// What a node can reach while it runs.
 class BTContext
 {
+	/// The component running the tree.
 	public BehaviorTreeRunner runner;
+	/// What the tree remembers.
 	public Blackboard blackboard;
 	/// Seconds since the tree last ticked.
 	public float deltaTime;
+	/// Which tick this is, counting from the tree's start.
 	public int32 tick;
+	/// Random numbers for the tree's nodes.
 	public Random random = new .() ~ delete _;
 
+	/// The object running the tree.
 	public GameObject Object => runner.GameObject;
+	/// Its scene.
 	public Scene Scene => runner.Scene;
+	/// Its transform.
 	public Transform Transform => runner.Transform;
 	/// The object's movement component, or null with a one-time warning if it has none.
 	public AIMovementDriver Mover
@@ -366,13 +469,16 @@ class BTContext
 			return mover;
 		}
 	}
+
 	bool mWarned;
 }
 
 /// A node of a running tree. Each kind overrides OnTick; OnStart and OnEnd bracket one run of it.
 abstract class BTNode
 {
+	/// The node's place in the tree, with its settings.
 	public BTNodeData data;
+	/// Its children, in the order they run.
 	public List<BTNode> children = new .() ~ DeleteContainerAndItems!(_);
 	/// Result of the latest run; Running while it is in progress.
 	public BTStatus status;
@@ -394,6 +500,7 @@ abstract class BTNode
 		return .(v[0], v[1], v[2]);
 	}
 
+	/// Runs the node for a tick and returns its result (what it says is kept for the editor to show).
 	public BTStatus Tick(BTContext context)
 	{
 		if (status != .Running)

@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using Tessera;
+
 namespace FoliageTests;
 
 class Program
@@ -60,7 +61,8 @@ class Program
 		trees.Add(.(100, 2, 100), 90, 2);
 		trees.Add(.(104, 2, 100));
 		ok &= Check(trees.Count == 2 && (trees.PositionOf(0) - Vector3(100, 2, 100)).Length < 0.001f, "plants can be placed one at a time");
-		Color tint; float scale;
+		Color tint;
+		float scale;
 		let world = trees.WorldOf(0, out tint, out scale);
 		ok &= Check(Math.Abs(scale - 2) < 0.001f && Math.Abs(world.m[12] - 100) < 0.001f && Math.Abs(world.m[13] - 2) < 0.001f, "a plant's matrix puts it where it was placed, at its size");
 		trees.WorldOf(1, out tint, out scale);

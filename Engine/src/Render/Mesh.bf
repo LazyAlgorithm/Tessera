@@ -7,9 +7,13 @@ namespace Tessera;
 /// Triangle mesh with CPU-side data and a GPU copy. Front faces wind clockwise (left-handed).
 class Mesh
 {
+	/// The mesh's name (its file, for one loaded from a model).
 	public String Name = new .() ~ delete _;
+	/// The vertices. Upload (or UploadDynamic) sends them to the graphics card.
 	public List<MeshVertex> Vertices = new .() ~ delete _;
+	/// Three indices into Vertices for each triangle.
 	public List<uint32> Indices = new .() ~ delete _;
+	/// The box round the vertices (see RecalculateBounds).
 	public Bounds Bounds = .(.Zero, .Zero);
 
 	bgfx.VertexBufferHandle mVertexBuffer = .() { idx = uint16.MaxValue };
@@ -25,6 +29,7 @@ class Mesh
 
 	/// True for meshes whose vertices are rewritten every frame (skinned characters).
 	public bool IsDynamic => VertexSource != null ? VertexSource.IsDynamic : mDynamicBuffer.Valid;
+	/// The graphics card's copy of the vertices, for a mesh uploaded with UploadDynamic.
 	public bgfx.DynamicVertexBufferHandle DynamicBuffer => VertexSource != null ? VertexSource.DynamicBuffer : mDynamicBuffer;
 
 	/// For a part (VertexSource): sends its own indices to the GPU.
@@ -68,24 +73,32 @@ class Mesh
 		ReleaseGpu();
 	}
 
+	/// Whether the mesh is on the graphics card and can be drawn.
 	public bool HasGpuData => (VertexSource != null ? (VertexSource.mVertexBuffer.Valid || VertexSource.mDynamicBuffer.Valid) : (mVertexBuffer.Valid || mDynamicBuffer.Valid)) && mIndexBuffer.Valid;
+	/// The graphics card's copy of the vertices.
 	public bgfx.VertexBufferHandle VertexBuffer => VertexSource != null ? VertexSource.VertexBuffer : mVertexBuffer;
+	/// The graphics card's copy of the indices.
 	public bgfx.IndexBufferHandle IndexBuffer => mIndexBuffer;
+	/// How many indices were uploaded.
 	public int32 IndexCount => mUploadedIndexCount;
+	/// How many vertices were uploaded.
 	public int32 VertexCount => VertexSource != null ? VertexSource.VertexCount : mUploadedVertexCount;
 
+	/// Removes every vertex and index (the graphics card's copy stays until the next upload).
 	public void Clear()
 	{
 		Vertices.Clear();
 		Indices.Clear();
 	}
 
+	/// Adds a vertex and returns its index.
 	public uint32 AddVertex(Vector3 position, Vector3 normal, Color color, Vector2 uv = default)
 	{
 		Vertices.Add(.(position, normal, color.ToABGR(), uv));
 		return (uint32)Vertices.Count - 1;
 	}
 
+	/// Adds a triangle of three vertex indices, clockwise seen from its front.
 	public void AddTriangle(uint32 a, uint32 b, uint32 c)
 	{
 		Indices.Add(a);
@@ -105,6 +118,7 @@ class Mesh
 		AddTriangle(i, i + 2, i + 3);
 	}
 
+	/// Works Bounds out again from the vertices.
 	public void RecalculateBounds()
 	{
 		if (Vertices.Count == 0)
@@ -155,6 +169,7 @@ class Mesh
 		}
 	}
 
+	/// Frees the graphics card's copy.
 	public void ReleaseGpu()
 	{
 		if (!Gfx.Initialized)

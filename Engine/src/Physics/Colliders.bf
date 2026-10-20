@@ -7,10 +7,12 @@ namespace Tessera;
 [Component]
 abstract class Collider : Component
 {
+	/// Where the shape's centre is, relative to the object.
 	public Vector3 center = .Zero;
 
 	uint32 mStaticBody = uint32.MaxValue;
 
+	/// The shape the physics world makes for this collider.
 	public abstract ShapeDesc GetShape();
 
 	bool mReady;
@@ -66,9 +68,11 @@ abstract class Collider : Component
 	}
 }
 
+/// A box-shaped collider.
 [Component]
 class BoxCollider : Collider
 {
+	/// The box's full size on each axis.
 	public Vector3 size = .One;
 
 	public override ShapeDesc GetShape()
@@ -88,9 +92,11 @@ class BoxCollider : Collider
 	}
 }
 
+/// A ball-shaped collider.
 [Component]
 class SphereCollider : Collider
 {
+	/// The ball's radius.
 	public float radius = 0.5f;
 
 	public override ShapeDesc GetShape()
@@ -110,10 +116,13 @@ class SphereCollider : Collider
 	}
 }
 
+/// A capsule-shaped collider (a cylinder with rounded ends), standing along Y: the usual shape for characters.
 [Component]
 class CapsuleCollider : Collider
 {
+	/// The capsule's radius.
 	public float radius = 0.5f;
+	/// The capsule's height from end to end, its rounded ends included.
 	public float height = 2.0f;
 
 	public override ShapeDesc GetShape()
@@ -169,10 +178,44 @@ class MeshCollider : Collider
 class CompoundCollider : Collider
 {
 	List<Vector3> mBoxes = new .() ~ delete _;
+	List<CompoundCylinder> mCylinders = new .() ~ delete _;
+	List<CompoundHull> mHulls = new .() ~ delete _;
+	List<List<Vector3>> mHullPoints = new .() ~ DeleteContainerAndItems!(_);
+	List<CompoundHull> mScaledHulls = new .() ~ delete _;
+	List<List<Vector3>> mScaledHullPoints = new .() ~ DeleteContainerAndItems!(_);
+	/// How many convex parts were added with AddHull.
+	public int32 HullCount => (int32)mHulls.Count;
+	/// Adds a convex part: the hull round some points, placed at center.
+	public void AddHull(Vector3 center, Span<Vector3> points, Quaternion rotation, float convexRadius = 0.005f)
+	{
+		if (points.Length < 4) return;
+		let copy = new List<Vector3>();
+		copy.AddRange(points);
+		mHullPoints.Add(copy);
+		mHulls.Add(.() { center = center, rotation = rotation.Normalized, points = copy.Ptr, pointCount = (int32)copy.Count, convexRadius = convexRadius });
+	}
 
+	/// How many cylinders were added with AddCylinder.
+	public int32 CylinderCount => (int32)mCylinders.Count;
+	/// Adds a cylinder part.
+	public void AddCylinder(Vector3 center, float radius, float halfHeight, Quaternion rotation)
+	{
+		mCylinders.Add(.() { center = center, radius = radius, halfHeight = halfHeight, rotation = rotation });
+	}
+
+	/// How many boxes the compound has.
 	public int32 BoxCount => (int32)(mBoxes.Count / 2);
 
-	public void ClearBoxes() => mBoxes.Clear();
+	/// Removes every box part.
+	public void ClearBoxes()
+	{
+		mBoxes.Clear();
+		mCylinders.Clear();
+		mHulls.Clear();
+		for (let points in mHullPoints)
+			delete points;
+		mHullPoints.Clear();
+	}
 
 	/// Adds a box in the object's local space. Call Rigidbody.RebuildBody (or Refresh) afterwards.
 	public void AddBox(Vector3 center, Vector3 size)
@@ -192,6 +235,22 @@ class CompoundCollider : Collider
 		desc.kind = .Compound;
 		desc.boxes = mScaled.Ptr;
 		desc.boxCount = BoxCount;
+		desc.cylinders = mCylinders.Ptr;
+		desc.cylinderCount = (int32)mCylinders.Count;
+		mScaledHulls.Clear();
+		for (let points in mScaledHullPoints)
+			delete points;
+		mScaledHullPoints.Clear();
+		for (let hull in mHulls)
+		{
+			let points = new List<Vector3>();
+			for (int i = 0; i < hull.pointCount; i++)
+				points.Add((hull.rotation * hull.points[i]) * scale);
+			mScaledHullPoints.Add(points);
+			mScaledHulls.Add(.() { center = hull.center * scale, rotation = .Identity, points = points.Ptr, pointCount = (int32)points.Count, convexRadius = hull.convexRadius * Math.Min(Math.Abs(scale.x), Math.Min(Math.Abs(scale.y), Math.Abs(scale.z))) });
+		}
+		desc.hulls = mScaledHulls.Ptr;
+		desc.hullCount = (int32)mScaledHulls.Count;
 		return desc;
 	}
 
@@ -202,40 +261,47 @@ class CompoundCollider : Collider
 [Component]
 class ConvexCollider : Collider
 {
-    /// Wrap the model hierarchy when the body is on a parent rather than the mesh object.
-    public bool includeChildren = false;
-    Mesh mHierarchyMesh ~ delete _;
-    void CollectHull(GameObject object)
-    {
-        let renderer=object.GetComponent<MeshRenderer>();
-        let mesh=renderer?.ActiveMesh;
-        if(mesh!=null)
-        {
-            let relative=Transform.WorldToLocal*object.Transform.LocalToWorld;
-            let step=Math.Max(1,mesh.Vertices.Count/256);
-            for(int i=0;i<mesh.Vertices.Count;i+=step)
-            {
-                MeshVertex vertex=default;vertex.position=relative.TransformPoint(mesh.Vertices[i].position);
-                mHierarchyMesh.Vertices.Add(vertex);
-            }
-        }
-        for(let child in object.Transform.Children)
-        {
-            let childMesh=child.GameObject.GetComponent<MeshRenderer>();
-            if(mesh!=null && childMesh!=null && childMesh.mesh.Contains('#')) continue;
-            CollectHull(child.GameObject);
-        }
-    }
+	/// Wrap the model hierarchy when the body is on a parent rather than the mesh object.
+	public bool includeChildren = false;
+	Mesh mHierarchyMesh ~ delete _;
+	void CollectHull(GameObject object)
+	{
+		let renderer = object.GetComponent<MeshRenderer>();
+		let mesh = renderer?.ActiveMesh;
+		if (mesh != null)
+		{
+			let relative = Transform.WorldToLocal * object.Transform.LocalToWorld;
+			let step = Math.Max(1, mesh.Vertices.Count / 256);
+			for (int i = 0; i < mesh.Vertices.Count; i += step)
+			{
+				MeshVertex vertex = default;
+				vertex.position = relative.TransformPoint(mesh.Vertices[i].position);
+				mHierarchyMesh.Vertices.Add(vertex);
+			}
+		}
+		for (let child in object.Transform.Children)
+		{
+			let childMesh = child.GameObject.GetComponent<MeshRenderer>();
+			if (mesh != null && childMesh != null && childMesh.mesh.Contains('#')) continue;
+			CollectHull(child.GameObject);
+		}
+	}
+
 	public override ShapeDesc GetShape()
 	{
 		ShapeDesc desc = default;
 		desc.kind = .ConvexHull;
 		desc.meshScale = WorldScale;
-        if(includeChildren)
-        {
-            if(mHierarchyMesh==null) { mHierarchyMesh=new Mesh();CollectHull(GameObject); }
-            desc.mesh=mHierarchyMesh;return desc;
-        }
+		if (includeChildren)
+		{
+			if (mHierarchyMesh == null)
+			{
+				mHierarchyMesh = new Mesh();
+				CollectHull(GameObject);
+			}
+			desc.mesh = mHierarchyMesh;
+			return desc;
+		}
 		let renderer = GetComponent<MeshRenderer>();
 		if (renderer != null)
 			desc.mesh = renderer.ActiveMesh;

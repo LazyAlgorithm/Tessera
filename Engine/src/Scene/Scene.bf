@@ -6,14 +6,23 @@ namespace Tessera;
 /// Environment settings saved with a scene: ambient light, sky and fog.
 class SceneEnvironment
 {
+	/// The sky's colour straight up.
 	public Color skyZenith = .(0.16f, 0.36f, 0.72f);
+	/// The sky's colour at the horizon.
 	public Color skyHorizon = .(0.62f, 0.76f, 0.90f);
+	/// The colour below the horizon, where there is no ground to see.
 	public Color skyGround = .(0.28f, 0.27f, 0.26f);
+	/// The light from the sky on surfaces facing up, on top of the lights.
 	public Color ambientSky = .(0.42f, 0.50f, 0.62f);
+	/// The light from below on surfaces facing down.
 	public Color ambientGround = .(0.22f, 0.20f, 0.18f);
+	/// How strong the ambient light is.
 	public float ambientIntensity = 0.55f;
+	/// The colour things fade to in the distance.
 	public Color fogColor = .(0.62f, 0.76f, 0.90f);
+	/// How thick the fog is: about how much of the view it takes per metre. 0 is no fog.
 	public float fogDensity = 0.004f;
+	/// How bright the whole picture is: 1 is as lit, above 1 brighter.
 	public float exposure = 1.0f;
 	/// Glow around bright things (lights, emissive surfaces, the sun on pale walls). 0 is off; 0.3 to 0.6 is
 	/// gentle; above 1 is heavy.
@@ -21,6 +30,7 @@ class SceneEnvironment
 	/// How bright something must be before it glows. 1 is the brightest a surface gets from light alone, so at 1
 	/// only emissive and over-bright things bloom.
 	public float bloomThreshold = 1.0f;
+	/// How far from the camera the sun's shadows are drawn, in metres. Shorter is sharper.
 	public float shadowDistance = 120.0f;
 
 	// ---- Screen effects (docs/post-processing.md). All off by default; colour grading's defaults leave the picture
@@ -48,6 +58,7 @@ class SceneEnvironment
 
 	/// Colour grading, applied with the tonemapping. Contrast and saturation: 1 leaves the picture alone.
 	public float contrast = 1;
+	/// How strong colours are: 0 is grey, 1 as they are, above 1 stronger.
 	public float saturation = 1.05f;
 	/// White balance: above 0 warmer (more orange), below 0 cooler (more blue). -1 to 1.
 	public float temperature = 0;
@@ -85,26 +96,47 @@ class SceneEnvironment
 		CopyFrom(fresh);
 	}
 
+	/// Takes every setting from another environment.
 	public void CopyFrom(SceneEnvironment other)
 	{
-		skyZenith = other.skyZenith; skyHorizon = other.skyHorizon; skyGround = other.skyGround;
-		ambientSky = other.ambientSky; ambientGround = other.ambientGround; ambientIntensity = other.ambientIntensity;
-		fogColor = other.fogColor; fogDensity = other.fogDensity; exposure = other.exposure;
-		bloom = other.bloom; bloomThreshold = other.bloomThreshold; shadowDistance = other.shadowDistance;
-		ambientOcclusion = other.ambientOcclusion; occlusionRadius = other.occlusionRadius;
-		depthOfField = other.depthOfField; focusDistance = other.focusDistance; focusRange = other.focusRange; autoFocus = other.autoFocus;
+		skyZenith = other.skyZenith;
+		skyHorizon = other.skyHorizon;
+		skyGround = other.skyGround;
+		ambientSky = other.ambientSky;
+		ambientGround = other.ambientGround;
+		ambientIntensity = other.ambientIntensity;
+		fogColor = other.fogColor;
+		fogDensity = other.fogDensity;
+		exposure = other.exposure;
+		bloom = other.bloom;
+		bloomThreshold = other.bloomThreshold;
+		shadowDistance = other.shadowDistance;
+		ambientOcclusion = other.ambientOcclusion;
+		occlusionRadius = other.occlusionRadius;
+		depthOfField = other.depthOfField;
+		focusDistance = other.focusDistance;
+		focusRange = other.focusRange;
+		autoFocus = other.autoFocus;
 		motionBlur = other.motionBlur;
-		contrast = other.contrast; saturation = other.saturation; temperature = other.temperature; tint = other.tint;
-		colorFilter = other.colorFilter; vignette = other.vignette;
-		colorLookup.Set(other.colorLookup); colorLookupStrength = other.colorLookupStrength;
+		contrast = other.contrast;
+		saturation = other.saturation;
+		temperature = other.temperature;
+		tint = other.tint;
+		colorFilter = other.colorFilter;
+		vignette = other.vignette;
+		colorLookup.Set(other.colorLookup);
+		colorLookupStrength = other.colorLookupStrength;
 	}
 }
 
 /// A hierarchy of GameObjects plus the per-scene systems (rendering lists, physics).
 class Scene
 {
+	/// The scene's name, from its file.
 	public String Name = new .("Untitled") ~ delete _;
+	/// The file the scene was loaded from, relative to the project's assets, or empty.
 	public String Path = new .() ~ delete _;
+	/// The scene's sky, lighting, fog and screen effects.
 	public SceneEnvironment Environment = new .() ~ delete _;
 
 	List<GameObject> mRoots = new .() ~ delete _;
@@ -115,14 +147,24 @@ class Scene
 	List<GameObject> mDestroyQueue = new .() ~ delete _;
 	uint32 mNextId = 1;
 	bool mPlaying;
-    bool mClearing;
+	bool mClearing;
 
 	// Non-owning lists maintained by the components themselves in OnRegister / OnUnregister.
+	/// Every Mesh Renderer in the scene (each adds itself when it joins).
 	public List<MeshRenderer> Renderers = new .() ~ delete _;
+	/// Every Light in the scene.
 	public List<Light> Lights = new .() ~ delete _;
+	/// Every Camera in the scene.
 	public List<Camera> Cameras = new .() ~ delete _;
+	/// Every Particle System in the scene.
 	public List<ParticleSystem> Particles = new .() ~ delete _;
 
+	/// Every registered component under its class and each class above it (down to Component), in the order they
+	/// were registered: FindComponent and ComponentsOfType look here instead of at every component in the scene.
+	Dictionary<Type, List<Component>> mByType = new .() ~ DeleteDictionaryAndValues!(_);
+	static List<Component> sNoComponents = new .() ~ delete _;
+
+	/// The scene's physics: bodies, rays and shape queries (made when play starts).
 	public PhysicsWorld Physics ~ delete _;
 	/// Set while a multiplayer session is running (see NetworkManager).
 	public NetworkManager Network ~ delete _;
@@ -131,9 +173,18 @@ class Scene
 	public static Scene Active;
 	/// Seconds since the current spawn start phase began, and whether it was closed early. See SpawnPoints.
 	public float SpawnPhaseTime;
+	/// Whether the spawn start phase was closed early. See SpawnPoints.
 	public bool SpawnStartOver;
 
-	Dictionary<String, List<GameObject>> mTagged = new .() ~ { for (let entry in _) { delete entry.key; delete entry.value; } delete _; };
+	Dictionary<String, List<GameObject>> mTagged = new .() ~
+		{
+			for (let entry in _)
+			{
+				delete entry.key;
+				delete entry.value;
+			}
+			delete _;
+		};
 	int32 mWorldState;
 
 	/// Called when the active world state changes, with the state before and the state now.
@@ -214,11 +265,17 @@ class Scene
 		}
 	}
 
+	/// The objects at the top of the hierarchy, in Hierarchy order.
 	public List<GameObject> Roots => mRoots;
+	/// Every object in the scene, at every level.
 	public List<GameObject> Objects => mObjects;
+	/// Every component in the scene. To find those of one class, ComponentsOfType and FindComponents are much faster
+	/// than looking through this.
 	public List<Component> Components => mComponents;
+	/// Whether the scene is playing (components get Awake, Start, Update...), not just open in the editor.
 	public bool IsPlaying => mPlaying;
 
+	/// An empty scene. SceneManager loads scene files into one.
 	public this()
 	{
 		Physics = new PhysicsWorld();
@@ -237,18 +294,20 @@ class Scene
 	/// Removes every object. Components are unregistered without gameplay callbacks.
 	public void Clear()
 	{
-        // Stop callbacks while all referenced objects still exist, then clear borrowed links once.
-        // Per-object reference scans make a full level unload quadratic in reflected component fields.
-        let wasPlaying=mPlaying;
-        if(wasPlaying)StopPlay();
-        mClearing=true;
-        defer { mClearing=false;mPlaying=wasPlaying; }
-        List<FieldRef> fields=scope .();
-        for(let component in mComponents)
-        {
-            fields.Clear();ComponentRegistry.GetFields(component,fields);
-            for(let field in fields)if(field.kind==.ObjectReference)ComponentRegistry.AssignReference(field,null);
-        }
+		// Stop callbacks while all referenced objects still exist, then clear borrowed links once: clearing them
+		// object by object would make unloading a whole level quadratic.
+		let wasPlaying = mPlaying;
+		if (wasPlaying)
+			StopPlay();
+		mClearing = true;
+		defer
+		{
+			mClearing = false;
+			mPlaying = wasPlaying;
+		}
+		for (let slot in mReferenceSlots)
+			*slot.field = null;
+		mReferenceSlots.Clear();
 		while (mRoots.Count > 0)
 			DestroyImmediate(mRoots.Back);
 		mDestroyQueue.Clear();
@@ -256,11 +315,14 @@ class Scene
 		mNextId = 1;
 	}
 
+	/// Makes an empty object (with only a Transform), at the top of the scene or under a parent.
 	public GameObject CreateGameObject(StringView name, Transform parent = null)
 	{
 		return CreateGameObjectWithId(name, 0, parent);
 	}
 
+	/// Makes an empty object with a given id, or the next free one if that id is 0 or taken. Loading a scene uses it to
+	/// keep saved ids.
 	public GameObject CreateGameObjectWithId(StringView name, uint32 id, Transform parent = null)
 	{
 		let gameObject = new GameObject(name);
@@ -278,6 +340,7 @@ class Scene
 		return gameObject;
 	}
 
+	/// The object with an id, or null.
 	public GameObject FindById(uint32 id)
 	{
 		if (mById.TryGetValue(id, let gameObject))
@@ -285,6 +348,8 @@ class Scene
 		return null;
 	}
 
+	/// The first object with a name, or null. It looks through every object, so keep what it finds rather than calling
+	/// it every frame.
 	public GameObject Find(StringView name)
 	{
 		for (let gameObject in mObjects)
@@ -295,14 +360,142 @@ class Scene
 		return null;
 	}
 
+	/// The first registered component of that class (or a class derived from it), or null.
 	public T FindComponent<T>() where T : Component
 	{
-		for (let component in mComponents)
+		let list = ComponentsOfType(typeof(T));
+		return list.IsEmpty ? null : (T)list[0];
+	}
+
+	/// Every registered component of that class or one derived from it, in registration order. Do not add or remove
+	/// components while going through the list.
+	public List<Component> ComponentsOfType(Type type)
+	{
+		if (mByType.TryGetValue(type, let list))
+			return list;
+		return sNoComponents;
+	}
+
+	/// Adds every registered component of that class (or one derived from it) to the list.
+	public void FindComponents<T>(List<T> found) where T : Component
+	{
+		for (let component in ComponentsOfType(typeof(T)))
+			found.Add((T)component);
+	}
+
+	/// A field of a registered component that refers to another object (GameObject, Transform or component). Such
+	/// references do not own what they point at, so they are cleared when it is destroyed.
+	struct ReferenceSlot
+	{
+		public Component owner;
+		public Object* field;
+	}
+
+	/// Every reference field of every registered component, kept up to date as components come and go, so that
+	/// destroying an object does not have to look through every component's fields to find what points at it.
+	List<ReferenceSlot> mReferenceSlots = new .() ~ delete _;
+
+	void AddReferenceSlots(Component component)
+	{
+		List<FieldRef> fields = scope .();
+		ComponentRegistry.GetFields(component, fields);
+		for (let field in fields)
 		{
-			if (let typed = component as T)
-				return typed;
+			if (field.kind != .ObjectReference)
+				continue;
+			ReferenceSlot slot;
+			slot.owner = component;
+			slot.field = (Object*)field.ptr;
+			mReferenceSlots.Add(slot);
 		}
+	}
+
+	void RemoveReferenceSlots(Component component)
+	{
+		for (int i = mReferenceSlots.Count - 1; i >= 0; i--)
+		{
+			if (mReferenceSlots[i].owner == component)
+				mReferenceSlots.RemoveAtFast(i);
+		}
+	}
+
+	/// The object a reference field's value belongs to (see ComponentRegistry.ReferenceOwner).
+	static GameObject OwnerOf(Object value)
+	{
+		if (value == null)
+			return null;
+		if (let gameObject = value as GameObject)
+			return gameObject;
+		if (let transform = value as Transform)
+			return transform.GameObject;
+		if (let component = value as Component)
+			return component.GameObject;
 		return null;
+	}
+
+	void IndexComponent(Component component, bool add)
+	{
+		var type = component.GetType();
+		while (type != null && type != typeof(Component))
+		{
+			if (add)
+			{
+				if (!mByType.TryGetValue(type, var list))
+				{
+					list = new List<Component>();
+					mByType[type] = list;
+				}
+				list.Add(component);
+			}
+			else if (mByType.TryGetValue(type, let list))
+			{
+				list.Remove(component);
+			}
+			type = type.BaseType;
+		}
+	}
+
+	/// Script reload: a component of a reloaded class takes the place of the old one in every list.
+	void ReplaceComponent(Component old, Component replacement)
+	{
+		let index = mComponents.IndexOf(old);
+		if (index >= 0)
+			mComponents[index] = replacement;
+		let pending = mPendingStart.IndexOf(old);
+		if (pending >= 0)
+			mPendingStart[pending] = replacement;
+		let deferred = mDeferredStart.IndexOf(old);
+		if (deferred >= 0)
+			mDeferredStart[deferred] = replacement;
+		// Take the old one's place in its classes' lists, keeping their order. The new class may sit under classes
+		// the old one did not: there it goes in by its place in the scene.
+		var type = replacement.GetType();
+		while (type != null && type != typeof(Component))
+		{
+			if (!mByType.TryGetValue(type, var list))
+			{
+				list = new List<Component>();
+				mByType[type] = list;
+			}
+			let at = list.IndexOf(old);
+			if (at >= 0)
+			{
+				list[at] = replacement;
+			}
+			else
+			{
+				int insertAt = 0;
+				while (insertAt < list.Count && mComponents.IndexOf(list[insertAt]) < index)
+					insertAt++;
+				list.Insert(insertAt, replacement);
+			}
+			type = type.BaseType;
+		}
+		// And leave those it is no longer under.
+		for (let list in mByType.Values)
+			list.Remove(old);
+		RemoveReferenceSlots(old);
+		AddReferenceSlots(replacement);
 	}
 
 	/// Queues an object (and its children) for destruction at the end of the frame.
@@ -320,20 +513,42 @@ class Scene
 	/// Destroys an object right now. Prefer Destroy from gameplay code.
 	public void DestroyImmediate(GameObject gameObject)
 	{
-		// Clear non-owning references before freeing their targets.
-		List<FieldRef> referenceFields = scope .();
-		if(!mClearing)for (let component in mComponents)
+		// Every component under the object hears that it is going before any object is freed, so that one can still
+		// look at the others in OnUnregister (IK putting back the bones under it, say).
+		UnregisterTree(gameObject);
+		DestroyTree(gameObject);
+	}
+
+	void UnregisterTree(GameObject gameObject)
+	{
+		let children = gameObject.Transform.Children;
+		for (int i = children.Count - 1; i >= 0; i--)
 		{
-			referenceFields.Clear();
-			ComponentRegistry.GetFields(component, referenceFields);
-			for (let field in referenceFields)
-				if (field.kind == .ObjectReference && ComponentRegistry.ReferenceOwner(field) == gameObject)
-					ComponentRegistry.AssignReference(field, null);
+			if (i < children.Count)
+				UnregisterTree(children[i].GameObject);
+		}
+		for (int i = gameObject.Components.Count - 1; i >= 0; i--)
+		{
+			if (i < gameObject.Components.Count)
+				UnregisterComponent(gameObject.Components[i]);
+		}
+	}
+
+	void DestroyTree(GameObject gameObject)
+	{
+		// Clear non-owning references before freeing their targets.
+		if (!mClearing)
+		{
+			for (let slot in mReferenceSlots)
+			{
+				if (OwnerOf(*slot.field) == gameObject)
+					*slot.field = null;
+			}
 		}
 		let transform = gameObject.Transform;
 		while (transform.Children.Count > 0)
-			DestroyImmediate(transform.Children.Back.GameObject);
-
+			DestroyTree(transform.Children.Back.GameObject);
+		// Normally done already (UnregisterTree); this catches a component added from another's OnUnregister.
 		for (int i = gameObject.Components.Count - 1; i >= 0; i--)
 			UnregisterComponent(gameObject.Components[i]);
 
@@ -355,6 +570,8 @@ class Scene
 			return;
 		component.[Friend]mRegistered = true;
 		mComponents.Add(component);
+		IndexComponent(component, true);
+		AddReferenceSlots(component);
 		component.OnRegister();
 		if (mPlaying)
 			WakeComponent(component);
@@ -370,19 +587,33 @@ class Scene
 				component.OnDisable();
 			component.OnDestroy();
 		}
-		List<FieldRef> referenceFields = scope .();
-		if(!mClearing)for (let owner in mComponents)
+		if (!mClearing)
 		{
-			referenceFields.Clear(); ComponentRegistry.GetFields(owner, referenceFields);
-			for (let field in referenceFields)
-				if (field.kind == .ObjectReference && *(Object*)field.ptr == component)
-					ComponentRegistry.AssignReference(field, null);
+			for (int i = mReferenceSlots.Count - 1; i >= 0; i--)
+			{
+				let slot = mReferenceSlots[i];
+				if (*slot.field == component)
+					*slot.field = null;
+				// The component's own fields are about to be freed with it.
+				if (slot.owner == component)
+					mReferenceSlots.RemoveAtFast(i);
+			}
 		}
 		component.OnUnregister();
 		component.[Friend]mRegistered = false;
 		component.[Friend]mAwake = false;
 		mComponents.Remove(component);
-		mPendingStart.Remove(component);
+		IndexComponent(component, false);
+		let pending = mPendingStart.IndexOf(component);
+		if (pending >= 0)
+		{
+			// RunPendingStarts is going through the list: leave a gap rather than move what it has yet to reach.
+			if (mRunningStarts)
+				mPendingStart[pending] = null;
+			else
+				mPendingStart.RemoveAt(pending);
+		}
+		mDeferredStart.Remove(component);
 	}
 
 	void WakeComponent(Component component)
@@ -414,6 +645,7 @@ class Scene
 			WakeComponent(mComponents[i]);
 	}
 
+	/// Leaves play mode: every component gets OnDisable and OnDestroy, and the physics world is put away.
 	public void StopPlay()
 	{
 		mStartHeld = false;
@@ -440,10 +672,13 @@ class Scene
 
 	void RunPendingStarts()
 	{
-		while (mPendingStart.Count > 0)
+		// Start can add components (and so more pending starts), which are run in the same pass.
+		mRunningStarts = true;
+		for (int i = 0; i < mPendingStart.Count; i++)
 		{
-			let component = mPendingStart[0];
-			mPendingStart.RemoveAt(0);
+			let component = mPendingStart[i];
+			if (component == null)
+				continue;
 			if (!component.[Friend]mStarted && component.IsActiveAndEnabled)
 			{
 				component.[Friend]mStarted = true;
@@ -455,12 +690,15 @@ class Scene
 				mDeferredStart.Add(component);
 			}
 		}
+		mRunningStarts = false;
+		mPendingStart.Clear();
 		for (let component in mDeferredStart)
 			mPendingStart.Add(component);
 		mDeferredStart.Clear();
 	}
 
 	List<Component> mDeferredStart = new .() ~ delete _;
+	bool mRunningStarts;
 
 	/// One fixed simulation tick: gameplay FixedUpdate, then physics.
 	public void FixedUpdate()
@@ -475,7 +713,11 @@ class Scene
 		{
 			let component = mComponents[i];
 			if (component.[Friend]mStarted && component.IsActiveAndEnabled)
-				{ Watchdog.Running = component; component.FixedUpdate(); Watchdog.Running = null; }
+			{
+				Watchdog.Running = component;
+				component.FixedUpdate();
+				Watchdog.Running = null;
+			}
 		}
 		Physics.Step(Time.FixedDeltaTime);
 		Network?.PostTick();
@@ -487,6 +729,8 @@ class Scene
 	/// Waiting for a save before play starts (SaveSystem.LoadAtStart with a storage that answers later).
 	public bool StartHeld => mStartHeld;
 
+	/// Runs one frame: OnFrame on every component (in the editor too), then while playing the pending Starts, Update,
+	/// LateUpdate and the end-of-frame work (destroys, IK, skinning).
 	public void Update()
 	{
 		Active = this;
@@ -496,7 +740,11 @@ class Scene
 		{
 			let component = mComponents[i];
 			if (component.IsActiveAndEnabled)
-				{ Watchdog.Running = component; component.OnFrame(); Watchdog.Running = null; }
+			{
+				Watchdog.Running = component;
+				component.OnFrame();
+				Watchdog.Running = null;
+			}
 		}
 		VoiceChat.Update(this);
 		Audio.Update(this);
@@ -507,13 +755,21 @@ class Scene
 			{
 				let component = mComponents[i];
 				if (component.[Friend]mStarted && component.IsActiveAndEnabled)
-					{ Watchdog.Running = component; component.Update(); Watchdog.Running = null; }
+				{
+					Watchdog.Running = component;
+					component.Update();
+					Watchdog.Running = null;
+				}
 			}
 			for (int i = 0; i < mComponents.Count; i++)
 			{
 				let component = mComponents[i];
 				if (component.[Friend]mStarted && component.IsActiveAndEnabled)
-					{ Watchdog.Running = component; component.LateUpdate(); Watchdog.Running = null; }
+				{
+					Watchdog.Running = component;
+					component.LateUpdate();
+					Watchdog.Running = null;
+				}
 			}
 		}
 		// Inverse kinematics goes on top of whatever clips and scripts made of the pose this frame, and rigged models

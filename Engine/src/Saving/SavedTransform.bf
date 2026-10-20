@@ -35,11 +35,31 @@ class SavedTransform : Component
 		var turned = Transform.LocalRotation;
 		var size = Transform.LocalScale;
 		var moved = false;
-		if (positionX && io.Key("x")) { io.Value(ref position.x); moved = true; }
-		if (positionY && io.Key("y")) { io.Value(ref position.y); moved = true; }
-		if (positionZ && io.Key("z")) { io.Value(ref position.z); moved = true; }
-		if (rotation && io.Key("rotation")) { io.Value(ref turned); moved = true; }
-		if (scale && io.Key("scale")) { io.Value(ref size); moved = true; }
+		if (positionX && io.Key("x"))
+		{
+			io.Value(ref position.x);
+			moved = true;
+		}
+		if (positionY && io.Key("y"))
+		{
+			io.Value(ref position.y);
+			moved = true;
+		}
+		if (positionZ && io.Key("z"))
+		{
+			io.Value(ref position.z);
+			moved = true;
+		}
+		if (rotation && io.Key("rotation"))
+		{
+			io.Value(ref turned);
+			moved = true;
+		}
+		if (scale && io.Key("scale"))
+		{
+			io.Value(ref size);
+			moved = true;
+		}
 
 		let body = GetComponent<Rigidbody>();
 		let character = GetComponent<CharacterController>();
@@ -57,8 +77,16 @@ class SavedTransform : Component
 				linear = character.Velocity;
 		}
 		var hasLinear = false, hasSpin = false;
-		if (velocity && (body != null || character != null) && io.Key("velocity")) { io.Value(ref linear); hasLinear = true; }
-		if (angularVelocity && body != null && io.Key("spin")) { io.Value(ref spin); hasSpin = true; }
+		if (velocity && (body != null || character != null) && io.Key("velocity"))
+		{
+			io.Value(ref linear);
+			hasLinear = true;
+		}
+		if (angularVelocity && body != null && io.Key("spin"))
+		{
+			io.Value(ref spin);
+			hasSpin = true;
+		}
 		if (io.Writing)
 			return;
 
@@ -74,8 +102,10 @@ class SavedTransform : Component
 			var state = body.State;
 			state.position = Transform.Position;
 			state.rotation = Transform.Rotation;
-			if (hasLinear) state.linearVelocity = linear;
-			if (hasSpin) state.angularVelocity = spin;
+			if (hasLinear)
+				state.linearVelocity = linear;
+			if (hasSpin)
+				state.angularVelocity = spin;
 			body.SetState(state);
 		}
 		else if (character != null && character.HasCharacter)

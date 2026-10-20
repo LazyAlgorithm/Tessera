@@ -306,6 +306,7 @@ class SceneLoad
 			}
 		}
 	}
+
 	/// How many models and textures it names, and how many are loaded.
 	public int32 AssetCount => mBatch != null ? mBatch.Total : 0;
 	public int32 AssetsLoaded => mBatch != null ? mBatch.Loaded : 0;
@@ -392,7 +393,7 @@ class SceneLoad
 			SceneManager.[Friend]Switch(running, Path, mText);
 			mStage = .Done;
 			return true;
-		case .Done, .Failed:
+		case .Done,.Failed:
 			// Kept for one more frame so that whoever started it sees it done, then let go.
 			mForget = true;
 			return false;

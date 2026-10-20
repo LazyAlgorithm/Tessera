@@ -17,9 +17,9 @@ extension EditorApp
 	[CLink] static extern void ImDrawList_AddBezierCubic(void* list, ImGui.Vec2 p1, ImGui.Vec2 p2, ImGui.Vec2 p3, ImGui.Vec2 p4, uint32 color, float thickness, int32 segments);
 	[CLink] static extern void igPushFont(void* font, float size);
 
-	const float cNodeWidth = 190;
-	const float cHeaderHeight = 26;
-	const float cRowHeight = 22;
+	const float NodeWidth = 190;
+	const float HeaderHeight = 26;
+	const float RowHeight = 22;
 
 	NodeGraph mGraph ~ delete _;
 	String mGraphPath = new .() ~ delete _;
@@ -87,7 +87,8 @@ extension EditorApp
 
 	void OpenGraph(StringView path)
 	{
-        mShowGraph=true; mDockGraph=true;
+		mShowGraph = true;
+		mDockGraph = true;
 		NodeLibrary.RefreshSubgraphs(Assets.ProjectPath);
 		delete mGraph;
 		mGraph = new NodeGraph();
@@ -243,7 +244,8 @@ extension EditorApp
 		let rgb = graph.AddNode(NodeLibrary.Find("shader.rgb"), .(300, 80));
 		let glow = graph.AddNode(NodeLibrary.Find("shader.vscale"), .(360, 240));
 		graph.Validate();
-		tint.values[0].Set("tint"); tint.values[1].Set("0.2 0.7 1 1");
+		tint.values[0].Set("tint");
+		tint.values[1].Set("0.2 0.7 1 1");
 		pulse.values[0].Set("2");
 		graph.Connect(tint.id, 0, rgb.id, 0);
 		graph.Connect(rgb.id, 0, output.id, 0);
@@ -274,20 +276,33 @@ extension EditorApp
 		}
 	}
 
-	static Color CategoryColor(StringView category)=>NodeCanvas.CategoryColor(category);
+	static Color CategoryColor(StringView category) => NodeCanvas.CategoryColor(category);
 
-	static float NodeHeight(GraphNode node) => cHeaderHeight + Math.Max(node.def.inputs.Count, node.def.outputs.Count) * cRowHeight + 8;
+	static float NodeHeight(GraphNode node) => HeaderHeight + Math.Max(node.def.inputs.Count, node.def.outputs.Count) * RowHeight + 8;
 
 	/// Pin centre in graph space.
 	static Vector2 PinPosition(GraphNode node, int32 pin, bool output)
 	{
-		return .(node.position.x + (output ? cNodeWidth : 0), node.position.y + cHeaderHeight + pin * cRowHeight + cRowHeight * 0.5f);
+		return .(node.position.x + (output ? NodeWidth : 0), node.position.y + HeaderHeight + pin * RowHeight + RowHeight * 0.5f);
+	}
+
+	/// The node (and pin, if any) under the mouse.
+	struct GraphHover
+	{
+		public GraphNode node;
+		public int32 pin;
+		public bool pinIsOutput;
 	}
 
 	void DrawGraph()
 	{
-        if (!mShowGraph && mPendingGraph.IsEmpty) return;
-        if (mDockGraph && mAssetCenterDock!=0) { ImGui.SetNextWindowDockID(mAssetCenterDock); mDockGraph=false; }
+		if (!mShowGraph && mPendingGraph.IsEmpty)
+			return;
+		if (mDockGraph && mAssetCenterDock != 0)
+		{
+			ImGui.SetNextWindowDockID(mAssetCenterDock);
+			mDockGraph = false;
+		}
 		if (!mPendingGraph.IsEmpty)
 		{
 			if (mGraph != null)
@@ -303,180 +318,170 @@ extension EditorApp
 		ImGui.PushStyleVar(ImGui.StyleVar.WindowPadding, ImGui.Vec2(0, 0));
 		let visible = ImGui.Begin("Graph", &mShowGraph, ImGui.WindowFlags.NoScrollbar | ImGui.WindowFlags.NoScrollWithMouse);
 		ImGui.PopStyleVar();
-		if (!visible)
-		{
-			ImGui.End();
-			return;
-		}
-		if (mGraph == null)
+		if (visible && mGraph == null)
 		{
 			ImGui.SetCursorPosX(16);
 			ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 14);
 			ImGui.TextDisabled("Create a visual script with Project > + > Graph, or double-click a .tgraph file.");
-			ImGui.End();
-			return;
 		}
+		else if (visible)
+		{
+			DrawGraphToolbar();
+			ImGui.BeginChild("canvas", .(0, 0), 0, ImGui.WindowFlags.NoScrollbar | ImGui.WindowFlags.NoScrollWithMouse | ImGui.WindowFlags.NoMove);
+			DrawGraphCanvas();
+			ImGui.EndChild();
+		}
+		ImGui.End();
+	}
 
-		// ---- toolbar ----
+	void DrawGraphToolbar()
+	{
 		ImGui.SetCursorPosX(6);
 		ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 4);
-		if (ImGui.SmallButton("Save")) CompileGraph();
+		if (ImGui.SmallButton("Save"))
+			CompileGraph();
 		ImGui.SameLine();
-		if (ImGui.SmallButton("Reset View")) { mGraphPan = .(60, 60); mGraphZoom = 1; }
+		if (ImGui.SmallButton("Reset View"))
+		{
+			mGraphPan = .(60, 60);
+			mGraphZoom = 1;
+		}
 		ImGui.SameLine();
+		// A shader keeps its values in Property nodes.
 		if (mGraph.isShader)
-			mGraphShowVariables = false; // a shader keeps its values in Property nodes
-		else if (ImGui.SmallButton(mGraphShowVariables ? "Hide Variables" : "Variables")) mGraphShowVariables = !mGraphShowVariables;
+			mGraphShowVariables = false;
+		else if (ImGui.SmallButton(mGraphShowVariables ? "Hide Variables" : "Variables"))
+			mGraphShowVariables = !mGraphShowVariables;
 		ImGui.SameLine(0, 14);
 		ImGui.TextDisabled(scope String()..AppendF("{}   {:0}%   {}", mGraph.name, mGraphZoom * 100, mGraphStatus).CStr());
+	}
 
-		ImGui.BeginChild("canvas", .(0, 0), 0, ImGui.WindowFlags.NoScrollbar | ImGui.WindowFlags.NoScrollWithMouse | ImGui.WindowFlags.NoMove);
-		let origin = ImGui.GetCursorScreenPos();
-		let size = ImGui.GetContentRegionAvail();
-		ImGui.InvisibleButton("##canvas", .(Math.Max(size.x, 1), Math.Max(size.y, 1)));
-		let hovered = ImGui.IsItemHovered();
-		let mouse = ImGui.GetMousePos();
-		let list = igGetWindowDrawList();
-		var zoom = mGraphZoom;
+	void DrawGraphCanvas()
+	{
+		let canvas = CanvasView.Begin("##canvas", ref mGraphPan, ref mGraphZoom);
 
-		ImGui.Vec2 ToScreen(Vector2 p) => .(origin.x + mGraphPan.x + p.x * zoom, origin.y + mGraphPan.y + p.y * zoom);
-		Vector2 ToGraph(ImGui.Vec2 p) => .((p.x - origin.x - mGraphPan.x) / zoom, (p.y - origin.y - mGraphPan.y) / zoom);
+		NodeCanvas.BeginFont(canvas.zoom);
+		DrawGraphLinks(canvas);
+		let hover = DrawGraphNodes(canvas);
+		NodeCanvas.EndFont();
 
-        NodeCanvas.UpdateView(ref mGraphPan,ref mGraphZoom,origin,mouse,hovered);
-        zoom=mGraphZoom;
-        NodeCanvas.DrawGrid(origin,size,mGraphPan,zoom);
-        NodeCanvas.BeginFont(zoom);
-		let pinRadius = 5.5f * zoom;
-		let graphMouse = ToGraph(mouse);
+		HandleGraphMouse(canvas, hover);
+		DrawNodeSearch(canvas);
+		DrawSelectedNodeValues(canvas);
+		if (mGraphShowVariables)
+			DrawGraphVariables(.(canvas.origin.x + canvas.size.x - 10, canvas.origin.y + 10), NodeCanvas.CenterNode(canvas.size, mGraphPan, mGraphZoom));
+	}
 
-		// ---- links ----
-        void DrawLink(ImGui.Vec2 a,ImGui.Vec2 b,Color color)=>NodeCanvas.DrawLink(a,b,color,zoom);
-
+	void DrawGraphLinks(CanvasView canvas)
+	{
 		for (let link in mGraph.links)
 		{
 			let from = mGraph.Find(link.fromNode);
 			let to = mGraph.Find(link.toNode);
 			if (from != null && to != null)
-				DrawLink(ToScreen(PinPosition(from, link.fromPin, true)), ToScreen(PinPosition(to, link.toPin, false)), PinColor(from.def.outputs[link.fromPin].type));
+				canvas.DrawLink(canvas.ToScreen(PinPosition(from, link.fromPin, true)), canvas.ToScreen(PinPosition(to, link.toPin, false)), PinColor(from.def.outputs[link.fromPin].type));
 		}
+	}
 
-		// ---- nodes ----
-		GraphNode hoverNode = null;
-		int32 hoverPin = -1;
-		bool hoverPinIsOutput = false;
+	/// Every node with its pins and their labels. Returns what is under the mouse.
+	GraphHover DrawGraphNodes(CanvasView canvas)
+	{
+		GraphHover hover = default;
+		hover.pin = -1;
+		let zoom = canvas.zoom;
+		let mouse = canvas.mouse;
+		let pinRadius = 5.5f * zoom;
 		for (let node in mGraph.nodes)
 		{
-			let min = ToScreen(node.position);
-			let max = ToScreen(.(node.position.x + cNodeWidth, node.position.y + NodeHeight(node)));
-			let selected = node.id == mGraphSelected;
-            NodeCanvas.DrawNode(min,max,CategoryColor(node.def.category),selected,zoom);
+			let min = canvas.ToScreen(node.position);
+			let max = canvas.ToScreen(.(node.position.x + NodeWidth, node.position.y + NodeHeight(node)));
+			NodeCanvas.DrawNode(min, max, CategoryColor(node.def.category), node.id == mGraphSelected, zoom);
 			if (zoom > 0.4f)
 				ImGui.DrawText(.(min.x + 9 * zoom, min.y + 5 * zoom), .White, NodeGraph.Title(node, .. scope String()).CStr());
-			if (hovered && mouse.x >= min.x && mouse.x <= max.x && mouse.y >= min.y && mouse.y <= max.y)
-				hoverNode = node;
+			if (canvas.hovered && mouse.x >= min.x && mouse.x <= max.x && mouse.y >= min.y && mouse.y <= max.y)
+				hover.node = node;
 
 			for (int side < 2)
 			{
 				let pins = side == 0 ? node.def.inputs : node.def.outputs;
 				for (int32 i = 0; i < (int32)pins.Count; i++)
 				{
-					let center = ToScreen(PinPosition(node, i, side == 1));
+					let center = canvas.ToScreen(PinPosition(node, i, side == 1));
 					let pin = pins[i];
-					let over = hovered && Math.Abs(mouse.x - center.x) < pinRadius * 2 && Math.Abs(mouse.y - center.y) < pinRadius * 2;
+					let over = canvas.hovered && Math.Abs(mouse.x - center.x) < pinRadius * 2 && Math.Abs(mouse.y - center.y) < pinRadius * 2;
 					if (over)
 					{
-						hoverNode = node;
-						hoverPin = i;
-						hoverPinIsOutput = side == 1;
+						hover.node = node;
+						hover.pin = i;
+						hover.pinIsOutput = side == 1;
 					}
-					ImDrawList_AddCircleFilled(list, center, over ? pinRadius * 1.4f : pinRadius, PinColor(pin.type).ToABGR(), 12);
-					if (zoom <= 0.4f)
-						continue;
-					// Label, plus the literal for an input with nothing plugged in.
-					let label = scope String(pin.name);
-					if (side == 0 && pin.type != .Flow)
-					{
-						bool connected = false;
-						for (let link in mGraph.links)
-							connected |= link.toNode == node.id && link.toPin == i;
-						// An object pin with nothing plugged in uses this object's own, or nothing.
-						if (!connected && pin.type == .Object)
-							label.AppendF("{}{}", label.IsEmpty ? "" : ": ", NodeLibrary.IsSelf(pin) ? "self" : "none");
-						else if (!connected)
-							label.AppendF("{}{}", label.IsEmpty ? "" : ": ", node.values[i]);
-					}
-					if (label.IsEmpty)
-						continue;
-					let textX = side == 0 ? center.x + 10 * zoom : center.x - 10 * zoom - ImGui.CalcTextSize(label.CStr()).x;
-					ImGui.DrawText(.(textX, center.y - 8 * zoom), .(0.85f, 0.85f, 0.85f, 1), label.CStr());
+					ImDrawList_AddCircleFilled(canvas.drawList, center, over ? pinRadius * 1.4f : pinRadius, PinColor(pin.type).ToABGR(), 12);
+					if (zoom > 0.4f)
+						DrawPinLabel(node, i, pin, side == 0, center, zoom);
 				}
 			}
 		}
-		NodeCanvas.EndFont();
+		return hover;
+	}
 
-		// ---- mouse: connect, select, drag ----
-		if (hovered && ImGui.IsMouseDoubleClicked(0) && hoverNode != null && hoverPin < 0 && hoverNode.def.key.StartsWith("sub:"))
+	/// A pin's name, and for an input with nothing plugged in the value it takes instead.
+	void DrawPinLabel(GraphNode node, int32 i, PinDef pin, bool input, ImGui.Vec2 center, float zoom)
+	{
+		let label = scope String(pin.name);
+		if (input && pin.type != .Flow)
+		{
+			bool connected = false;
+			for (let link in mGraph.links)
+				connected |= link.toNode == node.id && link.toPin == i;
+			// An object pin with nothing plugged in uses this object's own, or nothing.
+			if (!connected && pin.type == .Object)
+				label.AppendF("{}{}", label.IsEmpty ? "" : ": ", NodeLibrary.IsSelf(pin) ? "self" : "none");
+			else if (!connected)
+				label.AppendF("{}{}", label.IsEmpty ? "" : ": ", node.values[i]);
+		}
+		if (label.IsEmpty)
+			return;
+		let textX = input ? center.x + 10 * zoom : center.x - 10 * zoom - ImGui.CalcTextSize(label.CStr()).x;
+		ImGui.DrawText(.(textX, center.y - 8 * zoom), .(0.85f, 0.85f, 0.85f, 1), label.CStr());
+	}
+
+	/// The mouse on the canvas: into a subgraph, linking pins (Alt-click undoes a pin's links), selecting and dragging
+	/// nodes, deleting the selected one, and the right-click menu of nodes to add.
+	void HandleGraphMouse(CanvasView canvas, GraphHover hover)
+	{
+		let hovered = canvas.hovered;
+		let graphMouse = canvas.GraphMouse;
+		if (hovered && ImGui.IsMouseDoubleClicked(0) && hover.node != null && hover.pin < 0 && hover.node.def.key.StartsWith("sub:"))
 		{
 			// Step into the subgraph behind this node.
-			Assets.ResolvePath(hoverNode.def.key.Substring(4), mPendingGraph);
+			Assets.ResolvePath(hover.node.def.key.Substring(4), mPendingGraph);
 		}
 		if (hovered && ImGui.IsMouseClicked(0))
 		{
-			if (hoverPin >= 0 && ImGui.IsKeyDown(ImGui.Key.LeftCtrl) == false && Input.GetKey(.LeftAlt))
-				mGraph.DisconnectPin(hoverNode.id, hoverPin, !hoverPinIsOutput);
-			else if (hoverPin >= 0)
+			if (hover.pin >= 0 && ImGui.IsKeyDown(ImGui.Key.LeftCtrl) == false && Input.GetKey(.LeftAlt))
+				mGraph.DisconnectPin(hover.node.id, hover.pin, !hover.pinIsOutput);
+			else if (hover.pin >= 0)
 			{
 				mLinking = true;
-				mLinkNode = hoverNode.id;
-				mLinkPin = hoverPin;
-				mLinkFromOutput = hoverPinIsOutput;
+				mLinkNode = hover.node.id;
+				mLinkPin = hover.pin;
+				mLinkFromOutput = hover.pinIsOutput;
 			}
-			else if (hoverNode != null)
+			else if (hover.node != null)
 			{
-				mGraphSelected = hoverNode.id;
-				mGraphDragNode = hoverNode.id;
+				mGraphSelected = hover.node.id;
+				mGraphDragNode = hover.node.id;
 			}
 			else
 				mGraphSelected = 0;
 		}
 		if (mLinking)
-		{
-			let source = mGraph.Find(mLinkNode);
-			if (source != null)
-			{
-				let start = ToScreen(PinPosition(source, mLinkPin, mLinkFromOutput));
-				if (mLinkFromOutput)
-					DrawLink(start, mouse, .(1, 1, 1, 0.8f));
-				else
-					DrawLink(mouse, start, .(1, 1, 1, 0.8f));
-			}
-			if (!ImGui.IsMouseDown(0))
-			{
-				// Dropped on a pin of the opposite direction and the same type: connect.
-				if (source != null && hoverPin >= 0 && hoverNode.id != mLinkNode && hoverPinIsOutput != mLinkFromOutput)
-				{
-					let output = mLinkFromOutput ? source : hoverNode;
-					let outputPin = mLinkFromOutput ? mLinkPin : hoverPin;
-					let input = mLinkFromOutput ? hoverNode : source;
-					let inputPin = mLinkFromOutput ? hoverPin : mLinkPin;
-					if (mGraph.Links(output.def.outputs[outputPin], input.def.inputs[inputPin]))
-						mGraph.Connect(output.id, outputPin, input.id, inputPin);
-					else
-						mGraphStatus.Set("Those pins have different types.");
-				}
-				else if (source != null && hovered && hoverNode == null)
-				{
-					// Dropped on empty canvas: offer the nodes that can take this link.
-					OpenNodeSearch(graphMouse, true);
-				}
-				mLinking = false;
-			}
-		}
+			DragLink(canvas, hover, graphMouse);
 		if (mGraphDragNode != 0)
 		{
 			let dragged = mGraph.Find(mGraphDragNode);
 			if (dragged != null && ImGui.IsMouseDown(0))
-				dragged.position = dragged.position + Input.MouseDelta / zoom;
+				dragged.position = dragged.position + Input.MouseDelta / canvas.zoom;
 			else
 				mGraphDragNode = 0;
 		}
@@ -487,8 +492,6 @@ extension EditorApp
 				mGraph.RemoveNode(selected);
 			mGraphSelected = 0;
 		}
-
-		// ---- add-node menu with search ----
 		if (hovered && ImGui.IsMouseClicked(1))
 		{
 			// Pick up subgraphs created or changed since the list was last built.
@@ -496,236 +499,277 @@ extension EditorApp
 			mGraph.Validate();
 			OpenNodeSearch(graphMouse, false);
 		}
+	}
+
+	/// A link being dragged out of a pin: drawn to the mouse, and on release connected to the pin it was dropped on
+	/// (of the other direction and a type that fits), or offered the nodes that can take it if dropped on nothing.
+	void DragLink(CanvasView canvas, GraphHover hover, Vector2 graphMouse)
+	{
+		let source = mGraph.Find(mLinkNode);
+		if (source != null)
+		{
+			let start = canvas.ToScreen(PinPosition(source, mLinkPin, mLinkFromOutput));
+			if (mLinkFromOutput)
+				canvas.DrawLink(start, canvas.mouse, .(1, 1, 1, 0.8f));
+			else
+				canvas.DrawLink(canvas.mouse, start, .(1, 1, 1, 0.8f));
+		}
+		if (ImGui.IsMouseDown(0))
+			return;
+		if (source != null && hover.pin >= 0 && hover.node.id != mLinkNode && hover.pinIsOutput != mLinkFromOutput)
+		{
+			let output = mLinkFromOutput ? source : hover.node;
+			let outputPin = mLinkFromOutput ? mLinkPin : hover.pin;
+			let input = mLinkFromOutput ? hover.node : source;
+			let inputPin = mLinkFromOutput ? hover.pin : mLinkPin;
+			if (mGraph.Links(output.def.outputs[outputPin], input.def.inputs[inputPin]))
+				mGraph.Connect(output.id, outputPin, input.id, inputPin);
+			else
+				mGraphStatus.Set("Those pins have different types.");
+		}
+		else if (source != null && canvas.hovered && hover.node == null)
+			OpenNodeSearch(graphMouse, true);
+		mLinking = false;
+	}
+
+	/// The add-node menu: browsing by category with nothing typed, else the nodes whose names match as you type.
+	void DrawNodeSearch(CanvasView canvas)
+	{
 		if (mOpenNodeSearch)
 		{
 			ImGui.OpenPopup("AddNode");
 			mOpenNodeSearch = false;
 			mNodeSearchFocus = true;
 		}
-		if (ImGui.BeginPopup("AddNode"))
+		if (!ImGui.BeginPopup("AddNode"))
+			return;
+		if (mNodeSearchFocus)
 		{
-			if (mNodeSearchFocus)
+			ImGui.SetKeyboardFocusHere();
+			mNodeSearchFocus = false;
+		}
+		ImGui.SetNextItemWidth(260);
+		ImGui.InputText("##nodesearch", mNodeSearch, 0, mSearchForLink ? "Search nodes that fit this pin" : "Search nodes");
+		let chosen = (mNodeSearch.IsEmpty && !mSearchForLink) ? BrowseNodes() : MatchingNodes(ImGui.IsKeyPressed(ImGui.Key.Enter));
+		if (chosen != null)
+		{
+			let created = mGraph.AddNode(chosen, mNewNodePosition);
+			mGraphSelected = created.id;
+			if (mSearchForLink)
 			{
-				ImGui.SetKeyboardFocusHere();
-				mNodeSearchFocus = false;
+				// Finish the link that was dragged out to open this search.
+				let pin = FirstCompatiblePin(chosen);
+				if (pin >= 0 && mLinkFromOutput)
+					mGraph.Connect(mLinkNode, mLinkPin, created.id, pin);
+				else if (pin >= 0)
+					mGraph.Connect(created.id, pin, mLinkNode, mLinkPin);
 			}
-			ImGui.SetNextItemWidth(260);
-			ImGui.InputText("##nodesearch", mNodeSearch, 0, mSearchForLink ? "Search nodes that fit this pin" : "Search nodes");
-			let enter = ImGui.IsKeyPressed(ImGui.Key.Enter);
-			NodeDef chosen = null;
-			if (mNodeSearch.IsEmpty && !mSearchForLink)
+			ImGui.CloseCurrentPopup();
+		}
+		ImGui.EndPopup();
+	}
+
+	/// Nothing typed: the hand-written nodes by category, then everything read from source (the engine by area and
+	/// then class, the game's own scripts by class). Returns the node chosen, or null.
+	NodeDef BrowseNodes()
+	{
+		NodeDef chosen = null;
+		String category = null;
+		bool open = false;
+		for (let def in NodeLibrary.Defs)
+		{
+			if (def.fromApi || def.isShader != mGraph.isShader)
+				continue;
+			if (category == null || category != def.category)
 			{
-				// Nothing typed: browse by category.
-				String category = null;
-				bool open = false;
-				// Hand-written nodes by category.
-				for (let def in NodeLibrary.Defs)
-				{
-					if (def.fromApi || def.isShader != mGraph.isShader)
-						continue;
-					if (category == null || category != def.category)
-					{
-						if (open)
-							ImGui.EndMenu();
-						category = def.category;
-						open = ImGui.BeginMenu(category.CStr());
-					}
-					if (open && ImGui.MenuItem(def.title.CStr()))
-						chosen = def;
-				}
 				if (open)
 					ImGui.EndMenu();
-				ImGui.Separator();
-				// Everything read from source: the engine by area and then class, the game's own scripts by class.
-				void Classes(StringView group, bool game)
-				{
-					String current = null;
-					bool inside = false;
-					for (let def in NodeLibrary.Defs)
-					{
-						if (!def.fromApi || def.fromGame != game || (!game && def.group != group))
-							continue;
-						if (current == null || current != def.category)
-						{
-							if (inside)
-								ImGui.EndMenu();
-							current = def.category;
-							inside = ImGui.BeginMenu(current.CStr());
-						}
-						// Inside a class's menu its name is not repeated on every entry.
-						var title = (StringView)def.title;
-						if (title.StartsWith(def.category) && title.Length > def.category.Length + 2)
-							title = title.Substring(def.category.Length + 2);
-						if (inside && ImGui.MenuItem(scope String(title).CStr()))
-							chosen = def;
-					}
-					if (inside)
-						ImGui.EndMenu();
-				}
-				if (!mGraph.isShader && ImGui.BeginMenu("Engine"))
-				{
-					List<String> groups = scope .();
-					for (let def in NodeLibrary.Defs)
-					{
-						if (def.fromApi && !def.fromGame && !groups.Contains(def.group))
-							groups.Add(def.group);
-					}
-					groups.Sort(scope (a, b) => a.CompareTo(b));
-					for (let group in groups)
-					{
-						if (ImGui.BeginMenu(group.CStr()))
-						{
-							Classes(group, false);
-							ImGui.EndMenu();
-						}
-					}
-					ImGui.EndMenu();
-				}
-				if (!mGraph.isShader && ImGui.BeginMenu("Game"))
-				{
-					bool any = false;
-					for (let def in NodeLibrary.Defs)
-						any |= def.fromApi && def.fromGame;
-					if (any)
-						Classes("", true);
-					else
-						ImGui.TextDisabled("Public members of your scripts appear here.");
-					ImGui.EndMenu();
-				}
+				category = def.category;
+				open = ImGui.BeginMenu(category.CStr());
 			}
-			else
-			{
-				// Typed text narrows the list as you type; names that start with it come first, Enter takes the top one.
-				ImGui.BeginChild("matches", .(260, 240));
-				int shown = 0;
-				for (int pass < 2)
-				{
-					for (let def in NodeLibrary.Defs)
-					{
-						if (def.isShader != mGraph.isShader || (mSearchForLink && FirstCompatiblePin(def) < 0))
-							continue;
-						let starts = mNodeSearch.IsEmpty || def.title.StartsWith(mNodeSearch, .OrdinalIgnoreCase);
-						let contains = def.title.Contains(mNodeSearch, true) || def.category.Contains(mNodeSearch, true);
-						if ((pass == 0 && !starts) || (pass == 1 && (starts || !contains)))
-							continue;
-						let label = scope String();
-						label.AppendF("{}   ({})", def.title, def.category);
-						if (ImGui.Selectable(label.CStr(), shown == 0) || (enter && shown == 0))
-							chosen = def;
-						shown++;
-					}
-				}
-				if (shown == 0)
-					ImGui.TextDisabled("No matching nodes.");
-				ImGui.EndChild();
-			}
-			if (chosen != null)
-			{
-				let created = mGraph.AddNode(chosen, mNewNodePosition);
-				mGraphSelected = created.id;
-				if (mSearchForLink)
-				{
-					// Finish the link that was dragged out to open this search.
-					let pin = FirstCompatiblePin(chosen);
-					if (pin >= 0 && mLinkFromOutput)
-						mGraph.Connect(mLinkNode, mLinkPin, created.id, pin);
-					else if (pin >= 0)
-						mGraph.Connect(created.id, pin, mLinkNode, mLinkPin);
-				}
-				ImGui.CloseCurrentPopup();
-			}
-			ImGui.EndPopup();
+			if (open && ImGui.MenuItem(def.title.CStr()))
+				chosen = def;
 		}
-
-		// ---- values of the selected node ----
-		let selectedNode = mGraph.Find(mGraphSelected);
-		if (selectedNode != null)
+		if (open)
+			ImGui.EndMenu();
+		ImGui.Separator();
+		if (!mGraph.isShader && ImGui.BeginMenu("Engine"))
 		{
-			int editable = 0;
-			for (let pin in selectedNode.def.inputs)
-				editable += pin.type != .Flow ? 1 : 0;
-			if (editable > 0)
+			List<String> groups = scope .();
+			for (let def in NodeLibrary.Defs)
 			{
-				ImGui.SetCursorScreenPos(.(origin.x + 10, origin.y + 10));
-				ImGui.PushStyleColor(ImGui.Col.ChildBg, .(0.10f, 0.10f, 0.11f, 0.92f));
-				ImGui.BeginChild("values", .(250, 34 + editable * 27), ImGui.ChildBorders);
-				ImGui.Text(NodeGraph.Title(selectedNode, .. scope String()));
-				for (int32 i = 0; i < (int32)selectedNode.def.inputs.Count; i++)
+				if (def.fromApi && !def.fromGame && !groups.Contains(def.group))
+					groups.Add(def.group);
+			}
+			groups.Sort(scope (a, b) => a.CompareTo(b));
+			for (let group in groups)
+			{
+				if (ImGui.BeginMenu(group.CStr()))
 				{
-					let pin = selectedNode.def.inputs[i];
-					if (pin.type == .Flow)
-						continue;
-					ImGui.PushID(i);
-					ImGui.SetNextItemWidth(150);
-					if (pin.type == .Bool)
-					{
-						bool value = selectedNode.values[i] == "true";
-						if (ImGui.Checkbox("##v", ref value))
-							selectedNode.values[i].Set(value ? "true" : "false");
-					}
-					else if (pin.type == .Int)
-					{
-						int32 value = (int32)SceneSerializer.ParseFloat(selectedNode.values[i]);
-						if (ImGui.InputInt("##v", ref value))
-							selectedNode.values[i]..Clear().AppendF("{}", value);
-					}
-					else if (pin.type == .Enum)
-					{
-						let entry = pin.typeName != null ? ApiIndex.Find(pin.typeName) : null;
-						if (selectedNode.values[i].IsEmpty && entry != null && entry.members.Count > 0)
-							selectedNode.values[i].Set(entry.members[0]);
-						if (ImGui.BeginCombo("##v", selectedNode.values[i].CStr()))
-						{
-							if (entry != null)
-							{
-								for (let name in entry.members)
-								{
-									if (ImGui.Selectable(name.CStr(), name == selectedNode.values[i]))
-										selectedNode.values[i].Set(name);
-								}
-							}
-							ImGui.EndCombo();
-						}
-					}
-					else if (pin.type == .Color)
-					{
-						Color color = .(1, 1, 1, 1);
-						var parts = selectedNode.values[i].Split(' ', .RemoveEmptyEntries);
-						float* channels = &color.r;
-						for (int k < 4)
-						{
-							if (parts.GetNext() case .Ok(let part))
-								channels[k] = SceneSerializer.ParseFloat(part);
-						}
-						if (ImGui.ColorEdit4("##v", ref color))
-							selectedNode.values[i]..Clear().AppendF("{} {} {} {}", color.r, color.g, color.b, color.a);
-					}
-					else if (pin.type == .Object)
-						ImGui.TextDisabled(NodeLibrary.IsSelf(pin) ? "this object's own" : "connect a value");
-					else
-						ImGui.InputText("##v", selectedNode.values[i], 0, pin.type == .Vector3 || pin.type == .Quaternion ? (char8*)"x y z" : (pin.type == .Vector2 ? (char8*)"x y" : (char8*)""));
-					ImGui.SameLine();
-					ImGui.Text(pin.name.IsEmpty ? (StringView)"Value" : pin.name);
-					ImGui.PopID();
+					chosen = ApiClassMenus(group, false) ?? chosen;
+					ImGui.EndMenu();
 				}
-				ImGui.EndChild();
-				ImGui.PopStyleColor();
+			}
+			ImGui.EndMenu();
+		}
+		if (!mGraph.isShader && ImGui.BeginMenu("Game"))
+		{
+			bool any = false;
+			for (let def in NodeLibrary.Defs)
+				any |= def.fromApi && def.fromGame;
+			if (any)
+				chosen = ApiClassMenus("", true) ?? chosen;
+			else
+				ImGui.TextDisabled("Public members of your scripts appear here.");
+			ImGui.EndMenu();
+		}
+		return chosen;
+	}
+
+	/// A menu per class of the nodes read from source, for one area of the engine or for the game's own scripts.
+	NodeDef ApiClassMenus(StringView group, bool game)
+	{
+		NodeDef chosen = null;
+		String current = null;
+		bool inside = false;
+		for (let def in NodeLibrary.Defs)
+		{
+			if (!def.fromApi || def.fromGame != game || (!game && def.group != group))
+				continue;
+			if (current == null || current != def.category)
+			{
+				if (inside)
+					ImGui.EndMenu();
+				current = def.category;
+				inside = ImGui.BeginMenu(current.CStr());
+			}
+			// Inside a class's menu its name is not repeated on every entry.
+			var title = (StringView)def.title;
+			if (title.StartsWith(def.category) && title.Length > def.category.Length + 2)
+				title = title.Substring(def.category.Length + 2);
+			if (inside && ImGui.MenuItem(scope String(title).CStr()))
+				chosen = def;
+		}
+		if (inside)
+			ImGui.EndMenu();
+		return chosen;
+	}
+
+	/// Typed text narrows the list as you type: names that start with it come first, and Enter takes the top one.
+	NodeDef MatchingNodes(bool enter)
+	{
+		NodeDef chosen = null;
+		ImGui.BeginChild("matches", .(260, 240));
+		int shown = 0;
+		for (int pass < 2)
+		{
+			for (let def in NodeLibrary.Defs)
+			{
+				if (def.isShader != mGraph.isShader || (mSearchForLink && FirstCompatiblePin(def) < 0))
+					continue;
+				let starts = mNodeSearch.IsEmpty || def.title.StartsWith(mNodeSearch, .OrdinalIgnoreCase);
+				let contains = def.title.Contains(mNodeSearch, true) || def.category.Contains(mNodeSearch, true);
+				if ((pass == 0 && !starts) || (pass == 1 && (starts || !contains)))
+					continue;
+				let label = scope String();
+				label.AppendF("{}   ({})", def.title, def.category);
+				if (ImGui.Selectable(label.CStr(), shown == 0) || (enter && shown == 0))
+					chosen = def;
+				shown++;
 			}
 		}
-		if (mGraphShowVariables)
-			DrawGraphVariables(.(origin.x + size.x - 10, origin.y + 10), NodeCanvas.CenterNode(size, mGraphPan, mGraphZoom));
+		if (shown == 0)
+			ImGui.TextDisabled("No matching nodes.");
 		ImGui.EndChild();
-		ImGui.End();
+		return chosen;
+	}
+
+	/// The selected node's input values, in a panel at the canvas's top left.
+	void DrawSelectedNodeValues(CanvasView canvas)
+	{
+		let selectedNode = mGraph.Find(mGraphSelected);
+		if (selectedNode == null)
+			return;
+		int editable = 0;
+		for (let pin in selectedNode.def.inputs)
+			editable += pin.type != .Flow ? 1 : 0;
+		if (editable == 0)
+			return;
+		ImGui.SetCursorScreenPos(.(canvas.origin.x + 10, canvas.origin.y + 10));
+		ImGui.PushStyleColor(ImGui.Col.ChildBg, .(0.10f, 0.10f, 0.11f, 0.92f));
+		ImGui.BeginChild("values", .(250, 34 + editable * 27), ImGui.ChildBorders);
+		ImGui.Text(NodeGraph.Title(selectedNode, .. scope String()));
+		for (int32 i = 0; i < (int32)selectedNode.def.inputs.Count; i++)
+		{
+			let pin = selectedNode.def.inputs[i];
+			if (pin.type == .Flow)
+				continue;
+			ImGui.PushID(i);
+			ImGui.SetNextItemWidth(150);
+			EditPinValue(pin, selectedNode.values[i]);
+			ImGui.SameLine();
+			ImGui.Text(pin.name.IsEmpty ? (StringView)"Value" : pin.name);
+			ImGui.PopID();
+		}
+		ImGui.EndChild();
+		ImGui.PopStyleColor();
+	}
+
+	/// The field for an input's value, as fits its type.
+	static void EditPinValue(PinDef pin, String value)
+	{
+		switch (pin.type)
+		{
+		case .Bool:
+			bool on = value == "true";
+			if (ImGui.Checkbox("##v", ref on))
+				value.Set(on ? "true" : "false");
+		case .Int:
+			int32 number = (int32)SceneSerializer.ParseFloat(value);
+			if (ImGui.InputInt("##v", ref number))
+				value..Clear().AppendF("{}", number);
+		case .Enum:
+			let entry = pin.typeName != null ? ApiIndex.Find(pin.typeName) : null;
+			if (value.IsEmpty && entry != null && entry.members.Count > 0)
+				value.Set(entry.members[0]);
+			if (ImGui.BeginCombo("##v", value.CStr()))
+			{
+				if (entry != null)
+				{
+					for (let name in entry.members)
+					{
+						if (ImGui.Selectable(name.CStr(), name == value))
+							value.Set(name);
+					}
+				}
+				ImGui.EndCombo();
+			}
+		case .Color:
+			Color color = .(1, 1, 1, 1);
+			var parts = value.Split(' ', .RemoveEmptyEntries);
+			float* channels = &color.r;
+			for (int k < 4)
+			{
+				if (parts.GetNext() case .Ok(let part))
+					channels[k] = SceneSerializer.ParseFloat(part);
+			}
+			if (ImGui.ColorEdit4("##v", ref color))
+				value..Clear().AppendF("{} {} {} {}", color.r, color.g, color.b, color.a);
+		case .Object:
+			ImGui.TextDisabled(NodeLibrary.IsSelf(pin) ? "this object's own" : "connect a value");
+		default:
+			ImGui.InputText("##v", value, 0, pin.type == .Vector3 || pin.type == .Quaternion ? (char8*)"x y z" : (pin.type == .Vector2 ? (char8*)"x y" : (char8*)""));
+		}
 	}
 
 	/// The Variables panel: each variable becomes a public field of the compiled component, so its default set here
 	/// can be changed per object in the Inspector. Get and Set place nodes that read and write it.
 	void DrawGraphVariables(ImGui.Vec2 topRight, Vector2 nodePosition)
 	{
-		const float cWidth = 470;
-		ImGui.SetCursorScreenPos(.(topRight.x - cWidth, topRight.y));
+		const float VariablesWidth = 470;
+		ImGui.SetCursorScreenPos(.(topRight.x - VariablesWidth, topRight.y));
 		ImGui.PushStyleColor(ImGui.Col.ChildBg, .(0.10f, 0.10f, 0.11f, 0.92f));
-		ImGui.BeginChild("variables", .(cWidth, 62 + Math.Min(mGraph.variables.Count, 8) * 27), ImGui.ChildBorders);
+		ImGui.BeginChild("variables", .(VariablesWidth, 62 + Math.Min(mGraph.variables.Count, 8) * 27), ImGui.ChildBorders);
 		ImGui.Text("Variables");
 		ImGui.SameLine();
 		if (ImGui.SmallButton("+ Add"))

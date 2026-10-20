@@ -185,8 +185,13 @@ extension EditorApp
 		switch (icon)
 		{
 		case 0: ImGui.DrawCircleFilled(c, 5, active ? Color(1, 0.42f, 0.36f, 1) : Color(0.86f, 0.22f, 0.20f, 1));
-		case 1: Bar(c.x - 7); Left(c.x - 2.5f); Left(c.x + 4);
-		case 2: Bar(c.x - 4.5f); Left(c.x + 1);
+		case 1:
+			Bar(c.x - 7);
+			Left(c.x - 2.5f);
+			Left(c.x + 4);
+		case 2:
+			Bar(c.x - 4.5f);
+			Left(c.x + 1);
 		case 3:
 			if (active)
 			{
@@ -195,8 +200,13 @@ extension EditorApp
 			}
 			else
 				ImGui.DrawTriangleFilled(.(c.x - 4, c.y - 5.5f), .(c.x + 5.5f, c.y), .(c.x - 4, c.y + 5.5f), ink);
-		case 4: Right(c.x - 1); Bar(c.x + 4.5f);
-		case 5: Right(c.x - 4); Right(c.x + 2.5f); Bar(c.x + 7);
+		case 4:
+			Right(c.x - 1);
+			Bar(c.x + 4.5f);
+		case 5:
+			Right(c.x - 4);
+			Right(c.x + 2.5f);
+			Bar(c.x + 7);
 		default:
 			DrawKeyDiamond(.(c.x - 2, c.y + 1), 4.5f, ink);
 			ImGui.DrawLine(.(c.x + 3, c.y - 4.5f), .(c.x + 9, c.y - 4.5f), ink, 1.5f);
@@ -227,8 +237,10 @@ extension EditorApp
 	bool AnimIsExpanded(StringView bone)
 	{
 		for (let name in mAnimExpanded)
+		{
 			if (name == bone)
 				return true;
+		}
 		return false;
 	}
 
@@ -299,6 +311,35 @@ extension EditorApp
 		return ImGui.Button(button, .(96, 0));
 	}
 
+	/// Where the Animation window's parts are this frame, and how time maps onto the dopesheet.
+	struct Timeline
+	{
+		public ImGui.Vec2 origin;
+		public ImGui.Vec2 avail;
+		public ImGui.Vec2 mouse;
+		public float rowHeight;
+		public float footerHeight;
+		public float leftWidth;
+		public float sheetLeft;
+		public float sheetRight;
+		public float sheetWidth;
+		public float bottom;
+		/// The clip's frames per second.
+		public float rate;
+		public float pixelsPerSecond;
+		public float viewStart;
+		/// The ruler's labelled frames: every `step`th, from `firstFrame`.
+		public int32 step;
+		public int32 firstFrame;
+
+		public float TimeToX(float time) => sheetLeft + (time - viewStart) * pixelsPerSecond;
+		public float XToTime(float x) => viewStart + (x - sheetLeft) / pixelsPerSecond;
+		/// A time moved onto the nearest frame.
+		public float Snap(float time) => (float)Math.Round(Math.Max(time, 0) * rate) / rate;
+		public float RowsTop => origin.y + rowHeight * 2;
+		public float RowsHeight => Math.Max(avail.y - rowHeight * 2 - footerHeight, 20);
+	}
+
 	void DrawAnimation()
 	{
 		if (!mShowAnimation)
@@ -322,115 +363,161 @@ extension EditorApp
 		ImGui.PushStyleVar(ImGui.StyleVar.WindowPadding, ImGui.Vec2(0, 0));
 		let open = ImGui.Begin("Animation", &mShowAnimation, ImGui.WindowFlags.NoScrollbar | ImGui.WindowFlags.NoScrollWithMouse);
 		ImGui.PopStyleVar();
-		if (!open)
-		{
-			ImGui.End();
-			return;
-		}
+		let drewTimeline = open && DrawAnimationContents();
+		ImGui.End();
+		if (drewTimeline && mClipDirty && !ImGui.IsMouseDown(0))
+			SaveClip();
+	}
+
+	/// The window's contents. False when there was no timeline to show (no Animator or clip), or another clip was
+	/// just chosen.
+	bool DrawAnimationContents()
+	{
 		let editing = mPlay == .Edit;
 		let animator = SelectedAnimator();
 		if (animator == null)
 		{
-			EndClipPreview();
-			let selected = Selected;
-			if (selected == null)
-				AnimationMessage("No animatable object selected.", null);
-			else
-			{
-				let text = scope String();
-				text.AppendF("To begin animating {}, create an Animator and an Animation Clip.", selected.Name);
-				ImGui.BeginDisabled(!editing);
-				if (AnimationMessage(text.CStr(), "Create"))
-				{
-					CreateClipFor(selected.AddComponent<Animator>());
-					MarkDirty();
-				}
-				ImGui.EndDisabled();
-			}
-			ImGui.End();
-			return;
+			DrawNoAnimator(editing);
+			return false;
 		}
-		// A different object: drop the pose previewed on the last one, and show a clip of its own.
-		if (animator.GameObject.Id != mClipAnimatorId)
-		{
-			EndClipPreview();
-			mClipAnimatorId = animator.GameObject.Id;
-			if (!animator.clips.IsEmpty && (mClipPath.IsEmpty || !animator.clips.Contains(mClipPath)))
-			{
-				for (var path in animator.clips.Split(';'))
-				{
-					path.Trim();
-					let full = scope String();
-					Assets.ResolvePath(path, full);
-					if (path.IsEmpty || !File.Exists(full))
-						continue;
-					if (mClipDirty)
-						SaveClip();
-					let focus = mAnimationFocus;
-					OpenAnimationClip(full);
-					mAnimationFocus = focus;
-					break;
-				}
-			}
-		}
+		FollowAnimator(animator);
 		if (mClip == null)
 		{
-			let text = scope String();
-			text.AppendF("To begin animating {}, create an Animation Clip.", animator.GameObject.Name);
-			if (AnimationMessage(text.CStr(), "Create"))
-				CreateClipFor(animator);
-			let avail = ImGui.GetContentRegionAvail();
-			let pos = ImGui.GetCursorScreenPos();
-			ImGui.SetCursorScreenPos(.(pos.x + Math.Max((avail.x - 240) * 0.5f, 8), pos.y + 6));
-			ImGui.SetNextItemWidth(240);
-			if (mClip == null && ImGui.BeginCombo("##openclip", "or open a clip..."))
-			{
-				RefreshClipChoices();
-				for (let choice in mAnimClipChoices)
-				{
-					if (ImGui.Selectable(choice.CStr(), false))
-					{
-						let full = scope String();
-						Assets.ResolvePath(choice, full);
-						OpenAnimationClip(full);
-					}
-				}
-				ImGui.EndCombo();
-			}
-			ImGui.End();
-			return;
+			DrawNoClip(animator);
+			return false;
 		}
 
 		let clip = mClip;
-		let rate = Mathf.Clamp(clip.frameRate, 1, 240);
-		float Snap(float time) => (float)Math.Round(Math.Max(time, 0) * rate) / rate;
-		let origin = ImGui.GetCursorScreenPos();
+		var view = LayoutTimeline(clip);
+		let recording = mClipRecord && editing;
+		List<float> keyTimes = scope .();
+		CollectKeyTimes(clip, keyTimes);
+		DrawTimelineBackground(view, recording);
+		ImGui.PushStyleVar(ImGui.StyleVar.ItemSpacing, ImGui.Vec2(2, 2));
+		DrawTransportBar(view, keyTimes, editing);
+		let sameClip = DrawClipBar(view, animator, clip, editing);
+		ImGui.PopStyleVar();
+		// Another clip was chosen: start over with it next frame.
+		if (!sameClip)
+			return false;
+		DrawRuler(ref view, clip, keyTimes, editing);
+
+		List<Transform> children = scope .();
+		Descendants(animator.Transform, children);
+		RecordMovedChildren(animator, clip, children, editing);
+		PoseAtMarker(animator, clip, editing);
+		let removeTrack = DrawTrackRows(view, animator, clip, children, editing);
+		DrawMarkerHead(view, clip, recording);
+		DragSelectedKey(view, clip, editing);
+		DeleteKeys(clip, editing, removeTrack);
+		DrawTimelineFooter(view, clip);
+		return true;
+	}
+
+	/// No Animator on the selection: says so, and offers to make an Animator and a clip.
+	void DrawNoAnimator(bool editing)
+	{
+		EndClipPreview();
+		let selected = Selected;
+		if (selected == null)
+		{
+			AnimationMessage("No animatable object selected.", null);
+			return;
+		}
+		let text = scope String();
+		text.AppendF("To begin animating {}, create an Animator and an Animation Clip.", selected.Name);
+		ImGui.BeginDisabled(!editing);
+		if (AnimationMessage(text.CStr(), "Create"))
+		{
+			CreateClipFor(selected.AddComponent<Animator>());
+			MarkDirty();
+		}
+		ImGui.EndDisabled();
+	}
+
+	/// A different object: drops the pose previewed on the last one, and opens a clip of its own.
+	void FollowAnimator(Animator animator)
+	{
+		if (animator.GameObject.Id == mClipAnimatorId)
+			return;
+		EndClipPreview();
+		mClipAnimatorId = animator.GameObject.Id;
+		if (animator.clips.IsEmpty || (!mClipPath.IsEmpty && animator.clips.Contains(mClipPath)))
+			return;
+		for (var path in animator.clips.Split(';'))
+		{
+			path.Trim();
+			let full = scope String();
+			Assets.ResolvePath(path, full);
+			if (path.IsEmpty || !File.Exists(full))
+				continue;
+			if (mClipDirty)
+				SaveClip();
+			let focus = mAnimationFocus;
+			OpenAnimationClip(full);
+			mAnimationFocus = focus;
+			break;
+		}
+	}
+
+	/// An Animator with no clip open: offers to make one, or to open one of the project's.
+	void DrawNoClip(Animator animator)
+	{
+		let text = scope String();
+		text.AppendF("To begin animating {}, create an Animation Clip.", animator.GameObject.Name);
+		if (AnimationMessage(text.CStr(), "Create"))
+			CreateClipFor(animator);
 		let avail = ImGui.GetContentRegionAvail();
-		let rowHeight = ImGui.GetFrameHeight() + 2;
-		let footerHeight = rowHeight + 4;
-		mAnimLeftWidth = Mathf.Clamp(mAnimLeftWidth, 250, Math.Max(avail.x - 160, 250));
-		let leftWidth = mAnimLeftWidth;
-		let sheetLeft = origin.x + leftWidth + 3;
-		let sheetRight = origin.x + avail.x;
-		let sheetWidth = Math.Max(sheetRight - sheetLeft, 40);
-		let bottom = origin.y + avail.y;
+		let pos = ImGui.GetCursorScreenPos();
+		ImGui.SetCursorScreenPos(.(pos.x + Math.Max((avail.x - 240) * 0.5f, 8), pos.y + 6));
+		ImGui.SetNextItemWidth(240);
+		if (mClip == null && ImGui.BeginCombo("##openclip", "or open a clip..."))
+		{
+			RefreshClipChoices();
+			for (let choice in mAnimClipChoices)
+			{
+				if (ImGui.Selectable(choice.CStr(), false))
+				{
+					let full = scope String();
+					Assets.ResolvePath(choice, full);
+					OpenAnimationClip(full);
+				}
+			}
+			ImGui.EndCombo();
+		}
+	}
+
+	/// The window's layout, with the view zoomed by the wheel and panned by a middle-drag over the dopesheet.
+	Timeline LayoutTimeline(AnimationClip clip)
+	{
+		Timeline view = default;
+		view.rate = Mathf.Clamp(clip.frameRate, 1, 240);
+		view.origin = ImGui.GetCursorScreenPos();
+		view.avail = ImGui.GetContentRegionAvail();
+		view.mouse = ImGui.GetMousePos();
+		view.rowHeight = ImGui.GetFrameHeight() + 2;
+		view.footerHeight = view.rowHeight + 4;
+		mAnimLeftWidth = Mathf.Clamp(mAnimLeftWidth, 250, Math.Max(view.avail.x - 160, 250));
+		view.leftWidth = mAnimLeftWidth;
+		view.sheetLeft = view.origin.x + view.leftWidth + 3;
+		view.sheetRight = view.origin.x + view.avail.x;
+		view.sheetWidth = Math.Max(view.sheetRight - view.sheetLeft, 40);
+		view.bottom = view.origin.y + view.avail.y;
 		if (mAnimPixelsPerSecond <= 0 || mAnimFit)
 		{
 			// The whole clip stays in view, whatever the window's size, until the view is zoomed or panned.
 			mAnimFit = true;
-			mAnimPixelsPerSecond = (sheetWidth - 24) / Math.Max(clip.duration * 1.12f, 0.25f);
+			mAnimPixelsPerSecond = (view.sheetWidth - 24) / Math.Max(clip.duration * 1.12f, 0.25f);
 			mAnimViewStart = -12 / mAnimPixelsPerSecond;
 		}
-		let mouse = ImGui.GetMousePos();
-		let recording = mClipRecord && editing;
-
-		// ---- zoom and pan ----
-		let overSheet = ImGui.IsWindowHovered(ImGui.HoveredFlags.ChildWindows) && mouse.x >= sheetLeft && mouse.x <= sheetRight && mouse.y >= origin.y && mouse.y <= bottom - footerHeight;
+		let mouse = view.mouse;
+		let overSheet = ImGui.IsWindowHovered(ImGui.HoveredFlags.ChildWindows) && mouse.x >= view.sheetLeft && mouse.x <= view.sheetRight
+			&& mouse.y >= view.origin.y && mouse.y <= view.bottom - view.footerHeight;
 		if (overSheet && Input.MouseWheel != 0)
 		{
-			let at = mAnimViewStart + (mouse.x - sheetLeft) / mAnimPixelsPerSecond;
+			let at = mAnimViewStart + (mouse.x - view.sheetLeft) / mAnimPixelsPerSecond;
 			mAnimPixelsPerSecond = Mathf.Clamp(mAnimPixelsPerSecond * Math.Pow(1.18f, Input.MouseWheel), 8, 8000);
-			mAnimViewStart = at - (mouse.x - sheetLeft) / mAnimPixelsPerSecond;
+			mAnimViewStart = at - (mouse.x - view.sheetLeft) / mAnimPixelsPerSecond;
 			mAnimFit = false;
 		}
 		if (overSheet && ImGui.IsMouseClicked(2))
@@ -445,14 +532,15 @@ extension EditorApp
 		}
 		else
 			mAnimPanLastX = 0;
-		mAnimViewStart = Math.Max(mAnimViewStart, -sheetWidth * 0.5f / mAnimPixelsPerSecond);
-		let pixelsPerSecond = mAnimPixelsPerSecond;
-		let viewStart = mAnimViewStart;
-		float TimeToX(float time) => sheetLeft + (time - viewStart) * pixelsPerSecond;
-		float XToTime(float x) => viewStart + (x - sheetLeft) / pixelsPerSecond;
+		mAnimViewStart = Math.Max(mAnimViewStart, -view.sheetWidth * 0.5f / mAnimPixelsPerSecond);
+		view.pixelsPerSecond = mAnimPixelsPerSecond;
+		view.viewStart = mAnimViewStart;
+		return view;
+	}
 
-		// Every time that has a key, in order: the summary row, and where previous / next key go.
-		List<float> keyTimes = scope .();
+	/// Every time that has a key, in order: the summary row, and where previous / next key go.
+	static void CollectKeyTimes(AnimationClip clip, List<float> keyTimes)
+	{
 		for (let track in clip.tracks)
 		{
 			for (let key in track.keys)
@@ -468,18 +556,25 @@ extension EditorApp
 					keyTimes.Insert(at, key.time);
 			}
 		}
+	}
 
-		// ---- backgrounds ----
+	static void DrawTimelineBackground(Timeline view, bool recording)
+	{
+		let origin = view.origin;
+		let rowHeight = view.rowHeight;
 		let panel = Color(0.235f, 0.235f, 0.235f, 1);
-		ImGui.DrawRectFilled(origin, .(origin.x + leftWidth, origin.y + rowHeight * 2), panel);
-		ImGui.DrawRectFilled(.(sheetLeft, origin.y), .(sheetRight, origin.y + rowHeight), recording ? Color(0.40f, 0.15f, 0.14f, 1) : Color(0.22f, 0.22f, 0.22f, 1));
-		ImGui.DrawRectFilled(.(sheetLeft, origin.y + rowHeight), .(sheetRight, origin.y + rowHeight * 2), .(0.19f, 0.19f, 0.19f, 1));
-		ImGui.DrawRectFilled(.(origin.x, bottom - footerHeight), .(sheetRight, bottom), panel);
-		ImGui.DrawRectFilled(.(origin.x + leftWidth, origin.y), .(sheetLeft, bottom - footerHeight), .(0.11f, 0.11f, 0.11f, 1));
-		ImGui.DrawLine(.(origin.x, origin.y + rowHeight * 2 - 1), .(sheetRight, origin.y + rowHeight * 2 - 1), .(0.11f, 0.11f, 0.11f, 1));
+		ImGui.DrawRectFilled(origin, .(origin.x + view.leftWidth, origin.y + rowHeight * 2), panel);
+		ImGui.DrawRectFilled(.(view.sheetLeft, origin.y), .(view.sheetRight, origin.y + rowHeight), recording ? Color(0.40f, 0.15f, 0.14f, 1) : Color(0.22f, 0.22f, 0.22f, 1));
+		ImGui.DrawRectFilled(.(view.sheetLeft, origin.y + rowHeight), .(view.sheetRight, origin.y + rowHeight * 2), .(0.19f, 0.19f, 0.19f, 1));
+		ImGui.DrawRectFilled(.(origin.x, view.bottom - view.footerHeight), .(view.sheetRight, view.bottom), panel);
+		ImGui.DrawRectFilled(.(origin.x + view.leftWidth, origin.y), .(view.sheetLeft, view.bottom - view.footerHeight), .(0.11f, 0.11f, 0.11f, 1));
+		ImGui.DrawLine(.(origin.x, origin.y + rowHeight * 2 - 1), .(view.sheetRight, origin.y + rowHeight * 2 - 1), .(0.11f, 0.11f, 0.11f, 1));
+	}
 
-		// ---- toolbar, first row: preview, record and transport ----
-		ImGui.PushStyleVar(ImGui.StyleVar.ItemSpacing, ImGui.Vec2(2, 2));
+	/// The toolbar's first row: preview, record, the transport buttons and the frame at the marker.
+	void DrawTransportBar(Timeline view, List<float> keyTimes, bool editing)
+	{
+		let origin = view.origin;
 		ImGui.BeginDisabled(!editing);
 		ImGui.SetCursorScreenPos(.(origin.x + 4, origin.y + 1));
 		let previewing = mClipPreview && !mClipPreviewOff;
@@ -515,8 +610,10 @@ extension EditorApp
 		if (AnimIconButton("##previous", 2, false, "Go to the previous key"))
 		{
 			for (let time in keyTimes)
+			{
 				if (time < mClipTime - 0.0005f)
 					jump = time;
+			}
 		}
 		ImGui.SameLine();
 		if (AnimIconButton("##play", 3, mClipPlaying, "Play the clip"))
@@ -545,22 +642,27 @@ extension EditorApp
 			mClipPlaying = false;
 			mClipPreviewOff = false;
 		}
-		ImGui.SetCursorScreenPos(.(origin.x + leftWidth - 60, origin.y + 1));
+		ImGui.SetCursorScreenPos(.(origin.x + view.leftWidth - 60, origin.y + 1));
 		ImGui.SetNextItemWidth(56);
-		int32 frame = (int32)Math.Round(mClipTime * rate);
+		int32 frame = (int32)Math.Round(mClipTime * view.rate);
 		if (ImGui.DragInt("##frame", ref frame, 0.25f, 0, 1000000))
 		{
-			mClipTime = Math.Max(frame, 0) / rate;
+			mClipTime = Math.Max(frame, 0) / view.rate;
 			mClipPlaying = false;
 			mClipPreviewOff = false;
 		}
 		if (ImGui.IsItemHovered())
 			ImGui.SetTooltip("Frame at the time marker");
-
-		// ---- toolbar, second row: clip, sample rate, add key, auto key ----
-		ImGui.SetCursorScreenPos(.(origin.x + 4, origin.y + rowHeight + 1));
-		ImGui.SetNextItemWidth(Math.Max(leftWidth - 150, 90));
 		ImGui.EndDisabled();
+	}
+
+	/// The toolbar's second row: the clip, its sample rate, Add Key, Key IK and Auto Key. False when another clip
+	/// was chosen (or made), which is drawn from the next frame.
+	bool DrawClipBar(Timeline view, Animator animator, AnimationClip clip, bool editing)
+	{
+		let origin = view.origin;
+		ImGui.SetCursorScreenPos(.(origin.x + 4, origin.y + view.rowHeight + 1));
+		ImGui.SetNextItemWidth(Math.Max(view.leftWidth - 150, 90));
 		let clipLabel = scope String();
 		Path.GetFileNameWithoutExtension(mClipPath, clipLabel);
 		bool createClip = false;
@@ -589,26 +691,12 @@ extension EditorApp
 			CreateClipFor(animator);
 		}
 		if (mClip != clip)
-		{
-			// Another clip was chosen: start over with it next frame.
-			ImGui.PopStyleVar();
-			ImGui.End();
-			return;
-		}
+			return false;
 		ImGui.BeginDisabled(!editing);
-		if (!mClipAutoKeyLoaded)
-		{
-			// The choice is kept between sessions, with the editor's other settings.
-			mClipAutoKeyLoaded = true;
-			let saved = scope String();
-			let file = scope String();
-			RecentProjects.GetConfigFolder(file);
-			file.Append("animation_autokey.txt");
-			mClipAutoKey = (File.ReadAllText(file, saved) case .Ok) && saved.StartsWith("1");
-		}
-		ImGui.SetCursorScreenPos(.(origin.x + leftWidth - 142, origin.y + rowHeight + 1));
+		LoadAutoKeyChoice();
+		ImGui.SetCursorScreenPos(.(origin.x + view.leftWidth - 142, origin.y + view.rowHeight + 1));
 		ImGui.SetNextItemWidth(40);
-		int32 samples = (int32)rate;
+		int32 samples = (int32)view.rate;
 		if (ImGui.DragInt("##samples", ref samples, 0.25f, 1, 240))
 		{
 			clip.frameRate = Mathf.Clamp(samples, 1, 240);
@@ -631,24 +719,44 @@ extension EditorApp
 		if (ImGui.Button("Auto Key", .(66, ImGui.GetFrameHeight())))
 		{
 			mClipAutoKey = !mClipAutoKey;
-			let file = scope String();
-			RecentProjects.GetConfigFolder(file);
-			file.Append("animation_autokey.txt");
-			File.WriteAllText(file, mClipAutoKey ? "1" : "0").IgnoreError();
+			File.WriteAllText(AutoKeyFile(.. scope .()), mClipAutoKey ? "1" : "0").IgnoreError();
 		}
 		if (wasAutoKey)
 			ImGui.PopStyleColor();
 		if (ImGui.IsItemHovered())
 			ImGui.SetTooltip("Key anything you move, turn or scale at the time marker, every time a clip is open.\nRecord does the same until you turn it off or close the window.");
 		ImGui.EndDisabled();
-		ImGui.PopStyleVar();
+		return true;
+	}
 
-		// ---- the ruler: click or drag to move the time marker ----
-		ImGui.SetCursorScreenPos(.(sheetLeft, origin.y));
-		ImGui.InvisibleButton("##ruler", .(sheetWidth, rowHeight * 2 - 1));
+	/// Where the Auto Key choice is kept between sessions, with the editor's other settings.
+	static void AutoKeyFile(String file)
+	{
+		RecentProjects.GetConfigFolder(file);
+		file.Append("animation_autokey.txt");
+	}
+
+	void LoadAutoKeyChoice()
+	{
+		if (mClipAutoKeyLoaded)
+			return;
+		mClipAutoKeyLoaded = true;
+		let saved = scope String();
+		mClipAutoKey = (File.ReadAllText(AutoKeyFile(.. scope .()), saved) case .Ok) && saved.StartsWith("1");
+	}
+
+	/// The ruler (click or drag it to move the time marker) and the summary row of every key; also moves the marker
+	/// on while the clip plays. Fills in the view's ruler steps, which the rows below line up with.
+	void DrawRuler(ref Timeline view, AnimationClip clip, List<float> keyTimes, bool editing)
+	{
+		let origin = view.origin;
+		let rowHeight = view.rowHeight;
+		let rate = view.rate;
+		ImGui.SetCursorScreenPos(.(view.sheetLeft, origin.y));
+		ImGui.InvisibleButton("##ruler", .(view.sheetWidth, rowHeight * 2 - 1));
 		if (ImGui.IsItemActive())
 		{
-			mClipTime = Snap(XToTime(mouse.x));
+			mClipTime = view.Snap(view.XToTime(view.mouse.x));
 			mClipPlaying = false;
 			mClipPreviewOff = false;
 		}
@@ -663,286 +771,321 @@ extension EditorApp
 		}
 		// Labels are seconds:frames. The gap between them follows the zoom.
 		int32[?] steps = .(1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 1200, 3600, 7200);
-		int32 step = steps[steps.Count - 1];
+		view.step = steps[steps.Count - 1];
 		for (let candidate in steps)
 		{
-			if (candidate / rate * pixelsPerSecond >= 64)
+			if (candidate / rate * view.pixelsPerSecond >= 64)
 			{
-				step = candidate;
+				view.step = candidate;
 				break;
 			}
 		}
+		let step = view.step;
 		int32 minor = step >= 5 && step % 5 == 0 ? step / 5 : (step > 1 ? (int32)1 : (int32)0);
-		let firstFrame = (int32)Math.Floor(Math.Max(viewStart, 0) * rate / step) * step;
+		view.firstFrame = (int32)Math.Floor(Math.Max(view.viewStart, 0) * rate / step) * step;
 		let wholeRate = Math.Max((int32)Math.Round(rate), 1);
-		ImGui.PushClipRect(.(sheetLeft, origin.y), .(sheetRight, origin.y + rowHeight * 2));
-		for (int32 f = firstFrame; TimeToX(f / rate) < sheetRight; f += step)
+		ImGui.PushClipRect(.(view.sheetLeft, origin.y), .(view.sheetRight, origin.y + rowHeight * 2));
+		for (int32 f = view.firstFrame; view.TimeToX(f / rate) < view.sheetRight; f += step)
 		{
-			let x = TimeToX(f / rate);
+			let x = view.TimeToX(f / rate);
 			ImGui.DrawLine(.(x, origin.y + rowHeight * 0.35f), .(x, origin.y + rowHeight), .(1, 1, 1, 0.42f));
 			let label = scope String();
 			label.AppendF("{}:{:00}", f / wholeRate, f % wholeRate);
 			ImGui.DrawText(.(x + 4, origin.y + 1), .(1, 1, 1, 0.55f), label.CStr());
-			if (minor > 0)
+			if (minor <= 0)
+				continue;
+			for (int32 m = f + minor; m < f + step; m += minor)
 			{
-				for (int32 m = f + minor; m < f + step; m += minor)
-				{
-					let minorX = TimeToX(m / rate);
-					ImGui.DrawLine(.(minorX, origin.y + rowHeight * 0.68f), .(minorX, origin.y + rowHeight), .(1, 1, 1, 0.22f));
-				}
+				let minorX = view.TimeToX(m / rate);
+				ImGui.DrawLine(.(minorX, origin.y + rowHeight * 0.68f), .(minorX, origin.y + rowHeight), .(1, 1, 1, 0.22f));
 			}
 		}
-		// The summary row: every time that has a key.
 		for (let time in keyTimes)
 		{
-			let center = ImGui.Vec2(TimeToX(time), origin.y + rowHeight * 1.5f);
+			let center = ImGui.Vec2(view.TimeToX(time), origin.y + rowHeight * 1.5f);
 			DrawKeyDiamond(center, 6, .(0.10f, 0.10f, 0.10f, 1));
 			DrawKeyDiamond(center, 4.5f, .(0.80f, 0.80f, 0.80f, 1));
 		}
 		ImGui.PopClipRect();
+	}
 
-		// ---- recording: a child moved by hand becomes a key ----
-		List<Transform> children = scope .();
-		Descendants(animator.Transform, children);
-		if (editing && (mClipRecord || mClipAutoKey) && mClipPreview && !mClipPlaying && mClipPosedTime == mClipTime && !ImGui.IsMouseDown(0))
+	/// Recording (Record or Auto Key): a child moved by hand since it was posed becomes a key at the marker.
+	void RecordMovedChildren(Animator animator, AnimationClip clip, List<Transform> children, bool editing)
+	{
+		if (!editing || !(mClipRecord || mClipAutoKey) || !mClipPreview || mClipPlaying || mClipPosedTime != mClipTime || ImGui.IsMouseDown(0))
+			return;
+		for (let child in children)
 		{
-			for (let child in children)
+			Vector3 restPosition, restScale;
+			Quaternion restRotation;
+			if (!animator.RestPose(child, out restPosition, out restRotation, out restScale))
+				continue;
+			Vector3 position = .Zero, scale = .(1, 1, 1);
+			Quaternion rotation = .Identity;
+			let track = clip.FindTrack(child.GameObject.Name);
+			if (track != null)
+				track.Sample(mClipTime, out position, out rotation, out scale);
+			let expectedPosition = restPosition + position;
+			let expectedRotation = (restRotation * rotation).Normalized;
+			let expectedScale = Vector3(restScale.x * scale.x, restScale.y * scale.y, restScale.z * scale.z);
+			// A bone that IK moves is judged by the pose under the IK: only moving it by hand makes a key, not IK
+			// bending it. (Key IK writes what IK makes of it, when that is what is wanted.)
+			var nowPosition = child.LocalPosition;
+			var nowRotation = child.LocalRotation;
+			Vector3 underPosition;
+			Quaternion underRotation;
+			if (IKSystem.InputPose(child, out underPosition, out underRotation))
 			{
-				Vector3 restPosition, restScale; Quaternion restRotation;
-				if (!animator.RestPose(child, out restPosition, out restRotation, out restScale))
-					continue;
-				Vector3 position = .Zero, scale = .(1, 1, 1); Quaternion rotation = .Identity;
-				let track = clip.FindTrack(child.GameObject.Name);
-				if (track != null)
-					track.Sample(mClipTime, out position, out rotation, out scale);
-				let expectedPosition = restPosition + position;
-				let expectedRotation = (restRotation * rotation).Normalized;
-				let expectedScale = Vector3(restScale.x * scale.x, restScale.y * scale.y, restScale.z * scale.z);
-				// A bone that IK moves is judged by the pose under the IK: only moving it by hand makes a key, not IK
-				// bending it. (Key IK writes what IK makes of it, when that is what is wanted.)
-				var nowPosition = child.LocalPosition;
-				var nowRotation = child.LocalRotation;
-				Vector3 underPosition; Quaternion underRotation;
-				if (IKSystem.InputPose(child, out underPosition, out underRotation))
-				{
-					nowPosition = underPosition;
-					nowRotation = underRotation;
-				}
-				let turned = Math.Abs(Quaternion.Dot(expectedRotation, nowRotation)) < 0.99999f;
-				if ((nowPosition - expectedPosition).Length > 0.0005f || (child.LocalScale - expectedScale).Length > 0.0005f || turned)
-					KeyChild(animator, child);
+				nowPosition = underPosition;
+				nowRotation = underRotation;
 			}
+			let turned = Math.Abs(Quaternion.Dot(expectedRotation, nowRotation)) < 0.99999f;
+			if ((nowPosition - expectedPosition).Length > 0.0005f || (child.LocalScale - expectedScale).Length > 0.0005f || turned)
+				KeyChild(animator, child);
 		}
+	}
 
-		// ---- pose the object at the marker ----
-		if (editing && !mClipPreviewOff && (mClipPosedTime != mClipTime || !mClipPreview))
+	/// Poses the object as the clip has it at the marker (with IK on top), when the marker moved.
+	void PoseAtMarker(Animator animator, AnimationClip clip, bool editing)
+	{
+		if (!editing)
 		{
-			animator.SampleClip(clip, mClipTime);
-			// IK on top of the clip's pose at once, so that the view never shows a frame without it.
-			IKSystem.Solve(mScene);
-			mClipPosedTime = mClipTime;
-			mClipPreview = true;
-		}
-		else if (!editing)
 			mClipPreview = false;
+			return;
+		}
+		if (mClipPreviewOff || (mClipPosedTime == mClipTime && mClipPreview))
+			return;
+		animator.SampleClip(clip, mClipTime);
+		// IK on top of the clip's pose at once, so that the view never shows a frame without it.
+		IKSystem.Solve(mScene);
+		mClipPosedTime = mClipTime;
+		mClipPreview = true;
+	}
 
-		// ---- the property list and the dopesheet, scrolling together ----
+	/// The property list and the dopesheet, scrolling together. Returns the track whose row was asked to be
+	/// removed, or -1.
+	int DrawTrackRows(Timeline view, Animator animator, AnimationClip clip, List<Transform> children, bool editing)
+	{
 		int removeTrack = -1;
-		let rowsTop = origin.y + rowHeight * 2;
-		let rowsHeight = Math.Max(avail.y - rowHeight * 2 - footerHeight, 20);
+		let origin = view.origin;
+		let rowsTop = view.RowsTop;
+		let rowsHeight = view.RowsHeight;
 		ImGui.SetCursorScreenPos(.(origin.x, rowsTop));
-		ImGui.BeginChild("##rows", .(avail.x, rowsHeight), 0, ImGui.WindowFlags.NoScrollWithMouse);
-		{
-			let start = ImGui.GetCursorScreenPos();
-			let rowsBottom = rowsTop + rowsHeight;
-			if (ImGui.IsWindowHovered() && mouse.x < sheetLeft && Input.MouseWheel != 0)
-				ImGui.SetScrollY(Mathf.Clamp(ImGui.GetScrollY() - Input.MouseWheel * rowHeight * 2, 0, ImGui.GetScrollMaxY()));
-			ImGui.DrawRectFilled(.(origin.x, rowsTop), .(origin.x + leftWidth, rowsBottom), .(0.22f, 0.22f, 0.22f, 1));
-			ImGui.DrawRectFilled(.(origin.x + leftWidth, rowsTop), .(sheetLeft, rowsBottom), .(0.11f, 0.11f, 0.11f, 1));
-			ImGui.DrawRectFilled(.(sheetLeft, rowsTop), .(sheetRight, rowsBottom), .(0.165f, 0.165f, 0.165f, 1));
-			// The divider between the two halves can be dragged.
-			ImGui.SetCursorScreenPos(.(origin.x + leftWidth, rowsTop));
-			ImGui.InvisibleButton("##split", .(3, rowsHeight));
-			if (ImGui.IsItemActive())
-				mAnimLeftWidth = mouse.x - origin.x;
-			// Faint lines down the sheet at the ruler's labelled frames.
-			ImGui.PushClipRect(.(sheetLeft, rowsTop), .(sheetRight, rowsBottom));
-			for (int32 f = firstFrame; TimeToX(f / rate) < sheetRight; f += step)
-				ImGui.DrawLine(.(TimeToX(f / rate), rowsTop), .(TimeToX(f / rate), rowsBottom), .(1, 1, 1, 0.05f));
-			ImGui.PopClipRect();
-
-			float y = start.y;
-			int row = 0;
-			let lineOffset = (rowHeight - ImGui.GetTextLineHeight()) * 0.5f;
-			for (int t < clip.tracks.Count)
-			{
-				let track = clip.tracks[t];
-				ImGui.PushID((int32)t + 500);
-				// A row whose child is missing from this object is shown dimmed: the clip still has it for others.
-				Transform childTransform = null;
-				for (let child in children)
-					if (child.GameObject.Name == track.bone)
-						childTransform = child;
-				let expanded = AnimIsExpanded(track.bone);
-				let isSelected = childTransform != null && Selected == childTransform.GameObject;
-				ImGui.SetCursorScreenPos(.(origin.x, y));
-				ImGui.InvisibleButton("##row", .(leftWidth, rowHeight));
-				if (ImGui.IsItemClicked(0))
-				{
-					if (mouse.x < origin.x + 22 || ImGui.IsMouseDoubleClicked(0))
-						AnimToggleExpanded(track.bone);
-					else if (childTransform != null)
-						mSelectedId = childTransform.GameObject.Id;
-				}
-				let rowHovered = ImGui.IsItemHovered();
-				if (ImGui.BeginPopupContextItem("rowmenu"))
-				{
-					if (ImGui.MenuItem("Remove Properties"))
-						removeTrack = t;
-					ImGui.EndPopup();
-				}
-				if (isSelected)
-					ImGui.DrawRectFilled(.(origin.x, y), .(origin.x + leftWidth, y + rowHeight), .(0.17f, 0.36f, 0.53f, 1));
-				else if (rowHovered)
-					ImGui.DrawRectFilled(.(origin.x, y), .(origin.x + leftWidth, y + rowHeight), .(1, 1, 1, 0.05f));
-				let arrow = ImGui.Vec2(origin.x + 12, y + rowHeight * 0.5f);
-				let arrowColor = Color(0.75f, 0.75f, 0.75f, 1);
-				if (expanded)
-					ImGui.DrawTriangleFilled(.(arrow.x - 4, arrow.y - 2.5f), .(arrow.x + 4, arrow.y - 2.5f), .(arrow.x, arrow.y + 3.5f), arrowColor);
-				else
-					ImGui.DrawTriangleFilled(.(arrow.x - 2.5f, arrow.y - 4), .(arrow.x + 3.5f, arrow.y), .(arrow.x - 2.5f, arrow.y + 4), arrowColor);
-				ImGui.DrawText(.(origin.x + 24, y + lineOffset), childTransform != null ? Color(0.86f, 0.86f, 0.86f, 1) : Color(0.55f, 0.55f, 0.55f, 1), track.bone.CStr());
-				if (row % 2 == 1)
-					ImGui.DrawRectFilled(.(sheetLeft, y), .(sheetRight, y + rowHeight), .(1, 1, 1, 0.025f));
-				DrawTrackKeys(clip, t, y, rowHeight, sheetLeft, sheetRight, 0);
-				y += rowHeight;
-				row++;
-
-				if (expanded)
-				{
-					Vector3 position, scale; Quaternion rotation;
-					track.Sample(mClipTime, out position, out rotation, out scale);
-					var euler = SampleEuler(track, mClipTime);
-					bool changed = false;
-					for (int32 p < 3)
-					{
-						ImGui.DrawText(.(origin.x + 40, y + lineOffset), .(0.72f, 0.72f, 0.72f, 1), p == 0 ? "Position" : p == 1 ? "Rotation" : "Scale");
-						let fieldWidth = Mathf.Clamp(leftWidth - 118, 120, 220);
-						ImGui.SetCursorScreenPos(.(origin.x + leftWidth - fieldWidth - 4, y + 1));
-						ImGui.SetNextItemWidth(fieldWidth);
-						ImGui.PushID(p);
-						ImGui.BeginDisabled(!editing);
-						if (p == 0)
-							changed |= ImGui.DragFloat3("##value", ref position, 0.01f);
-						else if (p == 1)
-							changed |= ImGui.DragFloat3("##value", ref euler, 0.5f, 0, 0, "%.1f");
-						else
-							changed |= ImGui.DragFloat3("##value", ref scale, 0.01f);
-						ImGui.EndDisabled();
-						ImGui.PopID();
-						if (row % 2 == 1)
-							ImGui.DrawRectFilled(.(sheetLeft, y), .(sheetRight, y + rowHeight), .(1, 1, 1, 0.025f));
-						DrawTrackKeys(clip, t, y, rowHeight, sheetLeft, sheetRight, (p + 1) * 100000);
-						y += rowHeight;
-						row++;
-					}
-					if (changed)
-					{
-						// A typed value is a key at the marker, as in Unity.
-						mClipTime = Snap(mClipTime);
-						int index;
-						clip.AutoKey(track.bone, mClipTime, position, euler, scale, out index);
-						mClipKeyTrack = t;
-						mClipKeyIndex = index;
-						mClipPosedTime = -1;
-						mClipPreviewOff = false;
-						mClipDirty = true;
-					}
-				}
-				ImGui.PopID();
-			}
-
-			// ---- add a property ----
-			ImGui.SetCursorScreenPos(.(origin.x + Math.Max((leftWidth - 140) * 0.5f, 4), y + 8));
-			ImGui.BeginDisabled(!editing);
-			if (ImGui.Button("Add Property", .(140, 0)))
-				ImGui.OpenPopup("addproperty");
-			ImGui.EndDisabled();
-			if (ImGui.BeginPopup("addproperty"))
-			{
-				bool any = false;
-				for (let child in children)
-				{
-					if (clip.FindTrack(child.GameObject.Name) != null)
-						continue;
-					any = true;
-					if (ImGui.Selectable(scope String(child.GameObject.Name).CStr(), false))
-					{
-						KeyChild(animator, child);
-						AnimToggleExpanded(child.GameObject.Name);
-					}
-				}
-				if (!any)
-					ImGui.TextDisabled(children.Count == 0 ? "This object has no children to animate.\nClips move the objects beneath the Animator." : "Every child is already animated.");
-				ImGui.EndPopup();
-			}
-			ImGui.SetCursorScreenPos(.(origin.x, y + rowHeight + 18));
-			ImGui.Dummy(.(1, 1));
-
-			// Past the end of the clip is darker, and the time marker runs over every row.
-			ImGui.PushClipRect(.(sheetLeft, rowsTop), .(sheetRight, rowsBottom));
-			ImGui.DrawRectFilled(.(Math.Max(TimeToX(clip.duration), sheetLeft), rowsTop), .(sheetRight, rowsBottom), .(0, 0, 0, 0.28f));
-			if (TimeToX(0) > sheetLeft)
-				ImGui.DrawRectFilled(.(sheetLeft, rowsTop), .(TimeToX(0), rowsBottom), .(0, 0, 0, 0.28f));
-			ImGui.DrawLine(.(TimeToX(mClipTime), rowsTop), .(TimeToX(mClipTime), rowsBottom), .(1, 1, 1, 0.95f), 1);
-			ImGui.PopClipRect();
-		}
-		ImGui.EndChild();
-
-		// The divider, beside the toolbar rows as well.
-		ImGui.SetCursorScreenPos(.(origin.x + leftWidth, origin.y));
-		ImGui.InvisibleButton("##splittop", .(3, rowHeight * 2));
+		ImGui.BeginChild("##rows", .(view.avail.x, rowsHeight), 0, ImGui.WindowFlags.NoScrollWithMouse);
+		let start = ImGui.GetCursorScreenPos();
+		let rowsBottom = rowsTop + rowsHeight;
+		if (ImGui.IsWindowHovered() && view.mouse.x < view.sheetLeft && Input.MouseWheel != 0)
+			ImGui.SetScrollY(Mathf.Clamp(ImGui.GetScrollY() - Input.MouseWheel * view.rowHeight * 2, 0, ImGui.GetScrollMaxY()));
+		ImGui.DrawRectFilled(.(origin.x, rowsTop), .(origin.x + view.leftWidth, rowsBottom), .(0.22f, 0.22f, 0.22f, 1));
+		ImGui.DrawRectFilled(.(origin.x + view.leftWidth, rowsTop), .(view.sheetLeft, rowsBottom), .(0.11f, 0.11f, 0.11f, 1));
+		ImGui.DrawRectFilled(.(view.sheetLeft, rowsTop), .(view.sheetRight, rowsBottom), .(0.165f, 0.165f, 0.165f, 1));
+		// The divider between the two halves can be dragged.
+		ImGui.SetCursorScreenPos(.(origin.x + view.leftWidth, rowsTop));
+		ImGui.InvisibleButton("##split", .(3, rowsHeight));
 		if (ImGui.IsItemActive())
-			mAnimLeftWidth = mouse.x - origin.x;
-
-		// The time marker's head, in the ruler.
-		ImGui.PushClipRect(.(sheetLeft, origin.y), .(sheetRight, rowsTop));
-		{
-			let x = TimeToX(mClipTime);
-			let headColor = recording ? Color(1, 0.45f, 0.40f, 1) : Color(1, 1, 1, 0.95f);
-			ImGui.DrawRectFilled(.(Math.Max(TimeToX(clip.duration), sheetLeft), origin.y + rowHeight), .(sheetRight, rowsTop), .(0, 0, 0, 0.28f));
-			ImGui.DrawLine(.(x, origin.y), .(x, rowsTop), headColor, 1);
-			ImGui.DrawRectFilled(.(x - 1, origin.y), .(x + 2, origin.y + rowHeight * 0.45f), headColor);
-		}
+			mAnimLeftWidth = view.mouse.x - origin.x;
+		// Faint lines down the sheet at the ruler's labelled frames.
+		ImGui.PushClipRect(.(view.sheetLeft, rowsTop), .(view.sheetRight, rowsBottom));
+		for (int32 f = view.firstFrame; view.TimeToX(f / view.rate) < view.sheetRight; f += view.step)
+			ImGui.DrawLine(.(view.TimeToX(f / view.rate), rowsTop), .(view.TimeToX(f / view.rate), rowsBottom), .(1, 1, 1, 0.05f));
 		ImGui.PopClipRect();
 
-		// ---- dragging the selected key along the timeline ----
+		float y = start.y;
+		int row = 0;
+		for (int t < clip.tracks.Count)
+		{
+			ImGui.PushID((int32)t + 500);
+			if (DrawTrackRow(view, clip, t, children, editing, ref y, ref row))
+				removeTrack = t;
+			ImGui.PopID();
+		}
+		DrawAddProperty(view, animator, clip, children, editing, y);
+
+		// Past the end of the clip is darker, and the time marker runs over every row.
+		ImGui.PushClipRect(.(view.sheetLeft, rowsTop), .(view.sheetRight, rowsBottom));
+		ImGui.DrawRectFilled(.(Math.Max(view.TimeToX(clip.duration), view.sheetLeft), rowsTop), .(view.sheetRight, rowsBottom), .(0, 0, 0, 0.28f));
+		if (view.TimeToX(0) > view.sheetLeft)
+			ImGui.DrawRectFilled(.(view.sheetLeft, rowsTop), .(view.TimeToX(0), rowsBottom), .(0, 0, 0, 0.28f));
+		ImGui.DrawLine(.(view.TimeToX(mClipTime), rowsTop), .(view.TimeToX(mClipTime), rowsBottom), .(1, 1, 1, 0.95f), 1);
+		ImGui.PopClipRect();
+		ImGui.EndChild();
+		return removeTrack;
+	}
+
+	/// One animated child's row (and, unfolded, its Position, Rotation and Scale rows) at `y`, moving `y` and `row`
+	/// on past them. True when its menu asked for the row to be removed.
+	bool DrawTrackRow(Timeline view, AnimationClip clip, int t, List<Transform> children, bool editing, ref float y, ref int row)
+	{
+		let origin = view.origin;
+		let rowHeight = view.rowHeight;
+		let leftWidth = view.leftWidth;
+		let lineOffset = (rowHeight - ImGui.GetTextLineHeight()) * 0.5f;
+		let track = clip.tracks[t];
+		bool remove = false;
+		// A row whose child is missing from this object is shown dimmed: the clip still has it for others.
+		Transform childTransform = null;
+		for (let child in children)
+		{
+			if (child.GameObject.Name == track.bone)
+				childTransform = child;
+		}
+		let expanded = AnimIsExpanded(track.bone);
+		let isSelected = childTransform != null && Selected == childTransform.GameObject;
+		ImGui.SetCursorScreenPos(.(origin.x, y));
+		ImGui.InvisibleButton("##row", .(leftWidth, rowHeight));
+		if (ImGui.IsItemClicked(0))
+		{
+			if (view.mouse.x < origin.x + 22 || ImGui.IsMouseDoubleClicked(0))
+				AnimToggleExpanded(track.bone);
+			else if (childTransform != null)
+				mSelectedId = childTransform.GameObject.Id;
+		}
+		let rowHovered = ImGui.IsItemHovered();
+		if (ImGui.BeginPopupContextItem("rowmenu"))
+		{
+			if (ImGui.MenuItem("Remove Properties"))
+				remove = true;
+			ImGui.EndPopup();
+		}
+		if (isSelected)
+			ImGui.DrawRectFilled(.(origin.x, y), .(origin.x + leftWidth, y + rowHeight), .(0.17f, 0.36f, 0.53f, 1));
+		else if (rowHovered)
+			ImGui.DrawRectFilled(.(origin.x, y), .(origin.x + leftWidth, y + rowHeight), .(1, 1, 1, 0.05f));
+		let arrow = ImGui.Vec2(origin.x + 12, y + rowHeight * 0.5f);
+		let arrowColor = Color(0.75f, 0.75f, 0.75f, 1);
+		if (expanded)
+			ImGui.DrawTriangleFilled(.(arrow.x - 4, arrow.y - 2.5f), .(arrow.x + 4, arrow.y - 2.5f), .(arrow.x, arrow.y + 3.5f), arrowColor);
+		else
+			ImGui.DrawTriangleFilled(.(arrow.x - 2.5f, arrow.y - 4), .(arrow.x + 3.5f, arrow.y), .(arrow.x - 2.5f, arrow.y + 4), arrowColor);
+		ImGui.DrawText(.(origin.x + 24, y + lineOffset), childTransform != null ? Color(0.86f, 0.86f, 0.86f, 1) : Color(0.55f, 0.55f, 0.55f, 1), track.bone.CStr());
+		if (row % 2 == 1)
+			ImGui.DrawRectFilled(.(view.sheetLeft, y), .(view.sheetRight, y + rowHeight), .(1, 1, 1, 0.025f));
+		DrawTrackKeys(clip, t, y, rowHeight, view.sheetLeft, view.sheetRight, 0);
+		y += rowHeight;
+		row++;
+		if (!expanded)
+			return remove;
+
+		Vector3 position, scale;
+		Quaternion rotation;
+		track.Sample(mClipTime, out position, out rotation, out scale);
+		var euler = SampleEuler(track, mClipTime);
+		bool changed = false;
+		for (int32 p < 3)
+		{
+			ImGui.DrawText(.(origin.x + 40, y + lineOffset), .(0.72f, 0.72f, 0.72f, 1), p == 0 ? "Position" : p == 1 ? "Rotation" : "Scale");
+			let fieldWidth = Mathf.Clamp(leftWidth - 118, 120, 220);
+			ImGui.SetCursorScreenPos(.(origin.x + leftWidth - fieldWidth - 4, y + 1));
+			ImGui.SetNextItemWidth(fieldWidth);
+			ImGui.PushID(p);
+			ImGui.BeginDisabled(!editing);
+			if (p == 0)
+				changed |= ImGui.DragFloat3("##value", ref position, 0.01f);
+			else if (p == 1)
+				changed |= ImGui.DragFloat3("##value", ref euler, 0.5f, 0, 0, "%.1f");
+			else
+				changed |= ImGui.DragFloat3("##value", ref scale, 0.01f);
+			ImGui.EndDisabled();
+			ImGui.PopID();
+			if (row % 2 == 1)
+				ImGui.DrawRectFilled(.(view.sheetLeft, y), .(view.sheetRight, y + rowHeight), .(1, 1, 1, 0.025f));
+			DrawTrackKeys(clip, t, y, rowHeight, view.sheetLeft, view.sheetRight, (p + 1) * 100000);
+			y += rowHeight;
+			row++;
+		}
+		if (changed)
+		{
+			// A typed value is a key at the marker, as in Unity.
+			mClipTime = view.Snap(mClipTime);
+			int index;
+			clip.AutoKey(track.bone, mClipTime, position, euler, scale, out index);
+			mClipKeyTrack = t;
+			mClipKeyIndex = index;
+			mClipPosedTime = -1;
+			mClipPreviewOff = false;
+			mClipDirty = true;
+		}
+		return remove;
+	}
+
+	/// The Add Property button under the rows: a key for a child the clip does not animate yet.
+	void DrawAddProperty(Timeline view, Animator animator, AnimationClip clip, List<Transform> children, bool editing, float y)
+	{
+		let origin = view.origin;
+		ImGui.SetCursorScreenPos(.(origin.x + Math.Max((view.leftWidth - 140) * 0.5f, 4), y + 8));
+		ImGui.BeginDisabled(!editing);
+		if (ImGui.Button("Add Property", .(140, 0)))
+			ImGui.OpenPopup("addproperty");
+		ImGui.EndDisabled();
+		if (ImGui.BeginPopup("addproperty"))
+		{
+			bool any = false;
+			for (let child in children)
+			{
+				if (clip.FindTrack(child.GameObject.Name) != null)
+					continue;
+				any = true;
+				if (ImGui.Selectable(scope String(child.GameObject.Name).CStr(), false))
+				{
+					KeyChild(animator, child);
+					AnimToggleExpanded(child.GameObject.Name);
+				}
+			}
+			if (!any)
+				ImGui.TextDisabled(children.Count == 0 ? "This object has no children to animate.\nClips move the objects beneath the Animator." : "Every child is already animated.");
+			ImGui.EndPopup();
+		}
+		ImGui.SetCursorScreenPos(.(origin.x, y + view.rowHeight + 18));
+		ImGui.Dummy(.(1, 1));
+	}
+
+	/// The divider beside the toolbar rows, and the time marker's head in the ruler.
+	void DrawMarkerHead(Timeline view, AnimationClip clip, bool recording)
+	{
+		let origin = view.origin;
+		ImGui.SetCursorScreenPos(.(origin.x + view.leftWidth, origin.y));
+		ImGui.InvisibleButton("##splittop", .(3, view.rowHeight * 2));
+		if (ImGui.IsItemActive())
+			mAnimLeftWidth = view.mouse.x - origin.x;
+		ImGui.PushClipRect(.(view.sheetLeft, origin.y), .(view.sheetRight, view.RowsTop));
+		let x = view.TimeToX(mClipTime);
+		let headColor = recording ? Color(1, 0.45f, 0.40f, 1) : Color(1, 1, 1, 0.95f);
+		ImGui.DrawRectFilled(.(Math.Max(view.TimeToX(clip.duration), view.sheetLeft), origin.y + view.rowHeight), .(view.sheetRight, view.RowsTop), .(0, 0, 0, 0.28f));
+		ImGui.DrawLine(.(x, origin.y), .(x, view.RowsTop), headColor, 1);
+		ImGui.DrawRectFilled(.(x - 1, origin.y), .(x + 2, origin.y + view.rowHeight * 0.45f), headColor);
+		ImGui.PopClipRect();
+	}
+
+	/// The selected key follows the mouse while it is dragged, frame by frame, and stays this key even as it passes
+	/// its neighbours.
+	void DragSelectedKey(Timeline view, AnimationClip clip, bool editing)
+	{
 		if (!ImGui.IsMouseDown(0))
 			mClipKeyDragging = false;
-		if (mClipKeyDragging && editing && mClipKeyTrack >= 0 && mClipKeyTrack < clip.tracks.Count && mClipKeyIndex >= 0 && mClipKeyIndex < clip.tracks[mClipKeyTrack].keys.Count)
-		{
-			// The key follows the mouse, frame by frame, and stays this key even as it passes its neighbours.
-			let track = clip.tracks[mClipKeyTrack];
-			var key = track.keys[mClipKeyIndex];
-			let time = Snap(XToTime(mouse.x));
-			if (time != key.time)
-			{
-				key.time = time;
-				track.keys.RemoveAt(mClipKeyIndex);
-				int at = 0;
-				while (at < track.keys.Count && track.keys[at].time <= key.time)
-					at++;
-				track.keys.Insert(at, key);
-				mClipKeyIndex = at;
-				if (time > clip.duration)
-					clip.duration = time;
-				mClipTime = time;
-				mClipPosedTime = -1;
-				mClipDirty = true;
-			}
-		}
+		if (!mClipKeyDragging || !editing || mClipKeyTrack < 0 || mClipKeyTrack >= clip.tracks.Count || mClipKeyIndex < 0 || mClipKeyIndex >= clip.tracks[mClipKeyTrack].keys.Count)
+			return;
+		let track = clip.tracks[mClipKeyTrack];
+		var key = track.keys[mClipKeyIndex];
+		let time = view.Snap(view.XToTime(view.mouse.x));
+		if (time == key.time)
+			return;
+		key.time = time;
+		track.keys.RemoveAt(mClipKeyIndex);
+		int at = 0;
+		while (at < track.keys.Count && track.keys[at].time <= key.time)
+			at++;
+		track.keys.Insert(at, key);
+		mClipKeyIndex = at;
+		if (time > clip.duration)
+			clip.duration = time;
+		mClipTime = time;
+		mClipPosedTime = -1;
+		mClipDirty = true;
+	}
 
-		// ---- removing keys and rows ----
+	/// Removes the key chosen from a key's menu or with Delete, and the row asked for from a row's menu.
+	void DeleteKeys(AnimationClip clip, bool editing, int removeTrack)
+	{
 		if (mAnimOpenKeyMenu)
 		{
 			mAnimOpenKeyMenu = false;
@@ -981,9 +1124,12 @@ extension EditorApp
 			mClipPosedTime = -1;
 			mClipDirty = true;
 		}
+	}
 
-		// ---- footer: the clip's length and looping ----
-		ImGui.SetCursorScreenPos(.(origin.x + 6, bottom - footerHeight + 3));
+	/// The footer: the clip's length and looping, Frame All, and a hint at the controls.
+	void DrawTimelineFooter(Timeline view, AnimationClip clip)
+	{
+		ImGui.SetCursorScreenPos(.(view.origin.x + 6, view.bottom - view.footerHeight + 3));
 		ImGui.AlignTextToFramePadding();
 		ImGui.TextDisabled("Length");
 		ImGui.SameLine();
@@ -1000,11 +1146,7 @@ extension EditorApp
 		if (ImGui.Button("Frame All", .(0, ImGui.GetFrameHeight())))
 			mAnimPixelsPerSecond = 0;
 		let hint = "Scroll to zoom    Middle-drag to pan    Drag keys to retime    Right-click a key to delete";
-		ImGui.DrawText(.(sheetLeft + 8, bottom - footerHeight + (footerHeight - ImGui.GetTextLineHeight()) * 0.5f), .(1, 1, 1, 0.32f), hint);
-		ImGui.End();
-
-		if (mClipDirty && !ImGui.IsMouseDown(0))
-			SaveClip();
+		ImGui.DrawText(.(view.sheetLeft + 8, view.bottom - view.footerHeight + (view.footerHeight - ImGui.GetTextLineHeight()) * 0.5f), .(1, 1, 1, 0.32f), hint);
 	}
 
 	/// Key IK: a key at the marker on every bone below the Animator that an IK component moves, holding the pose IK
@@ -1034,12 +1176,14 @@ extension EditorApp
 	{
 		if (mClip == null)
 			return;
-		Vector3 restPosition, restScale; Quaternion restRotation;
+		Vector3 restPosition, restScale;
+		Quaternion restRotation;
 		if (!animator.RestPose(child, out restPosition, out restRotation, out restScale))
 			return;
 		var localPosition = child.LocalPosition;
 		var localRotation = child.LocalRotation;
-		Vector3 underPosition; Quaternion underRotation;
+		Vector3 underPosition;
+		Quaternion underRotation;
 		if (!solved && IKSystem.InputPose(child, out underPosition, out underRotation))
 		{
 			localPosition = underPosition;

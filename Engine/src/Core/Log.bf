@@ -4,6 +4,7 @@ using System.Threading;
 
 namespace Tessera;
 
+/// How serious a log message is.
 enum LogLevel
 {
 	Info,
@@ -14,14 +15,18 @@ enum LogLevel
 /// Engine log. Entries are kept for the editor console and mirrored to stdout.
 static class Log
 {
+	/// One message: how serious it is, and its text.
 	public struct Entry
 	{
 		public LogLevel level;
 		public String text;
 	}
 
+	/// The most messages kept; older ones go.
 	public const int MaxEntries = 2000;
+	/// The messages kept, oldest first (the editor's Console shows them).
 	public static List<Entry> Entries = new .() ~ { for (let e in _) delete e.text; delete _; };
+	/// Goes up with every message, so that a viewer can tell when to redraw.
 	public static int Version;
 	static Monitor sMonitor = new .() ~ delete _;
 	static System.IO.FileStream sFile ~ delete _;
@@ -57,10 +62,14 @@ static class Log
 		}
 	}
 
+	/// Logs a message.
 	public static void Info(StringView text) => Add(.Info, text);
+	/// Logs a warning.
 	public static void Warning(StringView text) => Add(.Warning, text);
+	/// Logs an error.
 	public static void Error(StringView text) => Add(.Error, text);
 
+	/// Logs a message of a level.
 	public static void Add(LogLevel level, StringView text)
 	{
 		using (sMonitor.Enter())
@@ -90,6 +99,7 @@ static class Log
 		}
 	}
 
+	/// Forgets every message.
 	public static void Clear()
 	{
 		using (sMonitor.Enter())

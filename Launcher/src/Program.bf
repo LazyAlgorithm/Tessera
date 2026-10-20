@@ -92,7 +92,7 @@ class LauncherApp : Application
 		}
 		mPendingOpen.Set(path);
 		mOpenCountdown = 3;
-		SetMessage(scope $"Compiling {path} ...", false);
+		SetMessage(scope $"Compiling {path} ..." , false);
 	}
 
 	/// Builds the project and starts its editor. Returns false with the compiler output on failure.
@@ -126,7 +126,7 @@ class LauncherApp : Application
 
 	protected override void OnRender()
 	{
-		bgfx.set_view_clear(0, 0x0003, 0x262626ff, 1.0f, 0);
+		bgfx.set_view_clear(0, Gfx.ClearColor | Gfx.ClearDepth, BackgroundColor, 1.0f, 0);
 		bgfx.touch(0);
 		ImGui.tn_imgui_new_frame();
 
@@ -153,8 +153,32 @@ class LauncherApp : Application
 		let total = ImGui.GetContentRegionAvail();
 		let footer = mMessageIsError && !mMessage.IsEmpty ? Math.Min(260.0f, Math.Max(total.y * 0.4f, 120.0f)) : 64.0f;
 
-		// Left: recent projects.
 		ImGui.BeginChild("recent", .(total.x * 0.56f, total.y - footer), ImGui.ChildBorders);
+		DrawRecentProjects();
+		ImGui.EndChild();
+		ImGui.SameLine();
+		ImGui.BeginChild("create", .(0, total.y - footer), ImGui.ChildBorders);
+		DrawNewProject();
+		ImGui.EndChild();
+		ImGui.Spacing();
+		DrawProjectButtons();
+		ImGui.EndDisabled();
+		if (!mMessage.IsEmpty)
+			DrawLauncherMessage();
+		ImGui.End();
+		ImGui.tn_imgui_render(250);
+
+		// The build blocks, so start it a few frames after the "Compiling" message is on screen.
+		if (mOpenCountdown > 0 && --mOpenCountdown == 0)
+			OpenPendingProject();
+	}
+
+	/// What the window is cleared to behind the interface (RGBA).
+	const uint32 BackgroundColor = 0x262626ff;
+
+	/// The left side: the projects opened before, newest first. A double-click opens one.
+	void DrawRecentProjects()
+	{
 		ImGui.TextDisabled("Recent projects");
 		ImGui.Spacing();
 		if (RecentProjects.Paths.Count == 0)
@@ -176,11 +200,11 @@ class LauncherApp : Application
 			ImGui.DrawText(.(min.x + 8, min.y - 24), .(0.55f, 0.55f, 0.55f, 1), path.CStr());
 			ImGui.PopID();
 		}
-		ImGui.EndChild();
-		ImGui.SameLine();
+	}
 
-		// Right: create or add.
-		ImGui.BeginChild("create", .(0, total.y - footer), ImGui.ChildBorders);
+	/// The right side: making a new project, or adding one that is already on disk.
+	void DrawNewProject()
+	{
 		ImGui.TextDisabled("New project");
 		ImGui.Spacing();
 		ImGui.Text("Name");
@@ -209,9 +233,11 @@ class LauncherApp : Application
 			else
 				SetMessage("That folder does not contain a project.tessera file.", true);
 		}
-		ImGui.EndChild();
+	}
 
-		ImGui.Spacing();
+	/// Open and Remove from list, for the project chosen on the left.
+	void DrawProjectButtons()
+	{
 		let hasSelection = mSelected >= 0 && mSelected < RecentProjects.Paths.Count;
 		ImGui.BeginDisabled(!hasSelection);
 		if (ImGui.Button("Open", .(140, 32)))
@@ -223,44 +249,41 @@ class LauncherApp : Application
 			mSelected = -1;
 		}
 		ImGui.EndDisabled();
-		ImGui.EndDisabled();
+	}
 
-		if (!mMessage.IsEmpty)
+	/// What happened last: a note, or an error with buttons to copy it and to open the build log.
+	void DrawLauncherMessage()
+	{
+		if (mMessageIsError)
 		{
-			if (mMessageIsError)
+			ImGui.Spacing();
+			if (ImGui.Button("Copy error"))
+				ImGui.SetClipboardText(mMessage.CStr());
+			let logPath = scope $"{mPendingOpen}/build/build.log";
+			if (!mPendingOpen.IsEmpty && File.Exists(logPath))
 			{
-				ImGui.Spacing();
-				if (ImGui.Button("Copy error"))
-					ImGui.SetClipboardText(mMessage.CStr());
-				let logPath = scope $"{mPendingOpen}/build/build.log";
-				if (!mPendingOpen.IsEmpty && File.Exists(logPath))
-				{
-					ImGui.SameLine();
-					if (ImGui.Button("Open build log"))
-						Terminal.Open(logPath);
-				}
+				ImGui.SameLine();
+				if (ImGui.Button("Open build log"))
+					Terminal.Open(logPath);
 			}
-			else
-				ImGui.SameLine(0, 18);
-			ImGui.BeginChild("message", .(0, mMessageIsError ? 0 : 40), 0, ImGui.WindowFlags.HorizontalScrollbar);
-			if (mMessageIsError)
-				ImGui.TextColored(.(1.0f, 0.45f, 0.4f, 1), mMessage.CStr());
-			else
-				ImGui.TextColored(.(1.0f, 0.82f, 0.35f, 1), mMessage.CStr());
-			ImGui.EndChild();
 		}
-		ImGui.End();
-		ImGui.tn_imgui_render(250);
+		else
+			ImGui.SameLine(0, 18);
+		ImGui.BeginChild("message", .(0, mMessageIsError ? 0 : 40), 0, ImGui.WindowFlags.HorizontalScrollbar);
+		if (mMessageIsError)
+			ImGui.TextColored(.(1.0f, 0.45f, 0.4f, 1), mMessage.CStr());
+		else
+			ImGui.TextColored(.(1.0f, 0.82f, 0.35f, 1), mMessage.CStr());
+		ImGui.EndChild();
+	}
 
-		// The build blocks, so start it a few frames after the "Compiling" message is on screen.
-		if (mOpenCountdown > 0 && --mOpenCountdown == 0)
-		{
-			let error = scope String();
-			if (OpenProject(mPendingOpen, error))
-				Running = false;
-			else
-				SetMessage(error, true);
-		}
+	void OpenPendingProject()
+	{
+		let error = scope String();
+		if (OpenProject(mPendingOpen, error))
+			Running = false;
+		else
+			SetMessage(error, true);
 	}
 
 	void MissingMessage(String text)
