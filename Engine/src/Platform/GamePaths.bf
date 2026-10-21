@@ -55,6 +55,20 @@ static class GamePaths
 	/// Where SaveSystem's file storage keeps saves: PlayerData + "saves/".
 	public static void Saves(String path) => path.AppendF("{}saves/", PlayerData);
 
+	/// The game's own folder, ending in a slash: where a built game's program is, or the project's folder when it runs
+	/// from the editor or a development build. For reading things that come with the game or are put beside it, such
+	/// as a Maps folder (MapFiles.Folder). Empty until the game has started.
+	public static String GameFolder = new .() ~ delete _;
+
+	/// Sets GameFolder (with forward slashes and a slash at the end).
+	public static void SetGameFolder(StringView folder)
+	{
+		GameFolder.Set(folder);
+		GameFolder.Replace('\\', '/');
+		if (!GameFolder.IsEmpty && !GameFolder.EndsWith('/'))
+			GameFolder.Append('/');
+	}
+
 	/// Call after changing Company or Game, so that the folder is looked up again.
 	public static void Refresh() => DeleteAndNullify!(sPlayerData);
 }

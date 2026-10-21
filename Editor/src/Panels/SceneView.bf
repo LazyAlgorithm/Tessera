@@ -42,18 +42,20 @@ extension EditorApp
 				HandleSceneCameraInput();
 
 				let selected = Selected;
-				// An active sculpting tool owns the mouse instead of selection and the transform gizmo.
-				bool gizmoActive = UpdateBrush(selected, origin, size);
+				// An active sculpting or placing tool owns the mouse instead of selection and the transform gizmo.
+				bool gizmoActive = UpdateBrush(selected, origin, size) || UpdatePlacement(origin, size);
 				if (selected != null && !gizmoActive && !selected.IsFolder)
 				{
 					ImGui.tn_gizmo_begin(origin.x, origin.y, size.x, size.y, false);
 					var world = selected.Transform.LocalToWorld;
 					var view = mSceneCamera.view;
 					var projection = mSceneCamera.projection;
-					float[3] snap = .(0.5f, 0.5f, 0.5f);
+					float[3] snap = .(mSnapMove, mSnapMove, mSnapMove);
 					if (mGizmoOperation == 1)
-						snap = .(15, 15, 15);
-					let snapping = ImGui.IsKeyDown(ImGui.Key.LeftCtrl);
+						snap = .(mSnapRotate, mSnapRotate, mSnapRotate);
+					else if (mGizmoOperation == 2)
+						snap = .(mSnapScale, mSnapScale, mSnapScale);
+					let snapping = SnapActive;
 					if (ImGui.tn_gizmo_manipulate(&view.m, &projection.m, mGizmoOperation, mGizmoLocal, &world.m, snapping ? &snap : null))
 					{
 						let parent = selected.Transform.Parent;
@@ -75,11 +77,13 @@ extension EditorApp
 					Pick((mouse.x - origin.x) / size.x, (mouse.y - origin.y) / size.y);
 				}
 
+				UpdateQuickAdd(origin, size);
+				DrawSceneOverlays(origin, size);
 				let stats = scope String();
 				stats.AppendF("{} draws  {} instances  {}k tris", mSceneView.DrawCalls, mSceneView.Instances, mSceneView.Triangles / 1000);
 				ImGui.DrawText(.(origin.x + 10, origin.y + 8), .(1, 1, 1, 0.65f), stats.CStr());
 				if (mFlying)
-					ImGui.DrawText(.(origin.x + 10, origin.y + size.y - 24), .(1, 1, 1, 0.65f), "WASD move, Q/E down/up, Shift faster");
+					ImGui.DrawText(.(origin.x + 10, origin.y + size.y - 24), .(1, 1, 1, 0.65f), scope $"WASD move, Q/E down/up, Shift faster, wheel sets speed ({mCamSpeed:0.0} m/s)" .CStr());
 			}
 		}
 		ImGui.End();
@@ -117,7 +121,11 @@ extension EditorApp
 			let delta = Input.MouseDelta;
 			mCamYaw += delta.x * 0.18f;
 			mCamPitch = Mathf.Clamp(mCamPitch + delta.y * 0.18f, -89, 89);
-			var speed = 12.0f * Time.UnscaledDeltaTime;
+			// The wheel sets the flying speed, as in Unity.
+			let flyWheel = Input.MouseWheel;
+			if (flyWheel != 0)
+				mCamSpeed = Math.Clamp(mCamSpeed * Math.Pow(1.2f, flyWheel), 0.25f, 400);
+			var speed = mCamSpeed * Time.UnscaledDeltaTime;
 			if (Input.GetKey(.LeftShift))
 				speed *= 4;
 			if (Input.GetKey(.W))
@@ -138,11 +146,12 @@ extension EditorApp
 			if (ImGui.IsMouseDown(2))
 			{
 				let delta = Input.MouseDelta;
-				mCamPosition = mCamPosition - right * (delta.x * 0.02f) + up * (delta.y * 0.02f);
+				let pan = 0.02f * Math.Clamp(mCamSpeed / 12, 0.1f, 10);
+				mCamPosition = mCamPosition - right * (delta.x * pan) + up * (delta.y * pan);
 			}
 			let wheel = Input.MouseWheel;
 			if (wheel != 0)
-				mCamPosition = mCamPosition + forward * (wheel * 1.5f);
+				mCamPosition = mCamPosition + forward * (wheel * 1.5f * Math.Clamp(mCamSpeed / 12, 0.05f, 10));
 		}
 	}
 
@@ -204,5 +213,6 @@ extension EditorApp
 			if (renderer != null && renderer.ActiveMesh != null)
 				Gizmos.Lines.Box(renderer.ActiveMesh.Bounds, selected.Transform.LocalToWorld, .(1.0f, 0.62f, 0.15f, 1));
 		}
+		BuildMapBuilderGizmos();
 	}
 }

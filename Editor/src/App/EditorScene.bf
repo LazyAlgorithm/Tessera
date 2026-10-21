@@ -127,13 +127,16 @@ extension EditorApp
 	{
 		let parent = Selected;
 		let gameObject = mScene.CreateGameObject(name, parent != null ? parent.Transform : null);
-		if (parent == null)
+		if (parent == null || parent.IsFolder)
 		{
-			// Drop new objects in front of the scene camera.
+			// Drop new objects in front of the scene camera, on the surface in the middle of the view when it is near.
 			let forward = Quaternion.Euler(mCamPitch, mCamYaw, 0) * Vector3.Forward;
 			var position = mCamPosition + forward * 8.0f;
 			if (forward.y < -0.05f)
 				position = mCamPosition + forward * Math.Min(-mCamPosition.y / forward.y, 30.0f);
+			Vector3 point, normal;
+			if (RaycastScene(Ray(mCamPosition, forward), out point, out normal, null, false, 30))
+				position = point;
 			gameObject.Transform.Position = position;
 		}
 		if (!mesh.IsEmpty)

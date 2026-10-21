@@ -58,6 +58,7 @@ extension EditorApp
 				ImGui.CloseCurrentPopup();
 			ImGui.EndPopup();
 		}
+		DrawExportMapPopup();
 	}
 
 	void HandleShortcuts()
@@ -102,6 +103,15 @@ extension EditorApp
 				mGizmoOperation = 1;
 			if (ImGui.IsKeyPressed(ImGui.Key.R))
 				mGizmoOperation = 2;
+			if (ImGui.IsKeyPressed(ImGui.Key.T))
+				mGizmoOperation = 3;
+			if (ImGui.IsKeyPressed(ImGui.Key.End) && Selected != null)
+				DropToSurface(Selected);
+			// While placing, [ and ] turn the next object instead (see UpdatePlacement).
+			if (!mPlacing && ImGui.IsKeyPressed(ImGui.Key.LeftBracket, true))
+				TurnSelected(-mSnapRotate);
+			if (!mPlacing && ImGui.IsKeyPressed(ImGui.Key.RightBracket, true))
+				TurnSelected(mSnapRotate);
 			if (ImGui.IsKeyPressed(ImGui.Key.F))
 				FocusSelected();
 		}

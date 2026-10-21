@@ -18,6 +18,10 @@ Also since v0.1.0-beta.1:
 - One code style across the engine, applied by `tools/format/format_code.py` (`docs/coding-style.md`).
 - The code was restructured for reading and changing: long methods (the longest were 300 to 700 lines) are split into named steps, large classes (voxel terrain, networking, rendering) are split into files by area, repeated code is shared, constants are named, and the commonly used API has doc comments. No public API was removed or renamed: games build unchanged.
 - Hinge joints with a motor and spring suspensions (`Scene.Physics.CreateHinge`, `CreateSuspension`), and cylinder and convex hull parts in a Compound Collider (`docs/joints.md`).
+- Map Builder: built-in Primitives, Walls and Floors folders in every project (walls, doorways, windows, pillars, floors, ramps, stairs and platforms with colliders), and a model a prefab already places is listed once, as the prefab.
+- Maps: File > Export Scene as Map... writes a scene and its terrain sculpting as one `.tmap` file, into the project's `Maps` folder and each build's; `MapFiles` finds, checks (whole, made for this game, made with this format or older, no missing components or files, no duplicates) and mounts them, so a game can list them in its menu and play them without a new build (`docs/maps.md`). `PackFile` reads and writes a single pack from Beef; `GamePaths.GameFolder` is the game's own folder; `AssetPack` can serve files from memory.
+- Editor test switches `--export-map [name]` and `--camera "x y z yaw pitch"`.
+- Fixed: Map Builder and Project panel thumbnails each showed the asset made before it (and the first none), because the picture was copied before the preview's last render pass.
 - Fixed: the editor's Input Actions window crashed on an action with a touch binding, and touch bindings could not be put on direction actions.
 
 Known limitations: macOS and browser exports are not supported. This is an early beta; back up projects before use.

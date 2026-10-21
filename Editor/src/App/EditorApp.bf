@@ -119,6 +119,7 @@ class EditorApp : Application
 		EditorMain.LoadStartScene(mScene, sceneArg);
 		Log.Info(scope $"Opened project {project.Name} ({project.Path})");
 		ResetUndo();
+		LoadMapBuilderSettings();
 		AlignSceneCameraToGameCamera();
 		// Shaders edited outside the editor, or never compiled on this machine, are built before anything draws.
 		CompileStaleShaders();
@@ -158,6 +159,9 @@ class EditorApp : Application
 			mShowAchievements = true;
 		if (HasArg("--input-actions"))
 			mShowInputActions = true;
+		if (HasArg("--map-builder"))
+			mShowMapBuilder = true;
+		GetArg("--map-builder-search", mPaletteSearch);
 		if (HasArg("--build-window"))
 			ApplyBuildSwitches();
 		if (AssetArg("--animator", full..Clear()))
@@ -193,8 +197,35 @@ class EditorApp : Application
 				FocusSelected();
 			}
 		}
+		if (HasArg("--map-builder-test"))
+			RunMapBuilderTest();
+		if (HasArg("--export-map"))
+			RunExportMapSwitch();
+		ApplyCameraSwitch();
 		if (HasArg("--play"))
 			StartPlay();
+	}
+
+	/// Test switch --camera "x y z yaw pitch": puts the Scene view's camera there (degrees), for screenshots.
+	void ApplyCameraSwitch()
+	{
+		let text = scope String();
+		if (!GetArg("--camera", text))
+			return;
+		let values = scope List<float>();
+		for (let part in text.Split(' ', ','))
+		{
+			if (!part.IsEmpty)
+				values.Add(SceneSerializer.ParseFloat(part));
+		}
+		if (values.Count < 3)
+			return;
+		mCamPosition = .(values[0], values[1], values[2]);
+		if (values.Count >= 5)
+		{
+			mCamYaw = values[3];
+			mCamPitch = values[4];
+		}
 	}
 
 	/// --build-window, with --build-windows, --build-web or --build-editor choosing what is built, and --build-now
