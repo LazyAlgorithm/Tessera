@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.IO;
+using System.Threading;
 
 namespace Tessera;
 
@@ -34,6 +35,18 @@ static class AssetPack
 	}
 
 	static List<Deferred> sDeferred = new .() ~ DeleteContainerAndItems!(_);
+	/// Files held in memory by full path, read before packs and disk: the contents of a map that is being played
+	/// (MapFiles.Mount). Sounds load on other threads, so every use takes sMemoryLock.
+	static Dictionary<String, List<uint8>> sMemoryFiles = new .() ~
+		{
+			for (let entry in _)
+			{
+				delete entry.key;
+				delete entry.value;
+			}
+			delete _;
+		};
+	static Monitor sMemoryLock = new .() ~ delete _;
 	static String sRoot = new .() ~ delete _;
 	static int sWaiting;
 #if BF_PLATFORM_WASM
@@ -156,18 +169,106 @@ static class AssetPack
 #endif
 	}
 
+	/// Makes a file readable at a full path, from memory, until RemoveMemoryFiles: it is found before a pack's or a
+	/// loose file of the same name. MapFiles uses this for the files inside a map.
+	public static void AddMemoryFile(StringView fullPath, Span<uint8> data)
+	{
+		let key = MemoryKey(fullPath, .. new .());
+		let copy = new List<uint8>(data.Length);
+		copy.AddRange(data);
+		using (sMemoryLock.Enter())
+		{
+			if (sMemoryFiles.GetAndRemoveAlt(key) case .Ok(let old))
+			{
+				delete old.key;
+				delete old.value;
+			}
+			sMemoryFiles[key] = copy;
+		}
+	}
+
+	/// Forgets every memory file inside a folder (a full path), and returns how many there were.
+	public static int RemoveMemoryFiles(StringView folder)
+	{
+		let prefix = MemoryKey(folder, .. scope .())..Append('/');
+		let gone = scope List<String>();
+		using (sMemoryLock.Enter())
+		{
+			for (let key in sMemoryFiles.Keys)
+			{
+				if (key.StartsWith(prefix))
+					gone.Add(key);
+			}
+			for (let key in gone)
+			{
+				if (sMemoryFiles.GetAndRemove(key) case .Ok(let pair))
+				{
+					delete pair.key;
+					delete pair.value;
+				}
+			}
+		}
+		return gone.Count;
+	}
+
+	/// Paths as memory files are kept: forward slashes, never two together, none at the end.
+	static void MemoryKey(StringView path, String key)
+	{
+		key.Append(path);
+		key.Replace('\\', '/');
+		while (key.Contains("//"))
+			key.Replace("//", "/");
+		while (key.Length > 1 && key.EndsWith('/'))
+			key.RemoveFromEnd(1);
+	}
+
+	static bool ReadMemory(StringView path, List<uint8> data)
+	{
+		if (sMemoryFiles.Count == 0)
+			return false;
+		let key = MemoryKey(path, .. scope .());
+		using (sMemoryLock.Enter())
+		{
+			if (!sMemoryFiles.TryGetValueAlt(key, let bytes))
+				return false;
+			data.AddRange(bytes);
+		}
+		return true;
+	}
+
+	static bool InMemory(StringView path, bool folder)
+	{
+		if (sMemoryFiles.Count == 0)
+			return false;
+		let key = MemoryKey(path, .. scope .());
+		using (sMemoryLock.Enter())
+		{
+			if (!folder)
+				return sMemoryFiles.ContainsKeyAlt(key);
+			key.Append('/');
+			for (let name in sMemoryFiles.Keys)
+			{
+				if (name.StartsWith(key))
+					return true;
+			}
+		}
+		return false;
+	}
+
 	/// Whether a full path names a file in a pack.
 	public static bool Contains(StringView path) => tn_pack_count() > 0 && tn_pack_exists(scope String(path).CStr()) != 0;
 
 	/// Whether the file exists: in a pack, or on disk.
-	public static bool Exists(StringView path) => Contains(path) || File.Exists(path);
+	public static bool Exists(StringView path) => InMemory(path, false) || Contains(path) || File.Exists(path);
 
 	/// Whether the folder exists: holding at least one packed file, or on disk.
-	public static bool FolderExists(StringView path) => (tn_pack_count() > 0 && tn_pack_has_folder(scope String(path).CStr()) != 0) || Directory.Exists(path);
+	public static bool FolderExists(StringView path) => InMemory(path, true) || (tn_pack_count() > 0 && tn_pack_has_folder(scope String(path).CStr()) != 0) || Directory.Exists(path);
 
 	/// Reads a whole file, from a pack if it is in one and from disk otherwise.
 	public static Result<void> ReadAll(StringView path, List<uint8> data)
 	{
+		if (ReadMemory(path, data))
+			return .Ok;
 		if (tn_pack_count() > 0)
 		{
 			let cPath = scope String(path);
@@ -190,6 +291,12 @@ static class AssetPack
 
 	public static Result<void> ReadAllText(StringView path, String text)
 	{
+		let memory = scope List<uint8>();
+		if (ReadMemory(path, memory))
+		{
+			text.Append(StringView((char8*)memory.Ptr, memory.Count));
+			return .Ok;
+		}
 		if (tn_pack_count() > 0)
 		{
 			let bytes = scope List<uint8>();
@@ -222,6 +329,14 @@ static class AssetPack
 			let path = StringView(tn_pack_path(i));
 			if (path.StartsWith(prefix))
 				paths.Add(new String(path));
+		}
+		using (sMemoryLock.Enter())
+		{
+			for (let path in sMemoryFiles.Keys)
+			{
+				if (path.StartsWith(prefix))
+					paths.Add(new String(path));
+			}
 		}
 	}
 }

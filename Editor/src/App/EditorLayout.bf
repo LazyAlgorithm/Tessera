@@ -57,6 +57,7 @@ extension EditorApp
 		DrawBuildWindow();
 		DrawAchievements();
 		DrawInputActions();
+		DrawMapBuilder();
 		CommitUndoWhenIdle();
 		if (mShowScene)
 		{
@@ -124,6 +125,8 @@ extension EditorApp
 				SaveScene();
 			if (ImGui.MenuItem("Save Scene As..."))
 				mOpenSaveAs = true;
+			if (ImGui.MenuItem("Export Scene as Map..."))
+				mOpenExportMap = true;
 			ImGui.Separator();
 			if (ImGui.MenuItem("Reload Scripts", "Ctrl+R"))
 				RequestRebuild();
@@ -159,6 +162,12 @@ extension EditorApp
 				DeleteSelected();
 			if (ImGui.MenuItem("Frame Selected", "F", false, Selected != null))
 				FocusSelected();
+			if (ImGui.MenuItem("Drop to Surface", "End", false, Selected != null))
+				DropToSurface(Selected);
+			if (ImGui.MenuItem("Snap to Grid", null, false, Selected != null))
+				SnapSelectedToGrid();
+			if (ImGui.MenuItem("Turn 90 Degrees", null, false, Selected != null))
+				TurnSelected(90);
 			ImGui.Separator();
 			if (ImGui.MenuItem("Play / Stop", "Ctrl+P"))
 				TogglePlay();
@@ -182,6 +191,8 @@ extension EditorApp
 			}
 			if (ImGui.MenuItem("Animation"))
 				mShowAnimation = true;
+			if (ImGui.MenuItem("Map Builder", null, mShowMapBuilder))
+				mShowMapBuilder = !mShowMapBuilder;
 			if (ImGui.MenuItem("Reset Layout"))
 				mResetLayout = true;
 			if (ImGui.MenuItem("Scene Grid", null, mShowGrid))
@@ -200,93 +211,103 @@ extension EditorApp
 
 	void DrawCreateMenu()
 	{
-		if (ImGui.MenuItem("Create Empty"))
-			CreateObject("GameObject");
-		if (ImGui.MenuItem("Spawn Point"))
+		for (let kind in StringView[?]("Create Empty", "Spawn Point", "Audio Source", "Folder"))
 		{
-			CreateObject("Spawn Point").AddComponent<SpawnPoint>();
-			MarkDirty();
-		}
-		if (ImGui.MenuItem("Audio Source"))
-		{
-			CreateObject("Audio Source").AddComponent<AudioSource>();
-			MarkDirty();
-		}
-		if (ImGui.MenuItem("Folder"))
-		{
-			// Folders sit at the origin with an identity transform so they never move their contents.
-			let parent = Selected;
-			let folder = mScene.CreateGameObject("New Folder", (parent != null && parent.IsFolder) ? parent.Transform : null);
-			folder.IsFolder = true;
-			mSelectedId = folder.Id;
-			MarkDirty();
+			if (ImGui.MenuItem(scope String(kind).CStr()))
+				CreateBuiltin(kind);
 		}
 		if (ImGui.BeginMenu("3D Object"))
 		{
-			if (ImGui.MenuItem("Cube"))
-				CreateObject("Cube", "builtin:cube");
-			if (ImGui.MenuItem("Sphere"))
-				CreateObject("Sphere", "builtin:sphere");
-			if (ImGui.MenuItem("Capsule"))
-				CreateObject("Capsule", "builtin:capsule");
-			if (ImGui.MenuItem("Cylinder"))
-				CreateObject("Cylinder", "builtin:cylinder");
-			if (ImGui.MenuItem("Cone"))
-				CreateObject("Cone", "builtin:cone");
-			if (ImGui.MenuItem("Plane"))
-				CreateObject("Plane", "builtin:plane");
-			if (ImGui.MenuItem("Quad"))
-				CreateObject("Quad", "builtin:quad");
+			for (let kind in StringView[?]("Cube", "Sphere", "Capsule", "Cylinder", "Cone", "Plane", "Quad"))
+			{
+				if (ImGui.MenuItem(scope String(kind).CStr()))
+					CreateBuiltin(kind);
+			}
 			ImGui.EndMenu();
 		}
 		if (ImGui.BeginMenu("Light"))
 		{
-			if (ImGui.MenuItem("Directional Light"))
+			for (let kind in StringView[?]("Directional Light", "Point Light", "Spot Light"))
 			{
-				let o = CreateObject("Directional Light");
-				o.AddComponent<Light>();
-				o.Transform.EulerAngles = .(50, -30, 0);
-			}
-			if (ImGui.MenuItem("Point Light"))
-			{
-				let light = CreateObject("Point Light").AddComponent<Light>();
-				light.type = .Point;
-				light.intensity = 5;
-			}
-			if (ImGui.MenuItem("Spot Light"))
-			{
-				let o = CreateObject("Spot Light");
-				let light = o.AddComponent<Light>();
-				light.type = .Spot;
-				light.intensity = 8;
-				o.Transform.EulerAngles = .(90, 0, 0);
+				if (ImGui.MenuItem(scope String(kind).CStr()))
+					CreateBuiltin(kind);
 			}
 			ImGui.EndMenu();
 		}
-		if (ImGui.MenuItem("Camera"))
-			CreateObject("Camera").AddComponent<Camera>();
-		if (ImGui.MenuItem("Particle System"))
-			CreateObject("Particles").AddComponent<ParticleSystem>();
-		if (ImGui.MenuItem("Destructible Voxel Object"))
+		for (let kind in StringView[?]("Camera", "Particle System", "Destructible Voxel Object", "Voxel Terrain", "Network Session"))
 		{
-			let o = CreateObject("Voxel Object");
-			o.AddComponent<VoxelObject>();
-			o.AddComponent<MeshCollider>();
+			if (ImGui.MenuItem(scope String(kind).CStr()))
+				CreateBuiltin(kind);
 		}
-		if (ImGui.MenuItem("Voxel Terrain"))
+		ImGui.Separator();
+		DrawAssetCreateMenu("Prefabs", true);
+		DrawAssetCreateMenu("Models", false);
+		if (ImGui.BeginMenu("With Component"))
 		{
-			mSelectedId = 0;
-			let o = CreateObject("Terrain");
-			// A flat area to shape, centred on the origin.
-			let terrain = o.AddComponent<VoxelTerrain>();
-			let area = terrain.AreaSize;
-			o.Transform.Position = .(-area.x * 0.5f, 0, -area.y * 0.5f);
+			mScriptCatalog.Refresh(Assets.ProjectPath, Project.Current.Name);
+			for (let category in StringView[?]("Rendering", "Physics", "Animation", "Audio", "UI", "Particles", "World", "Networking", "AI", "Scripts"))
+			{
+				if (!ImGui.BeginMenu(scope String(category).CStr()))
+					continue;
+				for (let info in ComponentRegistry.Types)
+				{
+					if (!mScriptCatalog.IsVisible(info) || ComponentCategory(info.fullName, info.name) != category)
+						continue;
+					let label = scope String();
+					NiceName(info.name, label);
+					if (ImGui.MenuItem(scope $"{StringView(ComponentIcon(info.name))}  {label}##{info.fullName}" .CStr()))
+						CreateWithComponent(info);
+				}
+				ImGui.EndMenu();
+			}
+			ImGui.EndMenu();
 		}
-		if (ImGui.MenuItem("Network Session"))
+		ImGui.Separator();
+		if (ImGui.MenuItem("Map Builder...", null, mShowMapBuilder))
+			mShowMapBuilder = !mShowMapBuilder;
+	}
+
+	/// The project's prefabs or models, one submenu per folder; choosing one puts it in the middle of the Scene view.
+	void DrawAssetCreateMenu(char8* title, bool prefabs)
+	{
+		if (!ImGui.BeginMenu(title))
+			return;
+		if (!mPaletteListed)
+			RefreshPalette();
+		for (let folder in mPaletteFolders)
 		{
-			mSelectedId = 0;
-			CreateObject("Network Session").AddComponent<NetworkSession>();
+			bool open = false;
+			bool any = false;
+			for (let relative in mPaletteAssets)
+			{
+				if (relative.EndsWith(".tprefab") != prefabs || MapPieces.IsPiece(relative))
+					continue;
+				let slash = relative.LastIndexOf('/');
+				if ((slash >= 0 ? relative.Substring(0, slash) : StringView()) != folder)
+					continue;
+				if (!any)
+				{
+					any = true;
+					open = ImGui.BeginMenu(folder.IsEmpty ? "(project root)" : folder.CStr());
+				}
+				if (!open)
+					break;
+				let name = scope String();
+				Path.GetFileNameWithoutExtension(relative, name);
+				if (ImGui.MenuItem(scope $"{name}##{relative}" .CStr()))
+				{
+					let made = InstantiateAsset(relative);
+					Vector3 point, normal;
+					if (made != null && RaycastScene(mSceneCamera.ViewportPointToRay(0.5f, 0.5f), out point, out normal, made, true, 60))
+						PlaceOnSurface(made, point, normal, false);
+				}
+			}
+			if (open)
+				ImGui.EndMenu();
 		}
+		if (mPaletteFolders.IsEmpty)
+			ImGui.TextDisabled("None in this project");
+		ImGui.EndMenu();
 	}
 
 	void RequestRebuild()
@@ -344,9 +365,15 @@ extension EditorApp
 		ImGui.SameLine();
 		if (ToolButton("Scale", mGizmoOperation == 2))
 			mGizmoOperation = 2;
+		ImGui.SameLine();
+		if (ToolButton("All", mGizmoOperation == 3))
+			mGizmoOperation = 3;
+		if (ImGui.IsItemHovered())
+			ImGui.SetTooltip("Move, turn and scale handles together (T).");
 		ImGui.SameLine(0, 16);
 		if (ImGui.Button(mGizmoLocal ? "Local" : "Global", .(64, 0)))
 			mGizmoLocal = !mGizmoLocal;
+		DrawSnapToolbar();
 
 		// Which world state the Scene and Game views show (and, while playing, the game is in).
 		if (ProjectConfig.WorldStates.Count > 1)

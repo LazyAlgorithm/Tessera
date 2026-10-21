@@ -59,6 +59,10 @@ static class EditorMain
 		}
 		Project.Current = project;
 		project.GetAssetPath(Assets.ProjectPath);
+		GamePaths.SetGameFolder(project.Path);
+		// A built game takes its name from its manifest; here it is the project's from the start, so that a map
+		// exported before Play was ever pressed says which game it is for.
+		GamePaths.Game.Set(project.Name);
 		if (!project.EngineRoot.IsEmpty)
 			Environment.SetEnvironmentVariable("TESSERA_ROOT", project.EngineRoot);
 

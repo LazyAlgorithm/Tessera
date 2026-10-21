@@ -874,7 +874,14 @@ extension EditorApp
 			return;
 		}
 		GameObject gameObject = null;
-		if (HasExtension(relative, ".tui"))
+		if (MapPieces.IsPiece(relative))
+		{
+			mSelectedId = 0;
+			gameObject = InstantiateAsset(relative);
+			if (gameObject == null)
+				return;
+		}
+		else if (HasExtension(relative, ".tui"))
 		{
 			let name = scope String();
 			Path.GetFileNameWithoutExtension(relative, name);
@@ -912,18 +919,13 @@ extension EditorApp
 			return;
 		if (useViewportPoint)
 		{
-			// Place it where the mouse ray meets terrain or the ground plane.
+			// Stand it on whatever surface the mouse points at (scenery, terrain or the ground plane).
 			let ray = mSceneCamera.ViewportPointToRay(u, v);
-			Vector3 point = ray.GetPoint(10);
-			bool placed = false;
-			let terrain = mScene.FindComponent<VoxelTerrain>();
-			if (terrain != null)
-				placed = terrain.Raycast(ray, 600, out point);
-			if (!placed && ray.direction.y < -0.01f)
-				point = ray.GetPoint(Math.Min(-ray.origin.y / ray.direction.y, 500));
-			else if (!placed)
-				point = ray.GetPoint(10);
-			gameObject.Transform.Position = point;
+			Vector3 point, normal;
+			if (RaycastScene(ray, out point, out normal, gameObject, true, 500))
+				PlaceOnSurface(gameObject, point, normal, false);
+			else
+				gameObject.Transform.Position = ray.GetPoint(10);
 		}
 	}
 }

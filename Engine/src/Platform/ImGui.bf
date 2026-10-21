@@ -201,27 +201,34 @@ static class ImGui
 	public static class Key
 	{
 		public const int32 Tab = 512;
+		public const int32 Home = 519;
+		public const int32 End = 520;
 		public const int32 Delete = 522;
 		public const int32 Space = 524;
 		public const int32 Enter = 525;
 		public const int32 Escape = 526;
 		public const int32 LeftCtrl = 527;
 		public const int32 LeftShift = 528;
+		public const int32 LeftAlt = 529;
 		public const int32 A = 546;
 		public const int32 D = 549;
 		public const int32 E = 550;
 		public const int32 F = 551;
+		public const int32 G = 552;
 		public const int32 N = 559;
 		public const int32 O = 560;
 		public const int32 P = 561;
 		public const int32 Q = 562;
 		public const int32 R = 563;
 		public const int32 S = 564;
+		public const int32 T = 565;
 		public const int32 W = 568;
 		public const int32 Y = 570;
 		public const int32 Z = 571;
 		public const int32 F2 = 573;
 		public const int32 F5 = 576;
+		public const int32 LeftBracket = 603;
+		public const int32 RightBracket = 605;
 		public const int32 ModCtrl = 4096;
 		public const int32 ModShift = 8192;
 	}

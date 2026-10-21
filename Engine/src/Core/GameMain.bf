@@ -34,6 +34,7 @@ static class GameMain
 		Watchdog.Start();
 		ReadManifest(manifest, app);
 		Assets.ProjectPath.Set(scope $"{root}/Assets");
+		GamePaths.SetGameFolder(root);
 		// Physics layers, tags and world states.
 		ProjectConfig.Load();
 		Environment.SetEnvironmentVariable("TESSERA_ROOT", root);

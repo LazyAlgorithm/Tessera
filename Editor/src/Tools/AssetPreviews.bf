@@ -12,9 +12,10 @@ namespace Tessera.Editor;
 static class AssetPreviews
 {
 	const int32 PreviewSize = 128;
-	/// The preview scene renders in views 50 to 56; the copy into the kept picture happens in the view after.
+	/// The preview scene renders in views 50 to 66; the copy into the kept picture happens in the view after its last.
+	/// The copy must come after the tonemap pass, or each picture is the asset made before it.
 	const uint16 ViewBase = 50;
-	const uint16 CopyView = 58;
+	const uint16 CopyView = ViewBase + RenderView.ViewCount;
 
 	class Entry
 	{
@@ -35,6 +36,8 @@ static class AssetPreviews
 
 	static DateTime Stamp(StringView fullPath)
 	{
+		if (MapPieces.IsPiece(fullPath))
+			return default;
 		if (File.GetLastWriteTimeUtc(fullPath) case .Ok(let time))
 			return time;
 		return default;
@@ -114,6 +117,9 @@ static class AssetPreviews
 
 	static bool Build(StringView fullPath)
 	{
+		// A Map Builder piece is made, not read from a file.
+		if (MapPieces.IsPiece(fullPath))
+			return MapPieces.Create(sScene, fullPath) != null;
 		let relative = scope String();
 		Assets.MakeRelative(fullPath, relative);
 		if (fullPath.EndsWith(".tprefab"))
@@ -230,7 +236,7 @@ static class AssetPreviews
 		}
 		entry.stamp = Stamp(path);
 		ClearScene();
-		entry.failed = !File.Exists(path) || !Build(path);
+		entry.failed = (!MapPieces.IsPiece(path) && !File.Exists(path)) || !Build(path);
 		if (entry.failed)
 			return;
 		Frame();
