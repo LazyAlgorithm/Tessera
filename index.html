@@ -753,6 +753,7 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
       <a href="#manual" data-sec="manual-skinned-materials">Materials on skinned meshes</a>
       <a href="#manual" data-sec="manual-anim-layers">Animation layers and blend trees</a>
       <a href="#manual" data-sec="manual-ik">Inverse kinematics</a>
+      <a href="#manual" data-sec="manual-mapbuilder">Building maps</a>
       <a href="#manual" data-sec="manual-terrain">Terrain</a>
       <a href="#manual" data-sec="manual-foliage">Foliage and wind</a>
       <a href="#manual" data-sec="manual-destructible">Destructible objects</a>
@@ -762,6 +763,7 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
       <a href="#manual" data-sec="manual-responsive">Phones and tablets</a>
       <h4>Release</h4>
       <a href="#manual" data-sec="manual-shipping">Shipping</a>
+      <a href="#manual" data-sec="manual-maps">Maps</a>
       <a href="#manual" data-sec="manual-cli">Command line</a>
       <a href="#manual" data-sec="manual-limits">Known limits</a>
       <h4>Engine</h4>
@@ -924,6 +926,23 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
       <p><strong>Animating with it.</strong> A target that is a child of the Animator's object is keyed like any other child. <strong>Key IK</strong> in the Animation window writes the pose IK is making into the clip, on every bone it moves. Recording keys a bone only when you move it by hand, not because IK is bending it.</p>
       <p>From code, <code>IKSolver.TwoBone</code>, <code>Chain</code> and <code>LookAt</code> are the solvers themselves. In multiplayer IK is worked out on each machine; <code>LetGo</code>, <code>Grab</code>, <code>FadeWeight</code> and <code>SetShape</code> are followed everywhere when the object's owner calls them, and a target moves on other machines if it is shared like any other object.</p>
 
+      <h2 id="manual-mapbuilder">Building maps</h2>
+      <p><strong>Window &gt; Map Builder</strong> (or the toolbar button) lists the project's prefabs and models as thumbnails, with a search box and a folder filter. Click one, then click in the Scene view: each click places one, standing on whatever is under the mouse. <strong>[</strong> and <strong>]</strong> turn the next one, <strong>Esc</strong> stops. Random turn, turning to the surface's slope and random scale apply as you place.</p>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Built-in folder</th><th>Pieces</th></tr></thead>
+        <tbody>
+          <tr><td>Primitives</td><td>Cube, Sphere, Capsule, Cylinder, Cone, Plane, Quad</td></tr>
+          <tr><td>Walls</td><td>Wall 4, 2 and 1 m, Half Wall, Doorway, Window Wall, Pillar (3 m tall, 0.2 m thick)</td></tr>
+          <tr><td>Floors</td><td>Floor 1&times;1, 2&times;2, 4&times;4 and 8&times;8, Ramp, Stairs, Platform</td></tr>
+        </tbody>
+      </table></div>
+      <p>Walls and floors are grey boxes with colliders for blocking a level out, sized in whole and half metres so they meet on the move step, with their origin at their foot. A model that a prefab already places is listed once, as the prefab, with its materials and collision.</p>
+      <ul>
+        <li><strong>Snap</strong> in the toolbar moves, turns and scales in steps (set with <strong>v</strong>); Ctrl does the opposite while dragging. <strong>End</strong> drops the selection onto the surface below it.</li>
+        <li><strong>Array</strong> makes evenly spaced copies (fences, shelves, rows of desks); <strong>Scatter copies</strong> drops copies onto the surfaces around the selection (rocks, clutter).</li>
+        <li><strong>Space</strong> over the Scene view searches everything that can be added: built-in objects, prefabs, models and components.</li>
+      </ul>
+
       <h2 id="manual-terrain">Terrain</h2>
       <p>A Voxel Terrain is a grid of tiles, flat until sculpted with Raise, Lower, Smooth, Flatten and Paint. While a brush is picked the Scene view shows a <strong>preview</strong> under the mouse: the brush's edge lying on the ground, and a see-through mesh of the shape it is about to make. Generating ground is the game's own business, done from code with a <code>[TerrainGenerator]</code> class; the editor has no generation settings.</p>
       <div class="tbl-wrap"><table>
@@ -984,6 +1003,12 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
       </table></div>
       <p>Asset packs are written the same way every time from the same files, so store updates only download what changed.</p>
 
+      <h2 id="manual-maps">Maps</h2>
+      <p>A scene can be played by a game without building the game again. <strong>File &gt; Export Scene as Map...</strong> saves the scene and writes it, with its terrain sculpting, as one <code>.tmap</code> file. It goes into the project's <code>Maps</code> folder, and into <code>Maps</code> beside every build of the game under <code>Builds/</code>. Models, prefabs, materials and scripts come from the game, so a map uses what the game has; the export window lists anything the project lacks.</p>
+      <p>A game finds maps in the <code>Maps</code> folder beside it (the project's, in the editor), checks them, and plays one by mounting it and loading its scene:</p>
+      <div data-code="maps" data-file="Scripts/MapMenu.bf"></div>
+      <p><code>Find</code> returns every map, broken ones too, with <code>Problems</code> saying why one cannot be played: the file is not whole (every file inside has a checksum), it was made for another game or a newer engine, it uses a component or names a file the game does not have, or it is the same map (the same <code>Id</code>) as another. A game adds its own checks with <code>AddProblem</code>, and counts what is in a map with <code>CountComponents</code>. In multiplayer every player needs the same map file; share the <code>Id</code> of the one in play. Tumble Toys: Aviation lists the maps from its folder after its own rooms.</p>
+
       <h2 id="manual-cli">Command line</h2>
       <div class="tbl-wrap"><table>
         <thead><tr><th>Option</th><th>Meaning</th></tr></thead>
@@ -994,6 +1019,7 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
           <tr><td><code>--port &lt;n&gt;</code></td><td>A different port for the Direct transport.</td></tr>
           <tr><td><code>--lag</code>, <code>--jitter</code>, <code>--loss</code></td><td>Simulate a poor connection.</td></tr>
           <tr><td><code>--netstats</code></td><td>Print network figures every second.</td></tr>
+          <tr><td><code>--editor --export-map &lt;name&gt;</code></td><td>Export the scene given with <code>--scene</code> as a map, as File &gt; Export Scene as Map does.</td></tr>
         </tbody>
       </table></div>
 
@@ -1461,6 +1487,20 @@ let hinge = Scene.Physics.CreateHinge(car.BodyId, wheel.BodyId, wheel.Transform.
 Scene.Physics.SetHingeMotor(hinge, 3, 100);`,
 format: String.raw`python3 tools/format/format_code.py            # format every source file
 python3 tools/format/format_code.py --check    # list files that are not formatted (changes nothing)`,
+maps: String.raw`let maps = scope List<MapFileInfo>();
+defer { ClearAndDeleteItems!(maps); }
+MapFiles.Find(MapFiles.Folder(.. scope .()), maps);
+for (let map in maps)
+{
+    if (map.Ok)
+        menu.Add(map.Name);
+    else
+        Log.Warning(scope $"{map.File}: {map.Problems[0]}");
+}
+
+// Playing one:
+if (MapFiles.Mount(map))
+    SceneManager.LoadAdditive(Scene, map.ScenePath(.. scope .()), true);`,
 cc: String.raw`let controller = GetComponent<CharacterController>();
 
 // Walking: you give the horizontal velocity; gravity, falling and jumping are handled.
