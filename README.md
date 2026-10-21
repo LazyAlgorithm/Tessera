@@ -291,6 +291,6 @@ Developed and tested on Linux x64 with Vulkan. Windows x64 builds (games and the
 - Automatic script reload works in Linux and Windows x64 Debug editors, and engine changes need Full Rebuild & Restart. Every component class needs `[Component]`.
 - Undo covers objects, components, fields, scene settings, terrain tiles and sculpting, but not voxel carving.
 - Network: a client does not predict physics objects it does not own (they move when the server says so), and there is no encryption or NAT traversal of the engine's own (the Steam transport provides both).
-- Joints are ball joints with an optional swing limit; there are no hinges, sliders, springs or motors, and a hard knock can push a limb a little past its limit. Vehicle wheels are simulated with suspension rays.
+- Only the ball joint is a component; hinges (with a motor) and spring suspensions are made from code through `Scene.Physics` (see `docs/joints.md`). A hard knock can push a limb a little past its swing limit.
 - Script completion works out a variable's type from its declaration or assignment on one line; it does not follow chains (`a.b.`) or infer from method return types.
 - Built games still link the editor code.

@@ -17,6 +17,7 @@ Also since v0.1.0-beta.1:
 - Destroying an object (or unloading a scene) tells every component under it that it is going before any object is freed, so a component's `OnUnregister` can still look at its children: an IK component on a rig no longer crashes when its scene is unloaded.
 - One code style across the engine, applied by `tools/format/format_code.py` (`docs/coding-style.md`).
 - The code was restructured for reading and changing: long methods (the longest were 300 to 700 lines) are split into named steps, large classes (voxel terrain, networking, rendering) are split into files by area, repeated code is shared, constants are named, and the commonly used API has doc comments. No public API was removed or renamed: games build unchanged.
+- Hinge joints with a motor and spring suspensions (`Scene.Physics.CreateHinge`, `CreateSuspension`), and cylinder and convex hull parts in a Compound Collider (`docs/joints.md`).
 - Fixed: the editor's Input Actions window crashed on an action with a touch binding, and touch bindings could not be put on direction actions.
 
 Known limitations: macOS and browser exports are not supported. This is an early beta; back up projects before use.
