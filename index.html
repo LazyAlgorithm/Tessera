@@ -743,6 +743,7 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
       <a href="#manual" data-sec="manual-input">Input actions</a>
       <a href="#manual" data-sec="manual-touch">Touch screens</a>
       <a href="#manual" data-sec="manual-character">Character controller</a>
+      <a href="#manual" data-sec="manual-physics">Physics and joints</a>
       <h4>Multiplayer</h4>
       <a href="#manual" data-sec="manual-net">Networking</a>
       <a href="#manual" data-sec="manual-net-test">Testing on one machine</a>
@@ -763,6 +764,8 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
       <a href="#manual" data-sec="manual-shipping">Shipping</a>
       <a href="#manual" data-sec="manual-cli">Command line</a>
       <a href="#manual" data-sec="manual-limits">Known limits</a>
+      <h4>Engine</h4>
+      <a href="#manual" data-sec="manual-source">Working on the engine</a>
     </nav>
     <article class="prose">
       <select class="side-select" id="manualSelect" aria-label="Jump to a section"></select>
@@ -777,6 +780,8 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
         <li><code>Prefab.Instantiate(scene, "Prefabs/Crate.tprefab", position, rotation)</code> places a prefab; <code>Scene.Destroy(obj)</code> removes an object.</li>
         <li><code>SceneManager.Load</code> changes scene; <code>LoadAdditive</code> and <code>Unload</code> add and remove levels kept in their own scene files.</li>
         <li><code>SpawnPoints.Next</code>, <code>Random</code> and <code>Place</code> choose among the scene's spawn points, by team.</li>
+        <li><code>Application.Quit()</code> quits: a built game closes, and in the editor Play stops and the editor stays open, so a menu's Quit button needs no special case. Setting <code>Application.Instance.Running = false</code> does the same. <code>Application.Instance.Close()</code> always ends the program.</li>
+        <li><code>Scene.DestroyImmediate(obj)</code> takes the whole tree down at once: every component in it gets <code>OnUnregister</code> before any object is freed, so a component can still look at its children as it goes.</li>
       </ul>
 
       <h2 id="manual-input">Input actions</h2>
@@ -798,7 +803,7 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
       <p>These standard actions exist in every project, and <code>NetworkScript</code> reads them, so a networked player works with a controller with no code. <code>InputActions.Describe("Use", text)</code> gives the right prompt for the device in the player's hands.</p>
 
       <h2 id="manual-touch">Touch screens</h2>
-      <p>On a phone or tablet the game draws its own on-screen controls, made once with <code>TouchControls</code> and bound in <code>Input.tinput</code> like any other control (<code>bind touch Fire</code>), so the game reads them as it reads keys or a controller.</p>
+      <p>On a phone or tablet the game draws its own on-screen controls, made once with <code>TouchControls</code> and bound in <code>Input.tinput</code> like any other control (<code>bind touch Fire</code>), so the game reads them as it reads keys or a controller. A touch control can be bound to any action, buttons and directions alike, so a stick can drive <code>Move</code> directly.</p>
       <div class="tbl-wrap"><table>
         <thead><tr><th>Call</th><th>Makes</th></tr></thead>
         <tbody>
@@ -814,6 +819,20 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
       <p><code>CharacterController</code> sweeps a capsule or rounded box through the world. It walks up steps, stands on slopes up to a limit, rides moving platforms and pushes dynamic bodies. Call it once per tick:</p>
       <div data-code="cc" data-file="Scripts/Example.bf"></div>
       <p>Afterwards <code>IsGrounded</code>, <code>CanJump</code>, <code>Velocity</code> and <code>GroundNormal</code> describe the result. <code>SetCapsule</code> and <code>SetBox</code> change the shape and return false when it would not fit, which is how crouching works. <code>CharacterMotor</code> is a ready-made networked walker built on it.</p>
+
+      <h2 id="manual-physics">Physics and joints</h2>
+      <p>A <strong>Rigidbody</strong> with a collider (Box, Sphere, Capsule, Mesh, Convex Hull or Compound) is simulated by Jolt. <code>Scene.Physics</code> answers <code>Raycast</code>, <code>SphereCast</code> and <code>OverlapSphere</code>. A <strong>Compound Collider</strong> is built from parts in the object's own space: <code>AddBox(center, size)</code>, <code>AddCylinder(center, radius, halfHeight, rotation)</code> and <code>AddHull(center, points, rotation)</code> (the convex hull round four or more points); call <code>Rigidbody.RebuildBody</code> afterwards.</p>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Joint</th><th>Made with</th><th>Use</th></tr></thead>
+        <tbody>
+          <tr><td>Ball</td><td>The <strong>Joint</strong> component, or <code>Joint.Connect(a, b, anchor, axis, swingLimit)</code></td><td>Chains, lamps, ragdoll limbs; a swing limit in degrees makes a shoulder or a hip.</td></tr>
+          <tr><td>Hinge</td><td><code>Scene.Physics.CreateHinge(bodyA, bodyB, anchor, axis, childAxis, childNormal)</code></td><td>Doors, wheels, arms. <code>SetHingeMotor</code> spins it (mode 1, radians a second) or turns it to an angle (mode 2); <code>HingeAngle</code> reads it.</td></tr>
+          <tr><td>Suspension</td><td><code>Scene.Physics.CreateSuspension(bodyA, bodyB, anchor, childAnchor, axis, childAxis, childNormal, travel)</code></td><td>A slider with <code>travel</code> metres either way. <code>SetSuspensionSpring(joint, stiffness, damping)</code> (newtons a metre, newton-seconds a metre); <code>SuspensionPosition</code> reads it.</td></tr>
+        </tbody>
+      </table></div>
+      <p>Hinges and suspensions take body ids (<code>rigidbody.BodyId</code>), with the anchor and axes in world space, and return a handle; <code>DestroyJoint</code> removes one, and destroying either body removes it too. Bodies joined by a hinge or a suspension do not collide with each other, so a wheel can sit inside its arch.</p>
+      <div data-code="hinge" data-file="Scripts/Example.bf"></div>
+      <p>Turn on <strong>Debris</strong> on a Rigidbody for things that should lie about without getting in the way: characters, other bodies, rays and casts all pass through it. Joints are local to each machine, so in multiplayer create the same ones everywhere; Joint components saved in a scene or prefab already are.</p>
 
       <h2 id="manual-net">Networking</h2>
       <p>Add a <strong>Network Session</strong> and the scene is multiplayer; without one nothing changes. The server runs the game from each player's controls and sends the result.</p>
@@ -982,11 +1001,22 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
       <ul>
         <li>The Windows editor has been run under Wine only (built games run on Windows), and Windows uses Vulkan only.</li>
         <li>A client does not predict physics objects it does not own; a pushed crate moves when the server says so.</li>
-        <li>Skinned models are deformed on the CPU; no morph targets.</li>
-        <li>Voxel terrain has no level of detail.</li>
-        <li>Joints are ball joints with an optional swing limit.</li>
+        <li>Skinned models are deformed on the CPU; no morph targets. A model no camera drew last frame is deformed only every eighth frame, and not at all in a headless server, so hidden crowds cost little.</li>
+        <li>Voxel terrain level of detail is for the Smooth and Contoured styles only; collision always uses full detail.</li>
+        <li>Only the ball joint is a component; hinges and suspensions are made from code, and only the hinge has a motor.</li>
         <li>Objects placed from a prefab are copies; editing the prefab affects new placements only.</li>
       </ul>
+
+      <h2 id="manual-source">Working on the engine</h2>
+      <p>The engine, editor and launcher are Beef, built with <code>BeefBuild -workspace=. -config=Debug</code> from the repository root. All of it follows one style, written down in <code>docs/coding-style.md</code>, and most of that is applied by a tool:</p>
+      <div data-code="format" data-file="Terminal" data-lang="sh"></div>
+      <ul>
+        <li>Tabs, braces on their own lines, one statement per line; a body goes on its own line, except a guard that only returns, continues or breaks.</li>
+        <li>Types, methods and constants are PascalCase; Inspector fields are camelCase; private fields start with <code>m</code>, static ones with <code>s</code>.</li>
+        <li>A method reads as a list of named steps, and is split once it passes about 80 lines; a large type is split by area into <code>extension</code> files (<code>RenderViewShadows.bf</code>, <code>VoxelTerrainStreaming.bf</code>, <code>NetworkManagerClient.bf</code>).</li>
+        <li>Public members get a <code>///</code> comment saying what they do, which shows in code completion and on visual-scripting nodes.</li>
+      </ul>
+      <p>Every test suite is a workspace under <code>Tests/</code>; run one with <code>BeefBuild -workspace=Tests/&lt;Name&gt; -config=Debug -run</code>.</p>
     </article>
   </div>
 </section>
@@ -1388,7 +1418,7 @@ class MainMenu : Component
 
 	public void OnQuit()
 	{
-		Application.Instance.Running = false;
+		Application.Quit();
 	}
 }`,
 digger: String.raw`using System;
@@ -1426,6 +1456,11 @@ let move = InputActions.Vector("Move");   // x right, y forward, no longer than 
 let look = InputActions.Delta("Look");    // how far to turn this frame
 yaw += look.x * sensitivity;
 pitch -= look.y * sensitivity;`,
+hinge: String.raw`// A wheel on an axle along Z, spun at 3 radians a second.
+let hinge = Scene.Physics.CreateHinge(car.BodyId, wheel.BodyId, wheel.Transform.Position, .(0, 0, 1), .(0, 0, 1), .(1, 0, 0));
+Scene.Physics.SetHingeMotor(hinge, 3, 100);`,
+format: String.raw`python3 tools/format/format_code.py            # format every source file
+python3 tools/format/format_code.py --check    # list files that are not formatted (changes nothing)`,
 cc: String.raw`let controller = GetComponent<CharacterController>();
 
 // Walking: you give the horizontal velocity; gravity, falling and jumping are handled.
