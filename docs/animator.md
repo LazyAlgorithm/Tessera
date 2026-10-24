@@ -64,6 +64,10 @@ Select an object with an Animator, or a child of one. If it has none, the window
 - **Add Key** keys the selected child where it is now, or every listed child when the Animator's own object is selected.
 - **Preview** off puts the object back in its scene pose until the marker is moved again.
 - Clicking a name in the list selects that child in the scene. Right-click a name for **Remove Properties**.
+- **Rigged characters:** with Expose Bones on, the bones are drawn in the Scene view (click one to select and turn
+  it). The footer's **Rig** menu sets up an IK rig, snaps IK targets to the bones, bakes IK into keys, and copies one
+  of the model's own clips (retargeted ones too) into the open clip to edit it. **Hands** opens Hand Posing for finger
+  shapes and curls. See `docs/retargeting.md`.
 - There is no Curves view: keys are blended in straight lines.
 
 Keys are offsets from the pose the object has in the scene, matched to children **by name**. One clip therefore works on any character whose children have the same names. When the window closes, or another object is selected, the object returns to its scene pose, so a previewed pose is never saved into the scene by accident.
@@ -91,10 +95,12 @@ Controllers can be built in code as well (`AnimatorController.AddState`, `AddPar
 ## Clips from another file
 
 A Skinned Mesh Renderer plays the clips in its model's file, and also those in each file its **Clip Library** names
-(`clipLibrary`, separated by `;`). The library must be a rigged `.glb` made for the same skeleton: bones are matched
-by name. Each bone turns as the library's bone turns from its own rest pose. Only bones that the clip moves, such as
-the hips, take the clip's movement, so a taller or shorter character keeps its own proportions. Bones the library
-lacks stay at rest. A clip with the same name as one in the model itself is not replaced.
+(`clipLibrary`, separated by `;`). A library made for the same skeleton is matched by name: each bone turns as the
+library's bone turns from its own rest pose, and only bones that the clip moves, such as the hips, take the clip's
+movement, so a taller or shorter character keeps its own proportions. A library made for **another humanoid**
+(Mixamo clips on a Synty character, say) is retargeted through both models' bone maps, with different names, rolls,
+rest poses and facings allowed. Either way the hips' movement is scaled by leg length. Bones the library lacks stay
+at rest. A clip with the same name as one in the model itself is not replaced. See `docs/retargeting.md`.
 
 From code, `SkinnedModel.ImportClips(library, path)` does the same for any model.
 
@@ -158,9 +164,9 @@ Every method above is a node under **Engine > Animation > Animator** in a graph'
 - **No sub-state machines**, and blend trees cannot hold other blend trees.
 - Layers and blend trees on a rigged model need **Expose Bones**; without it a state names one of the model's clips and the model plays it itself, as before.
 - Masks are by bone name and take a bone with everything below it; there is no way to leave out one bone in the middle.
-- **Skinned models** play their own clips: a state can name one, but those clips cannot be edited in the Animation window.
+- **Skinned models** play their own clips: a state can name one, but those clips are not edited in place. **Rig > Copy Model Clip Into This Clip** copies one into a `.tanim` that can be.
 - Undo does not cover edits made in these two windows.
 
 ## Tests
 
-`BeefBuild -workspace=Tests/Animator -config=Debug -run` (28 checks): key ordering and interpolation, the auto-keying rules, saving and loading clips and controllers, clips from before scale existed, conditions, triggers, exit time, Any State, cross-fade blending, state speed, editing a controller while it runs, and previewing. `BeefBuild -workspace=Tests/AnimationLayers -config=Debug -run` (22 checks): 1D and 2D blend tree weights, blend trees in step, saving and loading layers, masks, blending and blend trees, controllers from before layers, a masked upper-body layer, layer weights, an additive recoil on top of other layers, triggers used up, and 2D blending by direction. `Tests/SkinnedMaterials` checks clip libraries: clips added once, each bone's turn from rest, and which bones move. The Network fixture checks parameters and states across machines.
+`BeefBuild -workspace=Tests/Animator -config=Debug -run` (28 checks): key ordering and interpolation, the auto-keying rules, saving and loading clips and controllers, clips from before scale existed, conditions, triggers, exit time, Any State, cross-fade blending, state speed, editing a controller while it runs, and previewing. `BeefBuild -workspace=Tests/AnimationLayers -config=Debug -run` (22 checks): 1D and 2D blend tree weights, blend trees in step, saving and loading layers, masks, blending and blend trees, controllers from before layers, a masked upper-body layer, layer weights, an additive recoil on top of other layers, triggers used up, and 2D blending by direction. `Tests/SkinnedMaterials` checks clip libraries: clips added once, each bone's turn from rest, and which bones move. `Tests/Retargeting` checks retargeting between humanoids (see `docs/retargeting.md`). The Network fixture checks parameters and states across machines.

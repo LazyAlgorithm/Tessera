@@ -118,9 +118,12 @@ Work agreed and queued, in order (see *How to use this page* above for what "don
   over the network), and plants on a terrain ride sculpted ground up and down, removed when buried or left with
   nothing under them, each judged from its own foot so that caves are left alone. `docs/foliage.md`,
   `Tests/Foliage`, `Tests/Terrain`.
-- [ ] E5b animation retargeting: play clips made for one rig on another (a shared humanoid bone map, matched by
-  name with an editor to fix the matches, bone lengths and rest poses allowed to differ, root motion scaled to the
-  target's size); the Animator plays any retargeted clip, and networking already sends clip and state, not bones
+- [x] E5b animation retargeting (2026-10-24): play clips made for one rig on another (a shared humanoid bone map,
+  matched by name with a Bone Map window to fix the matches, bone lengths, rolls, rest poses and facings allowed to
+  differ, hips movement scaled by leg length); the Animator plays any retargeted clip, and networking already sends
+  clip and state, not bones. With it, at the user's request: bones drawn and clickable in the Scene view, an IK rig in
+  one press with handles, IK snapping and baking, model clips copied into editable ones, and Hand Posing for fingers.
+  `docs/retargeting.md`, `Tests/Retargeting`, editor `--rig-test`.
 - [ ] E11 decals
 - [ ] E12 dialogue and subtitles
 - [ ] E13 sequencer (cutscenes)

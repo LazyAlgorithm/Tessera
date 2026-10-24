@@ -278,6 +278,20 @@ class Program
 		Step(scene);
 		ok &= Check(Quaternion.Dot(palm.Children[2].LocalRotation, Quaternion.Euler(40, 0, 0)) > 0.99999f, "weight 0 leaves the fingers to the clip");
 
+		// POLYGON characters: a thumb, an index finger, and the other three as one chain named only "finger".
+		{
+			let mitten = Bone(scene, "Hand_L", root.Transform, .(3, 1, 0));
+			var bone = Bone(scene, "thumb_01_l", mitten, .(-0.04f, 0, 0.02f));
+			bone = Bone(scene, "thumb_02_l", bone, .(0, 0, 0.03f));
+			bone = Bone(scene, "indexFinger_01_l", mitten, .(-0.02f, 0, 0.09f));
+			bone = Bone(scene, "indexFinger_02_l", bone, .(0, 0, 0.03f));
+			bone = Bone(scene, "finger_01_l", mitten, .(0.02f, 0, 0.09f));
+			bone = Bone(scene, "finger_02_l", bone, .(0, 0, 0.03f));
+			let pose = mitten.GameObject.AddComponent<HandPose>();
+			Step(scene);
+			ok &= Check(pose.BoneCount(0) == 2 && pose.BoneCount(1) == 2 && pose.BoneCount(2) == 2 && pose.BoneCount(3) == 0, "a finger named only \"finger\" is the middle finger");
+		}
+
 		// ---- feet on the ground ----
 		let walker = scene.CreateGameObject("Walker");
 		walker.Transform.Position = .(10, 1, 0);

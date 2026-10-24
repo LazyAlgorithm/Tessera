@@ -93,6 +93,34 @@ class SkinnedMeshRenderer : Component
 		return null;
 	}
 
+	/// How many bone objects there are (the model's joints, while Expose Bones is on; else 0).
+	public int BoneCount => mBones != null ? mBones.Count : 0;
+
+	/// The object for the model's joint of that number (SkinnedModel.Joints), when Expose Bones is on; else null.
+	public Transform BoneAt(int joint) => (mBones != null && joint >= 0 && joint < mBones.Count) ? mBones[joint] : null;
+
+	/// Puts the bone objects in the pose one of the model's clips has at a time (Expose Bones on). False when there
+	/// are no bone objects or no such clip. The Animation window copies a model's clips into editable ones with it.
+	public bool PoseBones(StringView clipName, float time)
+	{
+		let source = mModel != null ? mModel.FindClip(clipName) : null;
+		if (source == null || mBones == null)
+			return false;
+		for (int i < mModel.Joints.Count)
+		{
+			let bone = mBones[i];
+			if (bone == null || bone.GameObject.IsDestroyed)
+				continue;
+			Vector3 position, scale;
+			Quaternion rotation;
+			SamplePose(source, time, i, out position, out rotation, out scale, false);
+			bone.LocalPosition = Mirror(position);
+			bone.LocalRotation = Mirror(rotation);
+			bone.LocalScale = scale;
+		}
+		return true;
+	}
+
 	// The model's space is right-handed and Tessera's is not: a pose crosses over by mirroring Z.
 	static Vector3 Mirror(Vector3 v) => .(v.x, v.y, -v.z);
 	static Quaternion Mirror(Quaternion q) => .(-q.x, -q.y, q.z, q.w);

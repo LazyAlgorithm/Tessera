@@ -51,6 +51,8 @@ extension EditorApp
 		DrawBehavior();
 		DrawAnimator();
 		DrawAnimation();
+		DrawHandPosing();
+		DrawBoneMap();
 		DrawUIEditor();
 		DrawPopups();
 		DrawProjectSettings();
@@ -371,6 +373,11 @@ extension EditorApp
 		ImGui.SameLine(0, 16);
 		if (ImGui.Button(mGizmoLocal ? "Local" : "Global", .(64, 0)))
 			mGizmoLocal = !mGizmoLocal;
+		ImGui.SameLine(0, 16);
+		if (ToolButton("Bones", mShowBones))
+			mShowBones = !mShowBones;
+		if (ImGui.IsItemHovered())
+			ImGui.SetTooltip("Show a selected rigged model's bones and IK handles, seen through it; click one to select it.\nThe model needs Expose Bones on its Skinned Mesh Renderer.");
 		DrawSnapToolbar();
 
 		// Which world state the Scene and Game views show (and, while playing, the game is in).

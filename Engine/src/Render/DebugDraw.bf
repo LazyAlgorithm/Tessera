@@ -156,4 +156,8 @@ static class Gizmos
 	public static LineBatch Lines = new .() ~ delete _;
 	/// Filled, usually see-through shapes; add them with Triangle or Quad.
 	public static LineBatch Triangles = new .() ~ delete _;
+	/// Lines drawn over everything, seen through whatever is in front of them (a character's bones).
+	public static LineBatch OnTopLines = new .() ~ delete _;
+	/// Filled shapes drawn over everything, under OnTopLines (put their outlines there).
+	public static LineBatch OnTopTriangles = new .() ~ delete _;
 }

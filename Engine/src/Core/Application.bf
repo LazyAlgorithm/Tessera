@@ -312,6 +312,8 @@ class Application
 			DebugDraw.Lines.Clear();
 			Gizmos.Lines.Clear();
 			Gizmos.Triangles.Clear();
+			Gizmos.OnTopLines.Clear();
+			Gizmos.OnTopTriangles.Clear();
 		}
 		else
 		{

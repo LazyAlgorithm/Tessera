@@ -198,6 +198,7 @@ class EditorApp : Application
 				FocusSelected();
 			}
 		}
+		ApplyRigSwitches();
 		if (HasArg("--map-builder-test"))
 			RunMapBuilderTest();
 		// Test switch: saves the opened scene as Ctrl+S does, with the map warning, once the layout has settled

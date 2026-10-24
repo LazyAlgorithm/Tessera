@@ -368,10 +368,13 @@ extension EditorApp
 		if (skinned.Model == null)
 			return;
 		ImGui.TextDisabled(scope String()..AppendF("{} bones, {} clips", skinned.Model.Joints.Count, skinned.Model.Clips.Count).CStr());
+		DrawBoneMapLine(skinned);
 		DrawSkinnedParts(skinned);
 		for (let animation in skinned.Model.Clips)
 		{
-			if (ImGui.Selectable(animation.name.CStr(), skinned.CurrentClip == animation.name))
+			// Clips from a Clip Library are marked, since they are fitted to this model rather than made for it.
+			let label = skinned.Model.IsImported(animation) ? scope String()..AppendF("{}  (library)", animation.name) : scope String(animation.name);
+			if (ImGui.Selectable(label.CStr(), skinned.CurrentClip == animation.name))
 			{
 				skinned.clip.Set(animation.name);
 				skinned.Play(animation.name);

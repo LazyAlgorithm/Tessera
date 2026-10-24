@@ -27,6 +27,7 @@ extension EditorApp
 			{
 				mSceneVisible = true;
 				mSceneSize = size;
+				mSceneOrigin = origin;
 				UpdateSceneCamera(size.x / size.y);
 				if (mSceneView.Width > 0)
 					ImGui.Image(mSceneView.OutputTexture, .(mSceneView.Width, mSceneView.Height));
@@ -159,6 +160,8 @@ extension EditorApp
 
 	void Pick(float u, float v)
 	{
+		if (PickBone(u, v))
+			return;
 		let ray = mSceneCamera.ViewportPointToRay(u, v);
 		GameObject best = null;
 		float bestDistance = float.MaxValue;
@@ -216,5 +219,6 @@ extension EditorApp
 				Gizmos.Lines.Box(renderer.ActiveMesh.Bounds, selected.Transform.LocalToWorld, .(1.0f, 0.62f, 0.15f, 1));
 		}
 		BuildMapBuilderGizmos();
+		BuildBoneGizmos();
 	}
 }

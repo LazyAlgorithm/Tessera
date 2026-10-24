@@ -26,8 +26,9 @@ enum HandShape : int32
 /// bone, or name the hand in Hand.
 ///
 /// The fingers are found by name among the hand's children (thumb, index, middle, ring, pinky or little; when none of
-/// the names match they are taken in order). Each finger is that child and the bones below it. If the fingers curl
-/// backwards on your model, tick Flip Curl; if only the thumb does, Flip Thumb.
+/// the names match they are taken in order; a child named only "finger" takes the first free slot from the middle).
+/// Each finger is that child and the bones below it. If the fingers curl backwards on your model, tick Flip Curl; if
+/// only the thumb does, Flip Thumb.
 ///
 /// It is a layer over the clip like the other IK components: Weight 0 leaves the fingers to their animation. Change
 /// shape from code with SetShape (blended over Blend Time, and followed on every machine when the object's owner
@@ -239,6 +240,22 @@ class HandPose : IKComponent
 				if (slot >= 5)
 					break;
 				mFingers[slot++] = Chain(child);
+			}
+		}
+		else
+		{
+			// A finger named only "finger" (POLYGON characters' three fingers in one) takes the first free slot from
+			// the middle finger on.
+			int slot = 2;
+			for (let child in unnamed)
+			{
+				if (!Named(child.GameObject.Name, "finger", "digit"))
+					continue;
+				while (slot < 5 && mFingers[slot] != null)
+					slot++;
+				if (slot >= 5)
+					break;
+				mFingers[slot] = Chain(child);
 			}
 		}
 		ReadRest();
