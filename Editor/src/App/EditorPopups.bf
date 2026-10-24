@@ -58,7 +58,7 @@ extension EditorApp
 				ImGui.CloseCurrentPopup();
 			ImGui.EndPopup();
 		}
-		DrawExportMapPopup();
+		DrawMapWarningPopup();
 	}
 
 	void HandleShortcuts()

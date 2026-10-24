@@ -8,9 +8,8 @@ namespace Tessera;
 /// instanced opaque geometry and debug lines, see-through geometry, the viewmodel (a first-person camera's arms and
 /// weapon, over everything: Camera.viewmodelLayer), the screen effects the scene asks for (ambient occlusion, depth of
 /// field and motion blur, from a depth pass: docs/post-processing.md), bloom, then a tonemapping resolve with colour
-/// grading. Each RenderView uses ViewCount (17) consecutive bgfx view ids starting at ViewBase: shadows 0 to 3, scene
-/// 4, see-through 5, viewmodel 6, depth 7, ambient occlusion 8 and 9, depth of field 10 and 11, motion blur 12, bloom
-/// 13 to 15, tonemap 16.
+/// grading. Each RenderView uses 33 consecutive bgfx view ids: sun shadows 0 to 3, spotlight shadows 4 to 19,
+/// then the scene, transparency, viewmodel, screen effects, bloom and tonemap in views 20 to 32.
 class RenderView
 {
 	struct RenderItem
@@ -35,20 +34,21 @@ class RenderView
 	}
 
 	/// How many bgfx view ids one RenderView uses, from ViewBase. Give each RenderView a ViewBase this far apart.
-	public const int ViewCount = 17;
+	public const int ViewCount = 17 + RenderResources.MaxLights;
+	const int SpotShadowView = 4;
 	// Each pass's view id, from ViewBase (the four shadow cascades are ShadowView to ShadowView + 3).
 	const int ShadowView = 0;
-	const int SceneView = 4;
-	const int TransparentView = 5;
-	const int ViewmodelView = 6;
-	const int DepthView = 7;
-	const int AoView = 8;
-	const int AoApplyView = 9;
-	const int DofBlurView = 10;
-	const int DofCombineView = 11;
-	const int MotionView = 12;
-	const int BloomView = 13;
-	const int TonemapView = 16;
+	const int SceneView = 4 + RenderResources.MaxLights;
+	const int TransparentView = 5 + RenderResources.MaxLights;
+	const int ViewmodelView = 6 + RenderResources.MaxLights;
+	const int DepthView = 7 + RenderResources.MaxLights;
+	const int AoView = 8 + RenderResources.MaxLights;
+	const int AoApplyView = 9 + RenderResources.MaxLights;
+	const int DofBlurView = 10 + RenderResources.MaxLights;
+	const int DofCombineView = 11 + RenderResources.MaxLights;
+	const int MotionView = 12 + RenderResources.MaxLights;
+	const int BloomView = 13 + RenderResources.MaxLights;
+	const int TonemapView = 16 + RenderResources.MaxLights;
 
 	/// What the scene target is cleared to (RGBA): opaque black, under the sky.
 	const uint32 SceneClearColor = 0x000000ff;
@@ -144,6 +144,10 @@ class RenderView
 	float[RenderResources.CascadeCount] mCascadeRadius;
 	Vector3 mLightRight, mLightUp;
 	bool mHasSun;
+	Light[RenderResources.MaxLights] mSpotLights;
+	Matrix4[RenderResources.MaxLights] mSpotShadowMtx;
+	Vector4[RenderResources.MaxLights] mSpotShadowParams;
+	bool mHasSpotShadows;
 
 	public this(uint16 viewBase)
 	{
@@ -250,9 +254,14 @@ class RenderView
 		SetFrameConstants(camera, env);
 
 		ClearItems();
-		let shadowRange = env.shadowDistance + ShadowRangeMargin;
-		GatherRenderers(scene, camera, frustum, castShadows, shadowRange);
-		GatherFoliage(scene, camera, frustum, castShadows, shadowRange);
+		var shadowRange = env.shadowDistance + ShadowRangeMargin;
+		for (let light in mSpotLights)
+		{
+			if (light != null)
+				shadowRange = Math.Max(shadowRange, (light.Transform.Position - camera.position).Length + light.range);
+		}
+		GatherRenderers(scene, camera, frustum, castShadows || mHasSpotShadows, shadowRange);
+		GatherFoliage(scene, camera, frustum, castShadows || mHasSpotShadows, shadowRange);
 		Wind.Gather(scene, camera.position, out mWind, ref mWindZone, ref mWindPush);
 		FoliageBender.Gather(scene, camera.position, ref mBender, ref mBenderPush);
 		VisibleRenderers = (int32)(mItems.Count + mViewmodelItems.Count);
@@ -265,6 +274,8 @@ class RenderView
 			mShadowParams = .(1.0f / RenderResources.ShadowAtlasSize, 0, 0, 0);
 			mCascadeSplits = .(0, 0, 0, 0);
 		}
+		if (mHasSpotShadows)
+			DrawSpotShadows();
 		DrawScene(scene, camera, frustum, env);
 		DrawTransparent(camera);
 		DrawViewmodel(camera);
@@ -299,6 +310,12 @@ class RenderView
 			if (sun == null || (!sun.castShadows && light.castShadows))
 				sun = light;
 		}
+		mHasSpotShadows = false;
+		for (int i < RenderResources.MaxLights)
+		{
+			mSpotLights[i] = null;
+			mSpotShadowParams[i] = .(0, 0, 0, 0);
+		}
 		int lightCount = 0;
 		for (let light in scene.Lights)
 		{
@@ -315,6 +332,11 @@ class RenderView
 			let inner = Math.Cos(innerAngle * 0.5f * Mathf.Deg2Rad);
 			mLightDirSpot[lightCount] = .(light.Transform.Forward, outer);
 			mLightParams[lightCount] = .(inner, light.inverseSquare ? 1 : 0, light.shadowMaskChannel + 1, light.bakedOnly ? 1 : 0);
+			if (DrawShadows && light.type == .Spot && light.castShadows && light.shadowStrength > 0 && light.range > 0.05f && light.intensity > 0)
+			{
+				mSpotLights[lightCount] = light;
+				mHasSpotShadows = true;
+			}
 			lightCount++;
 		}
 		mLightCount = .(lightCount, sun != null ? sun.shadowMaskChannel + 1 : 0, 0, 0);
@@ -375,10 +397,11 @@ class RenderView
 			for (int partIndex < partCount)
 			{
 				let mesh = hasParts ? parts[partIndex].mesh : renderer.ActiveMesh;
-				if (mesh == null || !mesh.HasGpuData)
+				if (mesh == null || !mesh.HasGpuData || (hasParts && parts[partIndex].hidden))
 					continue;
+				let shadowOnly = renderer.shadowOnly || (hasParts && parts[partIndex].shadowOnly);
 				RenderItem item;
-				item.tint = .White;
+				item.tint = hasParts ? parts[partIndex].tint : .White;
 				item.mesh = mesh;
 				item.renderer = renderer;
 				item.material = (hasParts && parts[partIndex].material != null) ? parts[partIndex].material : renderer.ActiveMaterial;
@@ -392,13 +415,13 @@ class RenderView
 				let viewmodel = DrawsAsViewmodel(camera, renderer.GameObject);
 				if (viewmodel)
 				{
-					if (!renderer.shadowOnly)
+					if (!shadowOnly)
 					{
 						(transparent ? mViewmodelTransparent : mViewmodelItems).Add(item);
 						renderer.LastDrawnFrame = Time.FrameCount;
 					}
 				}
-				else if (!renderer.shadowOnly && frustum.Intersects(bounds))
+				else if (!shadowOnly && frustum.Intersects(bounds))
 				{
 					(transparent ? mTransparentItems : mItems).Add(item);
 					renderer.LastDrawnFrame = Time.FrameCount;
@@ -730,6 +753,7 @@ class RenderView
 		bgfx.set_uniform(RenderResources.uParams, &surface.values, ShaderAsset.MaxValues);
 		bgfx.set_texture(0, RenderResources.sAlbedo, surface.texture, uint32.MaxValue);
 		bgfx.set_texture(1, RenderResources.sShadowMap, RenderResources.ShadowMap, uint32.MaxValue);
+		bgfx.set_texture(11, RenderResources.sSpotShadowMap, RenderResources.SpotShadowMap.idx != uint16.MaxValue ? RenderResources.SpotShadowMap : RenderResources.ShadowMap, uint32.MaxValue);
 		bgfx.set_texture(2, RenderResources.sTexture1, Assets.GetTexture(surface.textures[0]), uint32.MaxValue);
 		bgfx.set_texture(3, RenderResources.sTexture2, Assets.GetTexture(surface.textures[1]), uint32.MaxValue);
 		bgfx.set_uniform(RenderResources.uPbr, &surface.pbr, 1);
@@ -785,6 +809,7 @@ class RenderView
 				bgfx.set_texture(stage, stage == 4 ? RenderResources.sNormalMap : (stage == 5 ? RenderResources.sMetalRoughMap : (stage == 6 ? RenderResources.sOcclusionMap : RenderResources.sEmissiveMap)), Gfx.WhiteTexture, uint32.MaxValue);
 			bgfx.set_texture(0, RenderResources.sAlbedo, Gfx.WhiteTexture, uint32.MaxValue);
 			bgfx.set_texture(1, RenderResources.sShadowMap, RenderResources.ShadowMap, uint32.MaxValue);
+			bgfx.set_texture(11, RenderResources.sSpotShadowMap, RenderResources.SpotShadowMap.idx != uint16.MaxValue ? RenderResources.SpotShadowMap : RenderResources.ShadowMap, uint32.MaxValue);
 			bgfx.set_state(Gfx.StateWriteRGB | Gfx.StateWriteA | Gfx.StateWriteZ | Gfx.StateDepthLess | Gfx.StateCullCcw | Gfx.StateMsaa, 0);
 			bgfx.submit(view, RenderResources.MeshProgram, 0, 0xff);
 			DrawCalls++;
@@ -826,6 +851,8 @@ class RenderView
 		bgfx.set_uniform(RenderResources.uLightDirSpot, &mLightDirSpot, RenderResources.MaxLights);
 		bgfx.set_uniform(RenderResources.uLightParams, &mLightParams, RenderResources.MaxLights);
 		bgfx.set_uniform(RenderResources.uLightCount, &mLightCount, 1);
+		bgfx.set_uniform(RenderResources.uSpotShadowMtx, &mSpotShadowMtx, RenderResources.MaxLights);
+		bgfx.set_uniform(RenderResources.uSpotShadowParams, &mSpotShadowParams, RenderResources.MaxLights);
 		bgfx.set_uniform(RenderResources.uShadowMtx, &mShadowMtx, RenderResources.CascadeCount);
 		bgfx.set_uniform(RenderResources.uCascadeSplits, &mCascadeSplits, 1);
 		bgfx.set_uniform(RenderResources.uShadowParams, &mShadowParams, 1);

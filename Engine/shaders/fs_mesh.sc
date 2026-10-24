@@ -1,7 +1,7 @@
 $input v_wpos, v_normal, v_color0, v_texcoord0, v_depth, v_texcoord1
 
 // Forward lit surface: metallic/roughness BRDF, one shadowed directional light with four
-// cascades, up to 16 point/spot lights, hemisphere ambient and distance fog. Output is linear HDR.
+// cascades, up to 16 point/spot lights with spotlight shadows, hemisphere ambient and distance fog. Output is linear HDR.
 #include <bgfx_shader.sh>
 
 #define MAX_LIGHTS 16
@@ -9,6 +9,7 @@ $input v_wpos, v_normal, v_color0, v_texcoord0, v_depth, v_texcoord1
 
 SAMPLER2D(s_albedo, 0);
 SAMPLER2DSHADOW(s_shadowMap, 1);
+SAMPLER2DSHADOW(s_spotShadowMap, 11);
 SAMPLER2D(s_texture1, 2);
 SAMPLER2D(s_texture2, 3);
 SAMPLER2D(s_normalMap, 4);
@@ -39,6 +40,8 @@ uniform vec4 u_lightDirSpot[MAX_LIGHTS];   // xyz spot direction, w cos(outer an
 uniform vec4 u_lightParams[MAX_LIGHTS];    // x cos(inner angle)
 uniform vec4 u_lightCount;
 uniform mat4 u_shadowMtx[4];
+uniform mat4 u_spotShadowMtx[MAX_LIGHTS];
+uniform vec4 u_spotShadowParams[MAX_LIGHTS]; // strength, texel size, depth bias, normal offset
 uniform vec4 u_cascadeSplits;
 uniform vec4 u_shadowParams;  // x texel size, y depth bias, z enabled, w normal offset
 
@@ -75,6 +78,30 @@ vec3 brdf(vec3 n, vec3 v, vec3 l, vec3 albedo, float metallic, float roughness, 
 	vec3 specular = fresnel * (distributionGGX(ndoth, a) * visibilitySmith(ndotv, ndotl, a));
 	vec3 diffuse = albedo * (1.0 - metallic) * (1.0 / PI);
 	return (diffuse * (vec3_splat(1.0) - fresnel) + specular) * ndotl;
+}
+
+// Perspective shadow comparison for a spotlight, bounded to its atlas tile so filtering never reads a neighbour.
+float spotShadow(int index, vec3 wpos, vec3 normal)
+{
+    vec4 params = u_spotShadowParams[index];
+    if (params.x <= 0.0) return 1.0;
+    vec4 clip = mul(u_spotShadowMtx[index], vec4(wpos + normal * params.w, 1.0));
+    if (clip.w <= 0.0) return 1.0;
+    vec3 sc = clip.xyz / clip.w;
+    if (sc.z < 0.0 || sc.z > 1.0) return 1.0;
+    // The matrix already accounts for the graphics API's texture origin. Find the tile from its centre.
+    vec4 centreClip = mul(u_spotShadowMtx[index], vec4(u_lightPosRange[index].xyz + u_lightDirSpot[index].xyz, 1.0));
+    vec2 tileMin = floor((centreClip.xy / centreClip.w) * 4.0) * 0.25;
+    vec2 lo = tileMin + vec2_splat(params.y * 1.5);
+    vec2 hi = tileMin + vec2_splat(0.25 - params.y * 1.5);
+    if (any(lessThan(sc.xy, tileMin)) || any(greaterThan(sc.xy, tileMin + vec2_splat(0.25)))) return 1.0;
+    float depth = sc.z - params.z;
+    float sum = 0.0;
+    sum += shadow2D(s_spotShadowMap, vec3(clamp(sc.xy + vec2(-0.5,-0.5) * params.y, lo, hi), depth));
+    sum += shadow2D(s_spotShadowMap, vec3(clamp(sc.xy + vec2( 0.5,-0.5) * params.y, lo, hi), depth));
+    sum += shadow2D(s_spotShadowMap, vec3(clamp(sc.xy + vec2(-0.5, 0.5) * params.y, lo, hi), depth));
+    sum += shadow2D(s_spotShadowMap, vec3(clamp(sc.xy + vec2( 0.5, 0.5) * params.y, lo, hi), depth));
+    return mix(1.0, sum * 0.25, params.x);
 }
 
 float shadowTap(mat4 mtx, vec3 wpos)
@@ -272,6 +299,7 @@ void main()
             {
                 float cosAngle = dot(-l,u_lightDirSpot[i].xyz);
                 atten *= smoothstep(u_lightDirSpot[i].w,u_lightParams[i].x,cosAngle);
+                atten *= spotShadow(i, v_wpos, n);
             }
             if (u_lightParams[i].z > 0.5) atten *= bakedMask[int(u_lightParams[i].z - 1.0)];
             color += brdf(n,v,l,albedo,metallic,roughness,specularLevel) * u_lightColor[i].rgb * atten * PI;

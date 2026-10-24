@@ -88,6 +88,16 @@ An Animator with **no controller** works as it always did: list clip files in **
 
 Controllers can be built in code as well (`AnimatorController.AddState`, `AddParameter`, `AddTransition`, `AddCondition`, `Save`), which is what the tests do.
 
+## Clips from another file
+
+A Skinned Mesh Renderer plays the clips in its model's file, and also those in each file its **Clip Library** names
+(`clipLibrary`, separated by `;`). The library must be a rigged `.glb` made for the same skeleton: bones are matched
+by name. Each bone turns as the library's bone turns from its own rest pose. Only bones that the clip moves, such as
+the hips, take the clip's movement, so a taller or shorter character keeps its own proportions. Bones the library
+lacks stay at rest. A clip with the same name as one in the model itself is not replaced.
+
+From code, `SkinnedModel.ImportClips(library, path)` does the same for any model.
+
 ## Layers
 
 A controller starts with one layer, the **Base Layer**, which moves the whole body. More layers are each a state
@@ -153,4 +163,4 @@ Every method above is a node under **Engine > Animation > Animator** in a graph'
 
 ## Tests
 
-`BeefBuild -workspace=Tests/Animator -config=Debug -run` (28 checks): key ordering and interpolation, the auto-keying rules, saving and loading clips and controllers, clips from before scale existed, conditions, triggers, exit time, Any State, cross-fade blending, state speed, editing a controller while it runs, and previewing. `BeefBuild -workspace=Tests/AnimationLayers -config=Debug -run` (22 checks): 1D and 2D blend tree weights, blend trees in step, saving and loading layers, masks, blending and blend trees, controllers from before layers, a masked upper-body layer, layer weights, an additive recoil on top of other layers, triggers used up, and 2D blending by direction. The Network fixture checks parameters and states across machines.
+`BeefBuild -workspace=Tests/Animator -config=Debug -run` (28 checks): key ordering and interpolation, the auto-keying rules, saving and loading clips and controllers, clips from before scale existed, conditions, triggers, exit time, Any State, cross-fade blending, state speed, editing a controller while it runs, and previewing. `BeefBuild -workspace=Tests/AnimationLayers -config=Debug -run` (22 checks): 1D and 2D blend tree weights, blend trees in step, saving and loading layers, masks, blending and blend trees, controllers from before layers, a masked upper-body layer, layer weights, an additive recoil on top of other layers, triggers used up, and 2D blending by direction. `Tests/SkinnedMaterials` checks clip libraries: clips added once, each bone's turn from rest, and which bones move. The Network fixture checks parameters and states across machines.

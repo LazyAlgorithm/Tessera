@@ -18,6 +18,9 @@ class SkinnedMeshRenderer : Component
 	public String model = new .() ~ delete _;
 	/// Clip to start with; empty plays the first clip in the file.
 	public String clip = new .() ~ delete _;
+	/// Rigged .glb files whose clips this model can play too, separated by ';': a file of animations made for the
+	/// same skeleton (bones are matched by name), such as the Basic Motions asset pack for POLYGON characters.
+	public String clipLibrary = new .() ~ delete _;
 	public float speed = 1.0f;
 	public bool loop = true;
 	/// Makes an object for every bone of the skeleton, under this one, and bends the mesh from those objects: then
@@ -32,13 +35,23 @@ class SkinnedMeshRenderer : Component
 	/// The parts' own materials, "Part=Materials/skin.tmat;Other=..." (the Inspector edits it as a list).
 	[HideInInspector]
 	public String materials = new .() ~ delete _;
+	/// Parts not drawn, by name, separated by ';': the clothes a character is not wearing, when every choice of a
+	/// character customizer is a part of one model ("Hat_Tricorn;Hair_Long").
+	public String hiddenParts = new .() ~ delete _;
+	/// Parts drawn only into shadows, by name, separated by ';': a first-person player's own head.
+	public String shadowOnlyParts = new .() ~ delete _;
+	/// Each part's colour, multiplying its material's, "Coat=0.5 0.1 0.1;Hair=0.2 0.15 0.1" (red, green, blue from 0
+	/// to 1): one model dressed in many colours.
+	public String partColors = new .() ~ delete _;
 
 	SkinnedModel mModel;
 	String mLoadedPath = new .() ~ delete _;
+	String mLoadedLibrary = new .() ~ delete _;
 	Mesh mMesh ~ delete _;
 	// One per part of a model with materials of its own (SkinnedModel.Parts), sharing mMesh's vertices.
 	List<MeshRenderer.Part> mParts = new .() ~ { for (let part in _) delete part.mesh; DeleteContainerAndItems!(_); };
 	String mResolvedMaterials = new .() ~ delete _;
+	String mResolvedLooks = new .() ~ delete _;
 	int32 mResolvedRendererMaterial = -1;
 	SkinnedModel.Clip mCurrent;
 	SkinnedModel.Clip mPrevious;
@@ -54,6 +67,13 @@ class SkinnedMeshRenderer : Component
 	bool mBonesFor;
 	bool mSkinnedOnce;
 	int32 mStagger = sNextStagger++;
+	// The layer (PlayLayer): its clip, the one it is fading from, and which bones it poses.
+	SkinnedModel.Clip mLayer;
+	SkinnedModel.Clip mLayerPrevious;
+	float mLayerTime, mLayerPreviousTime, mLayerFade, mLayerFadeDuration;
+	float mLayerWeight, mLayerTarget, mLayerWeightSpeed;
+	bool[] mLayerMask ~ delete _;
+	String mLayerBones = new .() ~ delete _;
 	static int32 sNextStagger;
 	static List<SkinnedMeshRenderer> sAll = new .() ~ delete _;
 
@@ -293,10 +313,101 @@ class SkinnedMeshRenderer : Component
 		}
 	}
 
+	/// Sets a part's colour (Part Colors), by the part's name.
+	public void SetPartColor(StringView part, Color color)
+	{
+		SetEntry(partColors, part, scope $"{color.r:0.###} {color.g:0.###} {color.b:0.###}");
+	}
+
+	/// Hides or shows a part (Hidden Parts), by the part's name.
+	public void SetPartHidden(StringView part, bool hidden) => SetListed(hiddenParts, part, hidden);
+
+	/// Draws a part only into shadows, or normally again (Shadow Only Parts), by the part's name.
+	public void SetPartShadowOnly(StringView part, bool shadowOnly) => SetListed(shadowOnlyParts, part, shadowOnly);
+
+	static bool Listed(StringView list, StringView name)
+	{
+		for (var entry in list.Split(';'))
+		{
+			entry.Trim();
+			if (entry == name)
+				return true;
+		}
+		return false;
+	}
+
+	static void SetListed(String list, StringView name, bool listed)
+	{
+		if (Listed(list, name) == listed || name.IsEmpty)
+			return;
+		let rebuilt = scope String();
+		for (var entry in list.Split(';'))
+		{
+			entry.Trim();
+			if (!entry.IsEmpty && entry != name)
+				rebuilt.AppendF("{}{}", rebuilt.IsEmpty ? "" : ";", entry);
+		}
+		if (listed)
+			rebuilt.AppendF("{}{}", rebuilt.IsEmpty ? "" : ";", name);
+		list.Set(rebuilt);
+	}
+
+	static void SetEntry(String list, StringView name, StringView value)
+	{
+		let rebuilt = scope String();
+		for (var entry in list.Split(';'))
+		{
+			let equals = entry.IndexOf('=');
+			if (entry.IsEmpty || (equals > 0 && entry.Substring(0, equals) == name))
+				continue;
+			rebuilt.AppendF("{}{}", rebuilt.IsEmpty ? "" : ";", entry);
+		}
+		rebuilt.AppendF("{}{}={}", rebuilt.IsEmpty ? "" : ";", name, value);
+		list.Set(rebuilt);
+	}
+
+	/// Applies Hidden Parts, Shadow Only Parts and Part Colors to the parts, when one of them has changed.
+	void ResolvePartLooks()
+	{
+		let looks = scope $"{hiddenParts}\n{shadowOnlyParts}\n{partColors}";
+		if (mResolvedLooks == looks)
+			return;
+		mResolvedLooks.Set(looks);
+		for (int i < mParts.Count)
+		{
+			let name = mModel.Parts[i].name;
+			mParts[i].hidden = Listed(hiddenParts, name);
+			mParts[i].shadowOnly = Listed(shadowOnlyParts, name);
+			mParts[i].tint = .White;
+		}
+		for (var entry in partColors.Split(';'))
+		{
+			let equals = entry.IndexOf('=');
+			if (equals <= 0)
+				continue;
+			let name = entry.Substring(0, equals);
+			var numbers = entry.Substring(equals + 1);
+			float[3] rgb = .(1, 1, 1);
+			int n = 0;
+			for (let word in numbers.Split(' ', .RemoveEmptyEntries))
+			{
+				if (n < 3)
+					rgb[n++] = SceneSerializer.ParseFloat(word);
+			}
+			for (int i < mParts.Count)
+			{
+				if (mModel.Parts[i].name == name)
+					mParts[i].tint = .(rgb[0], rgb[1], rgb[2], 1);
+			}
+		}
+	}
+
 	void Reload()
 	{
 		if (model.IsEmpty || mLoadedPath == model)
 		{
+			if (mModel != null && mLoadedLibrary != clipLibrary)
+				ImportLibraries();
 			if (mModel != null && !clip.IsEmpty && CurrentClip != clip)
 				Play(clip, 0.2f);
 			return;
@@ -305,6 +416,10 @@ class SkinnedMeshRenderer : Component
 		mModel = SkinnedModel.Load(model);
 		mCurrent = null;
 		mPrevious = null;
+		mLayer = null;
+		mLayerPrevious = null;
+		mLayerWeight = mLayerTarget = 0;
+		DeleteAndNullify!(mLayerMask);
 		if (mModel == null)
 		{
 			Log.Warning(scope $"'{model}' has no skeleton (or could not be read). Use a Mesh Renderer for unrigged models.");
@@ -345,13 +460,32 @@ class SkinnedMeshRenderer : Component
 			}
 		}
 		mResolvedMaterials.Set("\n");
+		mResolvedLooks.Set("\n\n\n");
 		mAttachPending = true;
 		mSkinnedOnce = false;
 		SyncBones();
+		ImportLibraries();
 		if (!clip.IsEmpty)
 			Play(clip, 0);
 		else if (mModel.Clips.Count > 0)
 			Play(mModel.Clips[0].name, 0);
+	}
+
+	/// Adds the clips of each file in clipLibrary to the model (once per model and file).
+	void ImportLibraries()
+	{
+		mLoadedLibrary.Set(clipLibrary);
+		for (var path in clipLibrary.Split(';'))
+		{
+			path.Trim();
+			if (path.IsEmpty)
+				continue;
+			let library = SkinnedModel.Load(path);
+			if (library == null)
+				Log.Warning(scope $"Clip library '{path}' has no skeleton (or could not be read).");
+			else
+				mModel.ImportClips(library, path);
+		}
 	}
 
 	public bool HasClip(StringView name) => mModel != null && mModel.FindClip(name) != null;
@@ -374,10 +508,86 @@ class SkinnedMeshRenderer : Component
 		NetworkSync.AnimationPlayed(this, name, fadeSeconds);
 	}
 
-	void SamplePose(SkinnedModel.Clip source, float time, int joint, out Vector3 position, out Quaternion rotation, out Vector3 scale)
+	/// Plays a clip on some bones only, over the main clip: `bones` names them, separated by ';', and each takes
+	/// everything below it too ("spine_01" is the whole upper body). The layer fades in over fadeSeconds, and a
+	/// different clip on it cross-fades. A character's arms can then keep holding a weapon (its Idle) while its
+	/// legs play a jump or a crouching walk made for empty hands. Played on this machine only; it always loops.
+	public void PlayLayer(StringView name, StringView bones, float fadeSeconds = 0.15f)
+	{
+		if (mModel == null)
+			return;
+		let next = mModel.FindClip(name);
+		if (next == null)
+			return;
+		if (mLayerMask == null || mLayerBones != bones)
+		{
+			mLayerBones.Set(bones);
+			delete mLayerMask;
+			mLayerMask = new bool[mModel.Joints.Count];
+			for (int i < mModel.Joints.Count)
+			{
+				for (var at = i; at >= 0 && !mLayerMask[i]; at = mModel.Joints[at].parent)
+				{
+					for (let bone in bones.Split(';'))
+						mLayerMask[i] |= !bone.IsEmpty && mModel.Joints[at].name == bone;
+				}
+			}
+		}
+		if (next != mLayer)
+		{
+			// Fully faded out, the layer starts afresh; still showing, it cross-fades to the new clip.
+			mLayerPrevious = mLayerWeight > 0 ? mLayer : null;
+			mLayerPreviousTime = mLayerTime;
+			mLayer = next;
+			mLayerTime = 0;
+			mLayerFade = 0;
+			mLayerFadeDuration = fadeSeconds;
+		}
+		mLayerTarget = 1;
+		mLayerWeightSpeed = fadeSeconds > 0 ? 1 / fadeSeconds : 1000;
+	}
+
+	/// Fades the layer out over some seconds, leaving every bone to the main clip again.
+	public void StopLayer(float fadeSeconds = 0.15f)
+	{
+		mLayerTarget = 0;
+		mLayerWeightSpeed = fadeSeconds > 0 ? 1 / fadeSeconds : 1000;
+	}
+
+	/// The clip playing on the layer while it shows, or "".
+	public StringView CurrentLayerClip => (mLayer != null && mLayerTarget > 0) ? (StringView)mLayer.name : "";
+
+	/// Puts the layer's pose over a joint's pose from the main clip, if the layer moves that joint.
+	void LayerPose(int joint, ref Vector3 position, ref Quaternion rotation, ref Vector3 scale)
+	{
+		if (mLayer == null || mLayerWeight <= 0 || mLayerMask == null || !mLayerMask[joint])
+			return;
+		Vector3 layerPosition, layerScale;
+		Quaternion layerRotation;
+		SamplePose(mLayer, mLayerTime, joint, out layerPosition, out layerRotation, out layerScale, true);
+		if (mLayerPrevious != null && mLayerFade < mLayerFadeDuration)
+		{
+			Vector3 fromPosition, fromScale;
+			Quaternion fromRotation;
+			SamplePose(mLayerPrevious, mLayerPreviousTime, joint, out fromPosition, out fromRotation, out fromScale, true);
+			let swap = Mathf.SmoothStep(0, 1, mLayerFade / mLayerFadeDuration);
+			layerPosition = Vector3.Lerp(fromPosition, layerPosition, swap);
+			layerRotation = Quaternion.Slerp(fromRotation, layerRotation, swap);
+			layerScale = Vector3.Lerp(fromScale, layerScale, swap);
+		}
+		let weight = Mathf.SmoothStep(0, 1, mLayerWeight);
+		position = Vector3.Lerp(position, layerPosition, weight);
+		rotation = Quaternion.Slerp(rotation, layerRotation, weight);
+		scale = Vector3.Lerp(scale, layerScale, weight);
+	}
+
+	void SamplePose(SkinnedModel.Clip source, float time, int joint, out Vector3 position, out Quaternion rotation, out Vector3 scale) =>
+		SamplePose(source, time, joint, out position, out rotation, out scale, loop);
+
+	void SamplePose(SkinnedModel.Clip source, float time, int joint, out Vector3 position, out Quaternion rotation, out Vector3 scale, bool looping)
 	{
 		let jointCount = mModel.Joints.Count;
-		var t = loop ? time % source.duration : Math.Min(time, source.duration);
+		var t = looping ? time % source.duration : Math.Min(time, source.duration);
 		let exact = t * 30.0f;
 		let f0 = Math.Min((int)exact, source.frames - 1);
 		let f1 = Math.Min(f0 + 1, source.frames - 1);
@@ -409,6 +619,7 @@ class SkinnedMeshRenderer : Component
 				rotation = Quaternion.Slerp(fromRotation, rotation, weight);
 				scale = Vector3.Lerp(fromScale, scale, weight);
 			}
+			LayerPose(index, ref position, ref rotation, ref scale);
 		}
 		let local = Matrix4.TRS(position, rotation, scale);
 		if (joint.parent >= 0)
@@ -441,12 +652,17 @@ class SkinnedMeshRenderer : Component
 			let renderer = GetComponent<MeshRenderer>();
 			if (renderer != null)
 				ResolvePartMaterials(renderer);
+			ResolvePartLooks();
 		}
 		let step = Time.DeltaTime * speed;
 		mTime += step;
 		mPreviousTime += step;
 		mFade += Time.DeltaTime;
 		let weight = (mPrevious != null && mFade < mFadeDuration) ? Mathf.SmoothStep(0, 1, mFade / mFadeDuration) : 1.0f;
+		mLayerTime += Time.DeltaTime;
+		mLayerPreviousTime += Time.DeltaTime;
+		mLayerFade += Time.DeltaTime;
+		mLayerWeight = Mathf.MoveTowards(mLayerWeight, mLayerTarget, Time.DeltaTime * mLayerWeightSpeed);
 
 		if (exposeBones && mBones != null)
 		{
@@ -471,6 +687,7 @@ class SkinnedMeshRenderer : Component
 						rotation = Quaternion.Slerp(fromRotation, rotation, weight);
 						scale = Vector3.Lerp(fromScale, scale, weight);
 					}
+					LayerPose(i, ref position, ref rotation, ref scale);
 					bone.LocalPosition = Mirror(position);
 					bone.LocalRotation = Mirror(rotation);
 					bone.LocalScale = scale;
@@ -487,33 +704,51 @@ class SkinnedMeshRenderer : Component
 		SkinVertices();
 	}
 
+	// This vertex loop also needs optimization in editor Debug builds.
+	[Optimize]
 	void SkinVertices()
 	{
-		let positions = mModel.Positions;
-		let normals = mModel.Normals;
+		let positions = mModel.Positions.Ptr;
+		let normals = mModel.Normals.Ptr;
 		let joints = mModel.JointIndices.Ptr;
 		let weights = mModel.Weights.Ptr;
+		let matrices = mSkin.Ptr;
+		let vertices = mMesh.Vertices.Ptr;
 		var bounds = Bounds.Empty;
-		for (int v < positions.Count)
+		for (int v < mModel.Positions.Count)
 		{
 			let p = positions[v];
 			let n = normals[v];
-			Vector3 skinned = .Zero;
-			Vector3 normal = .Zero;
+			float px = 0, py = 0, pz = 0, nx = 0, ny = 0, nz = 0;
 			for (int k < 4)
 			{
 				let w = weights[v * 4 + k];
-				if (w <= 0)
-					continue;
-				let matrix = mSkin[joints[v * 4 + k]];
-				skinned = skinned + matrix.TransformPoint(p) * w;
-				normal = normal + matrix.TransformDirection(n) * w;
+				if (w <= 0) continue;
+				let matrix = &matrices[joints[v * 4 + k]].m;
+				px += ((*matrix)[0] * p.x + (*matrix)[4] * p.y + (*matrix)[8] * p.z + (*matrix)[12]) * w;
+				py += ((*matrix)[1] * p.x + (*matrix)[5] * p.y + (*matrix)[9] * p.z + (*matrix)[13]) * w;
+				pz += ((*matrix)[2] * p.x + (*matrix)[6] * p.y + (*matrix)[10] * p.z + (*matrix)[14]) * w;
+				nx += ((*matrix)[0] * n.x + (*matrix)[4] * n.y + (*matrix)[8] * n.z) * w;
+				ny += ((*matrix)[1] * n.x + (*matrix)[5] * n.y + (*matrix)[9] * n.z) * w;
+				nz += ((*matrix)[2] * n.x + (*matrix)[6] * n.y + (*matrix)[10] * n.z) * w;
 			}
+			let length = Math.Sqrt(nx * nx + ny * ny + nz * nz);
+			let inverse = length < 1.0e-12f ? 0.0f : 1.0f / length;
 			// Into Tessera's left-handed space.
-			let outPosition = Vector3(skinned.x, skinned.y, -skinned.z);
-			mMesh.Vertices[v].position = outPosition;
-			mMesh.Vertices[v].normal = Vector3(normal.x, normal.y, -normal.z).Normalized;
-			bounds.Encapsulate(outPosition);
+			vertices[v].position = .(px, py, -pz);
+			vertices[v].normal = .(nx * inverse, ny * inverse, -nz * inverse);
+			if (px < bounds.min.x)
+				bounds.min.x = px;
+			if (py < bounds.min.y)
+				bounds.min.y = py;
+			if (-pz < bounds.min.z)
+				bounds.min.z = -pz;
+			if (px > bounds.max.x)
+				bounds.max.x = px;
+			if (py > bounds.max.y)
+				bounds.max.y = py;
+			if (-pz > bounds.max.z)
+				bounds.max.z = -pz;
 		}
 		mMesh.Bounds = bounds;
 		mMesh.UpdateDynamic();

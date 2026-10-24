@@ -66,6 +66,7 @@ extension NetworkManager
 				Despawn(identity.GameObject);
 		}
 		AntiCheat.ClientLeft(this, client.id);
+		MapSharing.ClientLeft(client.id);
 		Log.Info(scope $"Client {client.id} disconnected.");
 		mClients.Remove(client);
 		delete client;
@@ -174,6 +175,7 @@ extension NetworkManager
 		if (mMode == .Offline)
 			return;
 		AntiCheat.Tick(this);
+		MapSharing.Tick(this);
 		if (IsServer)
 		{
 			if (mMode == .Host)

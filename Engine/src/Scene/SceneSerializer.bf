@@ -16,7 +16,23 @@ static class SceneSerializer
 {
 	public static void Save(Scene scene, String text)
 	{
-		text.AppendF("scene {}\n", Quote(scene.Name, .. scope .()));
+		SaveSettings(scene, scene.Name, text);
+		for (let root in scene.Roots)
+			SaveObject(root, text);
+	}
+
+	/// Writes a scene file holding only the objects under group (each child as a root) with the scene's environment:
+	/// a scene that was loaded into another (SceneManager.LoadAdditive), saved on its own again.
+	public static void SaveGroup(Scene scene, GameObject group, StringView name, String text)
+	{
+		SaveSettings(scene, name, text);
+		for (let child in group.Transform.Children)
+			SaveObject(child.GameObject, text, true);
+	}
+
+	static void SaveSettings(Scene scene, StringView name, String text)
+	{
+		text.AppendF("scene {}\n", Quote(name, .. scope .()));
 		let env = scene.Environment;
 		WriteColor(text, "skyZenith", env.skyZenith);
 		WriteColor(text, "skyHorizon", env.skyHorizon);
@@ -49,8 +65,6 @@ static class SceneSerializer
 		if (!env.colorLookup.IsEmpty)
 			text.AppendF("env colorLookup {}\n", Quote(env.colorLookup, .. scope .()));
 		Number(text, "colorLookupStrength", env.colorLookupStrength, defaults.colorLookupStrength);
-		for (let root in scene.Roots)
-			SaveObject(root, text);
 	}
 
 	/// Writes an environment number only when it differs from a new scene's.
@@ -68,12 +82,12 @@ static class SceneSerializer
 	/// Writes one object and its children; the text can be loaded with Instantiate or LoadObjects.
 	public static void SaveObjectTree(GameObject gameObject, String text) => SaveObject(gameObject, text);
 
-	static void SaveObject(GameObject gameObject, String text)
+	static void SaveObject(GameObject gameObject, String text, bool asRoot = false)
 	{
 		if (gameObject.Transient)
 			return;
 		let transform = gameObject.Transform;
-		let parentId = transform.Parent != null ? transform.Parent.GameObject.Id : 0;
+		let parentId = (transform.Parent != null && !asRoot) ? transform.Parent.GameObject.Id : 0;
 		text.AppendF("object {} parent {} active {} name {}\n", gameObject.Id, parentId, gameObject.ActiveSelf ? 1 : 0, Quote(gameObject.Name, .. scope .()));
 		if (gameObject.IsFolder)
 			text.Append("folder\n");

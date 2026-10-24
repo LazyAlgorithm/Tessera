@@ -173,6 +173,9 @@ static class AssetPack
 	/// loose file of the same name. MapFiles uses this for the files inside a map.
 	public static void AddMemoryFile(StringView fullPath, Span<uint8> data)
 	{
+		// Models and pictures are read by native code (cgltf, stb_image), which keeps its own copy.
+		if (NativeReads(fullPath))
+			tn_memory_file_add(scope String(fullPath).CStr(), data.Ptr, (uint)data.Length);
 		let key = MemoryKey(fullPath, .. new .());
 		let copy = new List<uint8>(data.Length);
 		copy.AddRange(data);
@@ -190,6 +193,7 @@ static class AssetPack
 	/// Forgets every memory file inside a folder (a full path), and returns how many there were.
 	public static int RemoveMemoryFiles(StringView folder)
 	{
+		tn_memory_file_remove_folder(scope String(folder).CStr());
 		let prefix = MemoryKey(folder, .. scope .())..Append('/');
 		let gone = scope List<String>();
 		using (sMemoryLock.Enter())
@@ -209,6 +213,19 @@ static class AssetPack
 			}
 		}
 		return gone.Count;
+	}
+
+	[CLink] static extern void tn_memory_file_add(char8* path, void* data, uint size);
+	[CLink] static extern void tn_memory_file_remove_folder(char8* folder);
+
+	static bool NativeReads(StringView path)
+	{
+		for (let fileType in StringView[?](".glb", ".gltf", ".bin", ".png", ".jpg", ".jpeg", ".tga", ".bmp"))
+		{
+			if (path.EndsWith(fileType, .OrdinalIgnoreCase))
+				return true;
+		}
+		return false;
 	}
 
 	/// Paths as memory files are kept: forward slashes, never two together, none at the end.

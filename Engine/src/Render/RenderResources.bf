@@ -13,6 +13,8 @@ static class RenderResources
 	/// use a smaller one (Gfx.UseMobileQuality).
 	public static int32 ShadowAtlasSize = 4096;
 	public static int32 ShadowTileSize => ShadowAtlasSize / 2;
+	/// Sixteen spotlights, one 1024px tile each at desktop quality.
+	public static int32 SpotShadowTileSize => ShadowAtlasSize / 4;
 
 	public static bool Ready;
 	public static bgfx.ProgramHandle MeshProgram;
@@ -28,17 +30,19 @@ static class RenderResources
 	public static bgfx.UniformHandle uPostRight, uPostUp, uPostForward, uPostEye, uGradeParams, uGradeFilter;
 	public static bgfx.ProgramHandle LineProgram;
 
-	public static bgfx.UniformHandle sAlbedo, sShadowMap, sColor;
+	public static bgfx.UniformHandle sAlbedo, sShadowMap, sSpotShadowMap, sColor;
 	public static bgfx.UniformHandle uWind, uWindZone, uWindPush, uSway, uBender, uBenderPush;
 	public static bgfx.UniformHandle uCamPos, uSunDir, uSunColor, uAmbientSky, uAmbientGround, uFogColor;
 	public static bgfx.UniformHandle uMaterial, uEmissive, uUvTransform, uSurface, uParams, uPbr, sTexture1, sTexture2, sNormalMap, sMetalRoughMap, sOcclusionMap, sEmissiveMap;
 	public static bgfx.UniformHandle sLightmap, sLightmapDirection, sLightmapShadowmask, uLightmapTransform, uLightmapDecode;
 	public static bgfx.UniformHandle uLightPosRange, uLightColor, uLightDirSpot, uLightParams, uLightCount;
-	public static bgfx.UniformHandle uShadowMtx, uCascadeSplits, uShadowParams;
+	public static bgfx.UniformHandle uShadowMtx, uCascadeSplits, uShadowParams, uSpotShadowMtx, uSpotShadowParams;
 	public static bgfx.UniformHandle uSkyZenith, uSkyHorizon, uSkyGround, uPostParams;
 
 	public static bgfx.TextureHandle ShadowMap;
 	public static bgfx.FrameBufferHandle ShadowFrameBuffer;
+	public static bgfx.TextureHandle SpotShadowMap = .() { idx = uint16.MaxValue };
+	public static bgfx.FrameBufferHandle SpotShadowFrameBuffer = .() { idx = uint16.MaxValue };
 
 	public static void EnsureCreated()
 	{
@@ -78,6 +82,9 @@ static class RenderResources
 
 		sAlbedo = bgfx.create_uniform("s_albedo", .Sampler, 1);
 		sShadowMap = bgfx.create_uniform("s_shadowMap", .Sampler, 1);
+		sSpotShadowMap = bgfx.create_uniform("s_spotShadowMap", .Sampler, 1);
+		uSpotShadowMtx = bgfx.create_uniform("u_spotShadowMtx", .Mat4, MaxLights);
+		uSpotShadowParams = bgfx.create_uniform("u_spotShadowParams", .Vec4, MaxLights);
 		sColor = bgfx.create_uniform("s_color", .Sampler, 1);
 		uCamPos = bgfx.create_uniform("u_camPos", .Vec4, 1);
 		uSunDir = bgfx.create_uniform("u_sunDir", .Vec4, 1);
@@ -128,6 +135,15 @@ static class RenderResources
 		Ready = true;
 	}
 
+	/// Allocate spotlight depth storage only when a scene actually has a shadowed spotlight.
+	public static void EnsureSpotShadows()
+	{
+		if (SpotShadowFrameBuffer.idx != uint16.MaxValue) return;
+		let flags = Gfx.TextureRenderTarget | Gfx.SamplerCompareLequal | Gfx.SamplerClamp;
+		SpotShadowMap = bgfx.create_texture_2d((uint16)ShadowAtlasSize, (uint16)ShadowAtlasSize, false, 1, .D32F, flags, null, 0);
+		SpotShadowFrameBuffer = bgfx.create_frame_buffer_from_handles(1, &SpotShadowMap, true);
+	}
+
 	public static void Destroy()
 	{
 		if (!Ready)
@@ -151,6 +167,13 @@ static class RenderResources
 		bgfx.destroy_program(MotionBlurProgram);
 		bgfx.destroy_program(LineProgram);
 		bgfx.destroy_frame_buffer(ShadowFrameBuffer);
+		if (SpotShadowFrameBuffer.idx != uint16.MaxValue)
+			bgfx.destroy_frame_buffer(SpotShadowFrameBuffer);
+		SpotShadowFrameBuffer.idx = uint16.MaxValue;
+		SpotShadowMap.idx = uint16.MaxValue;
+		bgfx.destroy_uniform(sSpotShadowMap);
+		bgfx.destroy_uniform(uSpotShadowMtx);
+		bgfx.destroy_uniform(uSpotShadowParams);
 		Ready = false;
 	}
 }

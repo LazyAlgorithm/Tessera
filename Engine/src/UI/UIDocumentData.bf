@@ -445,6 +445,9 @@ class UIDocumentData
 		{
 			element.computed.Set("color", element.parent.computed.Get("color", "#e6e6e6"));
 			element.computed.Set("font-size", element.parent.computed.Get("font-size", "16"));
+			let family = element.parent.computed.Get("font-family");
+			if (!family.IsEmpty)
+				element.computed.Set("font-family", family);
 		}
 		else
 		{
@@ -513,7 +516,7 @@ class UIDocumentData
 		Vector2 content = .(0, 0);
 		if (IsTextTag(element.tag) && !element.text.IsEmpty)
 		{
-			ImGui.PushFontSize(element.Number("font-size", 16));
+			UIFonts.Push(element.computed.Get("font-family"), element.Number("font-size", 16));
 			// white-space: normal breaks the text into lines to fit its width (its own, or what there is).
 			let wraps = element.computed.Get("white-space") == "normal";
 			let wrapWidth = contentWidth - padding.x - padding.z;
@@ -1033,7 +1036,7 @@ class UIDocumentData
 		var padding = element.Edges("padding");
 		padding = .(padding.x * scale, padding.y * scale, padding.z * scale, padding.w * scale);
 		let min = frame.min, max = frame.max;
-		ImGui.PushFontSize(element.Number("font-size", 16) * scale);
+		UIFonts.Push(element.computed.Get("font-family"), element.Number("font-size", 16) * scale);
 		let size = ImGui.CalcTextSize(shown.CStr());
 		var tx = min.x + padding.x;
 		var ty = min.y + padding.y;

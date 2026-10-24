@@ -14,6 +14,122 @@
 #include <stdlib.h>
 #include <string.h>
 #include "tessera_pack.h"
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#else
+#include <pthread.h>
+#endif
+
+// ---- memory files ----
+// Files the engine holds in memory (a mounted map's own models and pictures), found before a pack's or a loose file
+// of the same full path. Paths are kept with forward slashes. Loading threads read while the main thread adds.
+
+typedef struct tn_memory_file { char* path; void* data; size_t size; struct tn_memory_file* next; } tn_memory_file;
+static tn_memory_file* memoryFiles;
+#ifdef _WIN32
+static SRWLOCK memoryLock = SRWLOCK_INIT;
+#define MEMORY_LOCK() AcquireSRWLockExclusive(&memoryLock)
+#define MEMORY_UNLOCK() ReleaseSRWLockExclusive(&memoryLock)
+#else
+static pthread_mutex_t memoryLock = PTHREAD_MUTEX_INITIALIZER;
+#define MEMORY_LOCK() pthread_mutex_lock(&memoryLock)
+#define MEMORY_UNLOCK() pthread_mutex_unlock(&memoryLock)
+#endif
+
+static void memory_key(const char* path, char* key, size_t capacity)
+{
+	size_t length = 0;
+	for (const char* c = path; *c != 0 && length + 1 < capacity; c++)
+	{
+		char ch = *c == '\\' ? '/' : *c;
+		if (ch == '/' && length > 0 && key[length - 1] == '/') continue;
+		key[length++] = ch;
+	}
+	key[length] = 0;
+}
+
+static void memory_remove_locked(const char* key)
+{
+	for (tn_memory_file** link = &memoryFiles; *link != NULL; link = &(*link)->next)
+	{
+		if (strcmp((*link)->path, key) == 0)
+		{
+			tn_memory_file* gone = *link;
+			*link = gone->next;
+			free(gone->path);
+			free(gone->data);
+			free(gone);
+			return;
+		}
+	}
+}
+
+void tn_memory_file_add(const char* path, const void* data, size_t size)
+{
+	char key[1024];
+	memory_key(path, key, sizeof(key));
+	tn_memory_file* file = (tn_memory_file*)calloc(1, sizeof(tn_memory_file));
+	size_t keyLength = strlen(key) + 1;
+	file->path = (char*)malloc(keyLength);
+	memcpy(file->path, key, keyLength);
+	file->data = malloc(size > 0 ? size : 1);
+	if (size > 0) memcpy(file->data, data, size);
+	file->size = size;
+	MEMORY_LOCK();
+	memory_remove_locked(key);
+	file->next = memoryFiles;
+	memoryFiles = file;
+	MEMORY_UNLOCK();
+}
+
+// Forgets every memory file inside a folder (a full path).
+void tn_memory_file_remove_folder(const char* folder)
+{
+	char key[1024];
+	memory_key(folder, key, sizeof(key) - 1);
+	size_t length = strlen(key);
+	while (length > 0 && key[length - 1] == '/') key[--length] = 0;
+	key[length++] = '/';
+	key[length] = 0;
+	MEMORY_LOCK();
+	for (tn_memory_file** link = &memoryFiles; *link != NULL;)
+	{
+		if (strncmp((*link)->path, key, length) == 0)
+		{
+			tn_memory_file* gone = *link;
+			*link = gone->next;
+			free(gone->path);
+			free(gone->data);
+			free(gone);
+		}
+		else
+			link = &(*link)->next;
+	}
+	MEMORY_UNLOCK();
+}
+
+// A malloc'd copy of a memory file, or NULL.
+static void* memory_read(const char* path, size_t* size)
+{
+	if (memoryFiles == NULL) return NULL;
+	char key[1024];
+	memory_key(path, key, sizeof(key));
+	void* copy = NULL;
+	MEMORY_LOCK();
+	for (tn_memory_file* file = memoryFiles; file != NULL; file = file->next)
+	{
+		if (strcmp(file->path, key) == 0)
+		{
+			copy = malloc(file->size > 0 ? file->size : 1);
+			if (file->size > 0) memcpy(copy, file->data, file->size);
+			*size = file->size;
+			break;
+		}
+	}
+	MEMORY_UNLOCK();
+	return copy;
+}
 
 // ---- images ----
 
@@ -22,7 +138,8 @@ unsigned char* tn_image_load(const char* path, int* width, int* height)
 	int channels = 0;
 	// From an asset pack when the file is in one, else from disk.
 	size_t size = 0;
-	void* packed = tn_pack_read(path, &size);
+	void* packed = memory_read(path, &size);
+	if (packed == NULL) packed = tn_pack_read(path, &size);
 	if (packed != NULL)
 	{
 		unsigned char* pixels = stbi_load_from_memory((const stbi_uc*)packed, (int)size, width, height, &channels, 4);
@@ -247,7 +364,8 @@ static float* tn_read_floats(const cgltf_accessor* accessor, int components)
 static cgltf_result pack_or_file_read(const struct cgltf_memory_options* memory, const struct cgltf_file_options* file, const char* path, cgltf_size* size, void** data)
 {
 	size_t length = 0;
-	void* packed = tn_pack_read(path, &length);
+	void* packed = memory_read(path, &length);
+	if (packed == NULL) packed = tn_pack_read(path, &length);
 	if (packed != NULL)
 	{
 		*size = (cgltf_size)length;

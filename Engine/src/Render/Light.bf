@@ -13,7 +13,7 @@ enum LightType : int32
 	Spot
 }
 
-/// Directional, point or spot light. The first enabled directional light is the sun and casts cascaded shadows.
+/// Directional, point or spot light. The sun casts cascaded shadows; spot lights cast perspective shadows.
 [Component]
 class Light : Component
 {
@@ -37,7 +37,7 @@ class Light : Component
 	/// How wide a spot light's cone is, in degrees.
 	[Range(1, 170)]
 	public float spotAngle = 45.0f;
-	/// Whether the light casts shadows (only the sun's are drawn in real time).
+	/// Whether the light casts shadows (directional and spot lights are drawn in real time).
 	public bool castShadows = true;
 	/// How dark the light's shadows are: 1 is fully dark, 0 none.
 	[Range(0, 1)]

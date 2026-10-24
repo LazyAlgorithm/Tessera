@@ -70,7 +70,7 @@ extension EditorApp
 		}
 		SaveAllScripts();
 		if (mPlay == .Edit)
-			SaveScene();
+			SaveScene(false);
 		// The game only loads compiled shaders, so they must be current before it is packaged.
 		CompileStaleShaders();
 		let output = scope String();

@@ -38,6 +38,22 @@ skinned.SetPartMaterial(1, "Materials/armour_damaged.tmat");   // "" gives the p
 
 The choices are saved with the scene in the component's `materials` field, `Skin=Materials/skin.tmat;Armour=...`.
 
+## Hiding and dyeing parts
+
+A character customizer can put every choice in one model (each hat, hairstyle and coat a part of its own, by material
+name) and pick what is shown and in what colours, so one skeleton animates them all:
+
+```beef
+skinned.SetPartHidden("Hat_Tricorn", true);              // Hidden Parts: not drawn, no shadow
+skinned.SetPartColor("Coat", .(0.56f, 0.14f, 0.16f));    // Part Colors: multiplies the part's material colour
+skinned.SetPartShadowOnly("Head", true);                 // Shadow Only Parts: a first-person player's own head
+```
+
+They are three fields, saved with the scene: `hiddenParts` and `shadowOnlyParts` (part names separated by `;`) and
+`partColors` (`Coat=0.56 0.14 0.16;Hair=0.2 0.15 0.1`). Set the strings directly to change many parts at once; they are
+applied on the next frame. On a Mesh Renderer, `MeshRenderer.Part` has the same three settings (`hidden`, `tint`,
+`shadowOnly`) for any component that hands it parts.
+
 ## Networking
 
 `SetPartMaterial`, called on the server or on the machine of the player who owns the object, is sent to every machine, the same way as `MeshRenderer.SetMaterial`. Materials chosen in the editor are part of the scene and need nothing sent.
@@ -47,5 +63,7 @@ The choices are saved with the scene in the component's `materials` field, `Skin
 The model's vertices are skinned once a frame into one buffer; each part is a mesh with indices of its own that draws those vertices (`Mesh.VertexSource`), so several materials cost no extra skinning or upload. `MeshRenderer.RuntimeParts` is the general form: any component can hand a renderer a list of meshes, each with a material, to draw in place of its one mesh.
 
 ## Tests
+
+Hiding, dyeing and shadow-only parts, and that a scene keeps them, are checked in `Tests/SkinnedMaterials` too.
 
 `python3 Tests/SkinnedMaterials/make_models.py` makes small rigged models whose textures arrive the three ways glTF allows; `BeefBuild -workspace=Tests/SkinnedMaterials -config=Debug -run` checks the parts, the materials and textures read from each, the parts' own materials, and saving.

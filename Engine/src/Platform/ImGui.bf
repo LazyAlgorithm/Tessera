@@ -244,6 +244,8 @@ static class ImGui
 	[CLink] public static extern void tn_imgui_new_frame();
 	[CLink] public static extern void tn_imgui_render(uint16 viewId);
 	[CLink] public static extern void tn_imgui_push_mono_font();
+	[CLink] public static extern void* tn_imgui_add_font(void* data, int32 size);
+	[CLink] public static extern void tn_imgui_push_font(void* font, float size);
 	[CLink] public static extern int32 tn_imgui_capture_flags();
 	[CLink] public static extern bool tn_imgui_slider_float(char8* label, float* value, float min, float max, char8* format);
 	[CLink] public static extern void tn_gizmo_begin(float x, float y, float width, float height, bool orthographic);
@@ -260,6 +262,7 @@ static class ImGui
 	[CLink] static extern void igTextColored(Vec4 color, char8* fmt, ...);
 	[CLink] static extern void igTextDisabled(char8* fmt, ...);
 	[CLink] static extern void igTextWrapped(char8* fmt, ...);
+	[CLink] static extern void igBulletText(char8* fmt, ...);
 	[CLink] static extern bool igButton(char8* label, Vec2 size);
 	[CLink] static extern bool igSmallButton(char8* label);
 	[CLink] static extern double igGetTime();
@@ -423,6 +426,7 @@ static class ImGui
 	public static void TextColored(Color color, char8* text) => igTextColored(.(color.r, color.g, color.b, color.a), "%s", text);
 	public static void TextDisabled(char8* text) => igTextDisabled("%s", text);
 	public static void TextWrapped(char8* text) => igTextWrapped("%s", text);
+	public static void BulletText(char8* text) => igBulletText("%s", text);
 	[CLink] static extern void igPushTextWrapPos(float wrapLocalPosX);
 	[CLink] static extern void igPopTextWrapPos();
 	[CLink] static extern bool igRadioButton_Bool(char8* label, bool active);
@@ -515,11 +519,17 @@ static class ImGui
 	/// Paints a bgfx texture at a fixed place in the window without taking part in layout.
 	public static void DrawImage(uint16 textureIndex, Vec2 min, Vec2 max, bool opaque = true)
 	{
+		DrawImage(textureIndex, min, max, .White, opaque);
+	}
+
+	/// Paints a bgfx texture tinted by a colour (its alpha fades the picture).
+	public static void DrawImage(uint16 textureIndex, Vec2 min, Vec2 max, Color tint, bool opaque = false)
+	{
 		TextureRef texture = default;
 		texture.texId = (uint64)textureIndex + 1;
 		if (opaque)
 			texture.texId |= (uint64)1 << 32;
-		ImDrawList_AddImage(igGetWindowDrawList(), texture, min, max, .(0, 0), .(1, 1), 0xFFFFFFFF);
+		ImDrawList_AddImage(igGetWindowDrawList(), texture, min, max, .(0, 0), .(1, 1), tint.ToABGR());
 	}
 
 	/// Rotated textured quad, with angle in radians about its centre.

@@ -61,10 +61,12 @@ or replace them like any other object.
   desks) and **Scatter copies** (copies dropped onto the surfaces within a radius around the selection, each turned at
   random: clutter, rocks, toys).
 
-## Playing it in the game
+## Maps players make
 
-File > Export Scene as Map... writes the scene as a `.tmap` file into the game's `Maps` folder (and each build's), where
-a game that looks for maps lists it without being built again. See [Maps](maps).
+The Map Builder makes a game's own levels. Maps that players make and share (`.tmap` files) are made in the game,
+by a map editor the game provides, which can use the same built-in pieces (`MapPieces`, in the engine). If the game
+has a `MapRules.txt`, such as "at least 4 Spawn Points", saving a scene in the editor warns when it does not meet
+them yet, so the game's own levels stay playable as maps. See [Maps](maps).
 
 ## Quick Add
 

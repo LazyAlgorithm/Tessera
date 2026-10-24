@@ -86,6 +86,88 @@ class Program
 		plainSkinned.OnValidate();
 		Check(plainSkinned.PartCount == 0, "a plain model has no parts to set");
 
+		// ---- parts hidden, dyed or drawn only into shadows (a character customizer) ----
+		skinned.SetPartHidden("Armour", true);
+		skinned.SetPartColor("Skin", .(1, 0.5f, 0.25f));
+		skinned.SetPartShadowOnly("Skin", true);
+		skinned.OnFrame();
+		let parts = hero.GetComponent<MeshRenderer>().RuntimeParts;
+		Check(parts != null && parts.Count == 2 && parts[1].hidden && !parts[0].hidden, scope $"a part can be hidden ({skinned.hiddenParts})");
+		Check(parts != null && Math.Abs(parts[0].tint.g - 0.5f) < 0.01f && Math.Abs(parts[0].tint.b - 0.25f) < 0.01f && parts[1].tint.r == 1, scope $"a part can be dyed, the others keep their colour ({skinned.partColors})");
+		Check(parts != null && parts[0].shadowOnly && !parts[1].shadowOnly, "a part can be drawn only into shadows");
+		skinned.SetPartHidden("Armour", false);
+		skinned.SetPartShadowOnly("Skin", false);
+		skinned.SetPartColor("Skin", .(0.2f, 0.3f, 0.4f));
+		skinned.OnFrame();
+		let redrawn = scope $"and shown and drawn again, dyed anew ({skinned.partColors})";
+		Check(parts != null && !parts[1].hidden && !parts[0].shadowOnly && Math.Abs(parts[0].tint.r - 0.2f) < 0.01f && skinned.hiddenParts.IsEmpty && skinned.partColors == "Skin=0.2 0.3 0.4", redrawn);
+		skinned.SetPartHidden("Armour", true);
+		let looks = scope String();
+		SceneSerializer.Save(scene, looks);
+		let dressed = scope Scene();
+		SceneSerializer.Load(dressed, looks);
+		let again = dressed.Find("Hero").GetComponent<SkinnedMeshRenderer>();
+		Check(again != null && again.hiddenParts == "Armour" && again.partColors == "Skin=0.2 0.3 0.4", "a scene keeps which parts are hidden and their colours");
+
+		// ---- a clip library: clips made for the same skeleton, in another file ----
+		{
+			let model = SkinnedModel.Load("assets/plain.glb");
+			let library = scope SkinnedModel();
+			let turn = Quaternion.AngleAxis(90, .Up);
+			for (int j < model.Joints.Count)
+			{
+				var joint = model.Joints[j];
+				joint.name = new String(joint.name);
+				// The library's rest pose differs: what is shared is each bone's turn from its rest.
+				joint.restRotation = turn;
+				joint.restPosition = .(5, 5, 5);
+				library.Joints.Add(joint);
+			}
+			let walk = new SkinnedModel.Clip();
+			walk.name.Set("Walk");
+			walk.frames = 2;
+			walk.duration = 1 / 30.0f;
+			walk.data = new float[2 * library.Joints.Count * 10];
+			let tilt = Quaternion.AngleAxis(30, .Right);
+			for (int f < 2)
+			{
+				for (int j < library.Joints.Count)
+				{
+					let a = walk.data.Ptr + (f * library.Joints.Count + j) * 10;
+					// Joint 0 rises 0.5 in the second frame; every joint tilts by 30 degrees from its rest.
+					let position = Vector3(5, 5 + (j == 0 && f == 1 ? 0.5f : 0), 5);
+					let rotation = turn * tilt;
+					a[0] = position.x;
+					a[1] = position.y;
+					a[2] = position.z;
+					a[3] = rotation.x;
+					a[4] = rotation.y;
+					a[5] = rotation.z;
+					a[6] = rotation.w;
+					a[7] = 1;
+					a[8] = 1;
+					a[9] = 1;
+				}
+			}
+			library.Clips.Add(walk);
+			let before = model.Clips.Count;
+			Check(model.ImportClips(library, "library") == 1 && model.FindClip("Walk") != null && model.Clips.Count == before + 1, "a clip library's clips are added to a model with the same bones");
+			Check(model.ImportClips(library, "library") == 0, "the same library is added once");
+			let copy = model.FindClip("Walk");
+			Vector3 p0, p1, s;
+			Quaternion r;
+			model.SampleJoint(copy, 1 / 30.0f, false, 0, out p1, out r, out s);
+			model.SampleJoint(copy, 0, false, 0, out p0, out r, out s);
+			let expected = (model.Joints[0].restRotation * tilt).Normalized;
+			Check(Math.Abs(Quaternion.Dot(r, expected)) > 0.999f, "each bone turns from this model's rest as the library's bone turns from its own");
+			Check((p0 - model.Joints[0].restPosition).Length < 0.001f && Math.Abs(p1.y - p0.y - 0.5f) < 0.001f, "a bone the clip moves keeps this model's place and takes the clip's movement");
+			if (model.Joints.Count > 1)
+			{
+				model.SampleJoint(copy, 1 / 30.0f, false, 1, out p1, out r, out s);
+				Check((p1 - model.Joints[1].restPosition).Length < 0.001f, "a bone the clip does not move stays where this model has it");
+			}
+		}
+
 		Console.WriteLine(sFailures == 0 ? "All skinned material tests passed." : scope $"{sFailures} skinned material test(s) failed.");
 		return sFailures == 0 ? 0 : 1;
 	}

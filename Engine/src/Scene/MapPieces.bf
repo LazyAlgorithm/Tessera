@@ -2,9 +2,10 @@ using System;
 using System.Collections;
 using Tessera;
 
-namespace Tessera.Editor;
+namespace Tessera;
 
-/// The Map Builder's built-in pieces, in every project: the primitives, and walls and floors for blocking out a level.
+/// The built-in pieces of the editor's Map Builder and of a game's own map editor, in every project: the primitives,
+/// and walls and floors for blocking out a level.
 /// Each is named "builtin:<Folder>/<Name>" in the palette. Walls and floors are made of boxes with box colliders,
 /// sized to whole and half metres so they line up with the move step; the object's origin is at its foot, in the
 /// middle (a wall's origin is the middle of its bottom edge).

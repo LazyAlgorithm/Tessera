@@ -43,6 +43,56 @@ static class Assets
 		sTextures.Clear();
 	}
 
+	/// Drops the meshes and textures loaded from paths that start with prefix ("" + a mounted map's folder), so a
+	/// changed file of the same name is read again. Nothing may still be drawing them.
+	public static void Forget(StringView prefix)
+	{
+		let meshes = scope List<String>();
+		for (let key in sMeshes.Keys)
+		{
+			if (key.StartsWith(prefix))
+				meshes.Add(key);
+		}
+		for (let key in meshes)
+		{
+			if (sMeshes.GetAndRemove(key) case .Ok(let pair))
+			{
+				delete pair.key;
+				delete pair.value;
+			}
+		}
+		let missing = scope List<String>();
+		for (let key in sMissingMeshes.Keys)
+		{
+			if (key.StartsWith(prefix))
+				missing.Add(key);
+		}
+		for (let key in missing)
+		{
+			sMissingMeshes.Remove(key);
+			delete key;
+		}
+		let textures = scope List<String>();
+		for (let key in sTextures.Keys)
+		{
+			if (key.StartsWith(prefix))
+				textures.Add(key);
+		}
+		for (let key in textures)
+		{
+			if (sTextures.GetAndRemove(key) case .Ok(let pair))
+			{
+				if (Gfx.Initialized && pair.value != Gfx.WhiteTexture.idx)
+				{
+					bgfx.TextureHandle handle;
+					handle.idx = pair.value;
+					bgfx.destroy_texture(handle);
+				}
+				delete pair.key;
+			}
+		}
+	}
+
 	/// Extra folders searched before the project's own, newest first: mods and Workshop items. A file a mod provides
 	/// under the same relative path replaces the project's.
 	static List<String> sSearchPaths = new .() ~ DeleteContainerAndItems!(_);
@@ -297,10 +347,39 @@ static class Assets
 			handle.idx = cached;
 			return handle;
 		}
+		// An image inside a model ("Models/hero.glb#image2"): every image of that file is made into a texture.
+		let image = path.IndexOf("#image");
+		if (image > 0 && Gfx.Initialized && AddModelImages(path.Substring(0, image)) && sTextures.TryGetValueAlt(path, let found))
+		{
+			bgfx.TextureHandle handle;
+			handle.idx = found;
+			return handle;
+		}
 		let full = scope String();
 		ResolvePath(path, full);
 		let texture = Gfx.LoadTexture(full);
 		sTextures[new String(path)] = texture.idx;
 		return texture;
+	}
+
+	/// Makes each image in a glTF / GLB file a texture named "<file>#image<n>". False if the file cannot be read.
+	static bool AddModelImages(StringView model)
+	{
+		if (!model.EndsWith(".glb", .OrdinalIgnoreCase) && !model.EndsWith(".gltf", .OrdinalIgnoreCase))
+			return false;
+		let full = scope String();
+		ResolvePath(model, full);
+		let scene = Native.tn_gltf_load(full.CStr());
+		if (scene == null)
+			return false;
+		defer Native.tn_gltf_free(scene);
+		for (int32 i < Native.tn_gltf_image_count(scene))
+		{
+			int32 width = 0, height = 0;
+			let pixels = Native.tn_gltf_get_image(scene, i, &width, &height);
+			if (pixels != null)
+				AddTexture(scope $"{model}#image{i}" , pixels, width, height);
+		}
+		return true;
 	}
 }
