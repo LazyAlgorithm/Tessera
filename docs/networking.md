@@ -93,6 +93,7 @@ What it changes:
 - A body resting on both machines but a little apart (where a shove came to rest) is put where the server has it, with no replay.
 - Lag compensation leaves predicted bodies where they are. The player saw them where they are now, as they see their own player.
 - A correction runs the scene's physics again for each tick since (a round trip's worth). That replay happens only when something differs.
+- A script that eases its own corrections (in `PreparePredictionState` / `RestorePredictionState`) sees a predicted body's rewind with `Replaying` set, as the replay itself is. Add `NetworkIdentity.SmoothOffset` to where it draws the body instead: that is what is left of the correction after the replay.
 - `--netstats` shows how many bodies a client predicts and how far off the worst was. `PhysicsRollbacks` counts the corrections made for bodies alone.
 
 ### Shots and lag compensation

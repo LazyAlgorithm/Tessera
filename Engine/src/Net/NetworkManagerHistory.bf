@@ -198,6 +198,9 @@ extension NetworkManager
 	void RewindTo(uint32 tick, List<(NetworkIdentity identity, BodyState state)> owned, List<ServerBody> bodies)
 	{
 		let slot = tick % NetworkIdentity.HistorySize;
+		// For a predicted body this is the start of the replay, not a correction to show: the replay brings it
+		// back to now, and SmoothOffset eases out what is left.
+		Replaying = true;
 		for (let identity in mIdentities)
 		{
 			if (identity.Predicted && (int32)(tick - identity.PredictedSince) >= 0)
@@ -211,6 +214,7 @@ extension NetworkManager
 			if ((int32)(tick - body.identity.PredictedSince) < 0)
 				body.identity.PredictedSince = tick;
 		}
+		Replaying = false;
 		for (let entry in owned)
 		{
 			entry.identity.ApplyState(entry.state);
