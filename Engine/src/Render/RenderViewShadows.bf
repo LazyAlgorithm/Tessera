@@ -25,6 +25,59 @@ extension RenderView
 		mShadowParams = .(1.0f / RenderResources.ShadowAtlasSize, ShadowBias, 1.0f, filterRadius);
 	}
 
+	/// A perspective depth map for each shadowed spotlight. Casters come from the light's view, including walls
+	/// outside the camera frustum: a wall behind the viewer must still stop a remote flashlight.
+	void DrawSpotShadows()
+	{
+		RenderResources.EnsureSpotShadows();
+		let tile = RenderResources.SpotShadowTileSize;
+		for (int slot < RenderResources.MaxLights)
+		{
+			let light = mSpotLights[slot];
+			if (light == null) continue;
+			let position = light.Transform.Position;
+			let direction = light.Transform.Forward;
+			var lightView = Matrix4.LookAt(position, position + direction, light.Transform.Rotation * Vector3.Up);
+			var lightProj = Matrix4.Perspective(Math.Clamp(light.spotAngle, 1, 170), 1, 0.02f, light.range, Gfx.HomogeneousDepth);
+			let viewProj = lightProj * lightView;
+			mSpotShadowMtx[slot] = SpotAtlasTransform(slot) * viewProj;
+			mSpotShadowParams[slot] = .(Math.Clamp(light.shadowStrength, 0, 1), 1.0f / RenderResources.ShadowAtlasSize, 0.000002f, 0.008f);
+			let view = (uint16)(ViewBase + SpotShadowView + slot);
+			SetUpView(view, "Spot shadow", RenderResources.SpotShadowFrameBuffer, (int32)(slot % 4) * tile, (int32)(slot / 4) * tile, tile, tile, Gfx.ClearDepth);
+			bgfx.set_view_transform(view, &lightView, &lightProj);
+			bgfx.touch(view);
+			let frustum = Frustum(viewProj, Gfx.HomogeneousDepth);
+			List<RenderItem> visible = scope .();
+			for (let item in mShadowItems)
+			{
+				if (frustum.Intersects(.(item.center - Vector3(item.radius), item.center + Vector3(item.radius))))
+					visible.Add(item);
+			}
+			int start = 0;
+			while (start < visible.Count)
+			{
+				int end = start + 1;
+				while (end < visible.Count && visible[end].mesh == visible[start].mesh && visible[end].renderer.windSway == visible[start].renderer.windSway)
+					end++;
+				SubmitBatch(view, visible, start, end - start, true);
+				start = end;
+			}
+		}
+	}
+
+	static Matrix4 SpotAtlasTransform(int slot)
+	{
+		Matrix4 bias = default;
+		bias.m[0] = 0.125f;
+		bias.m[12] = 0.125f + (float)(slot % 4) * 0.25f;
+		bias.m[5] = Gfx.OriginBottomLeft ? 0.125f : -0.125f;
+		bias.m[13] = Gfx.OriginBottomLeft ? 0.875f - (float)(slot / 4) * 0.25f : 0.125f + (float)(slot / 4) * 0.25f;
+		bias.m[10] = Gfx.HomogeneousDepth ? 0.5f : 1;
+		bias.m[14] = Gfx.HomogeneousDepth ? 0.5f : 0;
+		bias.m[15] = 1;
+		return bias;
+	}
+
 	/// How far behind a cascade's view things can stand and still cast a shadow into it.
 	const float CasterDistance = 150.0f;
 

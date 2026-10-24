@@ -15,7 +15,9 @@ extension EditorApp
 		mUndoPending = true;
 	}
 
-	void SaveScene()
+	/// checkMap: warn (the Map Warning window) when the game's MapRules.txt says the saved scene could not be a map.
+	/// Saves the user asks for check; saves made on the way to an export or a build do not.
+	void SaveScene(bool checkMap = true)
 	{
 		if (mPlay != .Edit)
 		{
@@ -37,6 +39,8 @@ extension EditorApp
 		{
 			mDirty = false;
 			Log.Info(scope $"Saved {mScene.Path}");
+			if (checkMap)
+				WarnIfNotMap();
 		}
 	}
 

@@ -28,6 +28,8 @@ class SkinnedModel
 
 	public List<Joint> Joints = new .() ~ { for (let j in _) delete j.name; delete _; };
 	public List<Clip> Clips = new .() ~ DeleteContainerAndItems!(_);
+	/// The clip libraries whose clips ImportClips has added already.
+	HashSet<String> mClipLibraries = new .() ~ DeleteContainerAndItems!(_);
 	// Bind pose in the file's own (right-handed) space; Z is flipped after skinning.
 	public List<Vector3> Positions = new .() ~ delete _;
 	public List<Vector3> Normals = new .() ~ delete _;
@@ -93,6 +95,84 @@ class SkinnedModel
 				return clip;
 		}
 		return null;
+	}
+
+	/// Adds the clips of another model (a clip library, such as the Basic Motions pack) to this one, matching bones by
+	/// name, so characters that share a skeleton can share one file of animations. Each bone turns as it turns in
+	/// the library, measured from its rest pose; only bones the library moves (the hips) take its movement, so the
+	/// rest keep this model's proportions. Bones the library lacks stay at rest. A clip this model has already is
+	/// kept as it is. libraryPath names the library, so asking again adds nothing. Returns how many clips were added.
+	public int ImportClips(SkinnedModel library, StringView libraryPath)
+	{
+		if (library == null || library == this || mClipLibraries.ContainsAlt(libraryPath))
+			return 0;
+		mClipLibraries.Add(new String(libraryPath));
+		let jointCount = Joints.Count;
+		let sourceCount = library.Joints.Count;
+		let source = scope int[jointCount];
+		for (int j < jointCount)
+			source[j] = library.FindJoint(Joints[j].name);
+		int added = 0;
+		for (let clip in library.Clips)
+		{
+			if (FindClip(clip.name) != null)
+				continue;
+			// A bone moves in the clip when its position leaves the library's rest position.
+			let moves = scope bool[jointCount];
+			for (int j < jointCount)
+			{
+				let from = source[j];
+				if (from < 0)
+					continue;
+				let rest = library.Joints[from].restPosition;
+				for (int f < clip.frames)
+				{
+					let a = clip.data.Ptr + (f * sourceCount + from) * 10;
+					if ((Vector3(a[0], a[1], a[2]) - rest).Length > 0.0001f)
+					{
+						moves[j] = true;
+						break;
+					}
+				}
+			}
+			let copy = new Clip();
+			copy.name.Set(clip.name);
+			copy.duration = clip.duration;
+			copy.frames = clip.frames;
+			copy.data = new float[clip.frames * jointCount * 10];
+			for (int f < clip.frames)
+			{
+				for (int j < jointCount)
+				{
+					let joint = Joints[j];
+					var position = joint.restPosition;
+					var rotation = joint.restRotation;
+					let from = source[j];
+					if (from >= 0)
+					{
+						let a = clip.data.Ptr + (f * sourceCount + from) * 10;
+						let sourceRest = library.Joints[from];
+						rotation = (joint.restRotation * sourceRest.restRotation.Conjugate * Quaternion(a[3], a[4], a[5], a[6])).Normalized;
+						if (moves[j])
+							position = joint.restPosition + (Vector3(a[0], a[1], a[2]) - sourceRest.restPosition);
+					}
+					let b = copy.data.Ptr + (f * jointCount + j) * 10;
+					b[0] = position.x;
+					b[1] = position.y;
+					b[2] = position.z;
+					b[3] = rotation.x;
+					b[4] = rotation.y;
+					b[5] = rotation.z;
+					b[6] = rotation.w;
+					b[7] = joint.restScale.x;
+					b[8] = joint.restScale.y;
+					b[9] = joint.restScale.z;
+				}
+			}
+			Clips.Add(copy);
+			added++;
+		}
+		return added;
 	}
 
 	/// An image found in a model, read on a loading thread and turned into a texture on the main thread.

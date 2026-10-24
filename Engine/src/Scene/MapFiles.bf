@@ -17,6 +17,10 @@ class MapFileInfo
 	/// The game it was made for (GamePaths.Game when it was exported).
 	public String Game = new .() ~ delete _;
 	public int32 Version;
+	/// The whole file's hash (MapFiles.Hash, 16 hex digits) and size: players with the same Id and Hash have the
+	/// same map, and one whose Hash differs has another version of it.
+	public String Hash = new .() ~ delete _;
+	public int64 Bytes;
 	/// Why the map cannot be played, one reason a line. Empty when it can.
 	public List<String> Problems = new .() ~ DeleteContainerAndItems!(_);
 	/// The map's scene file, as text, for a game's own checks (CountComponents).
@@ -52,9 +56,10 @@ class MapFileInfo
 	void SetMounted(bool mounted) => mMounted = mounted;
 }
 
-/// Maps: a scene exported from the editor (File > Export Scene as Map...) into one .tmap file, which a game finds in
-/// a folder and plays without being built again. A map holds its scene and the scene's own data (terrain sculpting);
-/// the models, prefabs, materials and scripts it uses come from the game, so a map can only use what the game has.
+/// Maps: a scene saved into one .tmap file (Export), which a game finds in a folder and plays without being built
+/// again: a game's own map editor writes them. A map holds its scene and the scene's own data: terrain sculpting, and
+/// any file the scene names under .maps/<Id>/ (a model the player brought in). Everything else it uses (the game's
+/// models, prefabs, materials and scripts) comes from the game, so a map can only use what the game has.
 ///
 ///   let maps = scope List<MapFileInfo>();
 ///   defer { ClearAndDeleteItems!(maps); }
@@ -68,7 +73,8 @@ class MapFileInfo
 ///
 /// Find checks every map: that the file is whole (each file in it has a checksum), that it was made for this game and
 /// by a version of the engine that can read it, that every component it uses exists in the game and that every file
-/// it names is there. A map with a problem is still returned, with Problems saying why, so a game can show or log it.
+/// it names is there, and that it has what the game's MapRules.txt asks for (MapRules). A map with a problem is still
+/// returned, with Problems saying why, so a game can show or log it.
 static class MapFiles
 {
 	public const String Extension = ".tmap";
@@ -125,6 +131,12 @@ static class MapFiles
 		let map = new MapFileInfo();
 		map.File.Set(file);
 		Path.GetFileNameWithoutExtension(file, map.Name);
+		let bytes = scope List<uint8>();
+		if (System.IO.File.ReadAll(file, bytes) case .Ok)
+		{
+			map.Bytes = bytes.Count;
+			Hash(bytes, map.Hash);
+		}
 		let pack = scope PackFile();
 		if (pack.Open(file) case .Err)
 		{
@@ -162,6 +174,7 @@ static class MapFiles
 			return map;
 		}
 		CheckScene(map, pack);
+		MapRules.Check(map.SceneText, map.Problems);
 		return map;
 	}
 
@@ -281,12 +294,13 @@ static class MapFiles
 	}
 
 	/// Makes a map's files readable (from memory) so that its scene can be loaded from map.ScenePath. False for a
-	/// map with problems, or one whose file has gone since it was checked.
-	public static bool Mount(MapFileInfo map)
+	/// map with problems (unless allowProblems: a map editor opens a map that is not finished yet), or one whose file
+	/// has gone since it was checked.
+	public static bool Mount(MapFileInfo map, bool allowProblems = false)
 	{
 		if (map.Mounted)
 			return true;
-		if (!map.Ok)
+		if (!map.Ok && !allowProblems)
 			return false;
 		let pack = scope PackFile();
 		if (pack.Open(map.File) case .Err)
@@ -306,24 +320,51 @@ static class MapFiles
 		return true;
 	}
 
-	/// Frees the memory a mounted map's files take. Unload its scene first.
+	/// Frees the memory a mounted map's files take, and forgets the models and textures loaded from them. Unload its
+	/// scene first.
 	public static void Unmount(MapFileInfo map)
 	{
 		if (!map.Mounted)
 			return;
 		AssetPack.RemoveMemoryFiles(scope $"{Assets.ProjectPath}/{MountFolder}/{map.Id}");
+		Assets.Forget(scope $"{MountFolder}/{map.Id}/");
 		map.[Friend]SetMounted(false);
 	}
 
-	/// Writes a scene as a map file. Save the scene first: the terrain sculpting it takes is what is on disk. The map
-	/// gets a new Id, and the scene's own data (each Voxel Terrain's sculpting folder) is copied into it. Files the
-	/// scene names that the project does not have are listed in problems, and the map is still written.
-	public static Result<void> Export(Scene scene, StringView file, StringView name, StringView author, StringView description, List<String> problems)
+	/// A file's hash as 16 hex digits (64-bit FNV-1a): quick to work out, and different for a changed file.
+	public static void Hash(Span<uint8> data, String hash)
 	{
-		let id = scope String();
-		MakeId(name, id);
+		uint64 value = 14695981039346656037UL;
+		for (let b in data)
+		{
+			value ^= b;
+			value *= 1099511628211UL;
+		}
+		hash.AppendF("{:x16}", value);
+	}
+
+	/// Writes a scene as a map file with a new Id. See the other Export.
+	public static Result<void> Export(Scene scene, StringView file, StringView name, StringView author, StringView description, List<String> problems)
+		=> Export(scene, null, file, "", name, author, description, problems);
+
+	/// Writes a scene as a map file. group, when not null, is a scene loaded into a running game (the GameObject
+	/// SceneManager.LoadAdditive returned): only the objects under it are written. keepId is the Id of the map being
+	/// saved again, so that players who have it get the new version instead of a second map; empty gives a new Id.
+	///
+	/// The scene's own data is copied into the map: each Voxel Terrain's sculpting folder (save the scene first: it
+	/// takes what is on disk), and every file the scene names under .maps/ (a model a map editor brought in, kept in
+	/// memory with AssetPack.AddMemoryFile or on disk), whose paths are changed to the map's Id. Files the scene names
+	/// that the project does not have are listed in problems, and the map is still written.
+	public static Result<void> Export(Scene scene, GameObject group, StringView file, StringView keepId, StringView name, StringView author, StringView description, List<String> problems)
+	{
+		let id = scope String(keepId);
+		if (id.IsEmpty)
+			MakeId(name, id);
 		let text = scope String();
-		SceneSerializer.Save(scene, text);
+		if (group != null)
+			SceneSerializer.SaveGroup(scene, group, name, text);
+		else
+			SceneSerializer.Save(scene, text);
 		let files = scope List<(String name, List<uint8> data)>();
 		defer
 		{
@@ -337,7 +378,7 @@ static class MapFiles
 		for (let component in scene.Components)
 		{
 			let terrain = component as VoxelTerrain;
-			if (terrain == null || terrain.editsFolder.IsEmpty)
+			if (terrain == null || terrain.editsFolder.IsEmpty || (group != null && !Under(terrain.GameObject, group)))
 				continue;
 			let folder = scope $"terrain{++terrainNumber}";
 			let source = Assets.ResolvePath(terrain.editsFolder, .. scope .());
@@ -363,6 +404,7 @@ static class MapFiles
 			SceneSerializer.Quote(scope $"{MountFolder}/{id}/{folder}" , after);
 			text.Replace(before, after);
 		}
+		CarryOwnFiles(text, id, files, problems);
 		for (let line in text.Split('\n'))
 		{
 			let path = scope String();
@@ -384,6 +426,64 @@ static class MapFiles
 		if (Path.GetDirectoryPath(file, folder) case .Ok && !folder.IsEmpty)
 			Directory.CreateDirectory(folder).IgnoreError();
 		return PackFile.Write(file, entries);
+	}
+
+	static bool Under(GameObject gameObject, GameObject group)
+	{
+		for (var transform = gameObject.Transform; transform != null; transform = transform.Parent)
+		{
+			if (transform.GameObject == group)
+				return true;
+		}
+		return false;
+	}
+
+	/// Copies the files the scene names under .maps/<some Id>/ into the map (a file named "#2" after is read once),
+	/// and changes those paths to .maps/<id>/, where they are once the map is mounted. Folders (terrain sculpting)
+	/// are left to the terrain step.
+	static void CarryOwnFiles(String text, StringView id, List<(String name, List<uint8> data)> files, List<String> problems)
+	{
+		let oldIds = scope HashSet<String>();
+		defer
+		{
+			ClearAndDeleteItems!(oldIds);
+		}
+		for (let line in text.Split('\n'))
+		{
+			let path = scope String();
+			if (!QuotedPath(line, path) || !path.StartsWith(scope $"{MountFolder}/"))
+				continue;
+			var rest = path.Substring(MountFolder.Length + 1);
+			let slash = rest.IndexOf('/');
+			if (slash <= 0)
+				continue;
+			let oldId = rest.Substring(0, slash);
+			let inside = rest.Substring(slash + 1);
+			bool carried = false;
+			for (let entry in files)
+				carried |= entry.name == inside || (entry.name.StartsWith(inside) && entry.name.Length > inside.Length && entry.name[inside.Length] == '/');
+			if (carried)
+				continue;
+			if (!Assets.FileExists(path))
+			{
+				// A folder (a terrain with no sculpting yet) has no file type.
+				if (Path.GetExtension(path, .. scope .()).Length > 0 && !AssetPack.FolderExists(Assets.ResolvePath(path, .. scope .())))
+					problems.Add(new $"The scene names {path}, which is not there.");
+				continue;
+			}
+			let data = new List<uint8>();
+			if (!Assets.ReadBytes(path, data))
+			{
+				delete data;
+				problems.Add(new $"Could not read {path}.");
+				continue;
+			}
+			files.Add((new String(inside), data));
+			if (oldId != id && !oldIds.ContainsAlt(oldId))
+				oldIds.Add(new String(oldId));
+		}
+		for (let oldId in oldIds)
+			text.Replace(scope $"\"{MountFolder}/{oldId}/" , scope $"\"{MountFolder}/{id}/");
 	}
 
 	/// The map's name in lower case, letters and digits only, and a random number: "harbour-4f2a91c0".

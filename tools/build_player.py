@@ -131,9 +131,15 @@ def main():
     proj = tomllib.loads((project / 'BeefProj.toml').read_text())
     space = tomllib.loads((project / 'BeefSpace.toml').read_text())
     dependencies = {key: value for key, value in proj['Dependencies'].items() if key != 'TesseraEditor'}
+    program = (project / 'src' / 'Program.bf').read_text()
+    # Keep the entry point's namespace imports: copied/renamed projects can
+    # register scripts from a namespace that differs from the project name.
+    imports = [match.group(0) for match in re.finditer(r'^\s*using\s+([A-Za-z_][A-Za-z0-9_.]*)\s*;', program, re.MULTILINE)
+               if match.group(1) not in ('System', 'Tessera') and not match.group(1).startswith('Tessera.Editor')]
     bootstrap = args.bootstrap
-    if bootstrap is None and re.search(r'\bGameSetup\.Register\(\)', (project / 'src' / 'Program.bf').read_text()):
-        bootstrap = f'{name}.GameSetup.Register'
+    registration = re.search(r'\b((?:[A-Za-z_][A-Za-z0-9_]*\.)*GameSetup\.Register)\(\)', program)
+    if bootstrap is None and registration:
+        bootstrap = registration.group(1)
     if bootstrap and not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_.]*', bootstrap):
         parser.error('Invalid bootstrap method name.')
     with tempfile.TemporaryDirectory(prefix='tessera-player-') as temporary:
@@ -148,7 +154,7 @@ def main():
             target = source / file.relative_to(project / 'src')
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(file, target)
-        (source / 'Program.bf').write_text('using System;\nusing Tessera;\nnamespace ' + name + ';\nclass Program { public static int Main(String[] args) {\n' + (f'{bootstrap}();\n' if bootstrap else '') + 'return GameMain.Run(args);\n} }\n')
+        (source / 'Program.bf').write_text('using System;\nusing Tessera;\n' + '\n'.join(imports) + '\nnamespace ' + name + ';\nclass Program { public static int Main(String[] args) {\n' + (f'{bootstrap}();\n' if bootstrap else '') + 'return GameMain.Run(args);\n} }\n')
         q = json.dumps
         # Beef under Wine is given forward-slash Z: paths for projects and backslash ones on the link line.
         located = (lambda path: wine_path(path, '/')) if cross else (lambda path: str(path).replace('\\', '/'))

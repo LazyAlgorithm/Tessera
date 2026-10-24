@@ -205,6 +205,12 @@ class MeshRenderer : Component
 	{
 		public Mesh mesh;
 		public Tessera.Material material;
+		/// Multiplies the part's colour (a character's coat dyed red).
+		public Color tint = .White;
+		/// Not drawn at all, and casts no shadow.
+		public bool hidden;
+		/// Casts a shadow but is not drawn (the player's own head, seen from inside it).
+		public bool shadowOnly;
 	}
 
 	/// Set from code (a Skinned Mesh Renderer whose model has several materials): drawn in place of the renderer's

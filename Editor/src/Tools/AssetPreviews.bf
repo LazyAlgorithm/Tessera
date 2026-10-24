@@ -12,9 +12,9 @@ namespace Tessera.Editor;
 static class AssetPreviews
 {
 	const int32 PreviewSize = 128;
-	/// The preview scene renders in views 50 to 66; the copy into the kept picture happens in the view after its last.
+	/// The preview scene renders after the Scene and Game views; the copy into the kept picture happens in the view after its last.
 	/// The copy must come after the tonemap pass, or each picture is the asset made before it.
-	const uint16 ViewBase = 50;
+	const uint16 ViewBase = 10 + RenderView.ViewCount * 2;
 	const uint16 CopyView = ViewBase + RenderView.ViewCount;
 
 	class Entry

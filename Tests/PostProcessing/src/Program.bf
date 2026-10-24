@@ -120,7 +120,7 @@ class Program
 		Check(!ScreenEffects.AmbientOcclusion && !ScreenEffects.DepthOfField && !ScreenEffects.MotionBlur, "phone quality turns the depth pass effects off");
 		ScreenEffects.Reset();
 		Check(ScreenEffects.AmbientOcclusion && ScreenEffects.MotionBlur, "and a game can turn them back on");
-		Check(RenderView.ViewCount == 17, "a RenderView uses 17 view ids");
+		Check(RenderView.ViewCount == 33, "a RenderView reserves separate sun and spotlight shadow views");
 
 		Console.WriteLine(sFailures == 0 ? "All post-processing tests passed." : scope $"{sFailures} post-processing test(s) failed.");
 		return sFailures == 0 ? 0 : 1;

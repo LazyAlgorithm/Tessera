@@ -229,6 +229,224 @@ class Program
 			Check(junk != null && !MapFiles.Mount(junk), "a map with problems cannot be mounted");
 		}
 
+		// ---- a game's MapRules.txt: what a map needs ----
+		{
+			let rulesFile = scope $"{folder}/{MapRules.FileName}";
+			File.WriteAllText(rulesFile, "# test rules\nneed 3 Tessera.SpawnPoint \"spawn points\"\nneed 2 Tessera.SpawnPoint team = 1 \"blue spawn points\"\nneed 3 Tessera.SpawnPoint clearRadius >= 1 \"roomy spawn points\"\nignore Scenes/Menu.tscene\n").IgnoreError();
+			let rules = scope List<MapRule>();
+			let ignored = scope List<String>();
+			defer
+			{
+				ClearAndDeleteItems!(rules);
+				ClearAndDeleteItems!(ignored);
+			}
+			MapRules.Load(rules, ignored);
+			Check(MapRules.Exists && rules.Count == 3 && ignored.Count == 1 && rules[1].Field == "team" && rules[1].What == "blue spawn points", "MapRules.txt is read: three rules and a scene that is not a map");
+			let text = "object 1 parent 0 active 1 name \"A\"\ncomponent Tessera.SpawnPoint enabled 1\nfield team 1\nfield clearRadius 0.5\nobject 2 parent 0 active 1 name \"B\"\ncomponent Tessera.SpawnPoint enabled 1\ncomponent Tessera.MeshRenderer enabled 1\nfield team 1\nobject 3 parent 0 active 1 name \"C\"\ncomponent Tessera.SpawnPoint enabled 1\nfield team 1\n";
+			Check(MapRules.Count(text, rules[0]) == 3, "a rule counts the components of its type");
+			Check(MapRules.Count(text, rules[1]) == 2, "a field test counts only components that pass it, not another component's field");
+			Check(MapRules.Count(text, rules[2]) == 2, "a component that leaves a field out has the field's default (clearRadius 1)");
+			let problems = scope List<String>();
+			defer
+			{
+				ClearAndDeleteItems!(problems);
+			}
+			MapRules.Check(text, problems);
+			Check(problems.Count == 1 && problems[0] == "It needs at least 3 roomy spawn points and has 2.", scope $"Check says what is missing ({(problems.Count > 0 ? problems[0] : "")})");
+			let found = scope List<MapFileInfo>();
+			defer
+			{
+				ClearAndDeleteItems!(found);
+			}
+			MapFiles.Find(maps, found);
+			let level = Named(found, "/Level.tmap");
+			Check(level != null && !level.Ok && HasProblem(level, "needs at least 3 spawn points and has 1"), "Find refuses a map that breaks the game's rules");
+			Check(MapRules.Ignores(scope $"{folder}/Scenes/Menu.tscene") && !MapRules.Ignores("Scenes/Level.tscene"), "ignore names scenes that are not maps");
+			Check(MapRules.Ignore("Scenes/Level.tscene") case .Ok && MapRules.Ignores("Scenes/Level.tscene"), "Ignore adds a scene to the rules file");
+			File.Delete(rulesFile).IgnoreError();
+		}
+
+		// ---- a map's hash, a "most" rule, a map saved from a running game with a model of its own ----
+		let ownModel = scope String();
+		{
+			let found = scope List<MapFileInfo>();
+			defer
+			{
+				ClearAndDeleteItems!(found);
+			}
+			MapFiles.Find(maps, found);
+			let level = Named(found, "/Level.tmap");
+			let bytes = scope List<uint8>();
+			File.ReadAll(scope $"{maps}/Level.tmap" , bytes).IgnoreError();
+			Check(level != null && level.Hash.Length == 16 && level.Hash == MapFiles.Hash(bytes, .. scope .()) && level.Bytes == bytes.Count,
+				"each map has its file's hash and size");
+			let damaged = Named(found, "/Damaged.tmap");
+			Check(damaged != null && damaged.Hash != level.Hash, "a changed copy has another hash");
+
+			let rulesFile = scope $"{folder}/{MapRules.FileName}";
+			File.WriteAllText(rulesFile, "most 2 Tessera.Rigidbody \"physics items\"\n").IgnoreError();
+			let three = "object 1 parent 0 active 1 name \"A\"\ncomponent Tessera.Rigidbody enabled 1\nobject 2 parent 0 active 1 name \"B\"\ncomponent Tessera.Rigidbody enabled 1\nobject 3 parent 0 active 1 name \"C\"\ncomponent Tessera.Rigidbody enabled 1\n";
+			let problems = scope List<String>();
+			defer
+			{
+				ClearAndDeleteItems!(problems);
+			}
+			MapRules.Check(three, problems);
+			Check(problems.Count == 1 && problems[0] == "It can have at most 2 physics items and has 3.", scope $"a most rule limits how many a map has ({(problems.Count > 0 ? problems[0] : "")})");
+			ClearAndDeleteItems!(problems);
+			MapRules.Check(StringView(three, 0, three.IndexOf("object 3")), problems);
+			Check(problems.Count == 0, "and passes a map within the limit");
+			File.Delete(rulesFile).IgnoreError();
+
+			// A level loaded into a running game, as a map editor holds it, with a model brought in from outside.
+			let game = scope Scene();
+			Scene.Active = game;
+			game.Name.Set("Game");
+			game.CreateGameObject("Game logic").AddComponent<SpawnPoint>();
+			let group = game.CreateGameObject("Built");
+			group.Transient = true;
+			let model = scope List<uint8>();
+			// The test runs in its own folder (Tests/Maps).
+			File.ReadAll("../SkinnedMaterials/assets/plain.glb", model).IgnoreError();
+			AssetPack.AddMemoryFile(scope $"{folder}/.maps/editing-1/models/plain.glb" , model);
+			let piece = game.CreateGameObject("My model");
+			piece.Transform.SetParent(group.Transform, false);
+			piece.AddComponent<MeshRenderer>().mesh.Set(".maps/editing-1/models/plain.glb");
+			for (int i < 2)
+			{
+				let spawn = game.CreateGameObject("Spawn");
+				spawn.Transform.SetParent(group.Transform, false);
+				spawn.AddComponent<SpawnPoint>();
+			}
+			let file = scope $"{maps}/Built.tmap";
+			let exported = MapFiles.Export(game, group, file, "built-keep", "Built in game", "A player", "", problems) case .Ok;
+			Check(exported && problems.Count == 0 && model.Count > 0, scope $"a level loaded into a game saves as a map, with its own model ({problems.Count} problems)");
+			let pack = scope PackFile();
+			let scene = scope List<uint8>();
+			Check(pack.Open(file) case .Ok && pack.Has("models/plain.glb") && pack.Read("map.tscene", scene) case .Ok, "the model travels inside the map");
+			let text = StringView((char8*)scene.Ptr, scene.Count);
+			Check(text.Contains("\".maps/built-keep/models/plain.glb\"") && !text.Contains("editing-1") && !text.Contains("Game logic") && !text.Contains("\"Built\""),
+				"only what is under the level is saved, and the model's path is the map's");
+			AssetPack.RemoveMemoryFiles(scope $"{folder}/.maps/editing-1");
+
+			ClearAndDeleteItems!(found);
+			MapFiles.Find(maps, found);
+			let built = Named(found, "/Built.tmap");
+			Check(built != null && built.Ok && built.Id == "built-keep" && built.CountComponents("Tessera.SpawnPoint") == 2, "it keeps the Id it was saved with, and is playable");
+			let path = ".maps/built-keep/models/plain.glb";
+			ownModel.Set(path);
+			Check(built != null && MapFiles.Mount(built) && Assets.FileExists(path), "mounted, its model can be read");
+			let mesh = Assets.BuildModel(path);
+			Check(mesh != null && mesh.Vertices.Count > 0, scope $"and the model loads from inside the map ({mesh?.Vertices.Count ?? 0} vertices)");
+			delete mesh;
+			if (built != null)
+				MapFiles.Unmount(built);
+			Check(!Assets.FileExists(path), "unmounted, it is gone");
+		}
+
+		// ---- a player who lacks the host's map downloads it ----
+		{
+			let found = scope List<MapFileInfo>();
+			defer
+			{
+				ClearAndDeleteItems!(found);
+			}
+			MapFiles.Find(maps, found);
+			let built = Named(found, "/Built.tmap");
+			let downloads = scope $"{folder}/Downloads";
+			Directory.CreateDirectory(downloads).IgnoreError();
+			Empty(downloads);
+			MapSharing.Folder = downloads;
+			Check(!MapSharing.Have(built.Id, built.Hash), "the player does not have the map");
+
+			Time.DeltaTime = Time.FixedDeltaTime;
+			let port = (uint16)(47000 + (DateTime.Now.Ticks / 10000) % 900);
+			let host = scope Scene();
+			let player = scope Scene();
+			let scenes = scope List<Scene>() { host, player };
+			for (let scene in scenes)
+			{
+				scene.StartPlay();
+				scene.Network = new NetworkManager(scene);
+			}
+			MapSharing.Offer(built);
+			host.Network.StartServer(port, true);
+			player.Network.StartClient("127.0.0.1", port);
+			for (int i = 0; i < 100 && player.Network.LocalClientId <= 0; i++)
+			{
+				for (let scene in scenes)
+				{
+					Scene.Active = scene;
+					scene.FixedUpdate();
+				}
+				Thread.Sleep(2);
+			}
+			Check(player.Network.LocalClientId > 0, "the player joins the host");
+
+			// Downloads a map, pumping both machines until it is done or has failed.
+			int Download(StringView id, StringView hash)
+			{
+				Scene.Active = player;
+				MapSharing.Request(player.Network, id, hash);
+				int ticks = 0;
+				while (ticks < 3000 && (MapSharing.State == .Asking || MapSharing.State == .Downloading))
+				{
+					for (let scene in scenes)
+					{
+						Scene.Active = scene;
+						scene.FixedUpdate();
+					}
+					Thread.Sleep(1);
+					ticks++;
+				}
+				return ticks;
+			}
+			let ticks = Download(built.Id, built.Hash);
+			let copy = scope List<uint8>();
+			File.ReadAll(MapSharing.DownloadedFile, copy).IgnoreError();
+			let arrived = scope $"the map comes from the host, whole, into the player's Maps folder ({ticks} ticks, {MapSharing.Error})";
+			Check(MapSharing.State == .Done && MapFiles.Hash(copy, .. scope .()) == built.Hash && MapSharing.DownloadedFile.EndsWith("/Built in game.tmap"), arrived);
+			Check(MapSharing.Have(built.Id, built.Hash), "after which the player has it");
+
+			// An older version of the same map, under another name: replaced by the host's.
+			if (copy.IsEmpty)
+				copy.Add(0);
+			copy[copy.Count - 1] ^= 1;
+			File.Delete(MapSharing.DownloadedFile).IgnoreError();
+			File.WriteAll(scope $"{downloads}/My old copy.tmap" , copy).IgnoreError();
+			Check(!MapSharing.Have(built.Id, built.Hash), "a player with another version of the map does not have the host's");
+			Download(built.Id, built.Hash);
+			Check(MapSharing.State == .Done && MapSharing.DownloadedFile.EndsWith("/My old copy.tmap") && MapSharing.Have(built.Id, built.Hash),
+				"downloading it replaces the old version");
+
+			// A bigger map (3 MB) comes in many pieces, a few at a time.
+			{
+				let blob = scope List<uint8>();
+				let random = scope Random(7);
+				for (int i < 3 * 1024 * 1024)
+					blob.Add((uint8)random.Next(256));
+				let info = "tmap 1\nid big-1\nname Big\ngame Map Test\n";
+				let scene = "scene \"Big\"\nobject 1 parent 0 active 1 name \"Big\"\ntransform 0 0 0 0 0 0 1 1 1 1\n";
+				(StringView name, Span<uint8> data)[3] bigFiles = .(("map.txt", .((uint8*)info.Ptr, info.Length)), ("map.tscene", .((uint8*)scene.Ptr, scene.Length)), ("models/big.bin", blob));
+				PackFile.Write(scope $"{maps}/Big.tmap" , bigFiles).IgnoreError();
+				let big = MapFiles.Check(scope $"{maps}/Big.tmap");
+				defer delete big;
+				MapSharing.Offer(big);
+				let bigTicks = Download(big.Id, big.Hash);
+				let label = scope $"a 3 MB map arrives whole, in pieces ({bigTicks} ticks, {MapSharing.Error})";
+				Check(MapSharing.State == .Done && MapSharing.Have(big.Id, big.Hash) && bigTicks > 10, label);
+			}
+
+			Download("no-such-map", "0123456789abcdef");
+			Check(MapSharing.State == .Failed && MapSharing.Error.Contains("does not have"), "a map the host does not have fails, saying why");
+			MapSharing.Reset();
+			for (let scene in scenes)
+			{
+				scene.Network.Stop();
+				scene.StopPlay();
+			}
+		}
+
 		Console.WriteLine(sFailures == 0 ? "ALL MAP TESTS PASSED" : scope $"{sFailures} MAP TESTS FAILED");
 		return sFailures == 0 ? 0 : 1;
 	}

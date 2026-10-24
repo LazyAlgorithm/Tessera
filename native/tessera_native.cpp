@@ -427,6 +427,22 @@ TN_API void tn_imgui_push_mono_font()
 	ImGui::PushFont(s_monoFont, 0.0f);
 }
 
+// A font from a TTF/OTF file's bytes (copied), for UI documents' font-family. Null without an ImGui context.
+TN_API void* tn_imgui_add_font(const void* data, int size)
+{
+	if (ImGui::GetCurrentContext() == nullptr || data == nullptr || size <= 0) return nullptr;
+	void* copy = IM_ALLOC((size_t)size);
+	memcpy(copy, data, (size_t)size);
+	ImFontConfig config;
+	config.FontDataOwnedByAtlas = true;
+	return ImGui::GetIO().Fonts->AddFontFromMemoryTTF(copy, size, 16.0f, &config);
+}
+
+TN_API void tn_imgui_push_font(void* font, float size)
+{
+	ImGui::PushFont((ImFont*)font, size);
+}
+
 // A slider that a double-click turns into a text box. Dear ImGui only does that for Ctrl+click (a plain click sets the
 // slider), so a double-click is passed on as one.
 TN_API bool tn_imgui_slider_float(const char* label, float* value, float min, float max, const char* format)

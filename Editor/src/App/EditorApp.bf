@@ -75,6 +75,7 @@ class EditorApp : Application
 	CameraData mSceneCamera;
 	ImGui.Vec2 mSceneSize = .(640, 360);
 	ImGui.Vec2 mGameSize = .(640, 360);
+	bool mSceneVisible, mGameVisible;
 
 	public this()
 	{
@@ -111,7 +112,7 @@ class EditorApp : Application
 		// Depth of field and motion blur get in the way of editing (Scene Settings > Screen Effects can show them).
 		mSceneView.ShowDepthOfField = false;
 		mSceneView.ShowMotionBlur = false;
-		mGameView = new RenderView(30);
+		mGameView = new RenderView((uint16)(10 + RenderView.ViewCount));
 		ProjectConfig.Load();
 		mScene = new Scene();
 		let sceneArg = scope String();
@@ -199,8 +200,10 @@ class EditorApp : Application
 		}
 		if (HasArg("--map-builder-test"))
 			RunMapBuilderTest();
-		if (HasArg("--export-map"))
-			RunExportMapSwitch();
+		// Test switch: saves the opened scene as Ctrl+S does, with the map warning, once the layout has settled
+		// (the first frames bring the Scene tab forward, which would close the warning).
+		if (HasArg("--save-scene"))
+			mSaveSceneSwitchFrames = 15;
 		ApplyCameraSwitch();
 		if (HasArg("--play"))
 			StartPlay();
@@ -441,13 +444,17 @@ class EditorApp : Application
 
 		ImGui.tn_imgui_new_frame();
 		DrawUI();
-		BuildGizmos();
+		// Hidden dock tabs do not need a second scene render or editor gizmos.
+		if (mSceneVisible)
+		{
+			BuildGizmos();
+			mSceneView.Resize((int32)mSceneSize.x, (int32)mSceneSize.y);
+			mSceneView.Render(mScene, mSceneCamera);
+		}
 
 		AssetPreviews.Update();
-		mSceneView.Resize((int32)mSceneSize.x, (int32)mSceneSize.y);
-		mSceneView.Render(mScene, mSceneCamera);
 		let gameCamera = FindGameCamera();
-		if (gameCamera != null)
+		if (mGameVisible && gameCamera != null)
 		{
 			mGameView.Resize((int32)mGameSize.x, (int32)mGameSize.y);
 			mGameView.Render(mScene, gameCamera.GetCameraData(mGameSize.x / Math.Max(mGameSize.y, 1)));

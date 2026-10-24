@@ -14,6 +14,7 @@ extension EditorApp
 		ImGui.PushStyleVar(ImGui.StyleVar.WindowPadding, ImGui.Vec2(0, 0));
 		let open = ImGui.Begin("Scene", null, ImGui.WindowFlags.NoScrollbar | ImGui.WindowFlags.NoScrollWithMouse);
 		ImGui.PopStyleVar();
+		mSceneVisible = false;
 		let sceneDock = ImGui.GetWindowDockID();
 		if (sceneDock != 0)
 			mAssetCenterDock = sceneDock;
@@ -24,6 +25,7 @@ extension EditorApp
 			let origin = ImGui.GetCursorScreenPos();
 			if (size.x > 8 && size.y > 8)
 			{
+				mSceneVisible = true;
 				mSceneSize = size;
 				UpdateSceneCamera(size.x / size.y);
 				if (mSceneView.Width > 0)

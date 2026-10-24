@@ -14,6 +14,7 @@ extension EditorApp
 		ImGui.PushStyleVar(ImGui.StyleVar.WindowPadding, ImGui.Vec2(0, 0));
 		let open = ImGui.Begin("Game", null, ImGui.WindowFlags.NoScrollbar | ImGui.WindowFlags.NoScrollWithMouse);
 		ImGui.PopStyleVar();
+		mGameVisible = false;
 		mGameFocused = false;
 		if (open)
 		{
@@ -21,6 +22,7 @@ extension EditorApp
 			let origin = ImGui.GetCursorScreenPos();
 			if (size.x > 8 && size.y > 8)
 			{
+				mGameVisible = true;
 				mGameSize = size;
 				if (FindGameCamera() != null && mGameView.Width > 0)
 				{

@@ -125,8 +125,6 @@ extension EditorApp
 				SaveScene();
 			if (ImGui.MenuItem("Save Scene As..."))
 				mOpenSaveAs = true;
-			if (ImGui.MenuItem("Export Scene as Map..."))
-				mOpenExportMap = true;
 			ImGui.Separator();
 			if (ImGui.MenuItem("Reload Scripts", "Ctrl+R"))
 				RequestRebuild();

@@ -129,22 +129,23 @@ Bloom and the tonemap read the result. Colour grading happens in the tonemap:
 
 None of this runs, and nothing is allocated for it, until a scene asks for one of the effects.
 
-Each RenderView now uses `RenderView.ViewCount` (17) bgfx view ids from its `ViewBase`:
+Each RenderView now uses `RenderView.ViewCount` (33) bgfx view ids from its `ViewBase`:
 
 | Views | Pass |
 |---|---|
-| 0 to 3 | shadows |
-| 4 | scene |
-| 5 | see-through |
-| 6 | viewmodel |
-| 7 | depth |
-| 8 and 9 | ambient occlusion |
-| 10 and 11 | depth of field |
-| 12 | motion blur |
-| 13 to 15 | bloom |
-| 16 | tonemap |
+| 0 to 3 | sun shadows |
+| 4 to 19 | spotlight shadows |
+| 20 | scene |
+| 21 | see-through |
+| 22 | viewmodel |
+| 23 | depth |
+| 24 and 25 | ambient occlusion |
+| 26 and 27 | depth of field |
+| 28 | motion blur |
+| 29 to 31 | bloom |
+| 32 | tonemap |
 
-A game that makes its own RenderViews should space their `ViewBase`s at least 17 apart.
+A game that makes its own RenderViews should space their `ViewBase`s at least `RenderView.ViewCount` apart.
 
 Each RenderView can leave effects out with `ShowAmbientOcclusion`, `ShowDepthOfField` and `ShowMotionBlur`. The editor's Scene view uses these, and so do the asset previews.
 
