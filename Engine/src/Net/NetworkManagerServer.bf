@@ -239,16 +239,22 @@ extension NetworkManager
 		}
 		else if (mConnected && LocalClientId > 0)
 		{
+			PredictedBodies = 0;
 			for (let identity in mIdentities)
 			{
 				if (identity.ownerId == LocalClientId)
 					identity.History[mTick % NetworkIdentity.HistorySize] = identity.CaptureState();
+				else if (identity.Predicted)
+				{
+					identity.RecordTick(mTick);
+					PredictedBodies++;
+				}
 			}
 		}
 		// Objects this machine does not move itself change once a tick; they are drawn gliding between ticks.
 		for (let identity in mIdentities)
 		{
-			identity.NoteTick(identity.ownerId != LocalClientId && !(IsServer && identity.ownerId == 0));
+			identity.NoteTick(identity.ownerId != LocalClientId && !identity.Predicted && !(IsServer && identity.ownerId == 0));
 			// The server remembers where everything has been lately, for lag compensation.
 			if (IsServer && mClients.Count > 0)
 				identity.PushKey(mTick, identity.Transform.Position, identity.Transform.Rotation);
@@ -314,6 +320,13 @@ extension NetworkManager
 		Send(client.peer, reliable);
 	}
 
+	/// A body clients simulate themselves: its exact motion, and whether it rests.
+	static void WritePredictedBody(NetWriter writer, NetworkIdentity identity)
+	{
+		let body = identity.GetComponent<Rigidbody>();
+		NetPack.WriteBody(writer, body.State, body.IsSleeping);
+	}
+
 	void WriteSnapshotRecord(NetWriter writer, NetworkIdentity identity, int32 clientId)
 	{
 		WriteNetId(writer, identity.NetId);
@@ -322,6 +335,11 @@ extension NetworkManager
 		{
 			writer.Write(NetPack.FlagFull);
 			writer.Write(identity.CaptureState());
+		}
+		else if (identity.PhysicsPredictable)
+		{
+			WritePredictedBody(writer, identity);
+			return;
 		}
 		else if (identity.remoteFormat != .Legacy)
 			NetPack.WriteTransform(writer, identity.Transform.Position, identity.Transform.Rotation, identity.remoteFormat == .QuantizedTransform);
@@ -335,7 +353,7 @@ extension NetworkManager
 	{
 		mSnapshotNumber++;
 		for (let identity in mIdentities)
-			identity.NoteSnapshot(mSnapshotNumber, true);
+			identity.NoteSnapshot(mSnapshotNumber, true, PredictPhysics);
 		let record = scope NetWriter();
 		let candidates = scope List<NetworkIdentity>();
 		for (let client in mClients)
@@ -442,7 +460,7 @@ extension NetworkManager
 		}
 		mSnapshotNumber++;
 		for (let identity in mIdentities)
-			identity.NoteSnapshot(mSnapshotNumber);
+			identity.NoteSnapshot(mSnapshotNumber, false, PredictPhysics);
 		for (let client in mClients)
 		{
 			mWriter.Clear();
@@ -469,6 +487,8 @@ extension NetworkManager
 					mWriter.Write(NetPack.FlagFull);
 					mWriter.Write(identity.CaptureState());
 				}
+				else if (identity.PhysicsPredictable)
+					WritePredictedBody(mWriter, identity);
 				else
 					NetPack.Write(mWriter, identity.Sent);
 				count++;

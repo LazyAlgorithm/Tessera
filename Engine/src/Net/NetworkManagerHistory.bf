@@ -34,7 +34,8 @@ extension NetworkManager
 			return false;
 		for (let identity in mIdentities)
 		{
-			if (identity.ownerId == forObject.ownerId || !identity.IsActiveAndEnabled)
+			// A body clients predict is seen by the player where it is now, as their own player is.
+			if (identity.ownerId == forObject.ownerId || !identity.IsActiveAndEnabled || identity.PhysicsPredictable)
 				continue;
 			BodyState then;
 			if (!identity.Sample(view, 0, out then))
@@ -66,22 +67,35 @@ extension NetworkManager
 		mRewound = false;
 	}
 
+	/// What a snapshot says about a body this machine predicts.
+	struct ServerBody
+	{
+		public NetworkIdentity identity;
+		public BodyState state;
+		public bool asleep;
+	}
+
 	/// Client, every tick: puts everything this machine does not control where the server had it a moment ago.
-	void ApplyRemoteStates()
+	/// Bodies this machine predicts are left to its own physics.
+	void ApplyRemoteStates() => ApplyRemoteStates(mTick, true);
+
+	/// Puts everything shown in the past where it was at one of this machine's ticks (a replayed one, or now).
+	void ApplyRemoteStates(uint32 tick, bool now)
 	{
 		if (!mClockSet)
 			return;
 		let delay = InterpolationTicks > 0 ? InterpolationTicks : mServerInterval * 2;
-		let at = (double)mTick + mServerOffset - delay;
-		mViewTick = at;
+		let at = (double)tick + mServerOffset - delay;
+		if (now)
+			mViewTick = at;
 		for (let identity in mIdentities)
 		{
-			if (identity.ownerId == LocalClientId || !identity.HasKeys)
+			if (identity.ownerId == LocalClientId || identity.Predicted || !identity.HasKeys)
 				continue;
 			BodyState state;
 			if (!identity.Sample(at, mServerInterval, out state))
 				continue;
-			if (at > (double)identity.NewestKeyTick && state.linearVelocity != .Zero)
+			if (now && at > (double)identity.NewestKeyTick && state.linearVelocity != .Zero)
 				mStatHeld++;
 			// Something lying still needs nothing done; leaving it alone also lets a physics body go to sleep.
 			let transform = identity.Transform;
@@ -91,29 +105,50 @@ extension NetworkManager
 		}
 	}
 
-	/// Client: checks what the server says about this machine's own objects against what was predicted for the
-	/// same tick, and if they differ, goes back to the server's state and runs the ticks since again.
-	void Reconcile(uint32 ackTick, List<(NetworkIdentity identity, BodyState state)> owned)
+	/// Client: checks what the server says about this machine's own objects, and the bodies it predicts, against
+	/// what was predicted for the same tick, and if they differ, goes back to the server's state and runs the ticks
+	/// since again.
+	void Reconcile(uint32 ackTick, List<(NetworkIdentity identity, BodyState state)> owned, List<ServerBody> bodies)
 	{
-		if (owned.IsEmpty)
-			return;
+		// A body heard of for the first time is taken up; until it has a history there is nothing to compare.
+		bool adopted = false;
+		for (let body in bodies)
+		{
+			if (!body.identity.Predicted)
+			{
+				body.identity.Predicted = true;
+				body.identity.PredictedSince = ackTick + 1;
+				body.identity.ClearKeys();
+				adopted = true;
+			}
+		}
+		if (adopted)
+			CountPredictedBodies();
+
 		// Remember where things were drawn so that a correction can be eased in visually.
-		List<Vector3> before = scope .();
+		List<(NetworkIdentity identity, Vector3 drawn)> before = scope .();
 		for (let entry in owned)
-			before.Add(entry.identity.Transform.Position + entry.identity.SmoothOffset);
+			before.Add((entry.identity, entry.identity.Transform.Position + entry.identity.SmoothOffset));
+		if (bodies.Count > 0)
+		{
+			for (let identity in mIdentities)
+			{
+				if (identity.Predicted)
+					before.Add((identity, identity.Transform.Position + identity.SmoothOffset));
+			}
+		}
 		defer
 		{
-			for (int i < owned.Count)
+			for (let entry in before)
 			{
-				let identity = owned[i].identity;
-				if (before.Count > i)
-					identity.SmoothOffset = before[i] - identity.Transform.Position;
+				if (!entry.identity.GameObject.IsDestroyed)
+					entry.identity.SmoothOffset = entry.drawn - entry.identity.Transform.Position;
 			}
 		}
 
 		if (ackTick > mTick)
 		{
-			JumpToServer(ackTick, owned);
+			JumpToServer(ackTick, owned, bodies);
 			return;
 		}
 
@@ -125,30 +160,67 @@ extension NetworkManager
 			worst = PredictionError(ackTick, owned);
 			mStatOwnWorst = Math.Max(mStatOwnWorst, worst);
 			PendingInputs = (int32)(mTick - ackTick);
-			if (worst <= CorrectionThreshold)
+			let bodyWorst = BodyPredictionError(ackTick, bodies);
+			mStatBodyWorst = Math.Max(mStatBodyWorst, Math.Min(bodyWorst, 1000));
+			if (worst <= CorrectionThreshold && bodyWorst <= CorrectionThreshold)
 			{
 				// Nothing moved: leave any easing already under way alone.
 				before.Clear();
+				SettleResting(bodies);
 				return;
 			}
+			if (worst <= CorrectionThreshold)
+				PhysicsRollbacks++;
+			worst = Math.Max(worst, bodyWorst);
 		}
 
 		LastCorrection = worst;
 		Rollbacks++;
 		mStatRollbacks++;
-		for (let entry in owned)
-			entry.identity.ApplyState(entry.state);
 		if (!comparable)
+		{
+			for (let entry in owned)
+				entry.identity.ApplyState(entry.state);
+			for (let body in bodies)
+			{
+				body.identity.ApplyBodyState(body.state, body.asleep);
+				body.identity.PredictedSince = mTick + 1;
+			}
 			return;
-		for (let entry in owned)
-			entry.identity.History[ackTick % NetworkIdentity.HistorySize] = entry.state;
+		}
+		RewindTo(ackTick, owned, bodies);
 		mStatReplayed += (int32)(mTick - ackTick);
 		ReplayInputs(ackTick, owned);
 	}
 
+	/// Client: puts everything this machine predicts back as it was at the end of a tick: the server's word where
+	/// there is one, and otherwise what this machine had then.
+	void RewindTo(uint32 tick, List<(NetworkIdentity identity, BodyState state)> owned, List<ServerBody> bodies)
+	{
+		let slot = tick % NetworkIdentity.HistorySize;
+		for (let identity in mIdentities)
+		{
+			if (identity.Predicted && (int32)(tick - identity.PredictedSince) >= 0)
+				identity.ApplyBodyState(identity.History[slot], identity.HistoryAsleep[slot]);
+		}
+		for (let body in bodies)
+		{
+			body.identity.ApplyBodyState(body.state, body.asleep);
+			body.identity.History[slot] = body.state;
+			body.identity.HistoryAsleep[slot] = body.asleep;
+			if ((int32)(tick - body.identity.PredictedSince) < 0)
+				body.identity.PredictedSince = tick;
+		}
+		for (let entry in owned)
+		{
+			entry.identity.ApplyState(entry.state);
+			entry.identity.History[slot] = entry.state;
+		}
+	}
+
 	/// The server has got ahead of this machine, which must have stopped for a moment. Takes its state and jumps the
 	/// clock forward to where it should be, rather than limp along behind.
-	void JumpToServer(uint32 ackTick, List<(NetworkIdentity identity, BodyState state)> owned)
+	void JumpToServer(uint32 ackTick, List<(NetworkIdentity identity, BodyState state)> owned, List<ServerBody> bodies)
 	{
 		let lead = (uint32)Math.Clamp(PendingInputs, 1, 30);
 		let last = mInputs[mTick % InputHistory];
@@ -159,11 +231,21 @@ extension NetworkManager
 				entry.identity.History[i] = entry.state;
 		}
 		uint32 target = ackTick + lead;
+		for (let body in bodies)
+		{
+			body.identity.ApplyBodyState(body.state, body.asleep);
+			body.identity.PredictedSince = target;
+		}
 		uint32 first = target >= (uint32)InputHistory ? target - (uint32)InputHistory + 1 : 1;
 		for (uint32 tick = Math.Max(mTick + 1, first); tick <= target; tick++)
 			mInputs[tick % InputHistory] = last;
 		mServerOffset -= (double)(target - mTick);
 		mTick = target;
+		for (let identity in mIdentities)
+		{
+			if (identity.Predicted)
+				identity.RecordTick(target);
+		}
 		Rollbacks++;
 		mStatRollbacks++;
 	}
@@ -184,13 +266,84 @@ extension NetworkManager
 		return worst;
 	}
 
+	/// The same for predicted bodies, counting a difference in speed as the distance it opens up by the next
+	/// snapshot, so that a knock is put right before it shows. A body with no history yet always differs.
+	///
+	/// A body wrong in MissesBeforePause snapshots running is being moved by something this machine cannot know
+	/// about (another player leaning on it, a script on the server carrying it). Running it again every snapshot
+	/// would only jitter, so it is shown in the past, with whatever moves it, for PauseTicks, then tried again.
+	float BodyPredictionError(uint32 ackTick, List<ServerBody> bodies)
+	{
+		const int32 MissesBeforePause = 3;
+		const uint32 PauseTicks = 120;
+		float worst = 0;
+		for (let body in bodies)
+		{
+			if ((int32)(ackTick - body.identity.PredictedSince) < 0)
+			{
+				worst = float.MaxValue;
+				continue;
+			}
+			let predicted = body.identity.History[ackTick % NetworkIdentity.HistorySize];
+			let ahead = Time.FixedDeltaTime * Math.Max(mServerInterval, 1);
+			var error = (predicted.position - body.state.position).Length;
+			error = Math.Max(error, (1.0f - Mathf.Abs(Quaternion.Dot(predicted.rotation, body.state.rotation))) * 2.0f);
+			error = Math.Max(error, (predicted.linearVelocity - body.state.linearVelocity).Length * ahead);
+			worst = Math.Max(worst, error);
+			if (error <= CorrectionThreshold)
+				body.identity.Misses = 0;
+			else if (++body.identity.Misses >= MissesBeforePause)
+			{
+				body.identity.Misses = 0;
+				body.identity.Predicted = false;
+				body.identity.PredictPausedUntil = mTick + PauseTicks;
+				body.identity.ClearKeys();
+				body.identity.PushBodyKey(mLastSnapshotTick, body.state, body.asleep);
+			}
+		}
+		return worst;
+	}
+
+	/// A body resting here and on the server, a little apart, is put where the server has it: it is not moving, so
+	/// there is nothing to run again, and the difference would otherwise last until something knocks it.
+	void SettleResting(List<ServerBody> bodies)
+	{
+		for (let body in bodies)
+		{
+			let rigidbody = body.identity.GetComponent<Rigidbody>();
+			if (!body.asleep || !rigidbody.IsSleeping)
+				continue;
+			let transform = body.identity.Transform;
+			if ((transform.Position - body.state.position).LengthSquared < 1.0e-10f && Mathf.Abs(Quaternion.Dot(transform.Rotation, body.state.rotation)) > 0.9999999f)
+				continue;
+			let drawn = transform.Position + body.identity.SmoothOffset;
+			body.identity.ApplyBodyState(body.state, true);
+			body.identity.SmoothOffset = drawn - transform.Position;
+			for (int i < NetworkIdentity.HistorySize)
+			{
+				body.identity.History[i] = body.state;
+				body.identity.HistoryAsleep[i] = true;
+			}
+		}
+	}
+
+	void CountPredictedBodies()
+	{
+		PredictedBodies = 0;
+		for (let identity in mIdentities)
+		{
+			if (identity.Predicted)
+				PredictedBodies++;
+		}
+	}
+
 	/// Replays every input the server has not acknowledged yet on top of the corrected state.
 	void ReplayInputs(uint32 ackTick, List<(NetworkIdentity identity, BodyState state)> owned)
 	{
 		// Objects moved by the physics engine need it stepped as well. That moves every other body too, so those
-		// are put back afterwards: where they are is the server's business.
+		// this machine does not predict are put back afterwards: where they are is the server's business.
 		List<(NetworkIdentity identity, BodyState state)> others = scope .();
-		bool stepPhysics = AnyHasBody(owned);
+		bool stepPhysics = PredictedBodies > 0 || AnyHasBody(owned);
 		if (stepPhysics)
 			CaptureOtherBodies(others);
 
@@ -201,6 +354,9 @@ extension NetworkManager
 		}
 		for (uint32 tick = ackTick + 1; tick <= mTick; tick++)
 		{
+			// What is shown in the past is put where it was shown that tick, for predicted bodies to run into.
+			if (PredictedBodies > 0)
+				ApplyRemoteStates(tick, false);
 			SimulateOwned(LocalClientId, mInputs[tick % InputHistory]);
 			// A replayed contact can hand a transform motor to a body during this tick.
 			if (!stepPhysics && AnyHasBody(owned))
@@ -212,6 +368,11 @@ extension NetworkManager
 				mScene.Physics.Step(Time.FixedDeltaTime);
 			for (let entry in owned)
 				entry.identity.History[tick % NetworkIdentity.HistorySize] = entry.identity.CaptureState();
+			for (let identity in mIdentities)
+			{
+				if (identity.Predicted && (int32)(tick - identity.PredictedSince) >= 0)
+					identity.RecordTick(tick);
+			}
 		}
 		for (let entry in others)
 			entry.identity.ApplyState(entry.state);
@@ -227,12 +388,12 @@ extension NetworkManager
 		return false;
 	}
 
-	/// The state of every physics body this machine does not own, to put back after a replay.
+	/// The state of every physics body this machine neither owns nor predicts, to put back after a replay.
 	void CaptureOtherBodies(List<(NetworkIdentity identity, BodyState state)> others)
 	{
 		for (let identity in mIdentities)
 		{
-			if (identity.ownerId != LocalClientId && identity.GetComponent<Rigidbody>()?.HasBody == true)
+			if (identity.ownerId != LocalClientId && !identity.Predicted && identity.GetComponent<Rigidbody>()?.HasBody == true)
 				others.Add((identity, identity.CaptureState()));
 		}
 	}

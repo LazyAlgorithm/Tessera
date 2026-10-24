@@ -167,6 +167,9 @@ static class NetPack
 	public const uint8 FlagFineTransform = 16;
 	/// The body is resting.
 	public const uint8 FlagSleeping = 32;
+	/// A physics body the receiving machine simulates itself (see NetworkManager.PredictPhysics): position,
+	/// rotation and both velocities as plain floats, for checking its prediction exactly.
+	public const uint8 FlagPredicted = 64;
 	/// 0.1 millimetre position steps in metre-based worlds. Outside +/-838m, use exact floats.
 	public const float FinePositionScale = 10000;
 
@@ -203,6 +206,27 @@ static class NetPack
 			position = reader.Read<Vector3>();
 			rotation = reader.Read<Quaternion>();
 		}
+	}
+
+	/// Writes a predicted body's record: FlagPredicted (with FlagSleeping while it rests) and its exact motion.
+	public static void WriteBody(NetWriter writer, BodyState state, bool sleeping)
+	{
+		writer.Write((uint8)(FlagPredicted | (sleeping ? FlagSleeping : 0)));
+		writer.Write(state.position);
+		writer.Write(state.rotation);
+		writer.Write(state.linearVelocity);
+		writer.Write(state.angularVelocity);
+	}
+
+	/// Reads the motion WriteBody wrote, after its flags.
+	public static BodyState ReadBody(ref NetReader reader)
+	{
+		BodyState state = default;
+		state.position = reader.Read<Vector3>();
+		state.rotation = reader.Read<Quaternion>();
+		state.linearVelocity = reader.Read<Vector3>();
+		state.angularVelocity = reader.Read<Vector3>();
+		return state;
 	}
 
 	/// What a snapshot says about an object nobody on the receiving machine controls.

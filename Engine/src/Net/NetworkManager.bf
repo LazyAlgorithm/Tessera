@@ -357,6 +357,12 @@ class NetworkManager
 	public uint32 WireBytesReceived => mTransport?.WireReceived ?? 0;
 	/// Position error in world units that triggers a rollback.
 	public float CorrectionThreshold = 0.03f;
+	/// Clients simulate server-owned physics bodies themselves, ahead of the server as they do their own player,
+	/// instead of showing them a moment in the past: a crate the player walks into moves the tick they touch it.
+	/// When the server says otherwise, the bodies and the player go back and run the ticks since again. Set on the
+	/// server, it decides which bodies are sent for predicting (NetworkIdentity.physicsPrediction picks); set false
+	/// on a client, that client shows them in the past regardless.
+	public bool PredictPhysics = true;
 	/// How far in the past, in ticks, a client shows the objects it does not control. 0 picks two snapshots'
 	/// worth, which rides out one lost snapshot; less is more up to date and less forgiving.
 	public int32 InterpolationTicks = 0;
@@ -378,12 +384,16 @@ class NetworkManager
 	public int32 PendingInputs;
 	/// Client: how far off the last corrected prediction was.
 	public float LastCorrection;
+	/// Client: how many of the Rollbacks were for physics bodies alone, the player's own objects being right.
+	public int32 PhysicsRollbacks;
+	/// Client: how many physics bodies this machine is predicting.
+	public int32 PredictedBodies;
 
 	/// Print a line of network figures once a second (--netstats), for finding out why a connection feels rough.
 	public static bool LogStats;
 	int32 mStatRollbacks, mStatReplayed, mStatSnapshots, mStatStarved, mStatDropped, mStatTicks;
 	int32 mStatSent, mStatReceived, mStatPacketsSent, mStatHeld;
-	float mStatOwnWorst;
+	float mStatOwnWorst, mStatBodyWorst;
 	/// Bytes sent and received in the last full second, for the editor's network panel and --netstats.
 	public int32 BytesSentPerSecond, BytesReceivedPerSecond;
 
@@ -424,10 +434,10 @@ class NetworkManager
 			Log.Info(scope $"netstats server: sent {mStatSent} bytes in {mStatPacketsSent} packets, received {mStatReceived}, {mIdentities.Count} objects, {mStatStarved} ticks without input, {mStatDropped} inputs dropped{text}");
 		}
 		else if (LogStats)
-			Log.Info(scope $"netstats client: sent {mStatSent} bytes, received {mStatReceived}, {mStatSnapshots} snapshots, {mStatRollbacks} rollbacks replaying {mStatReplayed} ticks, {PendingInputs} ticks ahead, own error {mStatOwnWorst:0.000}, {mDepth:0.0} of {mTargetDepth:0.0} inputs waiting, tick rate {Time.TickScale:0.000}, {mStatHeld} waits for news");
+			Log.Info(scope $"netstats client: sent {mStatSent} bytes, received {mStatReceived}, {mStatSnapshots} snapshots, {mStatRollbacks} rollbacks replaying {mStatReplayed} ticks, {PendingInputs} ticks ahead, own error {mStatOwnWorst:0.000}, {PredictedBodies} bodies predicted (error {mStatBodyWorst:0.000}), {mDepth:0.0} of {mTargetDepth:0.0} inputs waiting, tick rate {Time.TickScale:0.000}, {mStatHeld} waits for news");
 		mStatRollbacks = mStatReplayed = mStatSnapshots = mStatStarved = mStatDropped = mStatTicks = 0;
 		mStatSent = mStatReceived = mStatPacketsSent = mStatHeld = 0;
-		mStatOwnWorst = 0;
+		mStatOwnWorst = mStatBodyWorst = 0;
 	}
 
 	/// Offline, server, host or client.

@@ -439,7 +439,7 @@ extension EditorApp
 			if (network.IsServer)
 				text.AppendF("{}: {} client(s), tick {}, {:0.0} kB/s out, {:0.0} in", network.Mode, network.ClientCount, network.Tick, network.BytesSentPerSecond / 1000.0f, network.BytesReceivedPerSecond / 1000.0f);
 			else
-				text.AppendF("Client {}: {} corrections, {} ticks ahead, {:0.0} kB/s out, {:0.0} in", network.LocalClientId, network.Rollbacks, network.PendingInputs, network.BytesSentPerSecond / 1000.0f, network.BytesReceivedPerSecond / 1000.0f);
+				text.AppendF("Client {}: {} corrections, {} bodies predicted, {} ticks ahead, {:0.0} kB/s out, {:0.0} in", network.LocalClientId, network.Rollbacks, network.PredictedBodies, network.PendingInputs, network.BytesSentPerSecond / 1000.0f, network.BytesReceivedPerSecond / 1000.0f);
 			ImGui.SameLine(0, 24);
 			ImGui.TextDisabled(text.CStr());
 		}
