@@ -523,6 +523,8 @@ class RenderView
 		{
 			SubmitLines(view, Gizmos.Triangles, true);
 			SubmitLines(view, Gizmos.Lines);
+			SubmitLines(view, Gizmos.OnTopTriangles, true, true);
+			SubmitLines(view, Gizmos.OnTopLines, false, true);
 		}
 	}
 
@@ -893,8 +895,9 @@ class RenderView
 		bgfx.submit(view, program, 0, 0xff);
 	}
 
-	/// Draws a batch as line segments, or as unculled triangles that test depth without writing it.
-	void SubmitLines(uint16 view, LineBatch batch, bool triangles = false)
+	/// Draws a batch as line segments, or as unculled triangles that test depth without writing it (or, on top, over
+	/// everything).
+	void SubmitLines(uint16 view, LineBatch batch, bool triangles = false, bool onTop = false)
 	{
 		let count = (uint32)batch.Vertices.Count;
 		if (count == 0)
@@ -907,7 +910,7 @@ class RenderView
 		bgfx.alloc_transient_vertex_buffer(&buffer, available, &Gfx.LineLayout);
 		Internal.MemCpy(buffer.data, batch.Vertices.Ptr, (int)available * sizeof(LineVertex));
 		bgfx.set_transient_vertex_buffer(0, &buffer, 0, available);
-		bgfx.set_state(Gfx.StateWriteRGB | Gfx.StateWriteA | Gfx.StateDepthLequal | (triangles ? 0 : Gfx.StateLines) | Gfx.StateMsaa | Gfx.StateBlendAlpha, 0);
+		bgfx.set_state(Gfx.StateWriteRGB | Gfx.StateWriteA | (onTop ? 0 : Gfx.StateDepthLequal) | (triangles ? 0 : Gfx.StateLines) | Gfx.StateMsaa | Gfx.StateBlendAlpha, 0);
 		bgfx.submit(view, RenderResources.LineProgram, 0, 0xff);
 	}
 }

@@ -410,7 +410,7 @@ extension EditorApp
 		DrawMarkerHead(view, clip, recording);
 		DragSelectedKey(view, clip, editing);
 		DeleteKeys(clip, editing, removeTrack);
-		DrawTimelineFooter(view, clip);
+		DrawTimelineFooter(view, animator, clip);
 		return true;
 	}
 
@@ -1127,7 +1127,7 @@ extension EditorApp
 	}
 
 	/// The footer: the clip's length and looping, Frame All, and a hint at the controls.
-	void DrawTimelineFooter(Timeline view, AnimationClip clip)
+	void DrawTimelineFooter(Timeline view, Animator animator, AnimationClip clip)
 	{
 		ImGui.SetCursorScreenPos(.(view.origin.x + 6, view.bottom - view.footerHeight + 3));
 		ImGui.AlignTextToFramePadding();
@@ -1145,8 +1145,10 @@ extension EditorApp
 		ImGui.SameLine(0, 12);
 		if (ImGui.Button("Frame All", .(0, ImGui.GetFrameHeight())))
 			mAnimPixelsPerSecond = 0;
+		ImGui.SameLine(0, 12);
+		let buttonsEnd = DrawRigButtons(animator, ImGui.GetCursorScreenPos().x, ImGui.GetCursorScreenPos().y);
 		let hint = "Scroll to zoom    Middle-drag to pan    Drag keys to retime    Right-click a key to delete";
-		ImGui.DrawText(.(view.sheetLeft + 8, view.bottom - view.footerHeight + (view.footerHeight - ImGui.GetTextLineHeight()) * 0.5f), .(1, 1, 1, 0.32f), hint);
+		ImGui.DrawText(.(Math.Max(view.sheetLeft, buttonsEnd) + 8, view.bottom - view.footerHeight + (view.footerHeight - ImGui.GetTextLineHeight()) * 0.5f), .(1, 1, 1, 0.32f), hint);
 	}
 
 	/// Key IK: a key at the marker on every bone below the Animator that an IK component moves, holding the pose IK

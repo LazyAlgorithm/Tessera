@@ -94,7 +94,8 @@ For a hand on a rifle, use **Trigger** on the firing hand and **Grip** on the ot
 
 The fingers are found by name among the hand's children: thumb, index (or pointer), middle, ring, pinky (or little).
 When no name matches, five children are taken as thumb to pinky in order and fewer as the fingers from the index
-on. A finger is that child and the bones below it, up to four. The Inspector says what was found.
+on. A child named only "finger" (POLYGON characters' middle, ring and little fingers, which are one chain) takes the
+first free slot from the middle finger on. A finger is that child and the bones below it, up to four. The Inspector says what was found.
 
 Which way to curl is worked out from the hand's shape, using the thumb to tell the palm from the back of the hand.
 If the fingers curl backwards, tick **Flip Curl**; if only the thumb is wrong, **Flip Thumb**.
@@ -139,7 +140,9 @@ The ground is found with the physics world, so it needs colliders. The character
 
 ## Animating with IK in the editor
 
-IK runs in the editor, so it can be used to make clips.
+IK runs in the editor, so it can be used to make clips. For a humanoid, **Rig > Set Up IK Rig** in the Animation
+window makes the targets, poles and components in one press, and the Scene view draws the targets as handles you can
+click. **Hands** opens Hand Posing for the fingers. Both are described in `docs/retargeting.md`.
 
 - **Animate the targets.** A target that is a child of the Animator's object is keyed like any other child: turn on
   Record, move the marker, move the target. The clip then moves the target and IK moves the arm, in the editor and
