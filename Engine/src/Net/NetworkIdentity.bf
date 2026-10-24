@@ -8,6 +8,19 @@ enum RemoteSnapshotFormat : int32
 {
 	Legacy, ExactTransform, QuantizedTransform }
 
+/// Whether clients simulate a physics body themselves rather than showing it a moment in the past.
+[Reflect(.All)]
+enum PhysicsPrediction : int32
+{
+	/// Predicted if it is a server-owned dynamic Rigidbody with no Network Behaviour on it (a script that moves it
+	/// on the server alone would make every prediction wrong).
+	Auto,
+	/// Predicted whenever it is a server-owned dynamic Rigidbody.
+	On,
+	/// Never predicted: shown a moment in the past, as other players are.
+	Off
+}
+
 /// Marks an object as replicated. The server owns its state; clients predict it locally and are corrected.
 [Component]
 class NetworkIdentity : Component
@@ -16,6 +29,7 @@ class NetworkIdentity : Component
 	/// Send exact transform/body snapshots for small or precision-sensitive objects.
 	public bool fullPrecision;
 	BodyState mSentFull;
+	bool mSentAsleep;
 	/// Remote snapshot format only; the owning client's prediction always receives exact BodyState.
 	public RemoteSnapshotFormat remoteFormat = .Legacy;
 	/// Minimum server ticks between remote updates; zero uses the session snapshot interval.
@@ -27,6 +41,8 @@ class NetworkIdentity : Component
 	/// Higher values are serviced first when a session has a bandwidth budget.
 	public int32 snapshotPriority;
 	public bool SnapshotSleeping => dormantWhenSleeping && GetComponent<Rigidbody>()?.IsSleeping == true;
+	/// Whether clients simulate this body themselves while the server owns it (NetworkManager.PredictPhysics).
+	public PhysicsPrediction physicsPrediction = .Auto;
 
 
 	/// 0 means owned by the server; otherwise the id of the controlling client.
@@ -44,6 +60,70 @@ class NetworkIdentity : Component
 	public BodyState[HistorySize] History;
 	[NonSerialized]
 	public String PrefabName = new .() ~ delete _;
+
+	// ---- physics prediction ----
+
+	/// Server: whether the last snapshot sent this body for clients to predict.
+	[NonSerialized]
+	public bool PhysicsPredictable;
+	/// Client: whether this machine is simulating this body itself, ahead of the server, as it does its own player.
+	[NonSerialized]
+	public bool Predicted;
+	/// Client: the first tick History holds for a predicted body.
+	[NonSerialized]
+	public uint32 PredictedSince;
+	/// Client: whether a predicted body was resting at the end of each tick in History.
+	[NonSerialized]
+	public bool[HistorySize] HistoryAsleep;
+	/// Client: what the server last said about a predicted body, at which of its ticks, and whether it was resting.
+	[NonSerialized]
+	public BodyState ServerState;
+	[NonSerialized]
+	public uint32 ServerStateTick;
+	[NonSerialized]
+	public bool ServerAsleep;
+	/// Client: how many snapshots running have corrected this body, and the tick until which it is shown in the
+	/// past instead because of that.
+	[NonSerialized]
+	public int32 Misses;
+	[NonSerialized]
+	public uint32 PredictPausedUntil;
+
+	/// Server: whether clients can simulate this object (see physicsPrediction).
+	public bool CanPredictPhysics
+	{
+		get
+		{
+			if (physicsPrediction == .Off || ownerId != 0)
+				return false;
+			let body = GetComponent<Rigidbody>();
+			if (body == null || body.isKinematic || !body.HasBody)
+				return false;
+			if (physicsPrediction == .On)
+				return true;
+			for (let component in GameObject.Components)
+			{
+				if (component is NetworkBehaviour)
+					return false;
+			}
+			return true;
+		}
+	}
+
+	/// Client: notes the body's state at the end of a tick, for going back to it.
+	public void RecordTick(uint32 tick)
+	{
+		History[tick % HistorySize] = CaptureState();
+		HistoryAsleep[tick % HistorySize] = GetComponent<Rigidbody>()?.IsSleeping == true;
+	}
+
+	/// Client: puts a predicted body back in a state, resting if it was.
+	public void ApplyBodyState(BodyState state, bool asleep)
+	{
+		ApplyState(state);
+		if (asleep)
+			GetComponent<Rigidbody>()?.Sleep();
+	}
 
 	public bool IsOwner => Scene.Network != null && ownerId == Scene.Network.LocalClientId;
 
@@ -115,14 +195,23 @@ class NetworkIdentity : Component
 	bool mSentOnce;
 
 	/// Server, once per snapshot: packs where the object is now and notes whether that is news.
-	public void NoteSnapshot(uint32 number, bool includeFullState = false)
+	public void NoteSnapshot(uint32 number, bool includeFullState = false, bool predictPhysics = false)
 	{
 		let now = NetPack.Pack(Transform.Position, Transform.Rotation);
-		if (fullPrecision)
+		let predictable = predictPhysics && CanPredictPhysics;
+		// A predicted body is checked exactly: a client that knows it has not changed can compare against it.
+		if (predictable != PhysicsPredictable)
+		{
+			PhysicsPredictable = predictable;
+			mSentOnce = false;
+		}
+		if (fullPrecision || predictable)
 		{
 			let exact = CaptureState();
-			if (mSentOnce && (!includeFullState || (exact.linearVelocity - mSentFull.linearVelocity).LengthSquared < 1.0e-12f && (exact.angularVelocity - mSentFull.angularVelocity).LengthSquared < 1.0e-12f && exact.prediction0 == mSentFull.prediction0 && exact.prediction1 == mSentFull.prediction1) && (exact.position - mSentFull.position).LengthSquared < 1.0e-12f && Math.Abs(Quaternion.Dot(exact.rotation, mSentFull.rotation)) > 0.9999999f && exact.prediction0.w == mSentFull.prediction0.w) return;
+			let asleep = predictable && GetComponent<Rigidbody>().IsSleeping;
+			if (mSentOnce && asleep == mSentAsleep && (!(includeFullState || predictable) || (exact.linearVelocity - mSentFull.linearVelocity).LengthSquared < 1.0e-12f && (exact.angularVelocity - mSentFull.angularVelocity).LengthSquared < 1.0e-12f && exact.prediction0 == mSentFull.prediction0 && exact.prediction1 == mSentFull.prediction1) && (exact.position - mSentFull.position).LengthSquared < 1.0e-12f && Math.Abs(Quaternion.Dot(exact.rotation, mSentFull.rotation)) > 0.9999999f && exact.prediction0.w == mSentFull.prediction0.w) return;
 			mSentFull = exact;
+			mSentAsleep = asleep;
 		}
 		else if (mSentOnce && now.Same(Sent))
 			return;

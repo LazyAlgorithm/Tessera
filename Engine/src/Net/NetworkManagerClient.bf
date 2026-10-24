@@ -38,6 +38,8 @@ extension NetworkManager
 		mClockSet = false;
 		mDepth = 2;
 		mTargetDepth = CalmDepth;
+		for (let identity in mIdentities)
+			identity.Predicted = false;
 		Log.Info(scope $"Connected as client {LocalClientId}.");
 	}
 
@@ -86,6 +88,11 @@ extension NetworkManager
 		let count = (int)reader.Read<uint16>();
 		if (!reader.Ok || LocalClientId <= 0)
 			return;
+		if (!PredictPhysics && PredictedBodies > 0)
+		{
+			for (let identity in mIdentities)
+				identity.Predicted = false;
+		}
 		SnapshotsReceived++;
 		mStatSnapshots++;
 		// Snapshots can overtake one another on the way; one older than the last has nothing to add.
@@ -95,12 +102,15 @@ extension NetworkManager
 		let sawPrevious = mHaveSnapshot && serverTick - mLastSnapshotTick == interval;
 
 		List<(NetworkIdentity identity, BodyState state)> owned = scope .();
+		List<ServerBody> bodies = scope .();
 		for (int i < count)
 		{
 			let netId = ReadId(ref reader);
 			let flags = reader.Read<uint8>();
 			BodyState state = default;
-			if ((flags & NetPack.FlagFull) != 0)
+			if ((flags & NetPack.FlagPredicted) != 0)
+				state = NetPack.ReadBody(ref reader);
+			else if ((flags & NetPack.FlagFull) != 0)
 				state = reader.Read<BodyState>();
 			else if ((flags & (NetPack.FlagExactTransform | NetPack.FlagFineTransform)) != 0)
 				NetPack.ReadTransform(ref reader, flags, out state.position, out state.rotation);
@@ -112,18 +122,47 @@ extension NetworkManager
 				continue;
 			if (identity.ownerId == LocalClientId)
 			{
+				identity.Predicted = false;
 				if ((flags & NetPack.FlagFull) != 0 && (!part || fresh || serverTick == mLastSnapshotTick))
 					owned.Add((identity, state));
 				continue;
+			}
+			let asleep = (flags & NetPack.FlagSleeping) != 0;
+			if ((flags & NetPack.FlagPredicted) != 0 && PredictPhysics && (int32)(mTick - identity.PredictPausedUntil) >= 0 && identity.GetComponent<Rigidbody>()?.HasBody == true)
+			{
+				// Old news about a body this machine runs ahead of the server is no use to it.
+				if (identity.Predicted && (int32)(serverTick - identity.ServerStateTick) <= 0)
+					continue;
+				identity.ServerState = state;
+				identity.ServerStateTick = serverTick;
+				identity.ServerAsleep = asleep;
+				bodies.Add(.() { identity = identity, state = state, asleep = asleep });
+				continue;
+			}
+			if (identity.Predicted)
+			{
+				// No longer the server's to say (a player has taken it): shown in the past from here on.
+				identity.Predicted = false;
+				identity.ClearKeys();
 			}
 			if (!part && sawPrevious && identity.HasKeys && serverTick - identity.NewestKeyTick > interval)
 				identity.HoldKey((uint32)(serverTick - interval));
 			// Character motors may use velocity slots for prediction metadata. Only
 			// rigidbodies carry physical spin that is safe to extrapolate.
-			if ((flags & NetPack.FlagFull) != 0 && identity.GetComponent<Rigidbody>() != null)
-				identity.PushBodyKey(serverTick, state, (flags & NetPack.FlagSleeping) != 0);
+			if ((flags & (NetPack.FlagFull | NetPack.FlagPredicted)) != 0 && identity.GetComponent<Rigidbody>() != null)
+				identity.PushBodyKey(serverTick, state, asleep);
 			else
-				identity.PushKey(serverTick, state.position, state.rotation, (flags & NetPack.FlagSleeping) != 0);
+				identity.PushKey(serverTick, state.position, state.rotation, asleep);
+		}
+		// A whole snapshot leaves out only what has not changed for a few snapshots, so a predicted body it does not
+		// mention is where the server last said. (Packets of a split snapshot may leave things out for other reasons.)
+		if (!part && sawPrevious)
+		{
+			for (let identity in mIdentities)
+			{
+				if (identity.Predicted && identity.ServerStateTick != serverTick && identity.ServerStateTick != 0)
+					bodies.Add(.() { identity = identity, state = identity.ServerState, asleep = identity.ServerAsleep });
+			}
 		}
 		if (fresh)
 		{
@@ -132,8 +171,8 @@ extension NetworkManager
 			mServerInterval = (int32)interval;
 			FollowServerClock(serverTick, depth);
 		}
-		if (owned.Count > 0)
-			Reconcile(ackTick, owned);
+		if (owned.Count > 0 || bodies.Count > 0)
+			Reconcile(ackTick, owned, bodies);
 	}
 
 	/// Client: keeps track of what tick the server is on, and runs this machine's ticks a little faster or slower

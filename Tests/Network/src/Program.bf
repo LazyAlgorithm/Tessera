@@ -365,19 +365,15 @@ class Program
 			for (float z = -2; z <= 2; z += 0.4f)
 				hostBoulder.Carve(hostBoulder.Transform.TransformPoint(.(0, y, z)), 0.45f);
 		}
-		// A client shows what it does not control a moment in the past (about two snapshots), so a falling
-		// piece should be somewhere the server had it during the last few ticks.
+		// A client predicts a server-owned body, running a little ahead of the server as it does with its own
+		// player, so a falling piece should be where the server is about to have it.
 		Pump(32);
 		List<NetworkIdentity> hostPieces = scope .();
 		List<NetworkIdentity> clientPieces = scope .();
-		List<Vector3> hostPlaces = scope .();
 		for (let identity in host.Network.Identities)
 		{
 			if (identity.GameObject.Name == "Fragment")
-			{
 				hostPieces.Add(identity);
-				hostPlaces.Add(identity.Transform.Position);
-			}
 		}
 		Pump(8);
 		for (let identity in client.Network.Identities)
@@ -394,9 +390,10 @@ class Program
 				if (candidate.NetId == piece.NetId)
 					twin = candidate;
 			}
-			samePieces &= twin != null && Solid(twin.GetComponent<VoxelObject>()) == Solid(piece.GetComponent<VoxelObject>()) && Between(twin.Transform.Position, hostPlaces[@piece.Index], piece.Transform.Position);
+			let soon = piece.Transform.Position + piece.GetComponent<Rigidbody>().State.linearVelocity * (Time.FixedDeltaTime * 4);
+			samePieces &= twin != null && twin.Predicted && Solid(twin.GetComponent<VoxelObject>()) == Solid(piece.GetComponent<VoxelObject>()) && Between(twin.Transform.Position, piece.Transform.Position, soon);
 		}
-		ok &= Check(samePieces && Solid(clientBoulder) == Solid(hostBoulder), scope $"pieces that break off are the same objects, shapes and places on both ({hostPieces.Count} piece(s))");
+		ok &= Check(samePieces && Solid(clientBoulder) == Solid(hostBoulder), scope $"pieces that break off are the same objects and shapes on both, and the client predicts their fall ({hostPieces.Count} piece(s))");
 		if (hostPieces.Count > 0)
 		{
 			// A fragment can be carved in turn, by a client, and stays identical.
