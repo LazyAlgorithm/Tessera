@@ -150,7 +150,7 @@ Work agreed and queued, in order (see *How to use this page* above for what "don
   Set / Compare Number, Remember Position, Start Values; Chance, Random Selector, Run Once; Wander on reachable
   points; Ctrl+D duplicate in the Behavior tab. `docs/behavior-trees.md`, `Tests/BehaviorTree`, a guard in the
   Sandbox Navigation scene.
-- [x] E16 LOD, occlusion culling, GPU skinning (2026-10-25): LOD Groups pick a level per camera from screen height
+- [x] E16 LOD, occlusion culling, GPU skinning (2026-10-25, `dev` e735b28): LOD Groups pick a level per camera from screen height
   (levels from `_LOD<n>` children or meshes simplified at load, Cull Below, `LODGroup.Bias`, Preview and
   `--lod-level`); occlusion culling per camera from a small CPU depth picture of the biggest solid occluders
   (Auto / Always / Never per renderer, conservative edges, Scene view toggle, statistics and picture); GPU skinning
