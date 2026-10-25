@@ -144,6 +144,29 @@ static class RenderResources
 		Ready = true;
 	}
 
+	/// Changes the shadow map's size (a quality setting): before the first frame it is only remembered, afterwards the
+	/// maps are made again at the new size.
+	public static void SetShadowAtlasSize(int32 size)
+	{
+		let wanted = Math.Clamp(size, 256, 8192);
+		if (wanted == ShadowAtlasSize)
+			return;
+		ShadowAtlasSize = wanted;
+		if (!Ready)
+			return;
+		bgfx.destroy_frame_buffer(ShadowFrameBuffer);
+		let shadowFlags = Gfx.TextureRenderTarget | Gfx.SamplerCompareLequal | Gfx.SamplerClamp;
+		ShadowMap = bgfx.create_texture_2d((uint16)ShadowAtlasSize, (uint16)ShadowAtlasSize, false, 1, .D32F, shadowFlags, null, 0);
+		ShadowFrameBuffer = bgfx.create_frame_buffer_from_handles(1, &ShadowMap, true);
+		if (SpotShadowFrameBuffer.idx != uint16.MaxValue)
+		{
+			bgfx.destroy_frame_buffer(SpotShadowFrameBuffer);
+			SpotShadowFrameBuffer.idx = uint16.MaxValue;
+			SpotShadowMap.idx = uint16.MaxValue;
+			EnsureSpotShadows();
+		}
+	}
+
 	/// Allocate spotlight depth storage only when a scene actually has a shadowed spotlight.
 	public static void EnsureSpotShadows()
 	{

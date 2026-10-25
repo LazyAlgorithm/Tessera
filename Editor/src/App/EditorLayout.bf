@@ -62,6 +62,7 @@ extension EditorApp
 		DrawAchievements();
 		DrawInputActions();
 		DrawMapBuilder();
+		DrawQualityWindow();
 		CommitUndoWhenIdle();
 		if (mShowScene)
 		{
@@ -205,6 +206,8 @@ extension EditorApp
 			}
 			if (ImGui.MenuItem("Map Builder", null, mShowMapBuilder))
 				mShowMapBuilder = !mShowMapBuilder;
+			if (ImGui.MenuItem("Graphics Quality", null, mShowQuality))
+				mShowQuality = !mShowQuality;
 			if (ImGui.MenuItem("Reset Layout"))
 				mResetLayout = true;
 			if (ImGui.MenuItem("Scene Grid", null, mShowGrid))

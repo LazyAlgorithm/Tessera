@@ -81,6 +81,10 @@ class RenderView
 	public static int32 MaxSceneHeight = 0;
 	/// Multisampled edges on the scene. Off saves a lot on phones.
 	public static bool Antialias = true;
+	/// Shadows in every view (a quality setting; DrawShadows is one view's).
+	public static bool ShadowsEnabled = true;
+	/// Times each scene's shadow distance, in every view (a quality setting).
+	public static float ShadowDistanceScale = 1;
 	public bool DrawGizmos;
 	public bool DrawShadows = true;
 
@@ -271,11 +275,11 @@ class RenderView
 		let env = scene.Environment;
 		let sun = GatherLights(scene);
 		let lightDirection = SetSun(sun);
-		let castShadows = DrawShadows && sun != null && sun.castShadows;
+		let castShadows = DrawShadows && ShadowsEnabled && sun != null && sun.castShadows;
 		SetFrameConstants(camera, env);
 
 		ClearItems();
-		var shadowRange = env.shadowDistance + ShadowRangeMargin;
+		var shadowRange = env.shadowDistance * ShadowDistanceScale + ShadowRangeMargin;
 		for (let light in mSpotLights)
 		{
 			if (light != null)
@@ -300,7 +304,7 @@ class RenderView
 		SortItems();
 
 		if (castShadows)
-			DrawShadowCascades(camera, lightDirection, env.shadowDistance);
+			DrawShadowCascades(camera, lightDirection, env.shadowDistance * ShadowDistanceScale);
 		else
 		{
 			mShadowParams = .(1.0f / RenderResources.ShadowAtlasSize, 0, 0, 0);
@@ -366,7 +370,7 @@ class RenderView
 			let inner = Math.Cos(innerAngle * 0.5f * Mathf.Deg2Rad);
 			mLightDirSpot[lightCount] = .(light.Transform.Forward, outer);
 			mLightParams[lightCount] = .(inner, light.inverseSquare ? 1 : 0, light.shadowMaskChannel + 1, light.bakedOnly ? 1 : 0);
-			if (DrawShadows && light.type == .Spot && light.castShadows && light.shadowStrength > 0 && light.range > 0.05f && light.intensity > 0)
+			if (DrawShadows && ShadowsEnabled && light.type == .Spot && light.castShadows && light.shadowStrength > 0 && light.range > 0.05f && light.intensity > 0)
 			{
 				mSpotLights[lightCount] = light;
 				mHasSpotShadows = true;

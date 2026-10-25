@@ -214,6 +214,8 @@ class EditorApp : Application
 			LODGroup.ForceLevel = (int32)SceneSerializer.ParseInt(lodArg);
 		if (HasArg("--scene-occlusion"))
 			mSceneOcclusion = mShowOcclusionPicture = true;
+		if (HasArg("--quality-window"))
+			mShowQuality = true;
 		// Bakes every Navigation Surface in the scene (not saved), to see the grid without pressing Bake.
 		if (HasArg("--bake-navigation"))
 		{

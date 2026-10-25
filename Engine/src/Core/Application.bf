@@ -114,6 +114,9 @@ class Application
 		return false;
 	}
 
+	/// Whether the player's saved graphics settings are applied at start (the editor keeps its own).
+	protected virtual bool LoadsPlayerQuality => true;
+
 	/// Value following a named option, e.g. GetArg("--scene", path).
 	public bool GetArg(StringView name, String value)
 	{
@@ -212,6 +215,12 @@ class Application
 			Shutdown();
 			return 1;
 		}
+		// The player's saved graphics settings (docs/quality.md), then --quality <low|medium|high|ultra> for this run.
+		if (!Headless && LoadsPlayerQuality)
+			Quality.Load();
+		let quality = scope String();
+		if (GetArg("--quality", quality) && Quality.Parse(quality, let level))
+			Quality.Set(level);
 
 		mLastTicks = SDL.SDL_GetTicksNS();
 #if BF_PLATFORM_WASM

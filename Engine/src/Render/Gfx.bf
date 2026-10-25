@@ -160,6 +160,27 @@ static class Gfx
 		return true;
 	}
 
+	/// Turns waiting for the screen's refresh on or off (a quality setting).
+	public static void SetVsync(bool on)
+	{
+		let flags = on ? (ResetFlags | ResetVsync) : (ResetFlags & ~ResetVsync);
+		if (flags == ResetFlags)
+			return;
+		ResetFlags = flags;
+		if (Initialized)
+			Native.tn_gfx_reset(Width, Height, ResetFlags);
+	}
+
+	/// Whether the graphics card is built into the processor (Intel's), which suggests a Medium quality.
+	public static bool IsIntegratedGpu => Initialized && bgfx.get_caps().vendorId == 0x8086;
+
+	/// Whether this is the web build.
+#if BF_PLATFORM_WASM
+	public static bool IsWeb => true;
+#else
+	public static bool IsWeb => false;
+#endif
+
 	public static void Resize(int32 width, int32 height)
 	{
 		if (width <= 0 || height <= 0 || (width == Width && height == Height))

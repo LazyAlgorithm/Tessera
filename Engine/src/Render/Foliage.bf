@@ -74,6 +74,8 @@ class Foliage : Component
 
 	static List<Foliage> sAll = new .() ~ delete _;
 	public static List<Foliage> All => sAll;
+	/// Times every Foliage's View Distance (a quality setting).
+	public static float DistanceScale = 1;
 
 	/// How many plants there are.
 	public int32 Count => (int32)mPlants.Count;
@@ -463,7 +465,7 @@ class Foliage : Component
 			RebuildCells();
 		let toWorld = Transform.LocalToWorld;
 		let camera = Transform.InverseTransformPoint(cameraWorld);
-		let reach = Math.Max(viewDistance, 1);
+		let reach = Math.Max(viewDistance * DistanceScale, 1);
 		let fadeFrom = reach * 0.66f;
 		let height = Mesh != null ? Mesh.Bounds.max.y * maxScale + 0.5f : 2;
 		for (int32 cz = CellOf(camera.z - reach); cz <= CellOf(camera.z + reach); cz++)
