@@ -754,6 +754,7 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
       <a href="#manual" data-sec="manual-dialogue">Dialogue and subtitles</a>
       <a href="#manual" data-sec="manual-sequencer">Sequencer (cutscenes)</a>
       <a href="#manual" data-sec="manual-navigation">Navigation</a>
+      <a href="#manual" data-sec="manual-behavior">Behaviour trees</a>
       <a href="#manual" data-sec="manual-skinned-materials">Materials on skinned meshes</a>
       <a href="#manual" data-sec="manual-anim-layers">Animation layers and blend trees</a>
       <a href="#manual" data-sec="manual-ik">Inverse kinematics</a>
@@ -949,6 +950,18 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
         <li>Queries: <code>SamplePosition</code>, <code>RandomPoint</code> (for wandering), <code>Raycast</code>, <code>RemainingDistance</code>. The selected surface shows carved and costly cells, links are drawn as arcs, and agents draw their paths.</li>
       </ul>
       <p>See <code>docs/navigation.md</code>; the Sandbox sample's <code>Scenes/Navigation.tscene</code> shows all of it.</p>
+
+      <h2 id="manual-behavior">Behaviour trees</h2>
+      <p>A behaviour tree decides what an AI character does. Draw one in the <strong>Behavior</strong> tab (Project &gt; + &gt; Behavior Tree), give the character a <strong>Behavior Tree Runner</strong> and a Navigation Agent, and press Play: the tab shows the selected character's tree live, running nodes amber, successes green, failures red. Saving while playing reloads it on every character using it.</p>
+      <div class="note" style="margin-bottom:14px"><div><strong>On the dev branch</strong>The features below are on <code>dev</code> and not yet on <code>main</code> or in a packaged build.</div></div>
+      <ul>
+        <li><strong>Run Subtree</strong>: one tree file runs another in its place, with the same memory. Open it from the node, see it live, and share one Wander tree between guards, animals and villagers. Files are read once for every character.</li>
+        <li><strong>Events</strong>: the game tells the tree something with <code>SendEvent("Hit")</code> and the tree's <strong>Event Received</strong> reacts; <strong>Send Event</strong> tells the game back (<code>OnTreeEvent</code>).</li>
+        <li><strong>Hearing</strong>: <code>AINoise.Make(scene, position, radius)</code> for gunshots and footsteps, picked up by <strong>Heard Noise</strong>.</li>
+        <li><code>#Tag</code> instead of a name to find targets; Can See can look for a target's head and feet behind low cover.</li>
+        <li>Numbers on the blackboard (Set Number, Compare Number), per-character <strong>Start Values</strong>, Remember Position, Chance, Random Selector, Run Once, and Ctrl+D to duplicate nodes.</li>
+      </ul>
+      <p>In multiplayer, trees think on the server. See <code>docs/behavior-trees.md</code>; the Sandbox's Navigation scene has a guard that wanders and goes to look when it hears the crate.</p>
 
       <h2 id="manual-skinned-materials">Materials on skinned meshes</h2>
       <p>A rigged model with several materials (skin, cloth, armour) or any textures is drawn in parts, one per material in the file, each with the material saved there: base colour, normal, metallic-roughness, occlusion and emissive textures (inside a <code>.glb</code>, as <code>data:</code> addresses or as files beside the model), metallic, roughness, alpha mode and double sides. A model with one plain material is drawn as before, with its Mesh Renderer's settings.</p>
