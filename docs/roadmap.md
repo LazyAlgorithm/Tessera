@@ -134,7 +134,7 @@ Work agreed and queued, in order (see *How to use this page* above for what "don
   (subtitled lines with voice recordings, answer buttons, keyboard and controller input, kept in saves); Subtitles
   for any sound with an `.srt` beside it or from code, with player settings and captions; a Shared conversation is
   run by the server for everyone. `docs/dialogue.md`, `Tests/Dialogue`, a guide in the Sandbox Main scene.
-- [x] E13 sequencer (cutscenes) (2026-10-25): `.tsequence` timelines with Transform, Camera (shots and blends),
+- [x] E13 sequencer (cutscenes) (2026-10-25, `dev` d1afaf9): `.tsequence` timelines with Transform, Camera (shots and blends),
   Animation, Audio, Show / Hide, Event, Subtitle and Fade tracks, edited on a timeline in the Sequencer tab (scrub
   and play preview on the scene, look through shots, K to key the selected object), played by a Sequence Player
   (pause, skip, seek, loop, restore, saving; `Scene.CameraOverride` / `ViewCamera`); Shared sequences are timed
