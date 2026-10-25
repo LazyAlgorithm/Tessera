@@ -755,6 +755,7 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
       <a href="#manual" data-sec="manual-sequencer">Sequencer (cutscenes)</a>
       <a href="#manual" data-sec="manual-navigation">Navigation</a>
       <a href="#manual" data-sec="manual-behavior">Behaviour trees</a>
+      <a href="#manual" data-sec="manual-drawing-less">LOD, occlusion, GPU skinning</a>
       <a href="#manual" data-sec="manual-skinned-materials">Materials on skinned meshes</a>
       <a href="#manual" data-sec="manual-anim-layers">Animation layers and blend trees</a>
       <a href="#manual" data-sec="manual-ik">Inverse kinematics</a>
@@ -962,6 +963,16 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
         <li>Numbers on the blackboard (Set Number, Compare Number), per-character <strong>Start Values</strong>, Remember Position, Chance, Random Selector, Run Once, and Ctrl+D to duplicate nodes.</li>
       </ul>
       <p>In multiplayer, trees think on the server. See <code>docs/behavior-trees.md</code>; the Sandbox's Navigation scene has a guard that wanders and goes to look when it hears the crate.</p>
+
+      <h2 id="manual-drawing-less">LOD, occlusion culling and GPU skinning</h2>
+      <div class="note" style="margin-bottom:14px"><div><strong>On the dev branch</strong>These features are on <code>dev</code> and not yet on <code>main</code> or in a packaged build.</div></div>
+      <p>Three ways to draw big scenes and crowds faster, none of which needs baking.</p>
+      <ul>
+        <li><strong>LOD Group</strong> (Add Component &gt; Rendering): far away, an object is drawn with fewer triangles, and as a speck not at all. The levels are its children named <code>_LOD0</code>, <code>_LOD1</code> ... (as asset packs name them), or simplified meshes the engine makes when the scene loads. Each camera picks the level from how much of the screen the object covers; <code>LODGroup.Bias</code> is the quality setting. Select the group to see its levels and preview one.</li>
+        <li><strong>Occlusion culling</strong> (a Camera setting): what is wholly hidden behind big solid things (walls, buildings, hills) is not drawn. The biggest occluders are drawn into a small depth picture on the CPU each frame and everything is checked against it, erring on the side of drawing. Each Mesh Renderer is an <strong>Occluder</strong> Auto, Always or Never. Window &gt; Occlusion Picture shows the picture in the Scene view.</li>
+        <li><strong>GPU skinning</strong> (on by default): rigged characters are bent by a compute shader on the graphics card, straight into the vertex buffers every pass uses, so shadows, depth effects and custom materials see the bent model. Where compute is missing (the web build) the CPU does it as before.</li>
+      </ul>
+      <p>See <code>docs/lod.md</code>, <code>docs/occlusion-culling.md</code> and <code>docs/gpu-skinning.md</code>; the Sandbox has <code>Scenes/Culling.tscene</code> and <code>Scenes/Skinning.tscene</code>.</p>
 
       <h2 id="manual-skinned-materials">Materials on skinned meshes</h2>
       <p>A rigged model with several materials (skin, cloth, armour) or any textures is drawn in parts, one per material in the file, each with the material saved there: base colour, normal, metallic-roughness, occlusion and emissive textures (inside a <code>.glb</code>, as <code>data:</code> addresses or as files beside the model), metallic, roughness, alpha mode and double sides. A model with one plain material is drawn as before, with its Mesh Renderer's settings.</p>
