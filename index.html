@@ -758,6 +758,7 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
       <a href="#manual" data-sec="manual-drawing-less">LOD, occlusion, GPU skinning</a>
       <a href="#manual" data-sec="manual-quality">Quality presets</a>
       <a href="#manual" data-sec="manual-macos">macOS</a>
+      <a href="#manual" data-sec="manual-textures">Textures</a>
       <a href="#manual" data-sec="manual-skinned-materials">Materials on skinned meshes</a>
       <a href="#manual" data-sec="manual-anim-layers">Animation layers and blend trees</a>
       <a href="#manual" data-sec="manual-ik">Inverse kinematics</a>
@@ -995,6 +996,12 @@ Quality.Save();                    // applied by itself at the next start</code>
         <li>Macs play with and against Linux and Windows machines over the same protocol, and physics prediction works the same.</li>
       </ul>
       <p>Limits: games are unsigned plain folders (open once with right-click &gt; Open), script reload while playing is Linux and Windows only, and it has not yet been tried on a real Mac by a person.</p>
+
+      <h2 id="manual-textures">Textures: mipmaps and compression</h2>
+      <div class="note" style="margin-bottom:14px"><div><strong>On the dev branch</strong>These features are on <code>dev</code> and not yet on <code>main</code> or in a packaged build.</div></div>
+      <p>Every texture gets <strong>mip levels</strong> (smaller copies down to 1 by 1) and <strong>anisotropic filtering</strong>, so far-away and slanted surfaces stay even instead of shimmering as the camera moves. Colour is averaged in linear light, and normal maps as directions, kept unit length.</p>
+      <p>A built game also gets <strong>compressed copies</strong> of its pictures: BC1 for opaque ones and BC3 for see-through ones, as <code>.ktx</code> files with all their mip levels. They take a quarter to an eighth of the video memory and load without decoding. Normal maps, <code>UI/</code> pictures and web builds stay as they are. <strong>Compress textures</strong> in File &gt; Build turns it off for a project.</p>
+      <p>The quality presets add <strong>Texture Detail</strong> (Low uses half-size textures) and <strong>Anisotropic Filtering</strong>. See <code>docs/textures.md</code>; the Sandbox's <code>Scenes/Textures.tscene</code> is a checker floor to compare with <code>--no-mipmaps</code>.</p>
 
       <h2 id="manual-skinned-materials">Materials on skinned meshes</h2>
       <p>A rigged model with several materials (skin, cloth, armour) or any textures is drawn in parts, one per material in the file, each with the material saved there: base colour, normal, metallic-roughness, occlusion and emissive textures (inside a <code>.glb</code>, as <code>data:</code> addresses or as files beside the model), metallic, roughness, alpha mode and double sides. A model with one plain material is drawn as before, with its Mesh Renderer's settings.</p>
