@@ -1,6 +1,6 @@
 // The lighting every lit surface shares (fs_mesh.sc, custom shaders, decals): the sun with four shadow cascades,
-// up to MAX_LIGHTS point, spot and directional lights with spotlight shadows, hemisphere ambient, the sky and
-// ground as reflections, and distance fog. Include after bgfx_shader.sh.
+// up to MAX_LIGHTS point, spot and directional lights with spotlight shadows, hemisphere ambient, reflections of
+// the sky and of reflection probes (docs/reflections.md), and distance fog. Include after bgfx_shader.sh.
 #ifndef TESSERA_LIGHTING_SH
 #define TESSERA_LIGHTING_SH
 
@@ -9,6 +9,9 @@
 
 SAMPLER2DSHADOW(s_shadowMap, 1);
 SAMPLER2DSHADOW(s_spotShadowMap, 11);
+// What surfaces mirror: the nearest reflection probe's cube and the sky's, each with rougher levels down its mips.
+SAMPLERCUBE(s_reflectionProbe, 13);
+SAMPLERCUBE(s_reflectionSky, 14);
 
 uniform vec4 u_camPos;
 uniform vec4 u_sunDir;        // xyz: direction towards the sun, w: shadow strength
@@ -26,6 +29,12 @@ uniform mat4 u_spotShadowMtx[MAX_LIGHTS];
 uniform vec4 u_spotShadowParams[MAX_LIGHTS]; // strength, texel size, depth bias, normal offset
 uniform vec4 u_cascadeSplits;
 uniform vec4 u_shadowParams;  // x texel size, y depth bias, z enabled, w normal offset
+uniform vec4 u_reflection;    // x: 1 with reflection cubes (0: the ambient colours stand in), y: the sky cube's
+                              // last level, z: the probe's intensity (0: no probe), w: the scene's reflection intensity
+uniform vec4 u_probeMin;      // the probe's box, xyz: its lowest corner, w: 1 to project onto the box
+uniform vec4 u_probeMax;      // xyz: its highest corner, w: how far outside it its reflections fade out
+uniform vec4 u_probePos;      // xyz: where the probe saw from, w: its cube's last level
+uniform vec4 u_ambientParams; // x: 1 to take ambient light from the reflection cubes, y: the scene's ambient intensity
 
 vec3 toLinear3(vec3 c)
 {
@@ -138,21 +147,90 @@ vec3 hemisphereAmbient(vec3 n)
 	return mix(u_ambientGround.rgb, u_ambientSky.rgb, n.y * 0.5 + 0.5);
 }
 
+// Where a reflection probe's cube is looked up for a ray from wpos along dir: with box projection, the direction from
+// the probe to where the ray leaves the box, so that reflections of the walls line up wherever the surface is.
+vec3 probeDirection(vec3 wpos, vec3 dir)
+{
+	if (u_probeMin.w < 0.5)
+		return dir;
+	vec3 toMax = (u_probeMax.xyz - wpos) / dir;
+	vec3 toMin = (u_probeMin.xyz - wpos) / dir;
+	vec3 leave = max(toMax, toMin);
+	float distance = max(min(min(leave.x, leave.y), leave.z), 0.0);
+	return wpos + dir * distance - u_probePos.xyz;
+}
+
+// What a surface of this roughness mirrors along dir: the sky, and the probe it is in.
+vec3 environmentReflection(vec3 wpos, vec3 dir, float roughness)
+{
+	vec3 color = textureCubeLod(s_reflectionSky, dir, roughness * u_reflection.y).rgb;
+	if (u_reflection.z > 0.0)
+	{
+		// All of the probe inside its box, fading to none a blend distance outside it.
+		vec3 outside = max(max(u_probeMin.xyz - wpos, wpos - u_probeMax.xyz), vec3_splat(0.0));
+		float weight = 1.0 - clamp(length(outside) / max(u_probeMax.w, 0.001), 0.0, 1.0);
+		if (weight > 0.0)
+		{
+			vec3 probe = textureCubeLod(s_reflectionProbe, probeDirection(wpos, dir), roughness * u_probePos.w).rgb;
+			color = mix(color, probe * u_reflection.z, weight);
+		}
+	}
+	return color * u_reflection.w;
+}
+
+// The light from all around on a surface facing n, from the cubes' roughest levels (image-based ambient light): the
+// sky's, and inside a probe's box the room it saw.
+vec3 environmentAmbient(vec3 wpos, vec3 n)
+{
+	vec3 color = textureCubeLod(s_reflectionSky, n, u_reflection.y).rgb;
+	if (u_reflection.z > 0.0)
+	{
+		vec3 outside = max(max(u_probeMin.xyz - wpos, wpos - u_probeMax.xyz), vec3_splat(0.0));
+		float weight = 1.0 - clamp(length(outside) / max(u_probeMax.w, 0.001), 0.0, 1.0);
+		if (weight > 0.0)
+			color = mix(color, textureCubeLod(s_reflectionProbe, n, u_probePos.w).rgb * u_reflection.z, weight);
+	}
+	return color * u_ambientParams.y;
+}
+
+// How much of the mirrored light a surface gives back, over every angle of its highlight: Karis' fit of the
+// split-sum lookup ("Physically Based Shading on Mobile").
+vec3 environmentBrdf(vec3 f0, float roughness, float ndotv)
+{
+	vec4 r = roughness * vec4(-1.0, -0.0275, -0.572, 0.022) + vec4(1.0, 0.0425, 1.04, -0.04);
+	float a004 = min(r.x * r.x, exp2(-9.28 * ndotv)) * r.x + r.y;
+	vec2 ab = vec2(-1.04, 1.04) * a004 + r.zw;
+	return f0 * ab.x + ab.y;
+}
+
 // A surface's colour under every light, before its glow and fog: ambient (already worked out, from the hemisphere
 // or a lightmap), the surroundings mirrored, the sun and the scene's lights. bakedMask holds a lightmap's shadow
 // mask (all 1 without one); a lightmapped surface skips lights that are baked into it.
 vec3 shadeSurface(vec3 wpos, vec3 n, vec3 v, float viewDepth, vec3 albedo, float metallic, float roughness,
 	float specularLevel, float occlusion, vec3 ambient, vec4 bakedMask, bool lightmapped)
 {
-	vec3 color = ambient * albedo * (1.0 - metallic * 0.5) * occlusion;
-	// What the surface mirrors of its surroundings: there is no environment map, so the sky and ground colours
-	// stand in for one. It is what keeps a smooth metal from looking black where no light shines on it directly.
 	vec3 mirrored = reflect(-v, n);
-	vec3 surroundings = mix(u_ambientGround.rgb, u_ambientSky.rgb, clamp(mirrored.y * 0.5 + 0.5, 0.0, 1.0));
 	vec3 f0 = mix(vec3_splat(0.04 * specularLevel), albedo, metallic);
-	float grazing = pow(1.0 - max(dot(n, v), 0.0), 5.0);
-	vec3 reflectance = f0 + (max(vec3_splat(1.0 - roughness), f0) - f0) * grazing;
-	color += surroundings * reflectance * (1.0 - roughness * 0.75) * metallic * occlusion;
+	vec3 color;
+	if (u_reflection.x > 0.5)
+	{
+		if (u_ambientParams.x > 0.5 && !lightmapped)
+			ambient = environmentAmbient(wpos, n);
+		// What the surface mirrors of its surroundings, from the sky's and the probe's cubes: metals all of it,
+		// tinted, and other things a little, more at a grazing angle.
+		color = ambient * albedo * (1.0 - metallic) * occlusion;
+		color += environmentReflection(wpos, mirrored, roughness) * environmentBrdf(f0, roughness, max(dot(n, v), 0.0)) * occlusion;
+	}
+	else
+	{
+		// Without reflection cubes (the Low quality preset), the sky and ground colours stand in for them. It is
+		// what keeps a smooth metal from looking black where no light shines on it directly.
+		color = ambient * albedo * (1.0 - metallic * 0.5) * occlusion;
+		vec3 surroundings = mix(u_ambientGround.rgb, u_ambientSky.rgb, clamp(mirrored.y * 0.5 + 0.5, 0.0, 1.0));
+		float grazing = pow(1.0 - max(dot(n, v), 0.0), 5.0);
+		vec3 reflectance = f0 + (max(vec3_splat(1.0 - roughness), f0) - f0) * grazing;
+		color += surroundings * reflectance * (1.0 - roughness * 0.75) * metallic * occlusion;
+	}
 
 	float shadow = sunShadow(wpos, n, viewDepth);
 	if (u_lightCount.y > 0.5)

@@ -56,6 +56,14 @@ extension EditorApp
 				changed = true;
 			}
 			changed |= ImGui.Checkbox("Anisotropic Filtering", ref v.anisotropic);
+			changed |= ImGui.Checkbox("Reflection Probes", ref v.reflectionProbes);
+			int32 sizeIndex = v.reflectionSize >= 256 ? (v.reflectionSize >= 512 ? 4 : 3) : (v.reflectionSize >= 128 ? 2 : (v.reflectionSize >= 64 ? 1 : 0));
+			var sizeSlider = (float)sizeIndex;
+			if (ImGui.SliderFloat(scope String()..AppendF("Reflection Size ({})###reflectionsize", 32 << sizeIndex).CStr(), ref sizeSlider, 0, 4, ""))
+			{
+				v.reflectionSize = (int32)(32 << (int)Math.Round(sizeSlider));
+				changed = true;
+			}
 			if (changed)
 			{
 				Quality.Current = v;

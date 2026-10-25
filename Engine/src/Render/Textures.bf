@@ -16,8 +16,8 @@ enum TextureKind
 }
 
 /// Making textures for the graphics card: every one gets its mip levels (smaller copies, so that far away and slanted
-/// surfaces are not grainy and shimmer free) and anisotropic filtering, and a build's compressed copies (`.ktx`, BC7,
-/// made by tools/build_player.py) are used where they exist. Quality.Current.textureDetail and anisotropic set it.
+/// surfaces are not grainy and shimmer free) and anisotropic filtering, and a build's compressed copies (`.ktx`, BC1 /
+/// BC3, made by tools/build_player.py) are used where they exist. Quality.Current.textureDetail and anisotropic set it.
 static class Textures
 {
 	/// How many of the largest mip levels are left out of textures made from now on: 1 halves each side (a quarter of
@@ -104,7 +104,7 @@ static class Textures
 		if (AssetPack.ReadAll(ktx, data) case .Err || data.Count < 64)
 			return none;
 		bgfx.TextureInfo info = default;
-		// bgfx reads the file's format and levels, and leaves out the largest ones; a card without BC7 gets it
+		// bgfx reads the file's format and levels, and leaves out the largest ones; a card without BC1 / BC3 gets it
 		// decoded to plain colour.
 		let texture = bgfx.create_texture(bgfx.copy(data.Ptr, (uint32)data.Count), Filtering, (uint8)Math.Clamp(SkipLevels, 0, 8), &info);
 		if (texture.Valid)

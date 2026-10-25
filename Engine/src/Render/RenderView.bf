@@ -25,6 +25,8 @@ class RenderView
 		public float radius;
 		/// Multiplies the renderer's colour for this one item (Foliage gives each plant a shade of its own).
 		public Color tint;
+		/// The reflection probe it mirrors (an index into Reflections.Ready, -1: the sky alone).
+		public int32 probe;
 	}
 
 	[CRepr]
@@ -87,6 +89,17 @@ class RenderView
 	public static float ShadowDistanceScale = 1;
 	public bool DrawGizmos;
 	public bool DrawShadows = true;
+	/// Whether drawing this view advances the reflection captures under way (docs/reflections.md). Off for views of
+	/// scenes other than the game's, such as asset previews.
+	public bool CapturesReflections = true;
+	/// A reflection probe's capture view: drawn at full size without multisampling, and left in HDR (no viewmodel,
+	/// screen effects, bloom or tonemap), for Reflections to copy into a cube's face.
+	public bool Capture;
+	/// The HDR scene picture (for Capture views).
+	public bgfx.TextureHandle SceneColor => mSceneColor;
+	float mReflectionIntensity = 1;
+	// The scene's ambient intensity when its ambient light comes from the reflection cubes, else 0.
+	float mCubeAmbient;
 
 	// Statistics from the last Render call.
 	public int32 DrawCalls;
@@ -209,16 +222,17 @@ class RenderView
 	{
 		let outWidth = Math.Max(width, 8);
 		let outHeight = Math.Max(height, 8);
-		var scale = Math.Clamp(RenderScale, 0.25f, 1.0f);
-		if (MaxSceneHeight > 0)
+		var scale = Capture ? 1 : Math.Clamp(RenderScale, 0.25f, 1.0f);
+		if (MaxSceneHeight > 0 && !Capture)
 			scale = Math.Max(Math.Min(scale, (float)MaxSceneHeight / Math.Min(outWidth, outHeight)), 0.25f);
-		if (outWidth == mOutWidth && outHeight == mOutHeight && scale == mBuiltScale && Antialias == mBuiltAntialias && mSceneFb.Valid)
+		let antialias = Antialias && !Capture;
+		if (outWidth == mOutWidth && outHeight == mOutHeight && scale == mBuiltScale && antialias == mBuiltAntialias && mSceneFb.Valid)
 			return;
 		ReleaseTargets();
 		mOutWidth = outWidth;
 		mOutHeight = outHeight;
 		mBuiltScale = scale;
-		mBuiltAntialias = Antialias;
+		mBuiltAntialias = antialias;
 		let w = Math.Max((int32)(outWidth * scale), 8);
 		let h = Math.Max((int32)(outHeight * scale), 8);
 		mWidth = w;
@@ -226,8 +240,8 @@ class RenderView
 
 		let clamp = Gfx.SamplerClamp;
 		// Multisampling also makes the texture a render target; without it the texture has to say so itself.
-		let msaa4 = Antialias ? Gfx.TextureRenderTargetMsaa4 : 0;
-		let target = Antialias ? msaa4 : Gfx.TextureRenderTarget;
+		let msaa4 = antialias ? Gfx.TextureRenderTargetMsaa4 : 0;
+		let target = antialias ? msaa4 : Gfx.TextureRenderTarget;
 		let writeOnly = Gfx.TextureWriteOnly;
 		let rt = Gfx.TextureRenderTarget;
 		bgfx.TextureHandle[2] sceneTextures;
@@ -277,6 +291,9 @@ class RenderView
 		let lightDirection = SetSun(sun);
 		let castShadows = DrawShadows && ShadowsEnabled && sun != null && sun.castShadows;
 		SetFrameConstants(camera, env);
+		Reflections.Update(scene, mSunDir, mSunColor, CapturesReflections && !Capture);
+		mReflectionIntensity = Math.Max(env.reflectionIntensity, 0);
+		mCubeAmbient = env.ambientFromSurroundings ? Math.Max(env.ambientIntensity, 0.0001f) : 0;
 
 		ClearItems();
 		var shadowRange = env.shadowDistance * ShadowDistanceScale + ShadowRangeMargin;
@@ -316,6 +333,8 @@ class RenderView
 		mDepthDrawn = false;
 		DrawDecals(scene, camera, frustum);
 		DrawTransparent(camera);
+		if (Capture)
+			return;
 		DrawViewmodel(camera);
 		let picture = DrawScreenEffects(camera, env);
 		let bloom = Math.Max(env.bloom, 0);
@@ -457,7 +476,8 @@ class RenderView
 				let bounds = mesh.Bounds.Transformed(item.world);
 				item.center = bounds.Center;
 				item.radius = bounds.Extents.Length;
-				item.key = MakeKey(renderer, mesh, item.material) * 2 + (Mirrored(item.world) ? 1u : 0u);
+				item.probe = Reflections.Pick(item.center, item.radius);
+				item.key = ProbeKey(MakeKey(renderer, mesh, item.material), item.probe) * 2 + (Mirrored(item.world) ? 1u : 0u);
 				let transparent = IsTransparent(renderer, item.material);
 				// The viewmodel: drawn in a pass of its own after the world (no culling: it is a few things at the eye).
 				let viewmodel = DrawsAsViewmodel(camera, renderer.GameObject);
@@ -528,10 +548,11 @@ class RenderView
 				Color tint;
 				float scale;
 				item.world = foliage.WorldOf(index, out tint, out scale);
-				item.key = key * 2 + (Mirrored(item.world) ? 1u : 0u);
 				item.tint = tint;
 				item.center = .(item.world.m[12], item.world.m[13] + mesh.Bounds.Center.y * scale, item.world.m[14]);
 				item.radius = meshRadius * scale;
+				item.probe = Reflections.Pick(item.center, item.radius);
+				item.key = ProbeKey(key, item.probe) * 2 + (Mirrored(item.world) ? 1u : 0u);
 				mFoliageItems.Add(item);
 				if (shadows && InShadowRange(item, camera, shadowRange))
 					mShadowItems.Add(item);
@@ -619,6 +640,14 @@ class RenderView
 	public static bool DrawsAsViewmodel(CameraData camera, GameObject gameObject) => camera.hasViewmodel && gameObject != null && gameObject.Layer == camera.viewmodelLayer;
 
 	public static bool Mirrored(Matrix4 world) => Vector3.Dot(world.Right, Vector3.Cross(world.Up, world.Forward)) < 0;
+
+	/// Draws lit by different probes cannot share a batch.
+	static uint64 ProbeKey(uint64 key, int32 probe)
+	{
+		if (probe < 0)
+			return key;
+		return key * 1099511628211 ^ (uint64)(probe + 1);
+	}
 
 	static uint64 MakeKey(MeshRenderer renderer, Mesh mesh, Material material)
 	{
@@ -708,6 +737,7 @@ class RenderView
 
 		let renderer = first.renderer;
 		SetFrameUniforms();
+		Reflections.Bind(first.probe, mReflectionIntensity, mCubeAmbient);
 		var surface = ResolveSurface(renderer, first.material, first.world);
 		SetLightmapUniforms(renderer);
 		SetSurfaceUniforms(renderer, ref surface);
@@ -906,6 +936,7 @@ class RenderView
 		bgfx.set_uniform(RenderResources.uShadowMtx, &mShadowMtx, RenderResources.CascadeCount);
 		bgfx.set_uniform(RenderResources.uCascadeSplits, &mCascadeSplits, 1);
 		bgfx.set_uniform(RenderResources.uShadowParams, &mShadowParams, 1);
+		Reflections.Bind(-1, mReflectionIntensity, mCubeAmbient);
 	}
 
 	void SubmitSky(uint16 view, SceneEnvironment env)

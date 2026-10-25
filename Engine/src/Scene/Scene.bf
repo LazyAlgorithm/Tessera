@@ -32,6 +32,12 @@ class SceneEnvironment
 	public float bloomThreshold = 1.0f;
 	/// How far from the camera the sun's shadows are drawn, in metres. Shorter is sharper.
 	public float shadowDistance = 120.0f;
+	/// How strongly surfaces mirror the sky and the reflection probes (docs/reflections.md): 1 as they are, 0 none.
+	public float reflectionIntensity = 1;
+	/// Ambient light from what is around instead of the two ambient colours: the sky, and inside a reflection probe's
+	/// box the room it captured (image-based lighting, docs/reflections.md). Ambient Intensity still scales it.
+	/// Lightmapped surfaces keep their lightmaps.
+	public bool ambientFromSurroundings;
 
 	// ---- Screen effects (docs/post-processing.md). All off by default; colour grading's defaults leave the picture
 	// as it always was. ----
@@ -111,6 +117,8 @@ class SceneEnvironment
 		bloom = other.bloom;
 		bloomThreshold = other.bloomThreshold;
 		shadowDistance = other.shadowDistance;
+		reflectionIntensity = other.reflectionIntensity;
+		ambientFromSurroundings = other.ambientFromSurroundings;
 		ambientOcclusion = other.ambientOcclusion;
 		occlusionRadius = other.occlusionRadius;
 		depthOfField = other.depthOfField;

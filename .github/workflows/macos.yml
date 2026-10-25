@@ -116,6 +116,9 @@ jobs:
           BeefBuild -config=Debug -platform=macOS
           ./build/Debug_macOS/Sandbox/Sandbox --scene Scenes/Culling.tscene --frames 120 --screenshot ../../../out/metal-culling.png
           ./build/Debug_macOS/Sandbox/Sandbox --scene Scenes/Skinning.tscene --frames 120 --screenshot ../../../out/metal-skinning.png
+          # Reflections: the room's sphere shows the red wall on its left and the green on its right when the cube faces
+          # come out right on Metal.
+          ./build/Debug_macOS/Sandbox/Sandbox --scene Scenes/Reflections.tscene --frames 120 --screenshot ../../../out/metal-reflections.png
 
       - name: Keep the pictures
         if: always()

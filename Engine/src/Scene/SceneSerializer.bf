@@ -48,6 +48,8 @@ static class SceneSerializer
 		text.AppendF("env shadowDistance {}\n", env.shadowDistance);
 		// Screen effects and colour grading: written only when changed, so scenes that use none stay as they were.
 		let defaults = scope SceneEnvironment();
+		Number(text, "reflectionIntensity", env.reflectionIntensity, defaults.reflectionIntensity);
+		Number(text, "ambientFromSurroundings", env.ambientFromSurroundings ? 1 : 0, 0);
 		Number(text, "ambientOcclusion", env.ambientOcclusion, defaults.ambientOcclusion);
 		Number(text, "occlusionRadius", env.occlusionRadius, defaults.occlusionRadius);
 		Number(text, "depthOfField", env.depthOfField, defaults.depthOfField);
@@ -489,6 +491,8 @@ static class SceneSerializer
 		case "tint": env.tint = value;
 		case "colorFilter": env.colorFilter = color;
 		case "vignette": env.vignette = value;
+		case "reflectionIntensity": env.reflectionIntensity = value;
+		case "ambientFromSurroundings": env.ambientFromSurroundings = value != 0;
 		case "colorLookup": env.colorLookup.Set(tokens[2]);
 		case "colorLookupStrength": env.colorLookupStrength = value;
 		}

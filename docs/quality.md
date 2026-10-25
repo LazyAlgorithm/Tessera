@@ -20,6 +20,8 @@ Players have machines from phones to big desktops. **Quality** gathers every gra
 | Vsync | on | on | on | on | Wait for the screen's refresh (`Gfx.SetVsync`). |
 | Texture Detail | half | full | full | full | Leaves out each texture's largest mip level: a quarter of the memory (`Textures.SkipLevels`, docs/textures.md). For textures loaded afterwards. |
 | Anisotropic Filtering | off | on | on | on | Sharper textures on slanted surfaces (`Gfx.SetAnisotropic`). |
+| Reflection Probes | off | on | on | on | Rooms mirrored by their reflection probes; off, shiny surfaces mirror only the sky (docs/reflections.md). |
+| Reflection Size | 64 | 64 | 128 | 256 | A reflection probe's cube, in pixels (probes that do not choose their own). |
 
 Changing any one setting from a preset makes the level **Custom**.
 

@@ -43,12 +43,16 @@ struct QualityValues : IEquatable<QualityValues>
 	public int32 textureDetail = 0;
 	/// Sharper textures on slanted surfaces (floors, walls seen along).
 	public bool anisotropic = true;
+	/// Reflection probes (off: shiny surfaces mirror only the sky; docs/reflections.md).
+	public bool reflectionProbes = true;
+	/// The size of a reflection probe's cube, in pixels (those that do not choose their own).
+	public int32 reflectionSize = 128;
 
 	public this()
 	{
 	}
 
-	public bool Equals(QualityValues other) => renderScale == other.renderScale && antialias == other.antialias && shadows == other.shadows && shadowMapSize == other.shadowMapSize && shadowDistance == other.shadowDistance && ambientOcclusion == other.ambientOcclusion && depthOfField == other.depthOfField && motionBlur == other.motionBlur && lodBias == other.lodBias && foliageDistance == other.foliageDistance && gpuSkinning == other.gpuSkinning && vsync == other.vsync && textureDetail == other.textureDetail && anisotropic == other.anisotropic;
+	public bool Equals(QualityValues other) => renderScale == other.renderScale && antialias == other.antialias && shadows == other.shadows && shadowMapSize == other.shadowMapSize && shadowDistance == other.shadowDistance && ambientOcclusion == other.ambientOcclusion && depthOfField == other.depthOfField && motionBlur == other.motionBlur && lodBias == other.lodBias && foliageDistance == other.foliageDistance && gpuSkinning == other.gpuSkinning && vsync == other.vsync && textureDetail == other.textureDetail && anisotropic == other.anisotropic && reflectionProbes == other.reflectionProbes && reflectionSize == other.reflectionSize;
 	public static bool operator ==(QualityValues a, QualityValues b) => a.Equals(b);
 }
 
@@ -84,6 +88,8 @@ static class Quality
 			v.foliageDistance = 0.5f;
 			v.textureDetail = 1;
 			v.anisotropic = false;
+			v.reflectionProbes = false;
+			v.reflectionSize = 64;
 		case .Medium:
 			v.renderScale = 0.85f;
 			v.shadowMapSize = 2048;
@@ -92,11 +98,13 @@ static class Quality
 			v.motionBlur = false;
 			v.lodBias = 0.8f;
 			v.foliageDistance = 0.75f;
+			v.reflectionSize = 64;
 		case .High,.Custom:
 		case .Ultra:
 			v.shadowDistance = 1.5f;
 			v.lodBias = 1.5f;
 			v.foliageDistance = 1.5f;
+			v.reflectionSize = 256;
 		}
 		return v;
 	}
@@ -140,6 +148,8 @@ static class Quality
 		Gfx.SetVsync(Current.vsync);
 		Textures.SkipLevels = Math.Clamp(Current.textureDetail, 0, 3);
 		Gfx.SetAnisotropic(Current.anisotropic);
+		Reflections.ProbesEnabled = Current.reflectionProbes;
+		Reflections.Resolution = Math.Clamp(Current.reflectionSize, 32, 512);
 	}
 
 	/// The preset suggested for this machine: Low on phones, Medium on integrated graphics and in a browser, High
@@ -158,8 +168,8 @@ static class Quality
 	/// The settings as text, one `name=value` a line.
 	public static void Write(QualityValues v, String text)
 	{
-		text.AppendF("renderScale={}\nantialias={}\nshadows={}\nshadowMapSize={}\nshadowDistance={}\nambientOcclusion={}\ndepthOfField={}\nmotionBlur={}\nlodBias={}\nfoliageDistance={}\ngpuSkinning={}\nvsync={}\ntextureDetail={}\nanisotropic={}\n",
-			v.renderScale, v.antialias ? 1 : 0, v.shadows ? 1 : 0, v.shadowMapSize, v.shadowDistance, v.ambientOcclusion ? 1 : 0, v.depthOfField ? 1 : 0, v.motionBlur ? 1 : 0, v.lodBias, v.foliageDistance, v.gpuSkinning ? 1 : 0, v.vsync ? 1 : 0, v.textureDetail, v.anisotropic ? 1 : 0);
+		text.AppendF("renderScale={}\nantialias={}\nshadows={}\nshadowMapSize={}\nshadowDistance={}\nambientOcclusion={}\ndepthOfField={}\nmotionBlur={}\nlodBias={}\nfoliageDistance={}\ngpuSkinning={}\nvsync={}\ntextureDetail={}\nanisotropic={}\nreflectionProbes={}\nreflectionSize={}\n",
+			v.renderScale, v.antialias ? 1 : 0, v.shadows ? 1 : 0, v.shadowMapSize, v.shadowDistance, v.ambientOcclusion ? 1 : 0, v.depthOfField ? 1 : 0, v.motionBlur ? 1 : 0, v.lodBias, v.foliageDistance, v.gpuSkinning ? 1 : 0, v.vsync ? 1 : 0, v.textureDetail, v.anisotropic ? 1 : 0, v.reflectionProbes ? 1 : 0, v.reflectionSize);
 	}
 
 	/// Reads settings from text (unknown or missing lines keep the values given).
@@ -192,6 +202,8 @@ static class Quality
 			case "vsync": v.vsync = flag;
 			case "textureDetail": v.textureDetail = (int32)Math.Clamp(number, 0, 3);
 			case "anisotropic": v.anisotropic = flag;
+			case "reflectionProbes": v.reflectionProbes = flag;
+			case "reflectionSize": v.reflectionSize = (int32)Math.Clamp(number, 32, 512);
 			}
 		}
 		return v;

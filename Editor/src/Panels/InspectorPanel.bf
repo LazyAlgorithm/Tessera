@@ -105,6 +105,10 @@ extension EditorApp
 			changed |= ImGui.ColorEdit3("##ag", ref env.ambientGround);
 			BeginProperty("Ambient Intensity");
 			changed |= ImGui.SliderFloat("##ai", ref env.ambientIntensity, 0, 2);
+			BeginProperty("Ambient From Surroundings");
+			changed |= ImGui.Checkbox("##afs", ref env.ambientFromSurroundings);
+			if (ImGui.IsItemHovered())
+				ImGui.SetTooltip("Light from all around: the sky, and inside a Reflection Probe's box the room it saw,\ninstead of the Ambient Sky and Ground colours. Ambient Intensity still scales it.");
 			BeginProperty("Exposure");
 			changed |= ImGui.SliderFloat("##ex", ref env.exposure, 0.1f, 4);
 			BeginProperty("Bloom");
@@ -113,6 +117,10 @@ extension EditorApp
 			changed |= ImGui.SliderFloat("##bt", ref env.bloomThreshold, 0, 4);
 			BeginProperty("Shadow Distance");
 			changed |= ImGui.DragFloat("##sd", ref env.shadowDistance, 1, 10, 1000);
+			BeginProperty("Reflections");
+			changed |= ImGui.SliderFloat("##ri", ref env.reflectionIntensity, 0, 2);
+			if (ImGui.IsItemHovered())
+				ImGui.SetTooltip("How strongly surfaces mirror the sky and the reflection probes.\nPut a Reflection Probe in each room so that indoors does not mirror the sky.");
 			ImGui.EndTable();
 		}
 		if (ImGui.CollapsingHeader("Sky and Fog", ImGui.TreeFlags.DefaultOpen) && BeginPropertyTable("sky"))
@@ -352,6 +360,8 @@ extension EditorApp
 			DrawFoliageTools(foliage);
 		if (let decal = component as Decal)
 			DrawDecalTools(decal);
+		if (let probe = component as ReflectionProbe)
+			DrawReflectionProbeTools(probe);
 		if (let runner = component as DialogueRunner)
 			DrawDialogueRunnerTools(runner);
 		if (let sequencePlayer = component as SequencePlayer)
@@ -524,7 +534,7 @@ extension EditorApp
 	static StringView ComponentCategory(StringView fullName, StringView name)
 	{
 		if (!fullName.StartsWith("Tessera.")) return "Scripts";
-		if (name == "Camera" || name == "Light" || name == "MeshRenderer" || name == "Decal" || name == "LODGroup") return "Rendering";
+		if (name == "Camera" || name == "Light" || name == "MeshRenderer" || name == "Decal" || name == "LODGroup" || name == "ReflectionProbe") return "Rendering";
 		if (name == "Rigidbody" || name.EndsWith("Collider") || name == "CharacterController") return "Physics";
 		if (name == "SkinnedMeshRenderer" || name == "Animator" || name == "SequencePlayer") return "Animation";
 		if (name == "UIDocument") return "UI";

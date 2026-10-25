@@ -221,6 +221,8 @@ class Application
 		// To compare: textures without mip levels or compressed copies.
 		Textures.Mipmaps = !HasArg("--no-mipmaps");
 		Textures.UseCompressed = !HasArg("--no-compressed-textures");
+		// To compare: shiny surfaces mirroring the ambient colours, as before reflection cubes.
+		Reflections.Enabled = !HasArg("--no-reflections");
 		let quality = scope String();
 		if (GetArg("--quality", quality) && Quality.Parse(quality, let level))
 			Quality.Set(level);
@@ -355,7 +357,9 @@ class Application
 			ShaderAsset.ReleaseAll();
 			Compute.Shutdown();
 			GpuSkinning.Shutdown();
+			Reflections.Shutdown();
 			Textures.LogTotals();
+			Reflections.LogTotals();
 			RenderResources.Destroy();
 			Gfx.Shutdown();
 			if (Window != null)
