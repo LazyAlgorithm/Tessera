@@ -362,6 +362,8 @@ extension EditorApp
 			DrawNavigationObstacleTools(obstacle);
 		if (let area = component as NavigationArea)
 			DrawNavigationAreaTools(area);
+		if (let lodGroup = component as LODGroup)
+			DrawLODGroupTools(lodGroup);
 		if (let hand = component as HandPose)
 			DrawHandPoseTools(hand);
 		if (let feet = component as FootPlacement)
@@ -379,7 +381,7 @@ extension EditorApp
 	{
 		if (skinned.Model == null)
 			return;
-		ImGui.TextDisabled(scope String()..AppendF("{} bones, {} clips", skinned.Model.Joints.Count, skinned.Model.Clips.Count).CStr());
+		ImGui.TextDisabled(scope String()..AppendF("{} bones, {} clips, {} vertices bent on the {}", skinned.Model.Joints.Count, skinned.Model.Clips.Count, skinned.Model.Positions.Count, skinned.SkinnedOnGpu ? "GPU" : "CPU").CStr());
 		DrawBoneMapLine(skinned);
 		DrawSkinnedParts(skinned);
 		for (let animation in skinned.Model.Clips)
@@ -522,7 +524,7 @@ extension EditorApp
 	static StringView ComponentCategory(StringView fullName, StringView name)
 	{
 		if (!fullName.StartsWith("Tessera.")) return "Scripts";
-		if (name == "Camera" || name == "Light" || name == "MeshRenderer" || name == "Decal") return "Rendering";
+		if (name == "Camera" || name == "Light" || name == "MeshRenderer" || name == "Decal" || name == "LODGroup") return "Rendering";
 		if (name == "Rigidbody" || name.EndsWith("Collider") || name == "CharacterController") return "Physics";
 		if (name == "SkinnedMeshRenderer" || name == "Animator" || name == "SequencePlayer") return "Animation";
 		if (name == "UIDocument") return "UI";

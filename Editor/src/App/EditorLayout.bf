@@ -209,6 +209,10 @@ extension EditorApp
 				mResetLayout = true;
 			if (ImGui.MenuItem("Scene Grid", null, mShowGrid))
 				mShowGrid = !mShowGrid;
+			if (ImGui.MenuItem("Scene Occlusion Culling", null, mSceneOcclusion))
+				mSceneOcclusion = !mSceneOcclusion;
+			if (ImGui.MenuItem("Occlusion Picture", null, mShowOcclusionPicture))
+				mShowOcclusionPicture = !mShowOcclusionPicture;
 			if (ImGui.MenuItem("ImGui Demo"))
 				mShowDemo = true;
 			ImGui.EndMenu();

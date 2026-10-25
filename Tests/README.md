@@ -2,7 +2,7 @@
 
 Build native dependencies first using the engine's normal build setup. These fixtures use BeefBuild and the local native archives, without a display or GPU.
 
-For Layers, AnimationLayers, AsyncLoading, IK, Foliage, VoxelObject, Viewmodel, PostProcessing, SkinnedMaterials, Http, Saving, Navigation, CharacterController, BehaviorTree, Network, Audio, Voice, Animator, Material, Terrain, SpawnPoints, Achievements, References, InspectorTypes, ScriptCatalog, CodeEditor, GraphApi, GraphVariables, ShapeQueries, Scenes, Joints, UIDocuments, InputActions, Retargeting, PhysicsPrediction, Decals, Dialogue and Sequencer:
+For Layers, AnimationLayers, AsyncLoading, IK, Foliage, VoxelObject, Viewmodel, PostProcessing, SkinnedMaterials, Http, Saving, Navigation, CharacterController, BehaviorTree, Network, Audio, Voice, Animator, Material, Terrain, SpawnPoints, Achievements, References, InspectorTypes, ScriptCatalog, CodeEditor, GraphApi, GraphVariables, ShapeQueries, Scenes, Joints, UIDocuments, InputActions, Retargeting, PhysicsPrediction, Decals, Dialogue, Sequencer, Culling and GpuSkinning (also `python3 run.py` there, with a graphics card):
 
 ```sh
 BeefBuild -workspace=Tests/Navigation -config=Debug -run

@@ -148,6 +148,9 @@ class Application
 			mFrameLimit = SceneSerializer.ParseInt(value);
 		GetArg("--screenshot", mScreenshotPath);
 		GetArg("--engine-root", mEngineRootHint);
+		// Bend skinned models on the CPU, to compare with the GPU (docs/gpu-skinning.md).
+		if (HasArg("--cpu-skinning"))
+			GpuSkinning.Enabled = false;
 		if (HasArg("--headless"))
 			Headless = true;
 		// Either one overrides how the game was built to start.
@@ -339,6 +342,7 @@ class Application
 		{
 			ShaderAsset.ReleaseAll();
 			Compute.Shutdown();
+			GpuSkinning.Shutdown();
 			RenderResources.Destroy();
 			Gfx.Shutdown();
 			if (Window != null)

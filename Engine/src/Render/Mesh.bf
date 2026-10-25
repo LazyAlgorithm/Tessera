@@ -27,6 +27,10 @@ class Mesh
 	/// Give it its Indices and call UploadIndices; keep its Bounds in step with the source's.
 	public Mesh VertexSource;
 
+	/// Whether a compute shader may write its vertices (UploadDynamic with computeWritable).
+	public bool IsComputeWritable => mComputeWritable;
+	bool mComputeWritable;
+
 	/// True for meshes whose vertices are rewritten every frame (skinned characters).
 	public bool IsDynamic => VertexSource != null ? VertexSource.IsDynamic : mDynamicBuffer.Valid;
 	/// The graphics card's copy of the vertices, for a mesh uploaded with UploadDynamic.
@@ -48,13 +52,15 @@ class Mesh
 	}
 
 	/// Creates GPU buffers that UpdateDynamic can refill. The vertex count must stay the same afterwards.
-	public void UploadDynamic()
+	/// computeWritable lets a compute shader write the vertices too (GPU skinning).
+	public void UploadDynamic(bool computeWritable = false)
 	{
 		ReleaseGpu();
 		RecalculateBounds();
 		if (Vertices.Count == 0 || Indices.Count == 0 || !Gfx.Initialized)
 			return;
-		mDynamicBuffer = bgfx.create_dynamic_vertex_buffer((uint32)Vertices.Count, &Gfx.MeshLayout, 0);
+		mDynamicBuffer = bgfx.create_dynamic_vertex_buffer((uint32)Vertices.Count, &Gfx.MeshLayout, computeWritable ? (uint16)bgfx.BufferFlags.ComputeReadWrite : 0);
+		mComputeWritable = computeWritable;
 		bgfx.update_dynamic_vertex_buffer(mDynamicBuffer, 0, bgfx.copy(Vertices.Ptr, (uint32)(Vertices.Count * sizeof(MeshVertex))));
 		mIndexBuffer = bgfx.create_index_buffer(bgfx.copy(Indices.Ptr, (uint32)(Indices.Count * 4)), 0x1000);
 		mUploadedIndexCount = (int32)Indices.Count;
@@ -181,6 +187,7 @@ class Mesh
 		if (mDynamicBuffer.Valid)
 			bgfx.destroy_dynamic_vertex_buffer(mDynamicBuffer);
 		mDynamicBuffer.idx = uint16.MaxValue;
+		mComputeWritable = false;
 		mVertexBuffer.idx = uint16.MaxValue;
 		mIndexBuffer.idx = uint16.MaxValue;
 		mUploadedIndexCount = 0;

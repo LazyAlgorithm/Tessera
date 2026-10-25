@@ -10,8 +10,10 @@ include="$root/third_party/bgfx.cmake/bgfx/src"
 status=0
 
 compile() { # name type
-	local name="$1" type="$2" target profile platform
-	for target in spirv glsl essl webgl metal; do
+	local name="$1" type="$2" target profile platform targets="spirv glsl essl webgl metal"
+	# WebGL 2 has no compute shaders: the web build skins on the CPU.
+	[ "$type" = compute ] && targets="spirv glsl essl metal"
+	for target in $targets; do
 		case "$target" in
 			spirv) profile=spirv; platform=linux ;;
 			glsl) profile=430; platform=linux ;;
@@ -31,4 +33,8 @@ compile() { # name type
 
 for file in "$src"/vs_*.sc; do compile "$(basename "$file" .sc)" vertex; done
 for file in "$src"/fs_*.sc; do compile "$(basename "$file" .sc)" fragment; done
+# Built-in compute shaders (cs_template.sc is the frame for .tcompute files, filled in when one is compiled).
+for file in "$src"/cs_*.sc; do
+	[ "$(basename "$file")" = cs_template.sc ] || compile "$(basename "$file" .sc)" compute
+done
 exit $status

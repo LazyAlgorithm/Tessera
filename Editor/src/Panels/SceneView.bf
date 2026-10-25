@@ -84,12 +84,48 @@ extension EditorApp
 				DrawSceneOverlays(origin, size);
 				let stats = scope String();
 				stats.AppendF("{} draws  {} instances  {}k tris", mSceneView.DrawCalls, mSceneView.Instances, mSceneView.Triangles / 1000);
+				if (mSceneView.LodCulled > 0)
+					stats.AppendF("  {} too small (LOD)", mSceneView.LodCulled);
+				if (mSceneOcclusion)
+					stats.AppendF("  {} hidden by {} occluders ({}k tris)", mSceneView.OcclusionCulled, mSceneView.Occluders, mSceneView.OccluderTriangles / 1000);
+				if (mShowOcclusionPicture)
+					DrawOcclusionPicture(origin, size);
 				ImGui.DrawText(.(origin.x + 10, origin.y + 8), .(1, 1, 1, 0.65f), stats.CStr());
 				if (mFlying)
 					ImGui.DrawText(.(origin.x + 10, origin.y + size.y - 24), .(1, 1, 1, 0.65f), scope $"WASD move, Q/E down/up, Shift faster, wheel sets speed ({mCamSpeed:0.0} m/s)" .CStr());
 			}
 		}
 		ImGui.End();
+	}
+
+	/// The Scene view's occlusion picture in its bottom-right corner: nearer occluders brighter, empty dark.
+	void DrawOcclusionPicture(ImGui.Vec2 origin, ImGui.Vec2 size)
+	{
+		let occlusion = mSceneView.Occlusion;
+		let block = 4;
+		let width = OcclusionBuffer.Width;
+		let height = OcclusionBuffer.Height;
+		let corner = ImGui.Vec2(origin.x + size.x - width - 10, origin.y + size.y - height - 10);
+		ImGui.DrawRectFilled(corner, .(corner.x + width, corner.y + height), .(0, 0, 0, 0.55f));
+		if (occlusion == null || !mSceneOcclusion)
+		{
+			ImGui.DrawText(.(corner.x + 8, corner.y + 8), .(1, 1, 1, 0.7f), "Turn on Window > Scene Occlusion Culling");
+			return;
+		}
+		let depth = occlusion.Depth;
+		for (int y = 0; y < height; y += block)
+		{
+			for (int x = 0; x < width; x += block)
+			{
+				let d = depth[(y + block / 2) * width + x + block / 2];
+				if (d == float.MaxValue)
+					continue;
+				let shade = Math.Clamp(1 - Math.Log(Math.Max(d, 1)) / 6.5f, 0.15f, 1);
+				ImGui.DrawRectFilled(.(corner.x + x, corner.y + y), .(corner.x + x + block, corner.y + y + block), .(0.3f * shade, 0.75f * shade, shade, 0.9f));
+			}
+		}
+		ImGui.DrawRect(corner, .(corner.x + width, corner.y + height), .(1, 1, 1, 0.4f));
+		ImGui.DrawText(.(corner.x + 6, corner.y + 4), .(1, 1, 1, 0.8f), "Occlusion picture");
 	}
 
 	void UpdateSceneCamera(float aspect)
@@ -103,6 +139,7 @@ extension EditorApp
 		mSceneCamera.fieldOfView = 60;
 		mSceneCamera.aspect = aspect;
 		mSceneCamera.orthographic = false;
+		mSceneCamera.occlusionCulling = mSceneOcclusion;
 		mSceneCamera.orthographicSize = 5;
 		mSceneCamera.view = Matrix4.LookAt(mCamPosition, mCamPosition + forward, rotation * Vector3.Up);
 		mSceneCamera.projection = Matrix4.Perspective(60, aspect, 0.1f, 2000.0f, Gfx.HomogeneousDepth);

@@ -31,6 +31,16 @@ struct Bounds
 		max = Vector3.Max(max, p);
 	}
 
+	/// Grows the box to take in another (an Empty one adds nothing). (Not an Encapsulate overload, which would make
+	/// `Encapsulate(.(x, y, z))` ambiguous in existing code.)
+	public void EncapsulateBounds(Bounds other) mut
+	{
+		if (!other.IsValid)
+			return;
+		min = Vector3.Min(min, other.min);
+		max = Vector3.Max(max, other.max);
+	}
+
 	/// Axis-aligned bounds of this box after an affine transform.
 	public Bounds Transformed(Matrix4 mtx)
 	{

@@ -28,6 +28,9 @@ class SkinnedMeshRenderer : Component
 	/// can play .tanim clips on it and the Animation window can key it. The model's own clips still play, underneath.
 	/// The objects are ordinary ones, saved with the scene; delete them yourself if you turn this off again.
 	public bool exposeBones = false;
+	/// Bends the mesh on the graphics card (much cheaper for crowds), where it can do compute work. Off bends it on the
+	/// CPU, keeping the bent vertices in Mesh.Vertices for code that reads them.
+	public bool gpuSkinning = true;
 	/// Set by an Animator whose controller uses layers or blend trees: it poses the bone objects from the model's
 	/// clips itself, so the renderer leaves them alone.
 	[NonSerialized]
@@ -469,7 +472,8 @@ class SkinnedMeshRenderer : Component
 			mMesh.Vertices.Add(.(.(p.x, p.y, -p.z), .(n.x, n.y, -n.z), mModel.Colors[i], mModel.UVs[i]));
 		}
 		mMesh.Indices.AddRange(mModel.Indices);
-		mMesh.UploadDynamic();
+		ReleaseGpuSkinning();
+		mMesh.UploadDynamic(GpuSkinning.Available);
 		// A model with materials of its own is drawn in parts, sharing the vertices.
 		for (let part in mParts)
 			delete part.mesh;
@@ -736,6 +740,9 @@ class SkinnedMeshRenderer : Component
 	[Optimize]
 	void SkinVertices()
 	{
+		// On the graphics card when it can (docs/gpu-skinning.md); the CPU loop below otherwise.
+		if (SkinOnGpu())
+			return;
 		let positions = mModel.Positions.Ptr;
 		let normals = mModel.Normals.Ptr;
 		let joints = mModel.JointIndices.Ptr;

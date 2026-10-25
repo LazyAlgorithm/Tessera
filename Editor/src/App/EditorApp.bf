@@ -72,6 +72,9 @@ class EditorApp : Application
 	int32 mGizmoOperation = 0;
 	bool mGizmoLocal = true;
 	bool mShowGrid = true;
+	// The Scene view's camera culls what is hidden (as a game camera with Occlusion Culling does), and shows its picture.
+	bool mSceneOcclusion;
+	bool mShowOcclusionPicture;
 	CameraData mSceneCamera;
 	ImGui.Vec2 mSceneSize = .(640, 360);
 	ImGui.Vec2 mGameSize = .(640, 360);
@@ -205,6 +208,12 @@ class EditorApp : Application
 		if (HasArg("--undo-test-foliage"))
 			RunFoliageUndoTest();
 		let selectName = scope String();
+		// Test switch: --lod-level <n> draws every LOD Group at that level.
+		let lodArg = scope String();
+		if (GetArg("--lod-level", lodArg))
+			LODGroup.ForceLevel = (int32)SceneSerializer.ParseInt(lodArg);
+		if (HasArg("--scene-occlusion"))
+			mSceneOcclusion = mShowOcclusionPicture = true;
 		// Bakes every Navigation Surface in the scene (not saved), to see the grid without pressing Bake.
 		if (HasArg("--bake-navigation"))
 		{

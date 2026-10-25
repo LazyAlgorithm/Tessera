@@ -37,6 +37,9 @@ class Camera : Component
 	/// Whether the viewmodel casts shadows onto the world (usually not: a shadow of a gun held up to the eye looks
 	/// wrong from the outside, and other players see a full body anyway). It always receives the world's shadows.
 	public bool viewmodelCastsShadows = false;
+	/// Skips drawing what is wholly hidden behind big solid things (walls, buildings, hills): worth it in towns and
+	/// indoors, where much of the scene is behind walls. See docs/occlusion-culling.md.
+	public bool occlusionCulling = false;
 
 	public override void OnRegister() => Scene.Cameras.Add(this);
 	public override void OnUnregister()
@@ -87,6 +90,7 @@ class Camera : Component
 		data.hasViewmodel = viewmodelLayer >= 0 && !orthographic;
 		data.viewmodelLayer = viewmodelLayer;
 		data.viewmodelCastsShadows = viewmodelCastsShadows;
+		data.occlusionCulling = occlusionCulling;
 		data.viewmodelProjection = Matrix4.Perspective(viewmodelFieldOfView, aspect, Math.Max(viewmodelNearClip, 0.001f), 50.0f, Gfx.HomogeneousDepth);
 		return data;
 	}
@@ -136,6 +140,8 @@ struct CameraData
 	/// A viewmodel pass (Camera.viewmodelLayer): objects on viewmodelLayer are drawn after the world with their own
 	/// projection, over it. False (the default, as for the editor's own camera) draws every layer with the world.
 	public bool hasViewmodel;
+	/// Leave out what is hidden behind big solid things (Camera.occlusionCulling).
+	public bool occlusionCulling;
 	/// The layer drawn as the viewmodel, when hasViewmodel is set.
 	public int32 viewmodelLayer;
 	/// Whether the viewmodel casts shadows into the world.

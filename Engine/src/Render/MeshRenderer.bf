@@ -187,6 +187,19 @@ class MeshRenderer : Component
 		}
 	}
 
+	/// Whether it hides what is behind it from cameras with Occlusion Culling (docs/occlusion-culling.md).
+	public OccluderMode occluder = .Auto;
+
+	/// Whether it can move by itself (a Rigidbody, or a skinned model), and so is no Auto occluder.
+	public bool IsMoving => GameObject.GetComponent<Rigidbody>() != null || GameObject.GetComponent<SkinnedMeshRenderer>() != null;
+
+	/// The LOD Group above it that picks when it is drawn, if any (set by the group).
+	[NonSerialized]
+	public LODGroup LodGroup;
+	/// Its level in that group (from an `_LOD<n>` name), or -1 for every level.
+	[NonSerialized]
+	public int8 LodLevel = -1;
+
 	public override void OnRegister() => Scene.Renderers.Add(this);
 	public override void OnUnregister() => Scene.Renderers.Remove(this);
 

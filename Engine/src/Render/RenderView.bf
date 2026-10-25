@@ -89,6 +89,16 @@ class RenderView
 	public int32 Instances;
 	public int32 Triangles;
 	public int32 VisibleRenderers;
+	/// Renderers left out because their LOD Group was too small on screen.
+	public int32 LodCulled;
+	/// Renderers left out because they were hidden behind occluders (cameras with Occlusion Culling).
+	public int32 OcclusionCulled;
+	/// The occluders and their triangles drawn for occlusion culling.
+	public int32 Occluders, OccluderTriangles;
+	/// The last occlusion picture, for the editor's view of it (null until a camera with Occlusion Culling draws).
+	public OcclusionBuffer Occlusion => mOcclusion;
+	OcclusionBuffer mOcclusion ~ delete _;
+	bool mOcclusionOn;
 
 	int32 mWidth;
 	int32 mHeight;
@@ -252,6 +262,10 @@ class RenderView
 		DrawCalls = 0;
 		Instances = 0;
 		Triangles = 0;
+		LodCulled = 0;
+		OcclusionCulled = 0;
+		Occluders = 0;
+		OccluderTriangles = 0;
 
 		let frustum = Frustum(camera.projection * camera.view, Gfx.HomogeneousDepth);
 		let env = scene.Environment;
@@ -267,7 +281,18 @@ class RenderView
 			if (light != null)
 				shadowRange = Math.Max(shadowRange, (light.Transform.Position - camera.position).Length + light.range);
 		}
+		mOcclusionOn = camera.occlusionCulling && !camera.orthographic;
+		if (mOcclusionOn)
+		{
+			if (mOcclusion == null)
+				mOcclusion = new .();
+			mOcclusion.Build(scene, camera, frustum);
+			Occluders = mOcclusion.Occluders;
+			OccluderTriangles = mOcclusion.OccluderTriangles;
+		}
 		GatherRenderers(scene, camera, frustum, castShadows || mHasSpotShadows, shadowRange);
+		if (mOcclusionOn)
+			OcclusionCulled = mOcclusion.Culled;
 		GatherFoliage(scene, camera, frustum, castShadows || mHasSpotShadows, shadowRange);
 		Wind.Gather(scene, camera.position, out mWind, ref mWindZone, ref mWindPush);
 		FoliageBender.Gather(scene, camera.position, ref mBender, ref mBenderPush);
@@ -403,9 +428,19 @@ class RenderView
 			let parts = renderer.RuntimeParts;
 			let hasParts = parts != null && parts.Count > 0;
 			let partCount = hasParts ? parts.Count : 1;
+			// Levels of detail (docs/lod.md): the group picks one level for this camera, and too small is not drawn.
+			let lodGroup = renderer.LodGroup;
+			let lodLevel = lodGroup != null ? lodGroup.LevelFor(camera) : 0;
+			if (lodLevel < 0)
+			{
+				LodCulled++;
+				continue;
+			}
 			for (int partIndex < partCount)
 			{
-				let mesh = hasParts ? parts[partIndex].mesh : renderer.ActiveMesh;
+				var mesh = hasParts ? parts[partIndex].mesh : renderer.ActiveMesh;
+				if (lodGroup != null)
+					mesh = lodGroup.MeshAt(renderer, mesh, lodLevel);
 				if (mesh == null || !mesh.HasGpuData || (hasParts && parts[partIndex].hidden))
 					continue;
 				let shadowOnly = renderer.shadowOnly || (hasParts && parts[partIndex].shadowOnly);
@@ -430,7 +465,7 @@ class RenderView
 						renderer.LastDrawnFrame = Time.FrameCount;
 					}
 				}
-				else if (!shadowOnly && frustum.Intersects(bounds))
+				else if (!shadowOnly && frustum.Intersects(bounds) && (!mOcclusionOn || mOcclusion.IsVisible(bounds)))
 				{
 					(transparent ? mTransparentItems : mItems).Add(item);
 					renderer.LastDrawnFrame = Time.FrameCount;

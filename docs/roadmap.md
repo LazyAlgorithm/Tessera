@@ -150,7 +150,13 @@ Work agreed and queued, in order (see *How to use this page* above for what "don
   Set / Compare Number, Remember Position, Start Values; Chance, Random Selector, Run Once; Wander on reachable
   points; Ctrl+D duplicate in the Behavior tab. `docs/behavior-trees.md`, `Tests/BehaviorTree`, a guard in the
   Sandbox Navigation scene.
-- [ ] E16 LOD, occlusion culling, GPU skinning
+- [x] E16 LOD, occlusion culling, GPU skinning (2026-10-25): LOD Groups pick a level per camera from screen height
+  (levels from `_LOD<n>` children or meshes simplified at load, Cull Below, `LODGroup.Bias`, Preview and
+  `--lod-level`); occlusion culling per camera from a small CPU depth picture of the biggest solid occluders
+  (Auto / Always / Never per renderer, conservative edges, Scene view toggle, statistics and picture); GPU skinning
+  with a compute shader writing the vertex buffers every pass uses, bounds from joints, CPU fallback and
+  `--cpu-skinning`. `docs/lod.md`, `docs/occlusion-culling.md`, `docs/gpu-skinning.md`, `Tests/Culling`,
+  `Tests/GpuSkinning` (with `run.py`), Sandbox `Scenes/Culling.tscene` and `Scenes/Skinning.tscene`.
 - [ ] E20 quality presets
 - [ ] E18 macOS, E19, E21
 
