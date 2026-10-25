@@ -176,7 +176,7 @@ Work agreed and queued, in order (see *How to use this page* above for what "don
    anisotropic filtering; builds add BC1 / BC3 `.ktx` copies with mips (`tools/compress_textures.py`, texturec),
    used in place of the pictures; Texture Detail and Anisotropic Filtering quality settings; Build window Compress
    textures. `docs/textures.md`, `Tests/Textures` (with `run.py`), Sandbox `Scenes/Textures.tscene`.
-2. [x] Image-based lighting and reflection probes (2026-10-25): a sky cube made from the scene's sky and
+2. [x] Image-based lighting and reflection probes (2026-10-25, `dev` 7c7853f): a sky cube made from the scene's sky and
    Reflection Probe components (box, blend distance, box projection, importance, size, refresh), captured over a
    few frames and GGX-filtered into rougher mip levels; the shared lighting mirrors them for every surface (split-sum
    fit), with Ambient From Surroundings for image-based ambient light; Reflections scene setting, Reflection Probes
