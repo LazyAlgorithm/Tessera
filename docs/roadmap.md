@@ -139,7 +139,11 @@ Work agreed and queued, in order (see *How to use this page* above for what "don
   and play preview on the scene, look through shots, K to key the selected object), played by a Sequence Player
   (pause, skip, seek, loop, restore, saving; `Scene.CameraOverride` / `ViewCamera`); Shared sequences are timed
   by the server for everyone. `docs/sequencer.md`, `Tests/Sequencer`, an intro cutscene in the Sandbox.
-- [ ] E14 navigation upgrades
+- [x] E14 navigation upgrades (2026-10-25): any-angle path smoothing that keeps the grid's clearance; Navigation
+  Links (jump, climb, teleport, walk; one-way; cost; agents cross them with events); Navigation Obstacles that carve
+  the grid while still and are steered round while moving; Navigation Areas (costly or blocked); local avoidance
+  between agents with priorities; SamplePosition, RandomPoint, Raycast, RemainingDistance; Inspector tools and
+  gizmos, `--bake-navigation`. `docs/navigation.md`, `Tests/Navigation`, `Scenes/Navigation.tscene` in the Sandbox.
 - [ ] E15 behaviour tree upgrades
 - [ ] E16 LOD, occlusion culling, GPU skinning
 - [ ] E20 quality presets

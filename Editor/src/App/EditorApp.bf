@@ -205,6 +205,12 @@ class EditorApp : Application
 		if (HasArg("--undo-test-foliage"))
 			RunFoliageUndoTest();
 		let selectName = scope String();
+		// Bakes every Navigation Surface in the scene (not saved), to see the grid without pressing Bake.
+		if (HasArg("--bake-navigation"))
+		{
+			for (let component in mScene.ComponentsOfType(typeof(NavigationSurface)))
+				((NavigationSurface)component).Bake();
+		}
 		if (GetArg("--select", selectName))
 		{
 			let found = mScene.Find(selectName);

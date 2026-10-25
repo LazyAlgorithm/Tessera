@@ -356,6 +356,12 @@ extension EditorApp
 			DrawDialogueRunnerTools(runner);
 		if (let sequencePlayer = component as SequencePlayer)
 			DrawSequencePlayerTools(sequencePlayer);
+		if (let link = component as NavigationLink)
+			DrawNavigationLinkTools(link);
+		if (let obstacle = component as NavigationObstacle)
+			DrawNavigationObstacleTools(obstacle);
+		if (let area = component as NavigationArea)
+			DrawNavigationAreaTools(area);
 		if (let hand = component as HandPose)
 			DrawHandPoseTools(hand);
 		if (let feet = component as FootPlacement)
