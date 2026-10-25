@@ -34,6 +34,7 @@ static class NetworkSync
 	public const uint8 MsgEvent = 247;
 	public const uint8 MsgAnimator = 246;
 	public const uint8 MsgMaterial = 245;
+	public const uint8 MsgDialogue = 244;
 
 	static bool sRegistered;
 	/// True while a change that arrived from the network is being applied, so it is not sent out again.
@@ -71,6 +72,7 @@ static class NetworkSync
 		NetworkManager.RegisterMessage(MsgEvent, new => OnEvent);
 		NetworkManager.RegisterMessage(MsgAnimator, new => OnAnimator);
 		NetworkManager.RegisterMessage(MsgMaterial, new => OnMaterial);
+		NetworkManager.RegisterMessage(MsgDialogue, new => OnDialogue);
 	}
 
 	/// Called when a session starts. Scene objects that move by themselves get a Network Identity if they lack one,
@@ -90,7 +92,7 @@ static class NetworkSync
 			let body = object.GetComponent<Rigidbody>();
 			if ((body != null && !body.isKinematic) || object.GetComponent<CharacterController>() != null
 				|| object.GetComponent<AIMovementDriver>() != null || object.GetComponent<BehaviorTreeRunner>() != null
-				|| object.GetComponent<NetworkBehaviour>() != null)
+				|| object.GetComponent<NetworkBehaviour>() != null || (object.GetComponent<DialogueRunner>()?.shared ?? false))
 				wanted.Add(object);
 		}
 		for (let object in wanted)
@@ -568,6 +570,44 @@ static class NetworkSync
 		if (identity == null)
 			return network.IsServer;
 		return identity.ownerId == network.LocalClientId || (network.IsServer && identity.ownerId == 0);
+	}
+
+	/// A client asks the server to move a shared conversation on: 0 advance, 1 choose index, 2 start at node,
+	/// 3 stop. serial is the conversation step it saw, so a request about a line already gone is dropped.
+	public static void DialogueRequest(DialogueRunner runner, int32 action, int32 serial, StringView node, int32 index = 0)
+	{
+		let network = Active(runner.Scene);
+		if (network == null || network.IsServer || node.Length > 64)
+			return;
+		let payload = scope NetWriter();
+		WriteComponent<DialogueRunner>(payload, runner);
+		payload.Write(action);
+		payload.Write(serial);
+		payload.Write(index);
+		payload.WriteString(node);
+		network.SendToServer(MsgDialogue, payload);
+	}
+
+	static void OnDialogue(int32 sender, ref NetReader reader)
+	{
+		let network = Active(Scene.Active);
+		if (network == null || !network.IsServer)
+			return;
+		let runner = ReadComponent<DialogueRunner>(ref reader, network);
+		let action = reader.Read<int32>();
+		let serial = reader.Read<int32>();
+		let index = reader.Read<int32>();
+		let node = scope String();
+		reader.ReadString(node);
+		if (!reader.Ok || runner == null || !runner.shared || action < 0 || action > 3 || node.Length > 64)
+			return;
+		if (runner.onlyOwnerChooses)
+		{
+			let owner = Anchor(runner).GetComponent<NetworkIdentity>();
+			if (owner == null || owner.ownerId != sender)
+				return;
+		}
+		runner.ApplyRequest(action, serial, node, index);
 	}
 
 	/// Runs OnNetworkEvent(name, value) on a component on every machine. From the server it goes to everyone; from

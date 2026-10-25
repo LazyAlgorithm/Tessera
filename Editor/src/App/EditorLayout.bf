@@ -49,6 +49,7 @@ extension EditorApp
 		DrawScripts();
 		DrawGraph();
 		DrawBehavior();
+		DrawDialogue();
 		DrawAnimator();
 		DrawAnimation();
 		DrawHandPosing();
@@ -191,6 +192,11 @@ extension EditorApp
 			}
 			if (ImGui.MenuItem("Animation"))
 				mShowAnimation = true;
+			if (ImGui.MenuItem("Dialogue"))
+			{
+				mShowDialogue = true;
+				mDockDialogue = true;
+			}
 			if (ImGui.MenuItem("Map Builder", null, mShowMapBuilder))
 				mShowMapBuilder = !mShowMapBuilder;
 			if (ImGui.MenuItem("Reset Layout"))

@@ -174,6 +174,20 @@ class Program
 		Build(client);
 		List<Scene> owned = scope .();
 
+		// ---- the engine's own message ids: each kind of message has one to itself ----
+		{
+			uint8[?] ids = .(NetworkSync.MsgTerrainBrush, NetworkSync.MsgVoxelCarve, NetworkSync.MsgCharacterShape, NetworkSync.MsgAnimation, NetworkSync.MsgField, NetworkSync.MsgAudio,
+				NetworkSync.MsgEvent, NetworkSync.MsgAnimator, NetworkSync.MsgMaterial, NetworkSync.MsgDialogue, AntiCheat.MsgAntiCheat, VoiceChat.MsgVoice, MapSharing.MsgMap);
+			bool distinct = true;
+			for (int i < ids.Count)
+			{
+				distinct &= ids[i] >= 240;
+				for (int j < i)
+					distinct &= ids[i] != ids[j];
+			}
+			ok &= Check(distinct, "the engine's message ids are all different, and all 240 or above");
+		}
+
 		// ---- offline first: nothing below needs a session ----
 		{
 			let alone = scope Scene();

@@ -352,6 +352,8 @@ extension EditorApp
 			DrawFoliageTools(foliage);
 		if (let decal = component as Decal)
 			DrawDecalTools(decal);
+		if (let runner = component as DialogueRunner)
+			DrawDialogueRunnerTools(runner);
 		if (let hand = component as HandPose)
 			DrawHandPoseTools(hand);
 		if (let feet = component as FootPlacement)
@@ -516,7 +518,7 @@ extension EditorApp
 		if (name == "Rigidbody" || name.EndsWith("Collider") || name == "CharacterController") return "Physics";
 		if (name == "SkinnedMeshRenderer" || name == "Animator") return "Animation";
 		if (name == "UIDocument") return "UI";
-		if (name.StartsWith("Audio")) return "Audio";
+		if (name.StartsWith("Audio") || name == "DialogueRunner") return "Audio";
 		if (name.StartsWith("Navigation") || name.StartsWith("BehaviorTree")) return "AI";
 		if (name == "ParticleSystem") return "Particles";
 		if (name.StartsWith("Voxel") || name == "SpawnPoint") return "World";
@@ -612,7 +614,7 @@ extension EditorApp
 			let temporary = scope String();
 			let text = original != null ? original : temporary;
 			bool changed;
-			if (field.name == "mesh" || field.name == "model" || field.name == "texture" || field.name == "document" || field.name == "prefab" || field.name == "tree" || field.name == "controller" || field.name == "material" || field.name == "interiorMaterial" || field.name == "scene" || field.name == "shader" || field.name == "bakedData" || field.name == "audioClip" || field.name.EndsWith("Prefab"))
+			if (field.name == "mesh" || field.name == "model" || field.name == "texture" || field.name == "document" || field.name == "prefab" || field.name == "tree" || field.name == "controller" || field.name == "material" || field.name == "interiorMaterial" || field.name == "scene" || field.name == "shader" || field.name == "bakedData" || field.name == "audioClip" || field.name == "dialogue" || field.name.EndsWith("Prefab"))
 				changed = DrawAssetPicker(text, field.name);
 			else
 				changed = ImGui.InputText("##v", text);
@@ -659,6 +661,7 @@ extension EditorApp
 		if (kind == "material" || kind == "interiorMaterial") return HasExtension(path, ".tmat");
 		if (kind == "shader") return HasExtension(path, ".tcompute");
 		if (kind == "document") return HasExtension(path, ".tui");
+		if (kind == "dialogue") return HasExtension(path, ".tdialogue");
 		if (kind == "scene") return HasExtension(path, ".tscene");
 		return HasExtension(path, ".tprefab");
 	}

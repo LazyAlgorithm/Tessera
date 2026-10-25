@@ -174,6 +174,11 @@ class EditorApp : Application
 			else
 				mShowAnimation = true;
 		}
+		if (AssetArg("--dialogue", full..Clear()) && File.Exists(full))
+		{
+			OpenDialogue(full);
+			mDialogueFocusAfter = 30;
+		}
 		if (AssetArg("--behavior", full..Clear()) && File.Exists(full))
 		{
 			OpenBehavior(full);

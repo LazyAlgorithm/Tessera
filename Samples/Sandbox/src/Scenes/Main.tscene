@@ -398,3 +398,9 @@ component Tessera.Decal enabled 1
 field texture "Textures/decal_sign.png"
 field size 0.9 0.9 0.3
 field roughness 0.5
+object 1110 parent 0 active 1 name "Guide"
+transform 0 40.5 6 0 0 0 1 1 1 1
+component Tessera.DialogueRunner enabled 1
+field dialogue "Dialogue/welcome.tdialogue"
+field startNode "start"
+field playOnStart 1

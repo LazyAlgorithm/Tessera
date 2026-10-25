@@ -285,6 +285,7 @@ static class ImGui
 	[CLink] static extern bool igDragInt(char8* label, int32* v, float speed, int32 min, int32 max, char8* format, int32 flags);
 	[CLink] static extern bool igSliderFloat(char8* label, float* v, float min, float max, char8* format, int32 flags);
 	[CLink] static extern bool igInputText(char8* label, char8* buffer, uint size, int32 flags, void* callback, void* userData);
+	[CLink] static extern bool igInputTextMultiline(char8* label, char8* buffer, uint size, Vec2 boxSize, int32 flags, void* callback, void* userData);
 	[CLink] static extern bool igInputTextWithHint(char8* label, char8* hint, char8* buffer, uint size, int32 flags, void* callback, void* userData);
 	[CLink] static extern bool igInputInt(char8* label, int32* v, int32 step, int32 stepFast, int32 flags);
 	[CLink] static extern bool igColorEdit3(char8* label, float* color, int32 flags);
@@ -465,6 +466,23 @@ static class ImGui
 	public static bool ColorEdit3(char8* label, ref Color color, int32 flags = 0) => igColorEdit3(label, &color.r, flags);
 	public static bool ColorEdit4(char8* label, ref Color color, int32 flags = 0) => igColorEdit4(label, &color.r, flags);
 
+	/// Edits a String of several lines in place, in a box of the given size (0: the default). Returns true when the
+	/// text changed. Holds up to capacity characters.
+	public static bool InputTextMultiline(char8* label, String text, Vec2 size = .(0, 0), int32 flags = 0, int capacity = 4096)
+	{
+		let buffer = scope char8[capacity];
+		let count = Math.Min(text.Length, capacity - 1);
+		Internal.MemCpy(buffer.Ptr, text.Ptr, count);
+		buffer[count] = 0;
+		let changed = igInputTextMultiline(label, buffer.Ptr, (uint)capacity, size, flags, null, null);
+		if (changed)
+		{
+			text.Clear();
+			text.Append(buffer.Ptr);
+		}
+		return changed;
+	}
+
 	/// Edits a String in place. Returns true when the text changed (or Enter was pressed with EnterReturnsTrue).
 	public static bool InputText(char8* label, String text, int32 flags = 0, char8* hint = null)
 	{
@@ -633,6 +651,8 @@ static class ImGui
 	public static Vec2 CalcTextSizeWrapped(char8* text, float wrapWidth) => igCalcTextSize(text, null, false, Math.Max(wrapWidth, 1));
 	[CLink] static extern void* igGetFont();
 	[CLink] static extern float igGetFontSize();
+	/// The size of the font in use, in pixels.
+	public static float GetFontSize() => igGetFontSize();
 	[CLink] static extern void ImDrawList_AddText_FontPtr(void* list, void* font, float fontSize, Vec2 pos, uint32 color, char8* text, char8* textEnd, float wrapWidth, Vec4* clip);
 	/// Text broken into lines no wider than wrapWidth, in the current font and size.
 	public static void DrawTextWrapped(Vec2 pos, Color color, char8* text, float wrapWidth) => ImDrawList_AddText_FontPtr(igGetWindowDrawList(), igGetFont(), igGetFontSize(), pos, color.ToABGR(), text, null, Math.Max(wrapWidth, 1), null);
