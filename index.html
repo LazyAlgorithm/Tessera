@@ -751,6 +751,7 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
       <a href="#manual" data-sec="manual-render">Rendering and materials</a>
       <a href="#manual" data-sec="manual-viewmodel">First-person viewmodel</a>
       <a href="#manual" data-sec="manual-decals">Decals</a>
+      <a href="#manual" data-sec="manual-dialogue">Dialogue and subtitles</a>
       <a href="#manual" data-sec="manual-skinned-materials">Materials on skinned meshes</a>
       <a href="#manual" data-sec="manual-anim-layers">Animation layers and blend trees</a>
       <a href="#manual" data-sec="manual-ik">Inverse kinematics</a>
@@ -911,6 +912,17 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
         <li>Set <strong>Texture</strong> (a PNG whose alpha decides where it shows), <strong>Color</strong>, <strong>Size</strong> (width, height and depth in metres), <strong>Opacity</strong>, <strong>Metallic</strong> and <strong>Roughness</strong>, <strong>Angle Limit</strong> (surfaces turned further away do not get it, so a floor decal does not run down the sides of boxes), <strong>Unlit</strong> and <strong>Order</strong> (higher draws over lower).</li>
       </ul>
       <p>For marks that come and go in numbers, <code>Decals.Spawn(Scene, point, normal, "Textures/hole.png", 0.12f, 20)</code> makes one 12 cm across that fades out after 20 seconds. They are kept in a pool (<code>Decals.MaxSpawned</code>, 256 by default) that recycles the oldest, and <code>Decals.Clear(Scene)</code> removes them. A Decal component is part of its object like any other component; spawned decals are not sent over the network, so make them on every machine from code that runs on each, such as where a hit is announced. See <code>docs/decals.md</code>.</p>
+
+      <h2 id="manual-dialogue">Dialogue and subtitles</h2>
+      <div class="note" style="margin-bottom:14px"><div><strong>On the dev branch</strong>Dialogue and subtitles are on <code>dev</code> and not yet on <code>main</code> or in a packaged build.</div></div>
+      <p>Branching conversations live in <code>.tdialogue</code> files: speakers, and nodes of steps that run from the top. A step is a line someone says (with an optional voice recording), an answer the player can pick, a variable set or added to, an event for the game, a jump to another node, or the end, and any step can have a condition such as <code>gold &gt;= 10</code>.</p>
+      <ul>
+        <li><strong>Project &gt; + &gt; Dialogue</strong> makes one and opens the <strong>Dialogue</strong> tab: nodes and speakers on the left, the selected node's steps in the middle, and a preview on the right that plays any branch with its answers, events and variables, without starting the game. The file is plain text, so it can also be written by hand.</li>
+        <li>Add a <strong>Dialogue Runner</strong> to the character who talks and pick the file. Each line shows as a subtitle with the speaker's name in their colour and plays its recording from the speaker's object; answers appear as buttons, picked with the mouse, number keys, arrows or a controller. <strong>Play On Start</strong> or <code>Play()</code> starts it; <code>OnEvent</code> tells your code when to open the gate or hand over the item.</li>
+        <li>Variables belong to the game and are kept in saves, with where the conversation was.</li>
+        <li><strong>Shared</strong> makes one conversation for everyone in a co-op session: the server runs it, any player (or only the owner) can move it on or answer, and late joiners see where it is.</li>
+      </ul>
+      <p><strong>Subtitles</strong> also follow any sound an Audio Source plays that has an <code>.srt</code> file beside it, with <code>[captions]</code> for sounds shown when the player turns captions on. <code>Subtitles.Show</code> puts up a line from code, and the player's settings (on, captions, names, size, background) are there for an options menu. See <code>docs/dialogue.md</code>.</p>
 
       <h2 id="manual-skinned-materials">Materials on skinned meshes</h2>
       <p>A rigged model with several materials (skin, cloth, armour) or any textures is drawn in parts, one per material in the file, each with the material saved there: base colour, normal, metallic-roughness, occlusion and emissive textures (inside a <code>.glb</code>, as <code>data:</code> addresses or as files beside the model), metallic, roughness, alpha mode and double sides. A model with one plain material is drawn as before, with its Mesh Renderer's settings.</p>
