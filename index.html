@@ -750,6 +750,7 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
       <h4>World</h4>
       <a href="#manual" data-sec="manual-render">Rendering and materials</a>
       <a href="#manual" data-sec="manual-viewmodel">First-person viewmodel</a>
+      <a href="#manual" data-sec="manual-decals">Decals</a>
       <a href="#manual" data-sec="manual-skinned-materials">Materials on skinned meshes</a>
       <a href="#manual" data-sec="manual-anim-layers">Animation layers and blend trees</a>
       <a href="#manual" data-sec="manual-ik">Inverse kinematics</a>
@@ -900,6 +901,16 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
           <tr><td>Recoil Back, Pitch, Recovery</td><td>What <code>Kick(amount)</code> does</td></tr>
         </tbody>
       </table></div>
+
+      <h2 id="manual-decals">Decals</h2>
+      <div class="note" style="margin-bottom:14px"><div><strong>On the dev branch</strong>Decals are on <code>dev</code> and not yet on <code>main</code> or in a packaged build.</div></div>
+      <p>A <strong>Decal</strong> presses a picture onto whatever solid surfaces lie inside its box (posters, signs, road markings, cracks, scorch marks), following their shape and lit and shadowed like them, with no change to their models or UVs.</p>
+      <ul>
+        <li><strong>GameObject &gt; Decal</strong> makes one stuck to the surface in the middle of the Scene view. The picture is pressed along the object's blue (forward) axis; the Scene view draws the box, and clicking inside it selects the decal.</li>
+        <li><strong>Stick to Surface</strong>, under the component, moves it onto the surface it points at (or the one below) and lays it flat, keeping the picture the same way up.</li>
+        <li>Set <strong>Texture</strong> (a PNG whose alpha decides where it shows), <strong>Color</strong>, <strong>Size</strong> (width, height and depth in metres), <strong>Opacity</strong>, <strong>Metallic</strong> and <strong>Roughness</strong>, <strong>Angle Limit</strong> (surfaces turned further away do not get it, so a floor decal does not run down the sides of boxes), <strong>Unlit</strong> and <strong>Order</strong> (higher draws over lower).</li>
+      </ul>
+      <p>For marks that come and go in numbers, <code>Decals.Spawn(Scene, point, normal, "Textures/hole.png", 0.12f, 20)</code> makes one 12 cm across that fades out after 20 seconds. They are kept in a pool (<code>Decals.MaxSpawned</code>, 256 by default) that recycles the oldest, and <code>Decals.Clear(Scene)</code> removes them. A Decal component is part of its object like any other component; spawned decals are not sent over the network, so make them on every machine from code that runs on each, such as where a hit is announced. See <code>docs/decals.md</code>.</p>
 
       <h2 id="manual-skinned-materials">Materials on skinned meshes</h2>
       <p>A rigged model with several materials (skin, cloth, armour) or any textures is drawn in parts, one per material in the file, each with the material saved there: base colour, normal, metallic-roughness, occlusion and emissive textures (inside a <code>.glb</code>, as <code>data:</code> addresses or as files beside the model), metallic, roughness, alpha mode and double sides. A model with one plain material is drawn as before, with its Mesh Renderer's settings.</p>
