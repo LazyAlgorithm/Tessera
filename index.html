@@ -753,6 +753,7 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
       <a href="#manual" data-sec="manual-decals">Decals</a>
       <a href="#manual" data-sec="manual-dialogue">Dialogue and subtitles</a>
       <a href="#manual" data-sec="manual-sequencer">Sequencer (cutscenes)</a>
+      <a href="#manual" data-sec="manual-navigation">Navigation</a>
       <a href="#manual" data-sec="manual-skinned-materials">Materials on skinned meshes</a>
       <a href="#manual" data-sec="manual-anim-layers">Animation layers and blend trees</a>
       <a href="#manual" data-sec="manual-ik">Inverse kinematics</a>
@@ -935,6 +936,19 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
         <li><strong>Shared</strong> plays one sequence for everyone in a session on the server's clock; any player (or only the owner) can pause or skip it, and events happen on the server.</li>
       </ul>
       <p>See <code>docs/sequencer.md</code>.</p>
+
+      <h2 id="manual-navigation">Navigation</h2>
+      <p>A <strong>Navigation Surface</strong> bakes the walkable ground inside its box (or, with <strong>Flying</strong>, the open air) into a grid of cells, from the scene's static colliders and meshes; <strong>Bake &amp; Save Navigation</strong> in the Inspector writes it to a <code>.tnav</code> file. A <strong>Navigation Agent</strong> finds paths across it: call <code>SetDestination(point, speed, stoppingDistance)</code> and watch <code>HasArrived</code> or <code>PathFailed</code>. It walks through the object's Character Controller or Rigidbody when it has one. In multiplayer the server moves agents.</p>
+      <div class="note" style="margin-bottom:14px"><div><strong>On the dev branch</strong>The features below are on <code>dev</code> and not yet on <code>main</code> or in a packaged build.</div></div>
+      <ul>
+        <li><strong>Straight paths</strong>: agents go straight at any angle where they can, keeping the grid's clearance from walls.</li>
+        <li><strong>Navigation Link</strong>: a jump, ladder, drop or teleporter between two places the grid does not join, one-way or both, with a cost. Agents cross it when it is shorter and the game hears <code>OnLinkStarted</code> / <code>OnLinkFinished</code> to animate them.</li>
+        <li><strong>Navigation Obstacle</strong>: something that moves (a crate, a car). Standing still it carves its shape out of the grid; moving, agents steer round it.</li>
+        <li><strong>Navigation Area</strong>: ground that costs more to cross (mud, water) or that agents never enter.</li>
+        <li><strong>Avoidance</strong>: agents steer round each other, with a radius and a priority.</li>
+        <li>Queries: <code>SamplePosition</code>, <code>RandomPoint</code> (for wandering), <code>Raycast</code>, <code>RemainingDistance</code>. The selected surface shows carved and costly cells, links are drawn as arcs, and agents draw their paths.</li>
+      </ul>
+      <p>See <code>docs/navigation.md</code>; the Sandbox sample's <code>Scenes/Navigation.tscene</code> shows all of it.</p>
 
       <h2 id="manual-skinned-materials">Materials on skinned meshes</h2>
       <p>A rigged model with several materials (skin, cloth, armour) or any textures is drawn in parts, one per material in the file, each with the material saved there: base colour, normal, metallic-roughness, occlusion and emissive textures (inside a <code>.glb</code>, as <code>data:</code> addresses or as files beside the model), metallic, roughness, alpha mode and double sides. A model with one plain material is drawn as before, with its Mesh Renderer's settings.</p>
