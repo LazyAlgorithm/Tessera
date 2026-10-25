@@ -122,6 +122,7 @@ extension EditorApp
 		if (mTree == null)
 			return;
 		mTree.Save(mTreePath);
+		BehaviorTreeAssets.Invalidate(mTreePath);
 		// Running objects pick the change up straight away, which makes tuning a tree while playing practical.
 		int reloaded = 0;
 		if (mScene != null && mPlay != .Edit)
@@ -132,8 +133,8 @@ extension EditorApp
 				let runner = component as BehaviorTreeRunner;
 				if (runner == null)
 					continue;
-				Assets.ResolvePath(runner.tree, resolved..Clear());
-				if (resolved == mTreePath)
+				// Those running it as their tree or as a subtree.
+				if (runner.UsesFile(mTreePath))
 				{
 					runner.Reload();
 					reloaded++;
@@ -148,14 +149,7 @@ extension EditorApp
 	{
 		if (mScene == null || mPlay == .Edit || mTree == null)
 			return null;
-		let resolved = scope String();
-		bool Uses(BehaviorTreeRunner runner)
-		{
-			if (runner == null || runner.Data == null)
-				return false;
-			Assets.ResolvePath(runner.tree, resolved..Clear());
-			return resolved == mTreePath;
-		}
+		bool Uses(BehaviorTreeRunner runner) => runner != null && runner.UsesFile(mTreePath);
 		let selected = Selected?.GetComponent<BehaviorTreeRunner>();
 		if (Uses(selected))
 			return selected;
@@ -183,24 +177,26 @@ extension EditorApp
 		case "Navigation": return .(0.20f, 0.42f, 0.66f, 1);
 		case "Detection": return .(0.70f, 0.44f, 0.20f, 1);
 		case "Blackboard": return .(0.22f, 0.50f, 0.48f, 1);
+		case "Events": return .(0.62f, 0.30f, 0.50f, 1);
 		default: return .(0.26f, 0.48f, 0.30f, 1);
 		}
 	}
 
 	/// Colour for a node's live state, and how strongly to show it (0 = not at all).
-	static Color TreeStatusColor(BehaviorTreeRunner runner, int32 nodeId, out float strength, out StringView label)
+	Color TreeStatusColor(BehaviorTreeRunner runner, int32 nodeId, out float strength, out StringView label)
 	{
 		strength = 0;
 		label = "";
 		if (runner == null)
 			return default;
-		let last = runner.LastTickOf(nodeId);
+		// The open file may be the runner's tree or one it runs as a subtree.
+		let last = runner.LastTickOf(mTreePath, nodeId);
 		if (last < 0)
 			return default;
 		let age = runner.TickCount - last;
 		// Fresh results are solid; older ones fade over about a second so a glance shows what happened recently.
 		strength = age <= 1 ? 1.0f : Math.Max(0.22f, 1.0f - age / 60.0f);
-		switch (runner.StatusOf(nodeId))
+		switch (runner.StatusOf(mTreePath, nodeId))
 		{
 		case .Running:
 			label = "RUNNING";
@@ -429,6 +425,9 @@ extension EditorApp
 			{
 				mTreeSelected = hover.node.id;
 				mTreeDragNode = hover.node.id;
+				// Double-clicking a Run Subtree node opens its tree.
+				if (ImGui.IsMouseDoubleClicked(0) && hover.node.def.key == "subtree")
+					OpenSubtree(hover.node);
 			}
 			else
 				mTreeSelected = 0;
@@ -452,6 +451,16 @@ extension EditorApp
 			if (selected != null)
 				mTree.RemoveNode(selected);
 			mTreeSelected = 0;
+		}
+		// Ctrl+D: a copy of the selected node and everything under it, beside it.
+		if (canvas.hovered && Input.GetKey(.LeftControl) && ImGui.IsKeyPressed(ImGui.Key.D) && (ImGui.tn_imgui_capture_flags() & 4) == 0)
+		{
+			let copy = mTree.Duplicate(mTreeSelected, .(40, 40));
+			if (copy != 0)
+			{
+				mTreeSelected = copy;
+				mTreeStatus.Set("Duplicated. Link the copy to a parent to use it.");
+			}
 		}
 		if (canvas.hovered && ImGui.IsMouseClicked(1))
 		{
@@ -605,7 +614,7 @@ extension EditorApp
 		let rows = selectedNode.def.parameters.Count;
 		ImGui.SetCursorScreenPos(.(canvas.origin.x + 10, canvas.origin.y + 10));
 		ImGui.PushStyleColor(ImGui.Col.ChildBg, .(0.10f, 0.10f, 0.11f, 0.92f));
-		ImGui.BeginChild("treevalues", .(300, 92 + rows * 27), ImGui.ChildBorders);
+		ImGui.BeginChild("treevalues", .(300, 92 + rows * 27 + (selectedNode.def.key == "subtree" ? 26 : 0)), ImGui.ChildBorders);
 		ImGui.Text(selectedNode.def.title);
 		for (int32 i = 0; i < (int32)rows; i++)
 		{
@@ -624,11 +633,56 @@ extension EditorApp
 			ImGui.Text(parameter.name);
 			ImGui.PopID();
 		}
+		if (selectedNode.def.key == "subtree")
+		{
+			if (ImGui.SmallButton("Open"))
+				OpenSubtree(selectedNode);
+			ImGui.SameLine();
+			if (ImGui.SmallButton("New Subtree File"))
+				CreateSubtreeFile(selectedNode);
+		}
 		ImGui.PushStyleColor(ImGui.Col.Text, .(0.62f, 0.64f, 0.68f, 1));
 		ImGui.TextWrapped(selectedNode.def.description.CStr());
 		ImGui.PopStyleColor();
 		ImGui.EndChild();
 		ImGui.PopStyleColor();
+	}
+
+	/// Opens the tree a Run Subtree node runs (saving this one first).
+	void OpenSubtree(BTNodeData node)
+	{
+		let path = scope String();
+		Assets.ResolvePath(node.values[0], path);
+		if (!File.Exists(path))
+		{
+			mTreeStatus.Set(scope $"{node.values[0]} does not exist yet: press New Subtree File.");
+			return;
+		}
+		mPendingTree.Set(path);
+	}
+
+	/// Makes the file a Run Subtree node names, with a Root and a Wait under it, and opens it.
+	void CreateSubtreeFile(BTNodeData node)
+	{
+		let path = scope String();
+		Assets.ResolvePath(node.values[0], path);
+		if (File.Exists(path) || !path.EndsWith(".tbt"))
+		{
+			mTreeStatus.Set(File.Exists(path) ? "That file already exists: press Open." : "The Tree setting must name a .tbt file.");
+			return;
+		}
+		let folder = scope String();
+		Path.GetDirectoryPath(path, folder);
+		if (!folder.IsEmpty)
+			Directory.CreateDirectory(folder).IgnoreError();
+		let tree = scope BehaviorTreeData();
+		Path.GetFileNameWithoutExtension(path, tree.name..Clear());
+		let root = tree.AddNode(BehaviorLibrary.Find("root"), .(0, 0));
+		let wait = tree.AddNode(BehaviorLibrary.Find("wait"), .(0, 110));
+		tree.Connect(root.id, wait.id);
+		tree.Save(path);
+		RefreshAssetList();
+		mPendingTree.Set(path);
 	}
 
 	/// What the watched object remembers, in a panel at the canvas's bottom left.

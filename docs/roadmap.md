@@ -144,7 +144,12 @@ Work agreed and queued, in order (see *How to use this page* above for what "don
   the grid while still and are steered round while moving; Navigation Areas (costly or blocked); local avoidance
   between agents with priorities; SamplePosition, RandomPoint, Raycast, RemainingDistance; Inspector tools and
   gizmos, `--bake-navigation`. `docs/navigation.md`, `Tests/Navigation`, `Scenes/Navigation.tscene` in the Sandbox.
-- [ ] E15 behaviour tree upgrades
+- [x] E15 behaviour tree upgrades (2026-10-25): Run Subtree (other files run in place, shared blackboard, shown live,
+  Open / New Subtree File, loops refused), tree files read once and shared by all runners; Event Received and Send
+  Event (`SendEvent`, `OnTreeEvent`); hearing (`AINoise.Make`, Heard Noise); `#Tag` targets; Can See Sight Points;
+  Set / Compare Number, Remember Position, Start Values; Chance, Random Selector, Run Once; Wander on reachable
+  points; Ctrl+D duplicate in the Behavior tab. `docs/behavior-trees.md`, `Tests/BehaviorTree`, a guard in the
+  Sandbox Navigation scene.
 - [ ] E16 LOD, occlusion culling, GPU skinning
 - [ ] E20 quality presets
 - [ ] E18 macOS, E19, E21

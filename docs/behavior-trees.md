@@ -15,7 +15,7 @@ The canvas works like the Graph tab: right-click to add a node (type to search),
 - Alt+click a dot to disconnect it.
 - **Children run left to right.** The small numbers beside them show the order; drag a node sideways to change it.
 
-Select a node to edit its settings in the box at the top left, which also says what the node does.
+Select a node to edit its settings in the box at the top left, which also says what the node does. **Ctrl+D** copies the selected node and everything under it beside it (link the copy to a parent to use it).
 
 ## How a tree runs
 
@@ -31,7 +31,20 @@ The runner ticks the tree from the Root once per frame (or every **Tick Interval
 
 The reactive versions are what make a character respond. A plain Sequence that has moved on to "walk to the target" will not look at "can I still see it?" again until the walk ends; a Reactive Sequence asks every tick and stops the walk the moment the answer is no. Put conditions first and use a Reactive Selector at the top with the most urgent branch on the left.
 
-Decorators have one child: **Invert**, **Always Succeed**, **Repeat** (a number of times, or forever), **Repeat Until Failure**, **Cooldown** and **Timeout**.
+**Random Selector** is a Selector that tries its children in a random order, shuffled each time it starts: idle animations, routes, taunts.
+
+Decorators have one child: **Invert**, **Always Succeed**, **Repeat** (a number of times, or forever), **Repeat Until Failure**, **Cooldown**, **Timeout** and **Run Once** (runs its child until it finishes once, then answers with that result without running it again: an introduction, a one-time alarm).
+
+## Subtrees
+
+**Run Subtree** runs another `.tbt` file in its place: what is under that file's Root runs as if it were drawn there, with the same blackboard, and the node's result is that tree's. Use it to share a behaviour between characters (one `Wander.tbt` used by guards, animals and villagers) and to keep a big tree readable.
+
+- Select a Run Subtree node and press **Open** (or double-click it) to edit the file it names; **New Subtree File** makes that file if it does not exist yet.
+- While the game plays, an open subtree file is shown live for the selected object too, as it runs inside that object's tree.
+- Saving a subtree while playing reloads every object whose tree uses it.
+- A tree that runs itself, directly or through other files, is refused (that Run Subtree node fails, with a warning) rather than built forever. A file used twice in one tree is shown live for the copy that ran last.
+
+Tree files are read once and shared by every runner that uses them, so a crowd running one tree costs one copy of it.
 
 ## The nodes
 
@@ -53,12 +66,29 @@ Decorators have one child: **Invert**, **Always Succeed**, **Repeat** (a number 
 | Can See | Succeeds if an object with a given name is within Range, inside the Field Of View cone in front of the character, and not hidden behind anything with a collider. End the name with `*` to match a prefix (`Enemy*`). |
 | Is Near | Succeeds if such an object is within a distance, in any direction and through walls. Use it for hearing or touch. |
 | Target Within | Succeeds while a remembered object or position is within a distance. |
+| Heard Noise | Succeeds if a noise was made within earshot in the last **Within Seconds**. Remembers where under **Store As** and who made it under Store As + `.source`. Each noise is heard once, so a guard goes to look and then carries on. |
+
+Instead of a name, Can See, Is Near and Move To Object take `#Tag` for any object with that tag (`#Enemy`, `#Player`). Can See's **Sight Points** is 1 for one ray to the middle of the target, 2 to also try its head, 3 to try its head and feet: a target crouched behind low cover is still seen when its head shows.
+
+Noises are made by the game: `AINoise.Make(Scene, position, radius, source)` for a gunshot (`radius` 30), footsteps (3), a thrown bottle landing. A listener hears it if it is within `radius` times its **Hearing**. The source object does not hear its own noise. `AINoise.Forget()` drops them all, for a new level.
 
 Can See and Is Near remember what they found under **Store As** (default `target`), and where it was under that name plus `.position`. The object keeps updating as it moves; the position is where it was last detected, which is what a guard should go and check after losing sight.
 
-**Blackboard:** the tree's memory, shared by all its nodes and kept while the game runs. **Has Value**, **Forget**, **Set Flag** and **Is Flag Set** read and write it.
+**Blackboard:** the tree's memory, shared by all its nodes and kept while the game runs. **Has Value**, **Forget**, **Set Flag** and **Is Flag Set** read and write it; **Set Number** sets a number or adds to it, **Compare Number** compares one with a value (`<`, `<=`, `>`, `>=`, `==`, `!=`), and **Remember Position** stores where the object is (to come back to with Move To Target).
 
-**Actions:** **Wait** (a fixed time, or random between two), **Log**, and **Call Method**.
+The runner's **Start Values** fills the blackboard when the game starts, so one tree can be tuned per character in the Inspector: `ammo 3; alert false; post 4 0 -2` (each a key and a number, true or false, or a position).
+
+**Events:** **Event Received** succeeds if the game sent that event to the tree (`runner.SendEvent("Hit")`) in the last **Within Seconds**; with **Consume** each event counts once. **Send Event** tells the game something: the runner's `OnTreeEvent` is called with the name.
+
+```beef
+let brain = GetComponent<BehaviorTreeRunner>();
+brain.SendEvent("Hit");                                   // from the damage code
+brain.OnTreeEvent.Add(new (name) => { if (name == "Alarm") alarm.Ring(); });
+```
+
+**Actions:** **Wait** (a fixed time, or random between two), **Log**, **Call Method**, and **Chance** (succeeds with a probability, for "sometimes").
+
+**Wander** picks a point the agent can reach (on its baked Navigation Surface) when there is one.
 
 ## Watching a tree while the game runs
 
@@ -111,11 +141,19 @@ BehaviorLibrary.Add("game.ammo", "Game", "Has Ammo At Least", .Condition, new ()
 
 From any script, `GetComponent<BehaviorTreeRunner>().Blackboard` lets gameplay talk to the tree: `SetFlag("alert", true)`, `SetObject("target", player)`, `SetVector("noise", position)`.
 
+## Multiplayer
+
+Trees think on the server (and in single-player games) only; clients see what they do through the objects' movement and animation. Call `SendEvent` and `AINoise.Make` on the server, where the trees are: a noise a client's player makes should reach the server first (its shot, as the game already sends it). `OnTreeEvent` is called on the server.
+
 ## Limits
 
-- Objects are found by name; there are no tags or layers yet.
-- Can See tests one ray to the middle of the target, so a target mostly hidden behind cover is either seen or not.
-- A tree is interpreted, not compiled, and every runner loads its own copy.
-- There are no subtrees yet; a large tree is one file.
+- Can See still tests rays to points up the target, not its whole shape.
+- A tree is interpreted, not compiled (files are shared, but each runner has its own running nodes).
+- There is no undo in the Behavior tab.
+- Hearing ignores walls: a noise is heard within its radius whatever is in between.
 
-CPU tests cover link rules and child order, save and load, each flow node and decorator, interruption by a reactive selector, Call Method, a game-defined node, Move To Position, Patrol order, Can See against range, view cone and a wall, Is Near, and a full patrol, chase and return behaviour.
+Tree files from before these additions load unchanged: settings added to a node kind (Can See's Sight Points) take their default.
+
+CPU tests cover subtrees (a shared blackboard, live status by file, files read once and shared, reading a changed file again, refusing a tree that runs itself), events both ways, hearing (where and who, heard once, out of earshot, its own noise, old noises), `#Tag`, Set and Compare Number, Start Values, Chance, Random Selector, Run Once, Duplicate, Sight Points against low cover, link rules and child order, save and load, each flow node and decorator, interruption by a reactive selector, Call Method, a game-defined node, Move To Position, Patrol order, Can See against range, view cone and a wall, Is Near, and a full patrol, chase and return behaviour.
+
+The Sandbox sample's `Scenes/Navigation.tscene` has a **Guard** running `AI/Guard.tbt`: it wanders using the `AI/Wander.tbt` subtree, and when the crate (a `NoiseMaker`) makes a noise it stops, says so with Send Event, goes to look and waits there. Open it with `--behavior AI/Guard.tbt --play --select Guard` to watch.

@@ -93,6 +93,9 @@ field shape 0
 field size 1.2 1.2 1.2
 field carve 1
 field carveOnlyStationary 1
+component Sandbox.NoiseMaker enabled 1
+field interval 6
+field radius 14
 object 11 parent 0 active 1 name "Navigation Surface"
 transform 0 0 0 0 0 0 1 1 1 1
 component Tessera.NavigationSurface enabled 1
@@ -170,7 +173,7 @@ component Sandbox.Wanderer enabled 1
 field range 12
 field speed 2.5
 field firstGoal 6 0 2
-object 17 parent 0 active 1 name "Agent 6"
+object 17 parent 0 active 1 name "Guard"
 transform 18 0.8 2 0 0 0 1 0.6 1.6 0.6
 component Tessera.MeshRenderer enabled 1
 field mesh "builtin:sphere"
@@ -180,7 +183,5 @@ field flatShading 1
 component Tessera.NavigationAgent enabled 1
 field baseOffset 0 -0.8 0
 field radius 0.35
-component Sandbox.Wanderer enabled 1
-field range 12
-field speed 2.5
-field firstGoal 3 0 10
+component Tessera.BehaviorTreeRunner enabled 1
+field tree "AI/Guard.tbt"

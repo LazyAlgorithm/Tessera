@@ -348,6 +348,29 @@ static class BTSenses
 		return name == pattern;
 	}
 
+	/// An object matches a pattern: `#Enemy` is any object tagged Enemy, otherwise its name (see NameMatches).
+	public static bool Matches(GameObject object, StringView pattern)
+	{
+		if (pattern.StartsWith('#'))
+			return object.HasTag(pattern.Substring(1));
+		return NameMatches(object.Name, pattern);
+	}
+
+	/// The first active object a pattern matches (`#Tag` or a name), or null.
+	public static GameObject FindOne(Scene scene, StringView pattern)
+	{
+		if (pattern.StartsWith('#'))
+			return scene.FindWithTag(pattern.Substring(1));
+		if (!pattern.EndsWith('*'))
+			return scene.Find(pattern);
+		for (let object in scene.Objects)
+		{
+			if (object.ActiveInHierarchy && NameMatches(object.Name, pattern))
+				return object;
+		}
+		return null;
+	}
+
 	static bool IsPartOf(GameObject object, GameObject root)
 	{
 		var transform = object?.Transform;
@@ -384,9 +407,22 @@ static class BTSenses
 		return false;
 	}
 
+	/// Seen if any of several points up the target is in view: one ray to its middle, or (sightPoints 3) also its
+	/// head and feet, so a target half behind low cover is still seen.
+	static bool CanSeeAny(Scene scene, GameObject looker, Vector3 eye, GameObject target, Vector3 middle, float eyeHeight, int sightPoints)
+	{
+		if (HasLineOfSight(scene, looker, eye, target, middle))
+			return true;
+		if (sightPoints < 2)
+			return false;
+		let feet = target.Transform.Position + Vector3(0, Math.Max(eyeHeight * 0.1f, 0.1f), 0);
+		let head = target.Transform.Position + Vector3(0, eyeHeight * 0.95f, 0);
+		return HasLineOfSight(scene, looker, eye, target, head) || (sightPoints >= 3 && HasLineOfSight(scene, looker, eye, target, feet));
+	}
+
 	/// Nearest object whose name matches and that passes the range, view-cone and line-of-sight tests.
 	/// fieldOfView is the full cone angle in degrees; 360 or more looks all around. needSight false skips the ray.
-	public static GameObject Find(BTContext context, StringView pattern, float range, float fieldOfView, float eyeHeight, bool needSight)
+	public static GameObject Find(BTContext context, StringView pattern, float range, float fieldOfView, float eyeHeight, bool needSight, int sightPoints = 1)
 	{
 		let self = context.Object;
 		let eye = context.Transform.Position + Vector3(0, eyeHeight, 0);
@@ -398,7 +434,7 @@ static class BTSenses
 		float bestDistance = range;
 		for (let candidate in context.Scene.Objects)
 		{
-			if (candidate == self || !candidate.ActiveInHierarchy || !NameMatches(candidate.Name, pattern) || IsPartOf(candidate, self))
+			if (candidate == self || !candidate.ActiveInHierarchy || !Matches(candidate, pattern) || IsPartOf(candidate, self))
 				continue;
 			let targetPoint = candidate.Transform.Position + Vector3(0, eyeHeight * 0.5f, 0);
 			var flat = candidate.Transform.Position - context.Transform.Position;
@@ -408,7 +444,7 @@ static class BTSenses
 			flat.y = 0;
 			if (flat.LengthSquared > 0.0001f && Vector3.Dot(flat.Normalized, forward) < minimumDot)
 				continue;
-			if (needSight && !HasLineOfSight(context.Scene, self, eye, candidate, targetPoint))
+			if (needSight && !CanSeeAny(context.Scene, self, eye, candidate, targetPoint, eyeHeight, sightPoints))
 				continue;
 			best = candidate;
 			bestDistance = distance;
@@ -423,7 +459,7 @@ class BTCanSee : BTNode
 {
 	protected override BTStatus OnTick(BTContext context)
 	{
-		let found = BTSenses.Find(context, Text(0), Number(1), Number(2), Number(3), true);
+		let found = BTSenses.Find(context, Text(0), Number(1), Number(2), Number(3), true, (int)Number(5));
 		if (found == null)
 			return .Failure;
 		let key = Text(4);
@@ -522,7 +558,7 @@ class BTMoveToObject : BTMove
 	protected override bool Destination(BTContext context, out Vector3 point)
 	{
 		point = default;
-		let target = context.Scene.Find(Text(0));
+		let target = BTSenses.FindOne(context.Scene, Text(0));
 		if (target == null)
 			return false;
 		point = target.Transform.Position;
@@ -579,6 +615,13 @@ class BTWander : BTMove
 	protected override void OnStart(BTContext context)
 	{
 		base.OnStart(context);
+		// A point the agent can reach, when its surface is baked; otherwise anywhere in the circle.
+		let data = context.Object.GetComponent<NavigationAgent>()?.surface?.Data;
+		if (data != null && data.RandomPoint(context.runner.Home, Number(0), context.random, let reachable))
+		{
+			mPoint = reachable;
+			return;
+		}
 		let angle = (float)(context.random.NextDouble() * Math.PI_d * 2);
 		let distance = Number(0) * Math.Sqrt((float)context.random.NextDouble());
 		mPoint = context.runner.Home + Vector3(Math.Cos(angle), 0, Math.Sin(angle)) * distance;
@@ -618,6 +661,210 @@ class BTFaceTarget : BTNode
 		let step = Math.Max(Number(1), 1) * context.deltaTime;
 		context.Transform.Rotation = Quaternion.Euler(0, current + Mathf.Clamp(turn, -step, step), 0);
 		return Math.Abs(turn) <= step ? .Success : .Running;
+	}
+}
+
+// ---- subtrees, events, hearing, numbers, chance ----
+
+/// Runs another tree file in its place; the runner builds that tree as this node's child, sharing the blackboard.
+class BTSubtree : BTNode
+{
+	protected override BTStatus OnTick(BTContext context) => children.Count > 0 ? children[0].Tick(context) : .Failure;
+}
+
+/// Succeeds if the game sent this event to the tree (BehaviorTreeRunner.SendEvent) within the last seconds.
+class BTEventReceived : BTNode
+{
+	protected override BTStatus OnTick(BTContext context) => context.runner.TakeEvent(Text(0), Number(1), Flag(2)) ? .Success : .Failure;
+}
+
+/// Tells the game something (BehaviorTreeRunner.OnTreeEvent).
+class BTSendEvent : BTNode
+{
+	protected override BTStatus OnTick(BTContext context)
+	{
+		context.runner.RaiseTreeEvent(Text(0));
+		return .Success;
+	}
+}
+
+/// Sounds the AI can hear: gunshots, footsteps, a thrown bottle. Made by the game with AINoise.Make; Heard Noise
+/// nodes pick them up.
+static class AINoise
+{
+	public struct Noise
+	{
+		public Scene scene;
+		public Vector3 position;
+		/// How far away it can be heard (times the listener's Hearing).
+		public float radius;
+		public float time;
+		public uint32 sourceId;
+		public int32 id;
+	}
+
+	static List<Noise> sNoises = new .() ~ delete _;
+	static int32 sNextId = 1;
+
+	/// Recent noises, oldest first.
+	public static Span<Noise> Recent => sNoises;
+
+	/// A noise at a point, heard within radius metres. The source (who made it) is remembered by those who hear it,
+	/// and does not hear itself.
+	public static void Make(Scene scene, Vector3 position, float radius, GameObject source = null)
+	{
+		Forget(10);
+		Noise noise;
+		noise.scene = scene;
+		noise.position = position;
+		noise.radius = radius;
+		noise.time = Time.Time;
+		noise.sourceId = source != null ? source.Id : 0;
+		noise.id = sNextId++;
+		sNoises.Add(noise);
+	}
+
+	/// Drops noises older than some seconds (all of them with 0, for a new level).
+	public static void Forget(float olderThan = 0)
+	{
+		for (int i = sNoises.Count - 1; i >= 0; i--)
+		{
+			if (olderThan <= 0 || Time.Time - sNoises[i].time > olderThan || sNoises[i].time > Time.Time)
+				sNoises.RemoveAt(i);
+		}
+	}
+}
+
+/// Succeeds if a noise was made within hearing in the last seconds. Where it was is remembered under Store As, and
+/// who made it under Store As + ".source". Each noise is heard once, so the guard reacts and then carries on.
+class BTHeardNoise : BTNode
+{
+	int32 mLastHeard;
+
+	protected override BTStatus OnTick(BTContext context)
+	{
+		let here = context.Transform.Position;
+		let hearing = Math.Max(Number(1), 0);
+		let selfId = context.Object.Id;
+		int best = -1;
+		for (int i < AINoise.Recent.Length)
+		{
+			let noise = AINoise.Recent[i];
+			if (noise.scene != context.Scene || noise.id <= mLastHeard || noise.sourceId == selfId || Time.Time - noise.time > Number(0))
+				continue;
+			if ((noise.position - here).Length <= noise.radius * hearing)
+				best = i;
+		}
+		if (best < 0)
+			return .Failure;
+		let noise = AINoise.Recent[best];
+		mLastHeard = noise.id;
+		let key = Text(2);
+		if (!key.IsEmpty)
+		{
+			context.blackboard.SetVector(key, noise.position);
+			if (let source = context.Scene.FindById(noise.sourceId))
+				context.blackboard.SetObject(scope $"{key}.source" , source);
+		}
+		return .Success;
+	}
+}
+
+/// Remembers a number, or adds to it.
+class BTSetNumber : BTNode
+{
+	protected override BTStatus OnTick(BTContext context)
+	{
+		let value = Flag(2) ? context.blackboard.GetNumber(Text(0)) + Number(1) : Number(1);
+		context.blackboard.SetNumber(Text(0), value);
+		return .Success;
+	}
+}
+
+/// Compares a remembered number with a value: <, <=, >, >=, == or !=.
+class BTCompareNumber : BTNode
+{
+	protected override BTStatus OnTick(BTContext context)
+	{
+		if (!context.blackboard.Has(Text(0)))
+			return .Failure;
+		let a = context.blackboard.GetNumber(Text(0));
+		let b = Number(2);
+		bool result;
+		switch (Text(1))
+		{
+		case "<": result = a < b;
+		case "<=": result = a <= b;
+		case ">": result = a > b;
+		case ">=": result = a >= b;
+		case "!=": result = Math.Abs(a - b) > 0.0001f;
+		default: result = Math.Abs(a - b) <= 0.0001f;
+		}
+		return result ? .Success : .Failure;
+	}
+}
+
+/// Remembers where the object is now (to come back to it later).
+class BTRememberPosition : BTNode
+{
+	protected override BTStatus OnTick(BTContext context)
+	{
+		context.blackboard.SetVector(Text(0), context.Transform.Position);
+		return .Success;
+	}
+}
+
+/// Succeeds with a probability each time it is asked.
+class BTChance : BTNode
+{
+	protected override BTStatus OnTick(BTContext context) => context.random.NextDouble() < Number(0) ? .Success : .Failure;
+}
+
+/// A Selector that tries its children in a random order, made again each time it starts.
+class BTRandomSelector : BTNode
+{
+	List<int> mOrder = new .() ~ delete _;
+	int mIndex;
+
+	protected override void OnStart(BTContext context)
+	{
+		mIndex = 0;
+		mOrder.Clear();
+		for (int i < children.Count)
+			mOrder.Add(i);
+		for (int i = mOrder.Count - 1; i > 0; i--)
+		{
+			let j = context.random.Next(0, (int32)i + 1);
+			Swap!(mOrder[i], mOrder[j]);
+		}
+	}
+
+	protected override BTStatus OnTick(BTContext context)
+	{
+		while (mIndex < mOrder.Count)
+		{
+			let result = children[mOrder[mIndex]].Tick(context);
+			if (result != .Failure)
+				return result;
+			mIndex++;
+		}
+		return .Failure;
+	}
+}
+
+/// Runs its child until it finishes once, then keeps answering with that result without running it again.
+class BTRunOnce : BTNode
+{
+	BTStatus mDone = .Idle;
+	protected override BTStatus OnTick(BTContext context)
+	{
+		if (mDone != .Idle)
+			return mDone;
+		if (children.Count == 0) return .Failure;
+		let result = children[0].Tick(context);
+		if (result != .Running)
+			mDone = result;
+		return result;
 	}
 }
 
@@ -669,6 +916,8 @@ static class BehaviorLibrary
 		Add("selector", "Flow", "Selector", .Composite, new () => new BTSelector()).Describe("Tries children left to right. Stops and succeeds when one succeeds; fails when all have.");
 		Add("reactive.sequence", "Flow", "Reactive Sequence", .Composite, new () => new BTReactiveSequence()).Describe("A Sequence that rechecks from the left every tick, so a condition turning false interrupts the action after it.");
 		Add("reactive.selector", "Flow", "Reactive Selector", .Composite, new () => new BTReactiveSelector()).Describe("A Selector that rechecks from the left every tick, so a higher-priority branch interrupts a lower one.");
+		Add("random.selector", "Flow", "Random Selector", .Composite, new () => new BTRandomSelector()).Describe("A Selector that tries its children in a random order each time it starts: idle animations, different routes.");
+		Add("subtree", "Flow", "Run Subtree", .Action, new () => new BTSubtree()).With("Tree", .Text, "AI/Subtree.tbt").Describe("Runs another tree file here, with the same blackboard. Its result is that tree's. Select it and press Open to edit that tree.");
 		Add("parallel", "Flow", "Parallel", .Composite, new () => new BTParallel()).With("Require All", .Bool, "true").Describe("Runs all children together. Succeeds when all have, or when any has if Require All is off.");
 
 		Add("invert", "Decorators", "Invert", .Decorator, new () => new BTInvert()).Describe("Turns its child's success into failure and failure into success.");
@@ -676,6 +925,7 @@ static class BehaviorLibrary
 		Add("repeat", "Decorators", "Repeat", .Decorator, new () => new BTRepeat()).With("Times", .Number, "0").Describe("Runs its child again each time it succeeds. Times 0 repeats forever.");
 		Add("until.fail", "Decorators", "Repeat Until Failure", .Decorator, new () => new BTUntilFail()).Describe("Runs its child over and over until it fails.");
 		Add("cooldown", "Decorators", "Cooldown", .Decorator, new () => new BTCooldown()).With("Seconds", .Number, "2").Describe("After its child finishes, fails for this long without running it.");
+		Add("once", "Decorators", "Run Once", .Decorator, new () => new BTRunOnce()).Describe("Runs its child until it finishes once; after that it answers with the same result without running it.");
 		Add("timeout", "Decorators", "Timeout", .Decorator, new () => new BTTimeout()).With("Seconds", .Number, "5").Describe("Stops its child and fails if the child runs longer than this.");
 
 		Add("wait", "Actions", "Wait", .Action, new () => new BTWait()).With("Seconds", .Number, "1").With("Up To", .Number, "0").Describe("Waits. With Up To above Seconds the time is random between the two.");
@@ -690,13 +940,20 @@ static class BehaviorLibrary
 		Add("nav.stop", "Navigation", "Stop Moving", .Action, new () => new BTStopMoving()).Describe("Stops the Navigation Agent.");
 		Add("nav.face", "Navigation", "Face Target", .Action, new () => new BTFaceTarget()).With("Key", .Text, "target").With("Turn Speed", .Number, "360").Describe("Turns toward a remembered object or position.");
 
-		Add("see", "Detection", "Can See", .Condition, new () => new BTCanSee()).With("Object", .Text, "Player").With("Range", .Number, "12").With("Field Of View", .Number, "110").With("Eye Height", .Number, "1.6").With("Store As", .Text, "target").Describe("Succeeds if an object with this name (end with * for a prefix) is in range, in the view cone and not behind anything solid.");
+		Add("see", "Detection", "Can See", .Condition, new () => new BTCanSee()).With("Object", .Text, "Player").With("Range", .Number, "12").With("Field Of View", .Number, "110").With("Eye Height", .Number, "1.6").With("Store As", .Text, "target").With("Sight Points", .Number, "1").Describe("Succeeds if an object with this name (end with * for a prefix, or #Tag for a tag) is in range, in the view cone and not behind anything solid. Sight Points 3 also looks for its head and feet.");
 		Add("near", "Detection", "Is Near", .Condition, new () => new BTIsNear()).With("Object", .Text, "Player").With("Distance", .Number, "3").With("Store As", .Text, "target").Describe("Succeeds if an object with this name is within a distance, in any direction and through walls.");
 		Add("within", "Detection", "Target Within", .Condition, new () => new BTWithinDistance()).With("Key", .Text, "target").With("Distance", .Number, "2").Describe("Succeeds while a remembered object or position is within a distance.");
+		Add("hear", "Detection", "Heard Noise", .Condition, new () => new BTHeardNoise()).With("Within Seconds", .Number, "1").With("Hearing", .Number, "1").With("Store As", .Text, "noise").Describe("Succeeds if a noise (AINoise.Make) was made within earshot lately. Remembers where under Store As. Each noise is heard once.");
+		Add("event.received", "Events", "Event Received", .Condition, new () => new BTEventReceived()).With("Event", .Text, "Hit").With("Within Seconds", .Number, "1").With("Consume", .Bool, "true").Describe("Succeeds if the game sent this event to the tree (runner.SendEvent) lately. Consume makes each one count once.");
+		Add("event.send", "Events", "Send Event", .Action, new () => new BTSendEvent()).With("Event", .Text, "Alarm").Describe("Tells the game something: the runner's OnTreeEvent is called with this name.");
+		Add("chance", "Actions", "Chance", .Condition, new () => new BTChance()).With("Probability", .Number, "0.5").Describe("Succeeds with this probability (0 to 1) each time.");
 
 		Add("bb.has", "Blackboard", "Has Value", .Condition, new () => new BTHasValue()).With("Key", .Text, "target").Describe("Succeeds if something is remembered under this key.");
 		Add("bb.clear", "Blackboard", "Forget", .Action, new () => new BTClearValue()).With("Key", .Text, "target").Describe("Forgets what is remembered under this key.");
 		Add("bb.set", "Blackboard", "Set Flag", .Action, new () => new BTSetFlag()).With("Key", .Text, "alert").With("Value", .Bool, "true").Describe("Remembers a true or false value.");
+		Add("bb.number", "Blackboard", "Set Number", .Action, new () => new BTSetNumber()).With("Key", .Text, "count").With("Value", .Number, "1").With("Add", .Bool, "false").Describe("Remembers a number; with Add on, adds the value to it (a negative value takes away).");
+		Add("bb.compare", "Blackboard", "Compare Number", .Condition, new () => new BTCompareNumber()).With("Key", .Text, "count").With("Test", .Text, ">=").With("Value", .Number, "3").Describe("Compares a remembered number with a value. Test is <, <=, >, >=, == or !=.");
+		Add("bb.here", "Blackboard", "Remember Position", .Action, new () => new BTRememberPosition()).With("Key", .Text, "post").Describe("Remembers where this object is now, to go back to it with Move To Target.");
 		Add("bb.flag", "Blackboard", "Is Flag Set", .Condition, new () => new BTIsFlagSet()).With("Key", .Text, "alert").Describe("Succeeds if the flag is true.");
 	}
 }
