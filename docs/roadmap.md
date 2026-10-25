@@ -162,7 +162,7 @@ Work agreed and queued, in order (see *How to use this page* above for what "don
   skinning and vsync at once; Custom when changed one by one; the player's choice saved in `graphics.cfg` and applied
   at start; `Quality.Recommended` for the machine; `--quality`; editor Window > Graphics Quality. `docs/quality.md`,
   `Tests/Quality`.
-- [x] E18 macOS (2026-10-25): Tessera builds, tests and runs on Apple silicon with Metal: a macOS CI job builds Beef
+- [x] E18 macOS (2026-10-25, `dev` 82d4c91): Tessera builds, tests and runs on Apple silicon with Metal: a macOS CI job builds Beef
   from source, the native libraries, every headless fixture (all pass; `tools/run_tests.py`), the packaged editor
   and the Sandbox drawing with Metal (GPU skinning included); `tools/macos_link.py` link settings for every project;
   `build_player.py` / `package_engine.py --platform macos` and a macOS target in File > Build on a Mac; macOS

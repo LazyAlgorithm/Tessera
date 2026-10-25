@@ -41,7 +41,7 @@ class Program
 		File.Copy(scope $"{sample}/Models/rigged_sample.glb" , scope $"{root}/Models/tentacle.glb" , true).IgnoreError();
 		File.Copy(scope $"{sample}/Models/rigged_sample.glb" , scope $"{root}/Models/statue.glb" , true).IgnoreError();
 		File.Copy(scope $"{sample}/Textures/hammered_normal.png" , scope $"{root}/Textures/bumps.png" , true).IgnoreError();
-		File.Copy(scope $"{checkout}/icon.png", scope $"{root}/Textures/logo.png" , true).IgnoreError();
+		File.Copy(scope $"{checkout}/icon.png" , scope $"{root}/Textures/logo.png" , true).IgnoreError();
 		File.WriteAllText(scope $"{root}/Materials/stone.tmat" , "material 1\ncolor 1 1 1 1\nnormalMap \"Textures/bumps.png\"\n").IgnoreError();
 		File.WriteAllText(scope $"{root}/Prefabs/crate.tprefab" , "object 1 parent 0 active 1 name \"Crate\"\ntransform 0 0 0 0 0 0 1 1 1 1\ncomponent Tessera.MeshRenderer enabled 1\nfield mesh \"Models/statue.glb\"\nfield texture \"Textures/logo.png\"\n").IgnoreError();
 		let level = """
