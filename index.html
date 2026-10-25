@@ -756,6 +756,7 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
       <a href="#manual" data-sec="manual-navigation">Navigation</a>
       <a href="#manual" data-sec="manual-behavior">Behaviour trees</a>
       <a href="#manual" data-sec="manual-drawing-less">LOD, occlusion, GPU skinning</a>
+      <a href="#manual" data-sec="manual-quality">Quality presets</a>
       <a href="#manual" data-sec="manual-skinned-materials">Materials on skinned meshes</a>
       <a href="#manual" data-sec="manual-anim-layers">Animation layers and blend trees</a>
       <a href="#manual" data-sec="manual-ik">Inverse kinematics</a>
@@ -973,6 +974,15 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
         <li><strong>GPU skinning</strong> (on by default): rigged characters are bent by a compute shader on the graphics card, straight into the vertex buffers every pass uses, so shadows, depth effects and custom materials see the bent model. Where compute is missing (the web build) the CPU does it as before.</li>
       </ul>
       <p>See <code>docs/lod.md</code>, <code>docs/occlusion-culling.md</code> and <code>docs/gpu-skinning.md</code>; the Sandbox has <code>Scenes/Culling.tscene</code> and <code>Scenes/Skinning.tscene</code>.</p>
+
+      <h2 id="manual-quality">Graphics quality presets</h2>
+      <div class="note" style="margin-bottom:14px"><div><strong>On the dev branch</strong>These features are on <code>dev</code> and not yet on <code>main</code> or in a packaged build.</div></div>
+      <p><strong>Quality</strong> gathers every graphics setting that trades looks for speed into four presets: <strong>Low</strong>, <strong>Medium</strong>, <strong>High</strong> and <strong>Ultra</strong>. Each sets render scale, antialiasing, shadows (map size and distance), ambient occlusion, depth of field, motion blur, LOD detail distance, foliage distance, GPU skinning and vsync together. High is what the engine always did, so existing projects look the same.</p>
+      <pre><code>Quality.Set(.Low);                 // a preset
+Quality.Current.motionBlur = false; // or one setting (the level becomes Custom)
+Quality.Apply();
+Quality.Save();                    // applied by itself at the next start</code></pre>
+      <p><code>Quality.Recommended</code> suggests a preset for the machine (Low on phones, Medium on built-in graphics and in a browser). <code>--quality low</code> tries a preset for one run. In the editor, <strong>Window &gt; Graphics Quality</strong> previews each preset in the Scene and Game views. See <code>docs/quality.md</code>.</p>
 
       <h2 id="manual-skinned-materials">Materials on skinned meshes</h2>
       <p>A rigged model with several materials (skin, cloth, armour) or any textures is drawn in parts, one per material in the file, each with the material saved there: base colour, normal, metallic-roughness, occlusion and emissive textures (inside a <code>.glb</code>, as <code>data:</code> addresses or as files beside the model), metallic, roughness, alpha mode and double sides. A model with one plain material is drawn as before, with its Mesh Renderer's settings.</p>
