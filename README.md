@@ -105,6 +105,7 @@ Code style: see `docs/coding-style.md`; `python3 tools/format/format_code.py` fo
 - **Dialogue and subtitles**: branching conversations in `.tdialogue` files, written in the editor's **Dialogue** tab and tried there with a preview; the **Dialogue Runner** shows each line as a subtitle with its voice, the answers as buttons, hands events to the game, keeps its place in saves and can be shared by everyone in a co-op session. Any sound with an `.srt` file beside it is subtitled too, with captions and settings for the player. See `docs/dialogue.md`.
 - **Decals**: the **Decal** component presses a picture onto whatever lies in its box (posters, signs, cracks, scorch marks), lit and shadowed like the surface, with an angle limit, draw order and **Stick to Surface** in the Inspector; `Decals.Spawn` makes short-lived ones from code (bullet holes, footprints) in a pool that recycles the oldest. See `docs/decals.md`.
 - **Drawing less**: LOD Groups (levels from `_LOD` children or simplified at load, per camera by screen size), occlusion culling behind big solid objects, and GPU skinning of rigged models with a compute shader. See `docs/lod.md`, `docs/occlusion-culling.md` and `docs/gpu-skinning.md`.
+- **macOS**: Apple silicon Macs build and run the engine, editor and games with Metal, checked on every push by a macOS CI job. See `docs/macos.md`.
 - **Quality presets**: Low, Medium, High and Ultra set every graphics setting at once, remembered for the player, with a suggestion for the machine. See `docs/quality.md`.
 - **Mouse lock**: `Input.LockCursor = true` keeps the mouse inside the window and hides the pointer while the mouse steers the view; `Input.MouseDelta` goes on reporting movement. Set it false while a menu is open. While it is locked, menus and editor panels are not sent the mouse or the keyboard, so nothing under the hidden pointer is hovered or clicked. It is released when play stops, and `Input.CursorLocked` says whether it has really taken hold.
 - **Game UI**: override `OnGUI` and use `GUI.Label`, `GUI.Button`, `GUI.Bar`, `GUI.Box`, `GUI.Toggle`, `GUI.Slider`.
@@ -284,7 +285,7 @@ Each type has its own file, or shares one with the small types that only it uses
 
 ## Platforms
 
-Developed and tested on Linux x64 with Vulkan. Windows x64 builds (games and the editor) are cross-compiled on Linux and use Vulkan; see `docs/windows.md`. The dependencies also support macOS, Android and iOS, and shaders are already compiled for Vulkan, OpenGL, OpenGL ES and Metal, but those platforms still need their own link settings in the project template and have not been built. Direct3D shaders must be compiled on Windows (`tools/compile_shaders.sh`).
+Developed and tested on Linux x64 with Vulkan. Windows x64 builds (games and the editor) are cross-compiled on Linux and use Vulkan; see `docs/windows.md`. macOS on Apple silicon builds natively with Metal and is checked in CI; see `docs/macos.md`. The dependencies also support Android and iOS, and shaders are already compiled for Vulkan, OpenGL, OpenGL ES and Metal, but those platforms still need their own link settings and have not been built. Direct3D shaders must be compiled on Windows (`tools/compile_shaders.sh`).
 
 ## Known limits
 

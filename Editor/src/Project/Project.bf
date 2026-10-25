@@ -323,13 +323,13 @@ class Project
 		return Terminal.Run(command) == 0;
 	}
 
-	/// Puts a copy of Tessera itself (launcher, editor, engine) for Linux or Windows in outputPath.
-	public bool PackageEngine(StringView outputPath, bool windows)
+	/// Puts a copy of Tessera itself (launcher, editor, engine) for Linux, Windows or macOS in outputPath.
+	public bool PackageEngine(StringView outputPath, BuildTarget target)
 	{
 		Directory.CreateDirectory(scope $"{Path}/build").IgnoreError();
 		let command = scope String(Terminal.Python)..Append(' ');
 		Terminal.Quote(scope $"{EngineRoot}/tools/package_engine.py" , command);
-		command.AppendF(" --platform {} --folder ", windows ? "windows" : "linux");
+		command.AppendF(" --platform {} --folder ", target.ToString(.. scope .())..ToLower());
 		Terminal.Quote(outputPath, command);
 		command.Append(" > ");
 		Terminal.Quote(scope $"{Path}/build/build.log" , command);

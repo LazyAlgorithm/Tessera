@@ -184,6 +184,11 @@ void tn_guard_clocks(double* engine, double* independent)
 #ifdef __linux__
 #include <sys/prctl.h>
 #endif
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#include <mach-o/getsect.h>
+#include <sys/sysctl.h>
+#endif
 
 // Closes the game's memory to other programs run by the same user: they can no longer attach to it or open its
 // memory (memory editors and debuggers both work that way). A program run as root still can.
@@ -210,9 +215,14 @@ static char baseFolder[1024];
 static void prepare_folders(void)
 {
 	if (baseFolder[0] != 0) return;
+#ifdef __APPLE__
+	uint32_t capacity = sizeof(baseFolder);
+	if (_NSGetExecutablePath(baseFolder, &capacity) != 0) { baseFolder[0] = '?'; baseFolder[1] = 0; return; }
+#else
 	ssize_t length = readlink("/proc/self/exe", baseFolder, sizeof(baseFolder) - 1);
 	if (length <= 0) { baseFolder[0] = '?'; baseFolder[1] = 0; return; }
 	baseFolder[length] = 0;
+#endif
 	char* slash = strrchr(baseFolder, '/');
 	if (slash != NULL) slash[1] = 0;
 }
@@ -220,7 +230,7 @@ static void prepare_folders(void)
 // Where libraries live that the system, its drivers and honest tools load, also after the game has started.
 static int harmless_module(const char* path)
 {
-	static const char* places[] = { "/usr/", "/lib", "/opt/", "/nix/", "/run/host/", "/app/", "/snap/", "/var/lib/flatpak/", "/memfd:", "/dev/", "/SYSV", "/tmp/.gl", "/home/deck/.steam" };
+	static const char* places[] = { "/usr/", "/lib", "/opt/", "/System/", "/Library/Apple/", "/nix/", "/run/host/", "/app/", "/snap/", "/var/lib/flatpak/", "/memfd:", "/dev/", "/SYSV", "/tmp/.gl", "/home/deck/.steam" };
 	static const char* known[] = { "steam", "Steam", "MangoHud", "mangohud", "gamemode", "obs", "vkbasalt", "nvidia", "mesa", "pressure-vessel" };
 	for (size_t k = 0; k < sizeof(places) / sizeof(places[0]); k++)
 	{
@@ -239,6 +249,14 @@ typedef void (*TnModuleVisitor)(const char* path, void* context);
 // Every file mapped into the process as code.
 static void each_module(TnModuleVisitor visit, void* context)
 {
+#ifdef __APPLE__
+	// The libraries dyld loaded (the system's come from its shared cache under /usr/lib and /System).
+	for (uint32_t i = 0; i < _dyld_image_count(); i++)
+	{
+		const char* path = _dyld_get_image_name(i);
+		if (path != NULL && path[0] == '/') visit(path, context);
+	}
+#else
 	FILE* maps = fopen("/proc/self/maps", "r");
 	char line[1400];
 	if (maps == NULL) return;
@@ -253,11 +271,21 @@ static void each_module(TnModuleVisitor visit, void* context)
 		visit(path, context);
 	}
 	fclose(maps);
+#endif
 }
 
 // The game's own code, as loaded: the executable mapping of the program's file.
 static int code_range(const unsigned char** start, size_t* size)
 {
+#ifdef __APPLE__
+	// Image 0 is the program; its __TEXT,__text section is its code as loaded (slid).
+	unsigned long length = 0;
+	const unsigned char* text = getsectiondata((const struct mach_header_64*)_dyld_get_image_header(0), "__TEXT", "__text", &length);
+	if (text == NULL || length == 0) return 0;
+	*start = text;
+	*size = (size_t)length;
+	return 1;
+#else
 	char exe[1024];
 	ssize_t length = readlink("/proc/self/exe", exe, sizeof(exe) - 1);
 	FILE* maps = fopen("/proc/self/maps", "r");
@@ -281,6 +309,7 @@ static int code_range(const unsigned char** start, size_t* size)
 	}
 	fclose(maps);
 	return found;
+#endif
 }
 
 static int make_writable(void* address, size_t size, int writable)
@@ -320,6 +349,13 @@ unsigned tn_guard_environment(void)
 		}
 		fclose(status);
 	}
+#endif
+#ifdef __APPLE__
+	struct kinfo_proc info;
+	size_t infoSize = sizeof(info);
+	int query[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid() };
+	memset(&info, 0, sizeof(info));
+	if (sysctl(query, 4, &info, &infoSize, NULL, 0) == 0 && (info.kp_proc.p_flag & P_TRACED) != 0) flags |= TN_GUARD_DEBUGGER;
 #endif
 	// A library forced in ahead of the system's: the usual way to hook a game on Linux and macOS.
 	const char* names[] = { "LD_PRELOAD", "DYLD_INSERT_LIBRARIES" };

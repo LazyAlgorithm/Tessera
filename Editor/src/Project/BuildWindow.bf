@@ -11,6 +11,8 @@ enum BuildTarget
 {
 	Linux,
 	Windows,
+	/// Built on a Mac (Apple silicon), which builds only macOS and web games (docs/macos.md).
+	MacOS,
 	/// A folder of web files (WebAssembly) to put on any web server, played in a browser on computers and phones.
 	Web
 }
@@ -58,7 +60,11 @@ extension EditorApp
 		{
 			var lines = text.Split('\n');
 			if (lines.GetNext() case .Ok(let system))
-				mBuildTarget = system == "windows" ? .Windows : system == "web" ? .Web : .Linux;
+				mBuildTarget = system == "windows" ? .Windows : system == "web" ? .Web : system == "macos" ? .MacOS : .Linux;
+#if BF_PLATFORM_MACOS
+			if (mBuildTarget != .Web)
+				mBuildTarget = .MacOS;
+#endif
 			if (lines.GetNext() case .Ok(let folder))
 				mBuildFolder.Set(folder);
 		}
@@ -119,7 +125,7 @@ extension EditorApp
 			DrawBuildTarget();
 			if (!mBuildEditor)
 				DrawGameBuildOptions(Project.Current);
-			let ready = mBuildTarget == .Linux || (mBuildTarget == .Windows ? WindowsBuildReady() : WebBuildReady());
+			let ready = mBuildTarget == .Linux || mBuildTarget == .MacOS || (mBuildTarget == .Windows ? WindowsBuildReady() : WebBuildReady());
 			if (!ready)
 				DrawBuildSetupHint();
 			let output = scope String();
@@ -129,14 +135,25 @@ extension EditorApp
 		ImGui.End();
 	}
 
-	/// What is built (the game or the editor) and for which system. A Windows machine builds Windows games; the other
-	/// choices need Linux.
+	/// The system this editor runs on, which it can always build for.
+#if BF_PLATFORM_MACOS
+	static BuildTarget NativeTarget => .MacOS;
+#else
+	static BuildTarget NativeTarget => .Linux;
+#endif
+
+	/// What is built (the game or the editor) and for which system. A Windows machine builds Windows games, a Mac
+	/// macOS and web ones; the other choices need Linux.
 	void DrawBuildTarget()
 	{
 #if BF_PLATFORM_WINDOWS
 		mBuildTarget = .Windows;
 		mBuildEditor = false;
 #else
+	#if BF_PLATFORM_MACOS
+		if (mBuildTarget == .Linux || mBuildTarget == .Windows)
+			mBuildTarget = .MacOS;
+	#endif
 		ImGui.SeparatorText("Build");
 		if (ImGui.RadioButton("Game", !mBuildEditor))
 		{
@@ -149,7 +166,7 @@ extension EditorApp
 			mBuildEditor = true;
 			mBuildMessage.Clear();
 			if (mBuildTarget == .Web)
-				mBuildTarget = .Linux;
+				mBuildTarget = NativeTarget;
 		}
 		if (mBuildEditor)
 		{
@@ -157,6 +174,14 @@ extension EditorApp
 			ImGui.TextDisabled("Tessera itself, to use on another machine");
 		}
 		ImGui.SeparatorText("For");
+	#if BF_PLATFORM_MACOS
+		// A Mac builds for itself and the web.
+		if (ImGui.RadioButton("macOS", mBuildTarget == .MacOS))
+		{
+			mBuildTarget = .MacOS;
+			mBuildMessage.Clear();
+		}
+	#else
 		if (ImGui.RadioButton("Linux", mBuildTarget == .Linux))
 		{
 			mBuildTarget = .Linux;
@@ -168,6 +193,7 @@ extension EditorApp
 			mBuildTarget = .Windows;
 			mBuildMessage.Clear();
 		}
+	#endif
 		// The editor itself does not run in a browser; only games do.
 		ImGui.BeginDisabled(mBuildEditor);
 		ImGui.SameLine();

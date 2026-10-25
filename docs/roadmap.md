@@ -45,7 +45,7 @@ search picks it up). A feature on `dev` but not yet in `main` says so in its sec
    it is there, Ringfall builds skip the public release (the run shows a notice), so the Hub shows "No release yet"
    for Ringfall. After adding it, push Ringfall to its `release` branch (or run its workflow) once.
 2. Try the Hub on Windows: unzip TesseraHub-Windows.zip from the tessera-hub Releases page and run TesseraHub.exe.
-3. Optional: macOS needs E18 (below) before the Hub or games can be built for it.
+3. Optional: try Tessera on a real Mac (E18, `docs/macos.md`); the Hub has no macOS build yet.
 
 ## Queued
 
@@ -162,7 +162,12 @@ Work agreed and queued, in order (see *How to use this page* above for what "don
   skinning and vsync at once; Custom when changed one by one; the player's choice saved in `graphics.cfg` and applied
   at start; `Quality.Recommended` for the machine; `--quality`; editor Window > Graphics Quality. `docs/quality.md`,
   `Tests/Quality`.
-- [ ] E18 macOS, E19, E21
+- [x] E18 macOS (2026-10-25): Tessera builds, tests and runs on Apple silicon with Metal: a macOS CI job builds Beef
+  from source, the native libraries, every headless fixture (all pass; `tools/run_tests.py`), the packaged editor
+  and the Sandbox drawing with Metal (GPU skinning included); `tools/macos_link.py` link settings for every project;
+  `build_player.py` / `package_engine.py --platform macos` and a macOS target in File > Build on a Mac; macOS
+  versions of the anti-cheat guard's checks. `docs/macos.md`. Not yet run on a real Mac by a person.
+- [ ] E19, E21 (not described yet: to be agreed)
 
 ## Higher-quality rendering (after the above, one at a time)
 
