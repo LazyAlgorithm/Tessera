@@ -42,6 +42,7 @@ static class ENet
 	[CLink] public static extern void* enet_host_create(Address* address, uint peerCount, uint channelLimit, uint32 incomingBandwidth, uint32 outgoingBandwidth);
 	[CLink] public static extern void enet_host_destroy(void* host);
 	[CLink] public static extern void* enet_host_connect(void* host, Address* address, uint channelCount, uint32 data);
+	[CLink] public static extern void enet_peer_throttle_configure(void* peer, uint32 interval, uint32 acceleration, uint32 deceleration);
 	[CLink] public static extern int32 enet_host_service(void* host, Event* event, uint32 timeout);
 	[CLink] public static extern void enet_host_flush(void* host);
 	[CLink] public static extern Packet* enet_packet_create(void* data, uint length, uint32 flags);
