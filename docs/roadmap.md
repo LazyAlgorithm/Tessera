@@ -129,7 +129,7 @@ Work agreed and queued, in order (see *How to use this page* above for what "don
   with the screen effects and the mesh shader's lighting (`Engine/shaders/include/lighting.sh`); GameObject > Decal,
   Stick to Surface and box picking in the editor; `Decals.Spawn` for pooled short-lived decals, made on every machine
   rather than sent. `docs/decals.md`, `Tests/Decals`, decals in the Sandbox Main scene.
-- [x] E12 dialogue and subtitles (2026-10-25): `.tdialogue` conversations (speakers, nodes of lines, answers,
+- [x] E12 dialogue and subtitles (2026-10-25, `dev` ff0cb48): `.tdialogue` conversations (speakers, nodes of lines, answers,
   variables, events, jumps and conditions) edited in a Dialogue tab with a preview, played by a Dialogue Runner
   (subtitled lines with voice recordings, answer buttons, keyboard and controller input, kept in saves); Subtitles
   for any sound with an `.srt` beside it or from code, with player settings and captions; a Shared conversation is
