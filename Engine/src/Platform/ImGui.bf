@@ -215,6 +215,7 @@ static class ImGui
 		public const int32 E = 550;
 		public const int32 F = 551;
 		public const int32 G = 552;
+		public const int32 K = 556;
 		public const int32 N = 559;
 		public const int32 O = 560;
 		public const int32 P = 561;

@@ -346,7 +346,7 @@ static class Audio
 	{
 		if (!sListenerSet && scene != null)
 		{
-			let camera = scene.FindComponent<Camera>();
+			let camera = scene.ViewCamera;
 			if (camera != null)
 				SetListener(camera.Transform.Position, camera.Transform.Forward, camera.Transform.Rotation * Vector3.Up);
 		}

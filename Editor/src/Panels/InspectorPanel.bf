@@ -354,6 +354,8 @@ extension EditorApp
 			DrawDecalTools(decal);
 		if (let runner = component as DialogueRunner)
 			DrawDialogueRunnerTools(runner);
+		if (let sequencePlayer = component as SequencePlayer)
+			DrawSequencePlayerTools(sequencePlayer);
 		if (let hand = component as HandPose)
 			DrawHandPoseTools(hand);
 		if (let feet = component as FootPlacement)
@@ -516,7 +518,7 @@ extension EditorApp
 		if (!fullName.StartsWith("Tessera.")) return "Scripts";
 		if (name == "Camera" || name == "Light" || name == "MeshRenderer" || name == "Decal") return "Rendering";
 		if (name == "Rigidbody" || name.EndsWith("Collider") || name == "CharacterController") return "Physics";
-		if (name == "SkinnedMeshRenderer" || name == "Animator") return "Animation";
+		if (name == "SkinnedMeshRenderer" || name == "Animator" || name == "SequencePlayer") return "Animation";
 		if (name == "UIDocument") return "UI";
 		if (name.StartsWith("Audio") || name == "DialogueRunner") return "Audio";
 		if (name.StartsWith("Navigation") || name.StartsWith("BehaviorTree")) return "AI";
@@ -614,7 +616,7 @@ extension EditorApp
 			let temporary = scope String();
 			let text = original != null ? original : temporary;
 			bool changed;
-			if (field.name == "mesh" || field.name == "model" || field.name == "texture" || field.name == "document" || field.name == "prefab" || field.name == "tree" || field.name == "controller" || field.name == "material" || field.name == "interiorMaterial" || field.name == "scene" || field.name == "shader" || field.name == "bakedData" || field.name == "audioClip" || field.name == "dialogue" || field.name.EndsWith("Prefab"))
+			if (field.name == "mesh" || field.name == "model" || field.name == "texture" || field.name == "document" || field.name == "prefab" || field.name == "tree" || field.name == "controller" || field.name == "material" || field.name == "interiorMaterial" || field.name == "scene" || field.name == "shader" || field.name == "bakedData" || field.name == "audioClip" || field.name == "dialogue" || field.name == "sequence" || field.name.EndsWith("Prefab"))
 				changed = DrawAssetPicker(text, field.name);
 			else
 				changed = ImGui.InputText("##v", text);
@@ -662,6 +664,7 @@ extension EditorApp
 		if (kind == "shader") return HasExtension(path, ".tcompute");
 		if (kind == "document") return HasExtension(path, ".tui");
 		if (kind == "dialogue") return HasExtension(path, ".tdialogue");
+		if (kind == "sequence") return HasExtension(path, ".tsequence");
 		if (kind == "scene") return HasExtension(path, ".tscene");
 		return HasExtension(path, ".tprefab");
 	}

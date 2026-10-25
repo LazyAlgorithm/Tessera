@@ -39,7 +39,12 @@ class Camera : Component
 	public bool viewmodelCastsShadows = false;
 
 	public override void OnRegister() => Scene.Cameras.Add(this);
-	public override void OnUnregister() => Scene.Cameras.Remove(this);
+	public override void OnUnregister()
+	{
+		Scene.Cameras.Remove(this);
+		if (Scene.CameraOverride == this)
+			Scene.CameraOverride = null;
+	}
 
 	/// From the world to the camera's view.
 	public Matrix4 ViewMatrix

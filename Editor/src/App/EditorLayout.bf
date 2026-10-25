@@ -50,6 +50,7 @@ extension EditorApp
 		DrawGraph();
 		DrawBehavior();
 		DrawDialogue();
+		DrawSequencer();
 		DrawAnimator();
 		DrawAnimation();
 		DrawHandPosing();
@@ -196,6 +197,11 @@ extension EditorApp
 			{
 				mShowDialogue = true;
 				mDockDialogue = true;
+			}
+			if (ImGui.MenuItem("Sequencer"))
+			{
+				mShowSequencer = true;
+				mDockSequencer = true;
 			}
 			if (ImGui.MenuItem("Map Builder", null, mShowMapBuilder))
 				mShowMapBuilder = !mShowMapBuilder;

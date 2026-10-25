@@ -35,11 +35,19 @@ static class NetworkSync
 	public const uint8 MsgAnimator = 246;
 	public const uint8 MsgMaterial = 245;
 	public const uint8 MsgDialogue = 244;
+	public const uint8 MsgSequence = 241;
 
 	static bool sRegistered;
 	/// True while a change that arrived from the network is being applied, so it is not sent out again.
 	static bool sApplying;
 	public static bool IsApplying => sApplying;
+	/// While on, changes made on this machine are not sent to the others: for what every machine does by itself
+	/// (a sequence each one plays). Put it back as it was afterwards.
+	public static bool Quiet
+	{
+		get => sApplying;
+		set => sApplying = value;
+	}
 
 	static NetworkManager Active(Scene scene)
 	{
@@ -73,6 +81,7 @@ static class NetworkSync
 		NetworkManager.RegisterMessage(MsgAnimator, new => OnAnimator);
 		NetworkManager.RegisterMessage(MsgMaterial, new => OnMaterial);
 		NetworkManager.RegisterMessage(MsgDialogue, new => OnDialogue);
+		NetworkManager.RegisterMessage(MsgSequence, new => OnSequence);
 	}
 
 	/// Called when a session starts. Scene objects that move by themselves get a Network Identity if they lack one,
@@ -92,7 +101,7 @@ static class NetworkSync
 			let body = object.GetComponent<Rigidbody>();
 			if ((body != null && !body.isKinematic) || object.GetComponent<CharacterController>() != null
 				|| object.GetComponent<AIMovementDriver>() != null || object.GetComponent<BehaviorTreeRunner>() != null
-				|| object.GetComponent<NetworkBehaviour>() != null || (object.GetComponent<DialogueRunner>()?.shared ?? false))
+				|| object.GetComponent<NetworkBehaviour>() != null || (object.GetComponent<DialogueRunner>()?.shared ?? false) || (object.GetComponent<SequencePlayer>()?.shared ?? false))
 				wanted.Add(object);
 		}
 		for (let object in wanted)
@@ -608,6 +617,38 @@ static class NetworkSync
 				return;
 		}
 		runner.ApplyRequest(action, serial, node, index);
+	}
+
+	/// A client asks the server to control a shared sequence: 0 play, 1 pause, 2 resume, 3 stop, 4 skip, 5 seek to time.
+	public static void SequenceRequest(SequencePlayer player, int32 action, float time)
+	{
+		let network = Active(player.Scene);
+		if (network == null || network.IsServer)
+			return;
+		let payload = scope NetWriter();
+		WriteComponent<SequencePlayer>(payload, player);
+		payload.Write(action);
+		payload.Write(time);
+		network.SendToServer(MsgSequence, payload);
+	}
+
+	static void OnSequence(int32 sender, ref NetReader reader)
+	{
+		let network = Active(Scene.Active);
+		if (network == null || !network.IsServer)
+			return;
+		let player = ReadComponent<SequencePlayer>(ref reader, network);
+		let action = reader.Read<int32>();
+		let time = reader.Read<float>();
+		if (!reader.Ok || player == null || !player.shared || action < 0 || action > 5 || !time.IsFinite)
+			return;
+		if (player.onlyOwnerControls)
+		{
+			let owner = Anchor(player).GetComponent<NetworkIdentity>();
+			if (owner == null || owner.ownerId != sender)
+				return;
+		}
+		player.ApplyRequest(action, time);
 	}
 
 	/// Runs OnNetworkEvent(name, value) on a component on every machine. From the server it goes to everyone; from

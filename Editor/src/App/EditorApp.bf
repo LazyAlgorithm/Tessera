@@ -174,6 +174,17 @@ class EditorApp : Application
 			else
 				mShowAnimation = true;
 		}
+		if (AssetArg("--sequence", full..Clear()) && File.Exists(full))
+		{
+			OpenSequence(full);
+			mSeqFocusAfter = 30;
+			let seconds = scope String();
+			if (GetArg("--sequence-time", seconds) && (float.Parse(seconds) case .Ok(let time)))
+			{
+				mSeqTime = time;
+				ApplySequencePreview(false, time);
+			}
+		}
 		if (AssetArg("--dialogue", full..Clear()) && File.Exists(full))
 		{
 			OpenDialogue(full);
@@ -433,15 +444,7 @@ class EditorApp : Application
 		mCamPosition = camera.Transform.Position - rotation * Vector3.Forward * 6.0f + Vector3(0, 2, 0);
 	}
 
-	Camera FindGameCamera()
-	{
-		for (let camera in mScene.Cameras)
-		{
-			if (camera.IsActiveAndEnabled)
-				return camera;
-		}
-		return null;
-	}
+	Camera FindGameCamera() => mScene.ViewCamera;
 
 	protected override void OnRender()
 	{

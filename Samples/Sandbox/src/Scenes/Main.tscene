@@ -404,3 +404,12 @@ component Tessera.DialogueRunner enabled 1
 field dialogue "Dialogue/welcome.tdialogue"
 field startNode "start"
 field playOnStart 1
+object 1120 parent 0 active 1 name "Intro Cutscene"
+transform 0 0 0 0 0 0 1 1 1 1
+component Tessera.SequencePlayer enabled 1
+field sequence "Sequences/intro.tsequence"
+field playOnStart 0
+object 1121 parent 1120 active 1 name "Shot Wide"
+transform 0 0 0 0 0 0 1 1 1 1
+object 1122 parent 1120 active 1 name "Shot Boulder"
+transform 0 0 0 0 0 0 1 1 1 1

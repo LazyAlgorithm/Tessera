@@ -156,6 +156,24 @@ class Scene
 	public List<Light> Lights = new .() ~ delete _;
 	/// Every Camera in the scene.
 	public List<Camera> Cameras = new .() ~ delete _;
+	/// When set (and active), the camera the game is seen through instead of the first one: a cutscene's.
+	public Camera CameraOverride;
+	/// The camera the game is seen through: CameraOverride when it is active, otherwise the first active camera.
+	public Camera ViewCamera
+	{
+		get
+		{
+			if (CameraOverride != null && CameraOverride.IsActiveAndEnabled)
+				return CameraOverride;
+			for (let camera in Cameras)
+			{
+				if (camera.IsActiveAndEnabled)
+					return camera;
+			}
+			return null;
+		}
+	}
+
 	/// Every Particle System in the scene.
 	public List<ParticleSystem> Particles = new .() ~ delete _;
 	/// The decals made by Decals.Spawn, oldest first. Their texture strings are owned here.
