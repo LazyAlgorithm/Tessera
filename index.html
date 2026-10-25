@@ -752,6 +752,7 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
       <a href="#manual" data-sec="manual-viewmodel">First-person viewmodel</a>
       <a href="#manual" data-sec="manual-decals">Decals</a>
       <a href="#manual" data-sec="manual-dialogue">Dialogue and subtitles</a>
+      <a href="#manual" data-sec="manual-sequencer">Sequencer (cutscenes)</a>
       <a href="#manual" data-sec="manual-skinned-materials">Materials on skinned meshes</a>
       <a href="#manual" data-sec="manual-anim-layers">Animation layers and blend trees</a>
       <a href="#manual" data-sec="manual-ik">Inverse kinematics</a>
@@ -923,6 +924,17 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
         <li><strong>Shared</strong> makes one conversation for everyone in a co-op session: the server runs it, any player (or only the owner) can move it on or answer, and late joiners see where it is.</li>
       </ul>
       <p><strong>Subtitles</strong> also follow any sound an Audio Source plays that has an <code>.srt</code> file beside it, with <code>[captions]</code> for sounds shown when the player turns captions on. <code>Subtitles.Show</code> puts up a line from code, and the player's settings (on, captions, names, size, background) are there for an options menu. See <code>docs/dialogue.md</code>.</p>
+
+      <h2 id="manual-sequencer">Sequencer (cutscenes)</h2>
+      <div class="note" style="margin-bottom:14px"><div><strong>On the dev branch</strong>The sequencer is on <code>dev</code> and not yet on <code>main</code> or in a packaged build.</div></div>
+      <p>A <strong>sequence</strong> is a timeline for cutscenes, level intros, lifts and doors that open in stages: tracks that move objects, cut or blend between camera shots, play animations and sounds, show and hide things, fade the screen, show subtitles and fire events for the game. It lives in a <code>.tsequence</code> text file.</p>
+      <ul>
+        <li><strong>Project &gt; + &gt; Sequence</strong> opens the <strong>Sequencer</strong> tab. <strong>+ Track</strong> adds a track (on the selected object where it needs one); double-click a row to add a key, drag keys along the ruler, and edit the selected key underneath.</li>
+        <li>Dragging the playhead puts the scene where the sequence has it, and <strong>Look Through Shots</strong> moves the Scene view's camera onto the camera shot. Move an object with the gizmo and press <strong>K</strong> to key it at the playhead. <strong>Stop Preview</strong> (or starting the game, or saving) puts everything back.</li>
+        <li>A <strong>Sequence Player</strong> plays it: <strong>Play On Start</strong> or <code>Play()</code>, <code>Pause</code>, <code>Skip</code> (events skipped over still happen) and <code>Seek</code>, with <strong>Loop</strong>, <strong>Skippable</strong> and <strong>Restore When Done</strong>. While a shot is on, the game is seen through it, then through its own camera again. Saves keep where it was.</li>
+        <li><strong>Shared</strong> plays one sequence for everyone in a session on the server's clock; any player (or only the owner) can pause or skip it, and events happen on the server.</li>
+      </ul>
+      <p>See <code>docs/sequencer.md</code>.</p>
 
       <h2 id="manual-skinned-materials">Materials on skinned meshes</h2>
       <p>A rigged model with several materials (skin, cloth, armour) or any textures is drawn in parts, one per material in the file, each with the material saved there: base colour, normal, metallic-roughness, occlusion and emissive textures (inside a <code>.glb</code>, as <code>data:</code> addresses or as files beside the model), metallic, roughness, alpha mode and double sides. A model with one plain material is drawn as before, with its Mesh Renderer's settings.</p>
