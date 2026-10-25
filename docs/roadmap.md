@@ -157,7 +157,7 @@ Work agreed and queued, in order (see *How to use this page* above for what "don
   with a compute shader writing the vertex buffers every pass uses, bounds from joints, CPU fallback and
   `--cpu-skinning`. `docs/lod.md`, `docs/occlusion-culling.md`, `docs/gpu-skinning.md`, `Tests/Culling`,
   `Tests/GpuSkinning` (with `run.py`), Sandbox `Scenes/Culling.tscene` and `Scenes/Skinning.tscene`.
-- [x] E20 quality presets (2026-10-25): `Quality` with Low / Medium / High / Ultra (High is the old defaults) setting
+- [x] E20 quality presets (2026-10-25, `dev` 04e4ed8): `Quality` with Low / Medium / High / Ultra (High is the old defaults) setting
   render scale, antialiasing, shadows (on, map size, distance), screen effects, LOD bias, foliage distance, GPU
   skinning and vsync at once; Custom when changed one by one; the player's choice saved in `graphics.cfg` and applied
   at start; `Quality.Recommended` for the machine; `--quality`; editor Window > Graphics Quality. `docs/quality.md`,
