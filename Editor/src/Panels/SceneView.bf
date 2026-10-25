@@ -196,6 +196,27 @@ extension EditorApp
 				best = renderer.GameObject;
 			}
 		}
+		// A decal is clicked where the ray enters its box before reaching the surface it lies on.
+		for (let component in mScene.ComponentsOfType(typeof(Decal)))
+		{
+			let decal = (Decal)component;
+			if (!decal.IsActiveAndEnabled || !decal.GameObject.InActiveWorld)
+				continue;
+			let volume = decal.BoxMatrix;
+			let toLocal = volume.Inverse;
+			let localOrigin = toLocal.TransformPoint(ray.origin);
+			let localEnd = toLocal.TransformPoint(ray.origin + ray.direction);
+			let localRay = Ray(localOrigin, (localEnd - localOrigin).Normalized);
+			let t = Bounds(.(-0.5f), .(0.5f)).IntersectRay(localRay);
+			if (t < 0)
+				continue;
+			let distance = (volume.TransformPoint(localRay.GetPoint(t)) - ray.origin).Length;
+			if (distance <= bestDistance)
+			{
+				bestDistance = distance;
+				best = decal.GameObject;
+			}
+		}
 		// Generated children (voxel chunks) select the object that owns them.
 		while (best != null && best.Transient && best.Transform.Parent != null)
 			best = best.Transform.Parent.GameObject;

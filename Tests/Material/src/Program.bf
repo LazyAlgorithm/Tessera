@@ -135,7 +135,7 @@ class Program
 
 			let fragment = scope String(), vertex = scope String(), compute = scope String();
 			ok &= Check(ShaderCompiler.Generate(shader, root, fragment, vertex, compute) && fragment.Contains("#define speed u_params[0].x") && fragment.Contains("#define tint u_params[1]") && fragment.Contains("#define detail s_texture1")
-				&& fragment.Contains("emissive += tint.rgb * pulse;") && fragment.Contains("sunShadow(") && vertex.Contains("#define wave u_params[2]") && vertex.Contains("position.y += sin(") && !vertex.Contains("s_texture1"),
+				&& fragment.Contains("emissive += tint.rgb * pulse;") && fragment.Contains("shadeSurface(") && vertex.Contains("#define wave u_params[2]") && vertex.Contains("position.y += sin(") && !vertex.Contains("s_texture1"),
 				"the generated shader is the engine's lit shader with the properties and the code put in");
 		}
 		{

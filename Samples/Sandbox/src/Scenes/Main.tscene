@@ -377,3 +377,24 @@ transform 0 0 0 0 0 0 1 1 1 1
 component Sandbox.Test enabled 1
 field speed 1
 field particalSystem 15 0
+object 1100 parent 0 active 1 name "Decals"
+folder
+transform 0 0 0 0 0 0 1 1 1 1
+object 1101 parent 1100 active 1 name "Landing Target"
+transform 0 40.5 2.5 0.70710677 0 0 0.70710677 1 1 1
+component Tessera.Decal enabled 1
+field texture "Textures/decal_target.png"
+field size 3 3 1
+field roughness 0.6
+object 1102 parent 1100 active 1 name "Scorch Mark"
+transform -3.5 40.5 1.5 0.70710677 0 0 0.70710677 1 1 1
+component Tessera.Decal enabled 1
+field texture "Textures/decal_scorch.png"
+field size 4 4 2
+field opacity 0.9
+object 1103 parent 1100 active 1 name "Crate Sign"
+transform -2.8 41.1 4.5 0 0 0 1 1 1 1
+component Tessera.Decal enabled 1
+field texture "Textures/decal_sign.png"
+field size 0.9 0.9 0.3
+field roughness 0.5

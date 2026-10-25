@@ -29,6 +29,9 @@ static class RenderResources
 	public static bgfx.UniformHandle uDepthViewProj, uDepthParams, uAoParams, uDofParams, uMotionParams, uPrevViewProj;
 	public static bgfx.UniformHandle uPostRight, uPostUp, uPostForward, uPostEye, uGradeParams, uGradeFilter;
 	public static bgfx.ProgramHandle LineProgram;
+	// Decals (docs/decals.md).
+	public static bgfx.ProgramHandle DecalProgram;
+	public static bgfx.UniformHandle uDecalBox, uDecalInverse, uDecalColor, uDecalAxis, uDecalParams;
 
 	public static bgfx.UniformHandle sAlbedo, sShadowMap, sSpotShadowMap, sColor;
 	public static bgfx.UniformHandle uWind, uWindZone, uWindPush, uSway, uBender, uBenderPush;
@@ -79,6 +82,12 @@ static class RenderResources
 		uGradeParams = bgfx.create_uniform("u_gradeParams", .Vec4, 1);
 		uGradeFilter = bgfx.create_uniform("u_gradeFilter", .Vec4, 1);
 		LineProgram = Gfx.LoadProgram("vs_debug", "fs_debug");
+		DecalProgram = Gfx.LoadProgram("vs_decal", "fs_decal");
+		uDecalBox = bgfx.create_uniform("u_decalBox", .Mat4, 1);
+		uDecalInverse = bgfx.create_uniform("u_decalInverse", .Mat4, 1);
+		uDecalColor = bgfx.create_uniform("u_decalColor", .Vec4, 1);
+		uDecalAxis = bgfx.create_uniform("u_decalAxis", .Vec4, 1);
+		uDecalParams = bgfx.create_uniform("u_decalParams", .Vec4, 1);
 
 		sAlbedo = bgfx.create_uniform("s_albedo", .Sampler, 1);
 		sShadowMap = bgfx.create_uniform("s_shadowMap", .Sampler, 1);
@@ -166,6 +175,12 @@ static class RenderResources
 		bgfx.destroy_program(DofCombineProgram);
 		bgfx.destroy_program(MotionBlurProgram);
 		bgfx.destroy_program(LineProgram);
+		bgfx.destroy_program(DecalProgram);
+		bgfx.destroy_uniform(uDecalBox);
+		bgfx.destroy_uniform(uDecalInverse);
+		bgfx.destroy_uniform(uDecalColor);
+		bgfx.destroy_uniform(uDecalAxis);
+		bgfx.destroy_uniform(uDecalParams);
 		bgfx.destroy_frame_buffer(ShadowFrameBuffer);
 		if (SpotShadowFrameBuffer.idx != uint16.MaxValue)
 			bgfx.destroy_frame_buffer(SpotShadowFrameBuffer);

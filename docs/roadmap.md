@@ -124,7 +124,11 @@ Work agreed and queued, in order (see *How to use this page* above for what "don
   clip and state, not bones. With it, at the user's request: bones drawn and clickable in the Scene view, an IK rig in
   one press with handles, IK snapping and baking, model clips copied into editable ones, and Hand Posing for fingers.
   `docs/retargeting.md`, `Tests/Retargeting`, editor `--rig-test`.
-- [ ] E11 decals
+- [x] E11 decals (2026-10-24): a Decal component projects a picture onto the solid scene inside its box (lit,
+  shadowed and fogged like the surface, with an angle limit, opacity, unlit and draw order), sharing the depth pass
+  with the screen effects and the mesh shader's lighting (`Engine/shaders/include/lighting.sh`); GameObject > Decal,
+  Stick to Surface and box picking in the editor; `Decals.Spawn` for pooled short-lived decals, made on every machine
+  rather than sent. `docs/decals.md`, `Tests/Decals`, decals in the Sandbox Main scene.
 - [ ] E12 dialogue and subtitles
 - [ ] E13 sequencer (cutscenes)
 - [ ] E14 navigation upgrades

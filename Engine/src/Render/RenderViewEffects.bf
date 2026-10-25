@@ -65,7 +65,7 @@ extension RenderView
 		{
 			EnsureEffectTargets();
 			SetPostCamera(camera);
-			SubmitDepthPass((uint16)(ViewBase + DepthView), camera);
+			EnsureDepthPass(camera);
 			int next = 0;
 			if (ao)
 			{
@@ -208,6 +208,16 @@ extension RenderView
 	{
 		SetUpView(view, name, target, 0, 0, width, height);
 		SubmitFullscreen(view, program, Gfx.StateWriteRGB | Gfx.StateWriteA);
+	}
+
+	/// Draws the depth pass, once a frame, for the decals and the screen effects that need it.
+	void EnsureDepthPass(CameraData camera)
+	{
+		if (mDepthDrawn)
+			return;
+		EnsureEffectTargets();
+		SubmitDepthPass((uint16)(ViewBase + DepthView), camera);
+		mDepthDrawn = true;
 	}
 
 	/// The depth pass: how far in front of the camera each solid surface is, for the screen effects. The world's

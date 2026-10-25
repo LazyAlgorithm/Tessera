@@ -350,6 +350,8 @@ extension EditorApp
 			DrawLimbIKTools(limb);
 		if (let foliage = component as Foliage)
 			DrawFoliageTools(foliage);
+		if (let decal = component as Decal)
+			DrawDecalTools(decal);
 		if (let hand = component as HandPose)
 			DrawHandPoseTools(hand);
 		if (let feet = component as FootPlacement)
@@ -510,7 +512,7 @@ extension EditorApp
 	static StringView ComponentCategory(StringView fullName, StringView name)
 	{
 		if (!fullName.StartsWith("Tessera.")) return "Scripts";
-		if (name == "Camera" || name == "Light" || name == "MeshRenderer") return "Rendering";
+		if (name == "Camera" || name == "Light" || name == "MeshRenderer" || name == "Decal") return "Rendering";
 		if (name == "Rigidbody" || name.EndsWith("Collider") || name == "CharacterController") return "Physics";
 		if (name == "SkinnedMeshRenderer" || name == "Animator") return "Animation";
 		if (name == "UIDocument") return "UI";

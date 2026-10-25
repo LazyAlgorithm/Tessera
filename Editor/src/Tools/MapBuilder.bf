@@ -64,7 +64,7 @@ extension EditorApp
 	Vector3 mQuickNormal;
 
 	static readonly StringView[?] BuiltinObjects = .("Create Empty", "Folder", "Cube", "Sphere", "Capsule", "Cylinder", "Cone", "Plane", "Quad",
-		"Directional Light", "Point Light", "Spot Light", "Camera", "Spawn Point", "Audio Source", "Particle System", "Destructible Voxel Object",
+		"Directional Light", "Point Light", "Spot Light", "Camera", "Decal", "Spawn Point", "Audio Source", "Particle System", "Destructible Voxel Object",
 		"Voxel Terrain", "Network Session");
 
 	bool SnapActive => mSnap != ImGui.IsKeyDown(ImGui.Key.LeftCtrl);
@@ -397,6 +397,12 @@ extension EditorApp
 			made.Transform.EulerAngles = .(90, 0, 0);
 		case "Camera": made = CreateObject("Camera");
 			made.AddComponent<Camera>();
+		case "Decal":
+			made = CreateObject("Decal");
+			made.AddComponent<Decal>();
+			// Pressed down onto the ground, then onto whatever it was dropped on.
+			made.Transform.EulerAngles = .(90, 0, 0);
+			StickDecal(made);
 		case "Particle System": made = CreateObject("Particles");
 			made.AddComponent<ParticleSystem>();
 		case "Destructible Voxel Object":

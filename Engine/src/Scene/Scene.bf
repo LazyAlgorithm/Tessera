@@ -158,6 +158,8 @@ class Scene
 	public List<Camera> Cameras = new .() ~ delete _;
 	/// Every Particle System in the scene.
 	public List<ParticleSystem> Particles = new .() ~ delete _;
+	/// The decals made by Decals.Spawn, oldest first. Their texture strings are owned here.
+	public List<SpawnedDecal> SpawnedDecals = new .() ~ { for (let decal in _) delete decal.texture; delete _; };
 
 	/// Every registered component under its class and each class above it (down to Component), in the order they
 	/// were registered: FindComponent and ComponentsOfType look here instead of at every component in the scene.
@@ -313,6 +315,7 @@ class Scene
 		mDestroyQueue.Clear();
 		mPendingStart.Clear();
 		mNextId = 1;
+		Decals.Clear(this);
 	}
 
 	/// Makes an empty object (with only a Transform), at the top of the scene or under a parent.

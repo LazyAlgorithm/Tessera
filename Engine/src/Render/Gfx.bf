@@ -46,6 +46,7 @@ static class Gfx
 	public const uint64 StateWriteZ = 0x0000004000000000;
 	public const uint64 StateDepthLess = 0x0000000000000010;
 	public const uint64 StateDepthLequal = 0x0000000000000020;
+	public const uint64 StateDepthGequal = 0x0000000000000040;
 	public const uint64 StateCullCw = 0x0000001000000000;
 	public const uint64 StateCullCcw = 0x0000002000000000;
 	public const uint64 StateLines = 0x0002000000000000;

@@ -8,8 +8,9 @@ namespace Tessera;
 /// instanced opaque geometry and debug lines, see-through geometry, the viewmodel (a first-person camera's arms and
 /// weapon, over everything: Camera.viewmodelLayer), the screen effects the scene asks for (ambient occlusion, depth of
 /// field and motion blur, from a depth pass: docs/post-processing.md), bloom, then a tonemapping resolve with colour
-/// grading. Each RenderView uses 33 consecutive bgfx view ids: sun shadows 0 to 3, spotlight shadows 4 to 19,
-/// then the scene, transparency, viewmodel, screen effects, bloom and tonemap in views 20 to 32.
+/// grading. Decals (docs/decals.md) are laid over the solid scene, using the same depth pass, before see-through
+/// things. Each RenderView uses 34 consecutive bgfx view ids: sun shadows 0 to 3, spotlight shadows 4 to 19, then
+/// the scene, depth, decals, transparency, viewmodel, screen effects, bloom and tonemap in views 20 to 33.
 class RenderView
 {
 	struct RenderItem
@@ -34,21 +35,22 @@ class RenderView
 	}
 
 	/// How many bgfx view ids one RenderView uses, from ViewBase. Give each RenderView a ViewBase this far apart.
-	public const int ViewCount = 17 + RenderResources.MaxLights;
+	public const int ViewCount = 18 + RenderResources.MaxLights;
 	const int SpotShadowView = 4;
 	// Each pass's view id, from ViewBase (the four shadow cascades are ShadowView to ShadowView + 3).
 	const int ShadowView = 0;
 	const int SceneView = 4 + RenderResources.MaxLights;
-	const int TransparentView = 5 + RenderResources.MaxLights;
-	const int ViewmodelView = 6 + RenderResources.MaxLights;
-	const int DepthView = 7 + RenderResources.MaxLights;
-	const int AoView = 8 + RenderResources.MaxLights;
-	const int AoApplyView = 9 + RenderResources.MaxLights;
-	const int DofBlurView = 10 + RenderResources.MaxLights;
-	const int DofCombineView = 11 + RenderResources.MaxLights;
-	const int MotionView = 12 + RenderResources.MaxLights;
-	const int BloomView = 13 + RenderResources.MaxLights;
-	const int TonemapView = 16 + RenderResources.MaxLights;
+	const int DepthView = 5 + RenderResources.MaxLights;
+	const int DecalView = 6 + RenderResources.MaxLights;
+	const int TransparentView = 7 + RenderResources.MaxLights;
+	const int ViewmodelView = 8 + RenderResources.MaxLights;
+	const int AoView = 9 + RenderResources.MaxLights;
+	const int AoApplyView = 10 + RenderResources.MaxLights;
+	const int DofBlurView = 11 + RenderResources.MaxLights;
+	const int DofCombineView = 12 + RenderResources.MaxLights;
+	const int MotionView = 13 + RenderResources.MaxLights;
+	const int BloomView = 14 + RenderResources.MaxLights;
+	const int TonemapView = 17 + RenderResources.MaxLights;
 
 	/// What the scene target is cleared to (RGBA): opaque black, under the sky.
 	const uint32 SceneClearColor = 0x000000ff;
@@ -148,6 +150,11 @@ class RenderView
 	Matrix4[RenderResources.MaxLights] mSpotShadowMtx;
 	Vector4[RenderResources.MaxLights] mSpotShadowParams;
 	bool mHasSpotShadows;
+	/// Whether the depth pass was drawn this frame (decals and the screen effects share it).
+	bool mDepthDrawn;
+	List<DecalItem> mDecalItems = new .() ~ delete _;
+	/// Decals drawn by the last Render.
+	public int32 VisibleDecals;
 
 	public this(uint16 viewBase)
 	{
@@ -277,6 +284,8 @@ class RenderView
 		if (mHasSpotShadows)
 			DrawSpotShadows();
 		DrawScene(scene, camera, frustum, env);
+		mDepthDrawn = false;
+		DrawDecals(scene, camera, frustum);
 		DrawTransparent(camera);
 		DrawViewmodel(camera);
 		let picture = DrawScreenEffects(camera, env);
