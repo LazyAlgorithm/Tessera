@@ -18,6 +18,8 @@ Players have machines from phones to big desktops. **Quality** gathers every gra
 | Foliage Distance | ×0.5 | ×0.75 | ×1 | ×1.5 | Times each Foliage's View Distance (`Foliage.DistanceScale`). |
 | GPU Skinning | on | on | on | on | Bend characters on the graphics card (`GpuSkinning.Enabled`, docs/gpu-skinning.md). |
 | Vsync | on | on | on | on | Wait for the screen's refresh (`Gfx.SetVsync`). |
+| Texture Detail | half | full | full | full | Leaves out each texture's largest mip level: a quarter of the memory (`Textures.SkipLevels`, docs/textures.md). For textures loaded afterwards. |
+| Anisotropic Filtering | off | on | on | on | Sharper textures on slanted surfaces (`Gfx.SetAnisotropic`). |
 
 Changing any one setting from a preset makes the level **Custom**.
 

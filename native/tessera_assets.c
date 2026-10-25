@@ -154,6 +154,115 @@ void tn_image_free(unsigned char* pixels)
 	stbi_image_free(pixels);
 }
 
+// ---- mipmaps ----
+
+// sRGB <-> linear light, for averaging colour the way the eye sees it (a black and white checker shrinks to mid grey,
+// not to the darker grey averaging the stored numbers gives).
+static float srgbToLinear[256];
+static unsigned char linearToSrgb[4096];
+
+static void prepare_srgb(void)
+{
+	static int ready = 0;
+	if (ready) return;
+	for (int i = 0; i < 256; i++)
+	{
+		float c = i / 255.0f;
+		srgbToLinear[i] = c <= 0.04045f ? c / 12.92f : powf((c + 0.055f) / 1.055f, 2.4f);
+	}
+	for (int i = 0; i < 4096; i++)
+	{
+		float l = i / 4095.0f;
+		float c = l <= 0.0031308f ? l * 12.92f : 1.055f * powf(l, 1.0f / 2.4f) - 0.055f;
+		int v = (int)(c * 255.0f + 0.5f);
+		linearToSrgb[i] = (unsigned char)(v < 0 ? 0 : v > 255 ? 255 : v);
+	}
+	ready = 1;
+}
+
+// Halves an RGBA8 image (each side to at least 1). kind: 0 colour (RGB averaged in linear light), 1 data (averaged
+// as stored), 2 normal map (the vectors averaged and made unit length again).
+static void downsample(const unsigned char* src, int width, int height, unsigned char* dst, int kind)
+{
+	int dw = width > 1 ? width / 2 : 1, dh = height > 1 ? height / 2 : 1;
+	for (int y = 0; y < dh; y++)
+	{
+		int y0 = y * 2 < height ? y * 2 : height - 1, y1 = y * 2 + 1 < height ? y * 2 + 1 : y0;
+		for (int x = 0; x < dw; x++)
+		{
+			int x0 = x * 2 < width ? x * 2 : width - 1, x1 = x * 2 + 1 < width ? x * 2 + 1 : x0;
+			const unsigned char* p[4] = { src + (y0 * width + x0) * 4, src + (y0 * width + x1) * 4, src + (y1 * width + x0) * 4, src + (y1 * width + x1) * 4 };
+			unsigned char* out = dst + (y * dw + x) * 4;
+			out[3] = (unsigned char)((p[0][3] + p[1][3] + p[2][3] + p[3][3] + 2) / 4);
+			if (kind == 0)
+			{
+				for (int c = 0; c < 3; c++)
+				{
+					float l = (srgbToLinear[p[0][c]] + srgbToLinear[p[1][c]] + srgbToLinear[p[2][c]] + srgbToLinear[p[3][c]]) * 0.25f;
+					out[c] = linearToSrgb[(int)(l * 4095.0f + 0.5f)];
+				}
+			}
+			else if (kind == 2)
+			{
+				float v[3] = { 0, 0, 0 };
+				for (int k = 0; k < 4; k++)
+				{
+					for (int c = 0; c < 3; c++) v[c] += p[k][c] / 127.5f - 1.0f;
+				}
+				float length = sqrtf(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+				if (length < 1e-6f) { v[0] = 0; v[1] = 0; v[2] = 1; length = 1; }
+				for (int c = 0; c < 3; c++)
+				{
+					int q = (int)((v[c] / length + 1.0f) * 127.5f + 0.5f);
+					out[c] = (unsigned char)(q < 0 ? 0 : q > 255 ? 255 : q);
+				}
+			}
+			else
+			{
+				for (int c = 0; c < 3; c++) out[c] = (unsigned char)((p[0][c] + p[1][c] + p[2][c] + p[3][c] + 2) / 4);
+			}
+		}
+	}
+}
+
+// The mip chain of an RGBA8 image, largest first, down to 1 x 1, leaving out the `skip` largest levels (never the
+// last). All levels one after another in one allocation, as bgfx takes them; free with tn_image_mips_free. Gives the
+// first level's size, the number of levels and the bytes in all.
+unsigned char* tn_image_mips(const unsigned char* pixels, int width, int height, int kind, int skip, int* outWidth, int* outHeight, int* outLevels, unsigned* outSize)
+{
+	if (pixels == NULL || width <= 0 || height <= 0) return NULL;
+	prepare_srgb();
+	int levels = 1;
+	for (int w = width, h = height; w > 1 || h > 1; levels++) { w = w > 1 ? w / 2 : 1; h = h > 1 ? h / 2 : 1; }
+	if (skip < 0) skip = 0;
+	if (skip > levels - 1) skip = levels - 1;
+	// Every level from the full size, then the wanted ones are moved to the front.
+	size_t total = 0;
+	for (int i = 0, w = width, h = height; i < levels; i++) { total += (size_t)w * h * 4; w = w > 1 ? w / 2 : 1; h = h > 1 ? h / 2 : 1; }
+	unsigned char* all = (unsigned char*)malloc(total);
+	if (all == NULL) return NULL;
+	memcpy(all, pixels, (size_t)width * height * 4);
+	size_t offset = 0, kept = 0;
+	int w = width, h = height;
+	for (int i = 0; i < levels; i++)
+	{
+		size_t bytes = (size_t)w * h * 4;
+		if (i + 1 < levels) downsample(all + offset, w, h, all + offset + bytes, kind);
+		if (i == skip) { kept = offset; *outWidth = w; *outHeight = h; }
+		offset += bytes;
+		w = w > 1 ? w / 2 : 1; h = h > 1 ? h / 2 : 1;
+	}
+	if (kept > 0) memmove(all, all + kept, total - kept);
+	*outLevels = levels - skip;
+	*outSize = (unsigned)(total - kept);
+	return all;
+}
+
+void tn_image_mips_free(unsigned char* mips)
+{
+	free(mips);
+}
+
 // ---- glTF ----
 
 typedef struct tn_gltf_prim

@@ -67,6 +67,9 @@ class Project
 	/// The engine's anti-cheat watches network sessions (see AntiCheat). Games can also turn it on from code.
 	public bool AntiCheat = false;
 	public bool PackAssets = true;
+	/// Pictures get compressed copies for the graphics card (BC1 / BC3 .ktx with mip levels): a quarter to an eighth of
+	/// the video memory, and quicker to load (docs/textures.md). Not for web builds.
+	public bool CompressTextures = true;
 	/// Files in the pack are compressed: a smaller game to send, for a little work each time a file is loaded.
 	public bool PackCompress = true;
 	/// Each scene's own files go into a pack of their own beside game.tpak, so that an update to one map rewrites one
@@ -121,6 +124,7 @@ class Project
 			case "antiCheat": AntiCheat = value == "1";
 			case "packAssets": PackAssets = value != "0";
 			case "packCompress": PackCompress = value != "0";
+			case "compressTextures": CompressTextures = value != "0";
 			case "packSplit": PackSplit = value != "0";
 			case "loadSaveAtStart": LoadSaveAtStart = value == "1";
 			case "saveSlot": if (!value.IsEmpty) SaveSlot.Set(value);
@@ -156,6 +160,8 @@ class Project
 			text.Append("packAssets = 0\n");
 		if (!PackCompress)
 			text.Append("packCompress = 0\n");
+		if (!CompressTextures)
+			text.Append("compressTextures = 0\n");
 		if (!PackSplit)
 			text.Append("packSplit = 0\n");
 		if (LoadSaveAtStart)

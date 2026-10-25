@@ -38,12 +38,17 @@ struct QualityValues : IEquatable<QualityValues>
 	public bool gpuSkinning = true;
 	/// Wait for the screen's refresh: no tearing, at most the screen's frame rate.
 	public bool vsync = true;
+	/// How many of each texture's largest mip levels are left out: 0 full detail, 1 half each side (a quarter of the
+	/// memory). For textures loaded from then on (Textures.SkipLevels).
+	public int32 textureDetail = 0;
+	/// Sharper textures on slanted surfaces (floors, walls seen along).
+	public bool anisotropic = true;
 
 	public this()
 	{
 	}
 
-	public bool Equals(QualityValues other) => renderScale == other.renderScale && antialias == other.antialias && shadows == other.shadows && shadowMapSize == other.shadowMapSize && shadowDistance == other.shadowDistance && ambientOcclusion == other.ambientOcclusion && depthOfField == other.depthOfField && motionBlur == other.motionBlur && lodBias == other.lodBias && foliageDistance == other.foliageDistance && gpuSkinning == other.gpuSkinning && vsync == other.vsync;
+	public bool Equals(QualityValues other) => renderScale == other.renderScale && antialias == other.antialias && shadows == other.shadows && shadowMapSize == other.shadowMapSize && shadowDistance == other.shadowDistance && ambientOcclusion == other.ambientOcclusion && depthOfField == other.depthOfField && motionBlur == other.motionBlur && lodBias == other.lodBias && foliageDistance == other.foliageDistance && gpuSkinning == other.gpuSkinning && vsync == other.vsync && textureDetail == other.textureDetail && anisotropic == other.anisotropic;
 	public static bool operator ==(QualityValues a, QualityValues b) => a.Equals(b);
 }
 
@@ -77,6 +82,8 @@ static class Quality
 			v.motionBlur = false;
 			v.lodBias = 0.6f;
 			v.foliageDistance = 0.5f;
+			v.textureDetail = 1;
+			v.anisotropic = false;
 		case .Medium:
 			v.renderScale = 0.85f;
 			v.shadowMapSize = 2048;
@@ -115,7 +122,7 @@ static class Quality
 		return .Custom;
 	}
 
-	/// Puts Current into the engine: the renderer, shadows, screen effects, LOD, foliage, skinning and vsync.
+	/// Puts Current into the engine: the renderer, shadows, screen effects, LOD, foliage, skinning, vsync and textures.
 	public static void Apply()
 	{
 		Level = LevelOf(Current);
@@ -131,6 +138,8 @@ static class Quality
 		Foliage.DistanceScale = Math.Max(Current.foliageDistance, 0.05f);
 		GpuSkinning.Enabled = Current.gpuSkinning;
 		Gfx.SetVsync(Current.vsync);
+		Textures.SkipLevels = Math.Clamp(Current.textureDetail, 0, 3);
+		Gfx.SetAnisotropic(Current.anisotropic);
 	}
 
 	/// The preset suggested for this machine: Low on phones, Medium on integrated graphics and in a browser, High
@@ -149,8 +158,8 @@ static class Quality
 	/// The settings as text, one `name=value` a line.
 	public static void Write(QualityValues v, String text)
 	{
-		text.AppendF("renderScale={}\nantialias={}\nshadows={}\nshadowMapSize={}\nshadowDistance={}\nambientOcclusion={}\ndepthOfField={}\nmotionBlur={}\nlodBias={}\nfoliageDistance={}\ngpuSkinning={}\nvsync={}\n",
-			v.renderScale, v.antialias ? 1 : 0, v.shadows ? 1 : 0, v.shadowMapSize, v.shadowDistance, v.ambientOcclusion ? 1 : 0, v.depthOfField ? 1 : 0, v.motionBlur ? 1 : 0, v.lodBias, v.foliageDistance, v.gpuSkinning ? 1 : 0, v.vsync ? 1 : 0);
+		text.AppendF("renderScale={}\nantialias={}\nshadows={}\nshadowMapSize={}\nshadowDistance={}\nambientOcclusion={}\ndepthOfField={}\nmotionBlur={}\nlodBias={}\nfoliageDistance={}\ngpuSkinning={}\nvsync={}\ntextureDetail={}\nanisotropic={}\n",
+			v.renderScale, v.antialias ? 1 : 0, v.shadows ? 1 : 0, v.shadowMapSize, v.shadowDistance, v.ambientOcclusion ? 1 : 0, v.depthOfField ? 1 : 0, v.motionBlur ? 1 : 0, v.lodBias, v.foliageDistance, v.gpuSkinning ? 1 : 0, v.vsync ? 1 : 0, v.textureDetail, v.anisotropic ? 1 : 0);
 	}
 
 	/// Reads settings from text (unknown or missing lines keep the values given).
@@ -181,6 +190,8 @@ static class Quality
 			case "foliageDistance": v.foliageDistance = Math.Clamp(number, 0.05f, 4);
 			case "gpuSkinning": v.gpuSkinning = flag;
 			case "vsync": v.vsync = flag;
+			case "textureDetail": v.textureDetail = (int32)Math.Clamp(number, 0, 3);
+			case "anisotropic": v.anisotropic = flag;
 			}
 		}
 		return v;

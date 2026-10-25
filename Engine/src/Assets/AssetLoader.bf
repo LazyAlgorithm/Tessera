@@ -36,6 +36,8 @@ static class AssetLoader
 		public uint8* pixels;
 		public int32 width, height;
 		public int32 waiting;
+		/// A texture with a compressed copy, which is read when it is made rather than decoded here.
+		public bool compressed;
 	}
 
 	/// Several things to load, followed together.
@@ -206,7 +208,11 @@ static class AssetLoader
 			if (hash >= 0)
 				filePart = filePart.Substring(0, hash);
 			Assets.ResolvePath(filePart, full);
-			job.pixels = Native.tn_image_load(full.CStr(), &job.width, &job.height);
+			// A built game's compressed copy is read as it is (no decoding), when the texture is made.
+			if (hash < 0 && Textures.UseCompressed && AssetPack.Exists(scope String(full)..Append(".ktx")))
+				job.compressed = true;
+			else
+				job.pixels = Native.tn_image_load(full.CStr(), &job.width, &job.height);
 		}
 	}
 
@@ -286,7 +292,9 @@ static class AssetLoader
 				SkinnedModel.Adopt(job.path, job.model, job.images);
 				job.model = null;
 			case .Texture:
-				if (job.pixels != null)
+				if (job.compressed)
+					Assets.GetTexture(job.path);
+				else if (job.pixels != null)
 				{
 					Assets.AddTexture(job.path, job.pixels, job.width, job.height);
 					Native.tn_image_free(job.pixels);

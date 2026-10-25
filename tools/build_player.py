@@ -19,6 +19,7 @@ import sys
 import tempfile
 import tomllib
 
+import compress_textures
 import macos_link
 import pack_assets
 
@@ -76,6 +77,7 @@ def main():
     parser.add_argument('--fullscreen', action='store_true', help='The game starts fullscreen, whatever the project says')
     parser.add_argument('--windowed', action='store_true', help='The game starts in a window, whatever the project says')
     parser.add_argument('--no-compress', action='store_true', help='Pack the assets without compressing them')
+    parser.add_argument('--no-texture-compression', action='store_true', help='Leave pictures uncompressed for the graphics card (no .ktx copies)')
     parser.add_argument('--single-pack', action='store_true', help='Put every asset in game.tpak, with no pack per scene')
     parser.add_argument('--loose', action='store_true', help='Leave the assets as loose files instead of packing them into game.tpak')
     parser.add_argument('--console', action='store_true', help='Windows: keep a console window for log output (a dedicated server wants one)')
@@ -231,6 +233,11 @@ def main():
                 target = staging / 'Assets' / file.relative_to(project / 'src')
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(file, target)
+            # Pictures compressed for the graphics card (docs/textures.md): a .ktx beside each, which the engine uses in its
+            # place. Not for the web, whose browsers do not all read the same compressed formats.
+            if not web and not args.no_texture_compression and settings.get('compressTextures', '1') != '0':
+                made, skipped, errors = compress_textures.compress_folder(staging / 'Assets', engine, settings.get('textureCompressExclude', compress_textures.DEFAULT_EXCLUDE))
+                print(f'Textures: {made} compressed, {skipped} left as they are' + ''.join(f'\n  note: {error}' for error in errors))
             # A web page cannot load Steam.
             steam = '' if web else settings.get('steamAppId', '')
             if steam:

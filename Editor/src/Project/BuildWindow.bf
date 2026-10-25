@@ -225,6 +225,10 @@ extension EditorApp
 		}
 		ImGui.SeparatorText("Assets");
 		ImGui.BeginDisabled(mBuildTarget == .Web);
+		if (ImGui.Checkbox("Compress textures", ref project.CompressTextures))
+			project.Save();
+		ImGui.SameLine();
+		ImGui.TextDisabled(mBuildTarget == .Web ? "Web builds keep pictures as they are" : project.CompressTextures ? "A quarter to an eighth of the video memory, and quicker to load" : "Pictures as they are, decoded when loaded");
 		if (ImGui.Checkbox("Pack assets into one file", ref project.PackAssets))
 			project.Save();
 		ImGui.EndDisabled();

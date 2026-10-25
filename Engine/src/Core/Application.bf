@@ -218,6 +218,9 @@ class Application
 		// The player's saved graphics settings (docs/quality.md), then --quality <low|medium|high|ultra> for this run.
 		if (!Headless && LoadsPlayerQuality)
 			Quality.Load();
+		// To compare: textures without mip levels or compressed copies.
+		Textures.Mipmaps = !HasArg("--no-mipmaps");
+		Textures.UseCompressed = !HasArg("--no-compressed-textures");
 		let quality = scope String();
 		if (GetArg("--quality", quality) && Quality.Parse(quality, let level))
 			Quality.Set(level);
@@ -352,6 +355,7 @@ class Application
 			ShaderAsset.ReleaseAll();
 			Compute.Shutdown();
 			GpuSkinning.Shutdown();
+			Textures.LogTotals();
 			RenderResources.Destroy();
 			Gfx.Shutdown();
 			if (Window != null)

@@ -48,13 +48,22 @@ extension EditorApp
 			changed |= ImGui.SliderFloat("Foliage Distance", ref v.foliageDistance, 0.25f, 3, "x%.2f");
 			changed |= ImGui.Checkbox("GPU Skinning", ref v.gpuSkinning);
 			changed |= ImGui.Checkbox("Vsync", ref v.vsync);
+			var detail = (float)v.textureDetail;
+			StringView[4] detailNames = .("full", "half", "quarter", "eighth");
+			if (ImGui.SliderFloat(scope String()..AppendF("Texture Detail ({})###texturedetail", detailNames[Math.Clamp(v.textureDetail, 0, 3)]).CStr(), ref detail, 0, 3, ""))
+			{
+				v.textureDetail = (int32)Math.Round(detail);
+				changed = true;
+			}
+			changed |= ImGui.Checkbox("Anisotropic Filtering", ref v.anisotropic);
 			if (changed)
 			{
 				Quality.Current = v;
 				Quality.Apply();
 			}
 			ImGui.Separator();
-			ImGui.TextWrapped("Applies to the Scene and Game views now. Games set it with Quality.Set, and the player's choice is saved with Quality.Save.");
+			ImGui.TextWrapped("Applies to the Scene and Game views now (Texture Detail to textures loaded from then on). Games set it with Quality.Set, and the player's choice is saved with Quality.Save.");
+			ImGui.TextDisabled(scope String()..AppendF("Textures: {} made, {} compressed, {:0.0} MB", Textures.Made, Textures.Compressed, Textures.Bytes / (1024.0 * 1024.0)).CStr());
 			if (ImGui.Button("Back to High"))
 				Quality.Set(.High);
 		}

@@ -647,6 +647,7 @@ class SkinnedModel
 		public String name = new .() ~ delete _;
 		public uint8[] pixels ~ delete _;
 		public int32 width, height;
+		public TextureKind kind;
 	}
 
 	/// True when the model is loaded already (Load returns it at once).
@@ -668,7 +669,7 @@ class SkinnedModel
 	public static SkinnedModel Adopt(StringView path, SkinnedModel model, List<PendingImage> images)
 	{
 		for (let image in images)
-			Assets.AddTexture(image.name, image.pixels.Ptr, image.width, image.height);
+			Assets.AddTexture(image.name, image.pixels.Ptr, image.width, image.height, image.kind);
 		if (sCache.TryGetValueAlt(path, let cached))
 		{
 			delete model;
@@ -774,13 +775,14 @@ class SkinnedModel
 				continue;
 			if (images == null)
 			{
-				Assets.AddTexture(name, pixels, width, height);
+				Assets.AddTexture(name, pixels, width, height, Textures.GltfImageKind(scene, i));
 				continue;
 			}
 			let image = new PendingImage();
 			image.name.Set(name);
 			image.width = width;
 			image.height = height;
+			image.kind = Textures.GltfImageKind(scene, i);
 			image.pixels = new uint8[width * height * 4];
 			Internal.MemCpy(image.pixels.Ptr, pixels, width * height * 4);
 			images.Add(image);

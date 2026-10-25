@@ -171,7 +171,11 @@ Work agreed and queued, in order (see *How to use this page* above for what "don
 
 ## Higher-quality rendering (after the above, one at a time)
 
-1. [ ] Texture mipmaps and GPU texture compression
+1. [x] Texture mipmaps and GPU texture compression (2026-10-25): mip levels for every texture (colour averaged in
+   linear light, data as stored, normal maps as directions; kinds from material slots, model materials and names),
+   anisotropic filtering; builds add BC1 / BC3 `.ktx` copies with mips (`tools/compress_textures.py`, texturec),
+   used in place of the pictures; Texture Detail and Anisotropic Filtering quality settings; Build window Compress
+   textures. `docs/textures.md`, `Tests/Textures` (with `run.py`), Sandbox `Scenes/Textures.tscene`.
 2. [ ] Image-based lighting and reflection probes
 3. [ ] Shadows from point and spot lights, and more lights per view
 4. [ ] Baked lighting and global illumination

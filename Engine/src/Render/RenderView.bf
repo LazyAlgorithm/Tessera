@@ -787,9 +787,9 @@ class RenderView
 		bakedDecode.w = renderer.lightmap.IsEmpty ? 0 : (1 + (renderer.lightmapDirection.IsEmpty ? 0 : 1) + (renderer.lightmapShadowmask.IsEmpty ? 0 : 2));
 		bgfx.set_uniform(RenderResources.uLightmapTransform, &bakedTransform, 1);
 		bgfx.set_uniform(RenderResources.uLightmapDecode, &bakedDecode, 1);
-		bgfx.set_texture(8, RenderResources.sLightmap, Assets.GetTexture(renderer.lightmap), uint32.MaxValue);
-		bgfx.set_texture(9, RenderResources.sLightmapDirection, Assets.GetTexture(renderer.lightmapDirection), uint32.MaxValue);
-		bgfx.set_texture(10, RenderResources.sLightmapShadowmask, Assets.GetTexture(renderer.lightmapShadowmask), uint32.MaxValue);
+		bgfx.set_texture(8, RenderResources.sLightmap, Assets.GetTexture(renderer.lightmap, .Data), uint32.MaxValue);
+		bgfx.set_texture(9, RenderResources.sLightmapDirection, Assets.GetTexture(renderer.lightmapDirection, .Data), uint32.MaxValue);
+		bgfx.set_texture(10, RenderResources.sLightmapShadowmask, Assets.GetTexture(renderer.lightmapShadowmask, .Data), uint32.MaxValue);
 	}
 
 	static void SetSurfaceUniforms(MeshRenderer renderer, ref Surface surface)
@@ -807,9 +807,9 @@ class RenderView
 		bgfx.set_texture(2, RenderResources.sTexture1, Assets.GetTexture(surface.textures[0]), uint32.MaxValue);
 		bgfx.set_texture(3, RenderResources.sTexture2, Assets.GetTexture(surface.textures[1]), uint32.MaxValue);
 		bgfx.set_uniform(RenderResources.uPbr, &surface.pbr, 1);
-		bgfx.set_texture(4, RenderResources.sNormalMap, Assets.GetTexture(surface.normalMap), uint32.MaxValue);
-		bgfx.set_texture(5, RenderResources.sMetalRoughMap, Assets.GetTexture(surface.metalRoughMap), uint32.MaxValue);
-		bgfx.set_texture(6, RenderResources.sOcclusionMap, Assets.GetTexture(surface.occlusionMap), uint32.MaxValue);
+		bgfx.set_texture(4, RenderResources.sNormalMap, Assets.GetTexture(surface.normalMap, .Normal), uint32.MaxValue);
+		bgfx.set_texture(5, RenderResources.sMetalRoughMap, Assets.GetTexture(surface.metalRoughMap, .Data), uint32.MaxValue);
+		bgfx.set_texture(6, RenderResources.sOcclusionMap, Assets.GetTexture(surface.occlusionMap, .Data), uint32.MaxValue);
 		bgfx.set_texture(7, RenderResources.sEmissiveMap, Assets.GetTexture(surface.emissiveMap), uint32.MaxValue);
 	}
 

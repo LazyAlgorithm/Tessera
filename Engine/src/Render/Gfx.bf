@@ -78,7 +78,8 @@ static class Gfx
 	public static bool OriginBottomLeft;
 	public static int32 Width;
 	public static int32 Height;
-	public static uint32 ResetFlags = ResetVsync;
+	// Vsync, and the most anisotropic filtering the card has (both quality settings: SetVsync, SetAnisotropic).
+	public static uint32 ResetFlags = ResetVsync | (uint32)bgfx.ResetFlags.Maxanisotropy;
 	/// Folder that contains the engine's own shaders and built-in assets.
 	public static String EngineAssetPath = new .() ~ delete _;
 
@@ -164,6 +165,18 @@ static class Gfx
 	public static void SetVsync(bool on)
 	{
 		let flags = on ? (ResetFlags | ResetVsync) : (ResetFlags & ~ResetVsync);
+		if (flags == ResetFlags)
+			return;
+		ResetFlags = flags;
+		if (Initialized)
+			Native.tn_gfx_reset(Width, Height, ResetFlags);
+	}
+
+	/// Turns anisotropic filtering of textures on or off (a quality setting): sharper slanted floors and walls.
+	public static void SetAnisotropic(bool on)
+	{
+		const uint32 flag = (uint32)bgfx.ResetFlags.Maxanisotropy;
+		let flags = on ? (ResetFlags | flag) : (ResetFlags & ~flag);
 		if (flags == ResetFlags)
 			return;
 		ResetFlags = flags;
@@ -276,9 +289,13 @@ static class Gfx
 		return bgfx.create_program(LoadShader(vertex), LoadShader(fragment), true);
 	}
 
-	/// Loads an image file into an RGBA8 texture. Returns the white texture on failure.
-	public static bgfx.TextureHandle LoadTexture(StringView path)
+	/// Loads an image file into a texture with mip levels (or its compressed `.ktx` copy, in a built game). Returns the
+	/// white texture on failure.
+	public static bgfx.TextureHandle LoadTexture(StringView path, TextureKind kind = .Color)
 	{
+		let compressed = Textures.LoadCompressed(path);
+		if (compressed.Valid)
+			return compressed;
 		int32 width = 0, height = 0;
 		let pixels = Native.tn_image_load(scope String(path).CStr(), &width, &height);
 		if (pixels == null)
@@ -286,7 +303,7 @@ static class Gfx
 			Log.Warning(scope $"Could not load texture {path}");
 			return WhiteTexture;
 		}
-		let handle = bgfx.create_texture_2d((uint16)width, (uint16)height, false, 1, .RGBA8, 0, bgfx.copy(pixels, (uint32)(width * height * 4)), 0);
+		let handle = Textures.Create(pixels, width, height, kind);
 		Native.tn_image_free(pixels);
 		return handle;
 	}
