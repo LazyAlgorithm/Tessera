@@ -104,6 +104,10 @@ Add an **Audio Reverb Zone** where there should be an echo: a hall, a cave, a tu
 | Room Size | Small room to large hall. |
 | Damping | 0 bright and ringing, 1 dull and soft. |
 
+## Subtitles
+
+A sound with a subtitle file beside it (`Voice/intro.ogg` and `Voice/intro.srt`) shows its lines while it plays, and an Audio Source's **Subtitles** box turns that off. Conversations and the subtitle settings are on the Dialogue page (`docs/dialogue.md`).
+
 ## Multiplayer
 
 `Play`, `Stop` and `PlayOneShot` on an Audio Source are shared like animation: called on the server, or by the player who controls the object, everyone hears it. Called on a client for an object it does not control, only that client hears it. `Audio.PlayOneShot` is always local.

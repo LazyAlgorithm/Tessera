@@ -109,7 +109,7 @@ vertex {
 
 The code inside the blocks is GLSL as bgfx writes it: use `vec3_splat(1.0)` for a vector of one value and `mul(matrix, vector)` for matrix products.
 
-Compiled programs are written to `Shaders/Compiled/` in the project, for Vulkan, OpenGL, OpenGL ES and Metal. They are assets like any other and ship with the game, which never compiles shaders itself. The editor recompiles any shader whose source is newer when it starts and before Build Game.
+Compiled programs are written to `Shaders/Compiled/` in the project, for Vulkan, OpenGL, OpenGL ES and Metal. They are assets like any other and ship with the game, which never compiles shaders itself. The editor recompiles any shader whose source, or the engine's own shader files, are newer when it starts and before Build Game, so a change to the engine's lighting reaches every custom shader.
 
 ## Shader graphs
 
@@ -189,7 +189,7 @@ All of it has nodes, generated from the engine source: **Engine > Render > Mesh 
 - **Eight values and two textures** per custom shader, and it cannot replace the lighting itself.
 - **Transparent** objects are sorted by their centres, so large overlapping ones can draw in the wrong order.
 - **Compute shaders write one texture.** There are no compute buffers, and reading a compute texture back into a script is not supported.
-- Voxel terrain, voxel objects and particles use their own colours, not materials.
+- Voxel terrain and particles use their own colours, not materials. (Voxel objects take materials, outside and in: `docs/voxel-objects.md`.)
 - Direct3D is not compiled for (see [Building for Windows](windows)).
 
 ## Tests

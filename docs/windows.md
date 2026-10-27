@@ -35,10 +35,10 @@ A Windows and a Linux build of the same game play together: the physics library 
 **File > Build...**, **Editor**, **Windows**, or:
 
 ```sh
-tools/package_engine.sh --platform windows --folder /path/to/Tessera-Windows
+python3 tools/package_engine.py --platform windows --folder /path/to/Tessera-Windows
 ```
 
-The folder holds the launcher, the engine and editor source, the Windows native libraries and the tools. On the Windows machine start `Tessera.bat`. Every project compiles its own scripts together with the engine, so that machine needs:
+The folder holds the launcher, the engine and editor source, the Windows native libraries and the tools. On the Windows machine start `Tessera.exe`. Every project compiles its own scripts together with the engine, so that machine needs:
 
 - the Beef toolchain from beeflang.org, with `BeefBuild` on the PATH;
 - Microsoft C++ Build Tools (Beef's installer says where to get them; they are free);
@@ -66,3 +66,25 @@ Differences from the Linux editor:
 - **Direct3D.** Only Vulkan shaders are shipped. Direct3D bytecode needs Microsoft's shader compiler; compile with bgfx's `shaderc` on Windows into `Engine/assets/shaders/dx11` and remove the Vulkan default in `native/tessera_native.cpp` to use it.
 - **The test fixtures** have Linux link settings only.
 - **A real Windows machine.** File dialogs, audio output and the microphone, gamepads, high-DPI scaling and Steam there are untried.
+
+## Opening projects from a Hub installation
+
+Windows editor builds now quote both the Beef compiler executable and every native archive in generated project link flags. This is required for the Hub's `Tessera Hub` installation folder and Windows user/tool folders containing spaces. Earlier packages can fail with `lld-link: could not open .../Tessera` or a command-not-found error before compilation starts. Update the engine package through the Hub; reopening a project regenerates its Beef build files.
+
+The launcher also supports `Tessera.exe --build-project <folder>` to compile a project without opening a graphics window. This applies the Hub toolchain and locates the installed engine, including when the project remembers an engine from another machine.
+
+`tools/test_windows_project_open.py --package <Tessera-Windows> --beef <BeefBuild.exe>` copies the engine and compiler beneath folders with spaces, creates a project in another such folder, and checks engine relocation, a full debug build, and rebuilding. CI runs this against the packaged Windows editor before releasing it. On Linux add `--wine` and use the Windows compiler. These checks establish project compilation, not rendered editor behavior on Windows hardware.
+
+Windows launchers and generated editor executables use the GUI subsystem, so starting the editor does not create an external command-prompt window. Compiler/build shells use `CreateNoWindow`; their output stays in the project build log and the editor's built-in Console remains available. Command-line launcher checks preserve redirected diagnostics and may attach to an existing caller console.
+
+Engine CI starts on pushes to `dev` and `main`: both build platform packages and run the native Windows project-open regression. `main` publishes Windows/Linux ZIPs and checksums as a `build-` release in `LazyAlgorithm/Tessera`, which is the repository/tag prefix Tessera Hub checks for engine updates. `dev` retains packages as Actions artifacts. No Hub application release is needed for an engine-only update.
+
+## Miniature dynamic worlds
+
+`PhysicsWorld.LengthScale` now conditions body inertia calculations as well as contact tolerances. For small scales, body creation computes inertia with a larger temporary calculation mass, then restores the assigned physical mass and rescales inverse inertia before simulation. This avoids Jolt's near-zero inertia fallback to a one-metre sphere; contacts on toy aircraft can produce the expected rotation without artificial angular impulses. `Rigidbody.Sleep()` keeps authored resting props dynamic and wakes them through normal contacts or forces.
+
+The `Tests/ShapeQueries` regression checks a 1 cm, 12 g cube against its analytical torque response and linear acceleration, plus sleep/wake behavior.
+
+### Large collision meshes
+
+Physics mesh conversion allocates its vertex buffer on the heap and frees it after Jolt builds the shape. Imported bedroom meshes exceeded the default 1 MB Windows stack; the previous stack allocation failed in `_chkstk` while loading the room. The ShapeQueries integration test now builds a 100,000-vertex mesh and checks its collision response; Linux and Windows under Wine pass with the normal stack reserve.

@@ -67,9 +67,35 @@ With no session the same script runs every tick with the local controls. Put the
 None of this needs setting up; it is what the session does with every object that has a Network Identity.
 
 - **Your own objects are predicted.** They move on your machine the tick you press a key. The server sends back where it had them for that tick, and only if that differs from what your machine predicted does it go back and run the ticks since again. The difference is then eased away on screen rather than shown as a jump.
-- **Everything else is shown a moment in the past.** Other players, AI and physics objects cannot be predicted, because your machine does not have their controls. They are drawn about two snapshots behind the newest news (a tenth of a second at the usual rate), moving evenly from one thing the server said to the next, so they glide however unevenly the news arrives. If a snapshot is lost they carry on as they were going for a few ticks. `InterpolationTicks` on `Scene.Network` changes how far behind; less is more up to date and less forgiving of a poor connection.
+- **The server's physics bodies are predicted too.** A crate, a barrel, a ball or a dropped piece of rock is simulated on your machine, in step with your own player, so a crate you walk into moves the tick you touch it, and a crate falling or tumbling on its own is where the server will have it. The physics is deterministic, so a body that only physics moves needs no correction at all. When something your machine could not know about moves one (another player shoves it, a script on the server pushes it), the server's word is checked against what your machine had for that tick, and the bodies and your player go back and run the ticks since again, as for a wrong guess about your own player. See *Predicting physics* below.
+- **Everything else is shown a moment in the past.** Other players and AI cannot be predicted, because your machine does not have their controls. They are drawn about two snapshots behind the newest news (a tenth of a second at the usual rate), moving evenly from one thing the server said to the next, so they glide however unevenly the news arrives. If a snapshot is lost they carry on as they were going for a few ticks. `InterpolationTicks` on `Scene.Network` changes how far behind; less is more up to date and less forgiving of a poor connection.
 - **The client's clock follows the server.** A client runs its ticks a fraction faster or slower (never more than 5%) so that the server always has a tick or two of its controls in hand. That absorbs an uneven connection without adding more delay than the connection needs, and it adapts: a rough connection gets a deeper cushion, a clean one a thin one.
+- **A moment's jitter loses nothing.** The transport (ENet) would normally start dropping unsent snapshots and voice at random when a round trip is suddenly slower than usual, as on Wi-Fi or a busy machine; Tessera turns that off for every connection, since the steps above already deal with late and lost news, and dropping it made other players stutter.
 - **Between ticks, drawing is smoothed.** Mesh Renderers on an object another machine controls are drawn gliding from one tick to the next. For a camera or anything else you place yourself, `NetworkIdentity.VisualPosition` is where the object is drawn this frame.
+
+### Predicting physics
+
+A body is predicted when the server owns it and it is a dynamic Rigidbody (not kinematic). **Physics Prediction** on its Network Identity chooses:
+
+| Setting | Predicted |
+|---|---|
+| Auto (the default) | When the object has no Network Behaviour (or Network Script) on it. A script that moves an object on the server alone would make every prediction wrong, and the host's player is such an object. |
+| On | Always, script or not. Use it for a body whose script does not move it, such as a grenade that only counts down to going off. |
+| Off | Never: shown a moment in the past, as other players are. |
+
+When a player takes an object over (`SetOwner`), it becomes theirs to predict, and everyone else shows it in the past until it is the server's again.
+
+`PredictPhysics` on the session (`Scene.Network`, on by default) turns it all off. Set on the server, it decides for every client. Set on a client, that client shows the bodies in the past whatever the server sends.
+
+What it changes:
+
+- A predicted body is sent with its exact position, turn and speeds, 52 bytes instead of 12, but only while it moves. A body at rest is sent once, and then only in the two-second refresh.
+- A body found wrong in three snapshots running is being moved by something your machine cannot know about: another player leaning on it, or a script on the server carrying it (a sticky grenade on a player). It is shown in the past, with whatever moves it, for two seconds, then predicted again.
+- A body resting on both machines but a little apart (where a shove came to rest) is put where the server has it, with no replay.
+- Lag compensation leaves predicted bodies where they are. The player saw them where they are now, as they see their own player.
+- A correction runs the scene's physics again for each tick since (a round trip's worth). That replay happens only when something differs.
+- A script that eases its own corrections (in `PreparePredictionState` / `RestorePredictionState`) sees a predicted body's rewind with `Replaying` set, as the replay itself is. Add `NetworkIdentity.SmoothOffset` to where it draws the body instead: that is what is left of the correction after the replay.
+- `--netstats` shows how many bodies a client predicts and how far off the worst was. `PhysicsRollbacks` counts the corrections made for bodies alone.
 
 ### Shots and lag compensation
 
@@ -93,14 +119,14 @@ public override void OnTick(TickInput input, float deltaTime)
 }
 ```
 
-It returns false and does nothing where it does not apply: with no session, for the host's own player and for the server's own objects, who see things as they are. It never looks back further than `MaxRewindTicks` (24 ticks, 0.4 seconds).
+It returns false and does nothing where it does not apply: with no session, for the host's own player and for the server's own objects, who see things as they are. Physics bodies clients predict are not moved back either: the player saw them where they are now. It never looks back further than `MaxRewindTicks` (24 ticks, 0.4 seconds).
 
 ### What is sent
 
 As little as will do the job:
 
 - **Controls**, client to server, every tick: 9 bytes for a tick, 1 byte for a tick the same as the one before, with the two ticks before repeated in each packet so that a lost packet costs nothing. About 1 to 2 kB a second.
-- **Snapshots**, server to each client, 20 a second by default (`Snapshot Interval` on the session): only the objects that have changed since the last one, at 12 to 15 bytes each (position to 2 mm, rotation to a fraction of a degree), and the client's own objects in full when they change. An object at rest costs nothing. Everything is repeated once every two seconds in case the last word on something was lost.
+- **Snapshots**, server to each client, 20 a second by default (`Snapshot Interval` on the session): only the objects that have changed since the last one, at 12 to 15 bytes each (position to 2 mm, rotation to a fraction of a degree), the client's own objects in full when they change, and moving bodies the client predicts at 52 bytes, exactly. An object at rest costs nothing. Everything is repeated once every two seconds in case the last word on something was lost.
 - **`[Sync]` values and events**, reliably, only when they change.
 
 A still scene costs about 0.3 kB a second per client; a five-player firefight a few kB. The editor's status bar and `--netstats` show the real figures for your game.
@@ -140,12 +166,13 @@ The session's **Transport** chooses how machines reach each other: **Direct** (U
 - Objects created at run time by code, other than through a prefab with a Network Identity, exist only on the machine that created them.
 - A client's `Brush` and `Carve` wait for the server, so digging has one round trip of delay on clients.
 - Other players are seen about a tenth of a second in the past, plus the connection's delay. That is what makes them move evenly; lag compensation (above) is what makes shots at them land.
-- A client does not predict physics objects it does not own: a crate a player pushes moves when the server says so, a moment after the push.
+- A physics body pushed by another player, or by a script on the server, moves on your machine when the server says so: a round trip after the push, run forward to now. Bodies only physics moves, and bodies your own player pushes, move at once.
+- Physics bodies that are not networked (local debris, ragdoll parts) are not rewound when a correction runs the physics again; they carry on from where they were.
 - `[Sync]` goes one way, from the server. Values are sent when they change, at the snapshot rate.
 - Particles and UI are local, and so is `Audio.PlayOneShot` (sounds with no Audio Source). Trigger them from a message or a synced value when everyone should see or hear them.
 - Animation on an object nobody owns is shared only when the server starts it.
 
-CPU tests run a host, a client and a late joiner in one process over real UDP and check each row of the table above except animation, that a client is not corrected when others move, that others move evenly, the packing, lag compensation and a lossy, uneven connection, plus a session over the Steam transport when Steam is running.
+CPU tests run a host, a client and a late joiner in one process over real UDP and check each row of the table above except animation, that a client is not corrected when others move, that others move evenly, the packing, lag compensation and a lossy, uneven connection, plus a session over the Steam transport when Steam is running. `Tests/PhysicsPrediction` checks predicted bodies over a lagging connection: a crate falling onto a stack with no corrections, a crate the client shoves moving on the client first with the server agreeing, one the host shoves corrected and ending up exactly where the server has it, a stack knocked over on a lossy connection, a crate a server script carries shown in the past after a few corrections and predicted again afterwards, sleeping, lag compensation, the cost of a still scene, and turning it off on either side.
 
 ## Deciding who may play
 

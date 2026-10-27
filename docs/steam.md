@@ -37,6 +37,18 @@ The same code works everywhere:
 - **Under Steam** the achievement goes to the player's Steam account and Steam shows its own pop-up.
 - **Without Steam** (in the editor, or a build with no App ID) progress is kept in a small file on the player's machine and the engine draws a pop-up in the game. Set `Achievements.ShowToasts = false` to draw your own.
 
+### Local-only achievements
+
+Each achievement can have **Local only** checked in Window > Achievements. These IDs always use local saves and the in-game popup, even while Steam is connected. Unlock, query, progress and per-ID reset do not call Steam. They never need a Steamworks entry. New editor entries default to Local only; existing files and Steam imports keep their previous behavior.
+
+The definition format accepts independent `hidden` and `local-only` flags:
+
+```text
+achievement "TOYBOX_TROUBLE" "Toybox Trouble" "Hit 25 physics props." local-only
+```
+
+For counters used only by local achievements, pass `localOnly: true` to `GetStat`, `SetStat` or `AddStat` (third parameter for AddStat). Otherwise counters retain their normal Steam/local backend behavior. Clearing Local only later does not upload previous local unlocks: create the matching Steamworks ID first, then a future unlock uses Steam. Global Lock All still resets both Steam and local progress when connected.
+
 ### The Achievements window
 
 **Window > Achievements** lists the project's achievements: an id, a name, a description and whether it is hidden until earned. **Save** writes them to `Achievements.tach` in the project, which ships with the game.
@@ -158,3 +170,13 @@ What to know:
 - The Workshop has no editor window yet; publishing is a call from your own game or tool.
 - A client needs the host's Steam ID; there is no in-game friend list or invite yet.
 - Tested on Linux with the Steam client running: start-up, reading the test app's achievements, and a full game session between two sessions on one account. Browsing and searching the Workshop were checked against the test app's real items. Unlocking an achievement on Steam, subscribing to or publishing a Workshop item, and play between two different accounts have not been tried.
+
+## Editor runtime location
+
+Download the Steamworks runtime from Valve's SDK: <https://partner.steamgames.com/doc/sdk>. Linux x86_64 uses `sdk/redistributable_bin/linux64/libsteam_api.so`; Windows x64 uses `sdk/redistributable_bin/win64/steam_api64.dll`. Installing the Steam client alone does not place this library inside a Tessera project.
+
+Put the platform library in `<project>/Libraries/` (or the project root). The editor searches that location, and game packaging copies the library beside the executable. Restart the editor after adding a previously missing library. Live achievements also require a running Steam client, the correct App ID and achievements configured/published in Steamworks. Local achievements can be edited without a connected Steam session.
+
+Regression: build `Tests/Achievements`, then run `python3 tools/test_steam_library_lookup.py <AchievementTests executable>`. It uses a fake local runtime and does not connect to Steam or change account achievements.
+
+`Steam.FriendAppId(friendId)` uses `ISteamFriends::GetFriendGamePlayed` to identify a friend's current game independently of rich presence. It returns 0 when unavailable, when the friend is not playing, or when an older runtime lacks the query. Filter with `Steam.FriendOnline` before presenting invitations. API layout and fallback tests use an in-process fake backend in `Tests/Achievements`; no Steam account is contacted.

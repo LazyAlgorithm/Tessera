@@ -331,7 +331,7 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
       <p>One editor, one language for engine and game code, and the systems a multiplayer 3D game needs, already working together.</p>
     </div>
     <div class="features">
-      <div class="feature"><span class="chip" style="background:var(--cobalt)"></span><h3>Rendering</h3><p>bgfx with forward HDR, four shadow cascades, flat shading for the low-poly look, bloom, fog and a procedural sky.</p></div>
+      <div class="feature"><span class="chip" style="background:var(--cobalt)"></span><h3>Rendering</h3><p>Forward HDR, clustered point and spot lights with shadows, baked lightmaps and probes, reflections, bloom and colour grading.</p></div>
       <div class="feature"><span class="chip" style="background:var(--saffron)"></span><h3>Voxels</h3><p>Smooth, contoured terrain you can dig and build at run time, with painted grass and trees that bend in the wind, and objects that break into physics pieces.</p></div>
       <div class="feature"><span class="chip" style="background:var(--jade)"></span><h3>Physics</h3><p>Jolt rigid bodies, colliders, ray and shape casts, joints, and a character controller that climbs steps.</p></div>
       <div class="feature"><span class="chip" style="background:var(--brick)"></span><h3>Networking</h3><p>Server-authoritative sessions with prediction, interpolation and lag compensation. Mark a field <code>[Sync]</code> and it is shared.</p></div>
@@ -339,6 +339,10 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
       <div class="feature"><span class="chip" style="background:var(--cobalt)"></span><h3>Visual scripting</h3><p>Graphs compile to ordinary Beef components, with about 1,550 engine nodes read straight from the source.</p></div>
       <div class="feature"><span class="chip" style="background:var(--saffron)"></span><h3>Interfaces</h3><p>HTML-like <code>.tui</code> documents with stylesheets, a live UI editor, and immediate-mode <code>GUI</code> for HUDs.</p></div>
       <div class="feature"><span class="chip" style="background:var(--brick)"></span><h3>Shipping</h3><p>One executable and one packed asset file for Linux and Windows, or a web page with join codes for the browser.</p></div>
+      <div class="feature"><span class="chip" style="background:var(--cobalt)"></span><h3>Modelling</h3><p>Draw shapes in the scene, edit vertices, edges and faces, unwrap UVs, paint textures and export GLB models.</p></div>
+      <div class="feature"><span class="chip" style="background:var(--jade)"></span><h3>Rigging</h3><p>Humanoid, quadruped and custom skeletons, automatic weights, weight painting and pose previews, in the editor.</p></div>
+      <div class="feature"><span class="chip" style="background:var(--saffron)"></span><h3>Lighting</h3><p>Bake bounced light into lightmaps and probes while you work. Moving objects take their ambient light from nearby probes.</p></div>
+      <div class="feature"><span class="chip" style="background:var(--brick)"></span><h3>Editor themes</h3><p>Eight built-in themes, live colour editing, separate code colours, and theme import and export.</p></div>
     </div>
   </div>
 
@@ -378,14 +382,15 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
   </div>
 
   <div class="section">
-    <div class="section-head"><h2>Platforms</h2><p>Developed on Linux x64. Windows builds are made from Linux and run on Windows; web builds run on WebGL 2.</p></div>
+    <div class="section-head"><h2>Platforms</h2><p>Linux and Windows editor packages are built in CI. Web games run on WebGL 2; Apple silicon support is experimental.</p></div>
     <div class="tbl-wrap"><table>
       <thead><tr><th>Platform</th><th>Editor</th><th>Games</th><th>Notes</th></tr></thead>
       <tbody>
         <tr><td>Linux x64</td><td><span class="state ok">Supported</span></td><td><span class="state ok">Supported</span></td><td>Vulkan. Where everything is developed and tested.</td></tr>
-        <tr><td>Windows x64</td><td><span class="state part">Beta</span></td><td><span class="state ok">Supported</span></td><td>Cross-compiled on Linux, Vulkan. Built games run on Windows machines; the editor has been run under Wine so far.</td></tr>
+        <tr><td>Windows x64</td><td><span class="state part">Beta</span></td><td><span class="state ok">Supported</span></td><td>Native Windows CI builds and checks opening a project. Vulkan; an early beta editor package is available in releases.</td></tr>
         <tr><td>Web (WebGL 2)</td><td><span class="state no">—</span></td><td><span class="state new">New</span></td><td>File &gt; Build &gt; Web. Peer-to-peer multiplayer with room codes, touch controls.</td></tr>
-        <tr><td>macOS, Android, iOS</td><td><span class="state no">Not yet</span></td><td><span class="state no">Not yet</span></td><td>Libraries and shaders are ready; link settings are not written.</td></tr>
+        <tr><td>macOS (Apple silicon)</td><td><span class="state part">Experimental</span></td><td><span class="state part">Experimental</span></td><td>Metal, macOS 12+. Build from source; CI is manual while real-Mac validation is pending.</td></tr>
+        <tr><td>Android, iOS (native)</td><td><span class="state no">Not yet</span></td><td><span class="state no">Not yet</span></td><td>Use a web build for phone browsers.</td></tr>
       </tbody>
     </table></div>
   </div>
@@ -749,6 +754,11 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
       <a href="#manual" data-sec="manual-net-test">Testing on one machine</a>
       <h4>World</h4>
       <a href="#manual" data-sec="manual-render">Rendering and materials</a>
+      <a href="#manual" data-sec="manual-lighting">Lights and shadows</a>
+      <a href="#manual" data-sec="manual-baked-lighting">Baked lighting</a>
+      <a href="#manual" data-sec="manual-modeling">Modelling</a>
+      <a href="#manual" data-sec="manual-rigging">Rigging and weight painting</a>
+      <a href="#manual" data-sec="manual-themes">Editor themes</a>
       <a href="#manual" data-sec="manual-viewmodel">First-person viewmodel</a>
       <a href="#manual" data-sec="manual-decals">Decals</a>
       <a href="#manual" data-sec="manual-dialogue">Dialogue and subtitles</a>
@@ -911,8 +921,27 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
         </tbody>
       </table></div>
 
+      <h2 id="manual-lighting">Lights and shadows</h2>
+      <p>A view keeps up to 256 visible point and spot lights in clusters. Add lights with <strong>GameObject &gt; Light</strong>, set their range and enable <strong>Cast Shadows</strong> where needed. The sun keeps four cascades; the nearest point and spot lights share a shadow atlas. Quality presets choose how many receive shadows.</p>
+      <p><a href="https://github.com/LazyAlgorithm/Tessera/blob/main/docs/lighting.md">Read the full lights and shadows guide →</a></p>
+
+      <h2 id="manual-baked-lighting">Baked lighting</h2>
+      <p>Mark static Mesh Renderers with <strong>Baked Lighting</strong>, open <strong>Window &gt; Lighting</strong> and press <strong>Bake</strong>. Lightmaps store bounced light on static surfaces; light probes light moving objects. Baking runs in the background with progress and cancellation. Save the scene after baking, and bake again after moving static objects or changing lights.</p>
+      <p><a href="https://github.com/LazyAlgorithm/Tessera/blob/main/docs/baked-lighting.md">Read the full baked lighting guide →</a></p>
+
+      <h2 id="manual-modeling">Modelling</h2>
+      <p>Open <strong>Window &gt; Model</strong> to draw shapes into the Scene view. Press <strong>Tab</strong> to edit vertices, edges and faces; extrude, bevel, cut, bridge or use booleans. The UV Editor unwraps and packs islands; vertex and texture painting finish the surface. <strong>Window &gt; Model Views</strong> provides four views. Models save with the scene, as <code>.tmesh</code>, or export as <code>.glb</code>.</p>
+      <p><a href="https://github.com/LazyAlgorithm/Tessera/blob/main/docs/modeling.md">Read the full modelling guide →</a></p>
+
+      <h2 id="manual-rigging">Rigging and weight painting</h2>
+      <p>Select a model and open <strong>Window &gt; Rigging</strong>. Choose Humanoid, Quadruped or Custom; place markers, adjust bones, build automatic weights, then paint and preview the pose. Humanoid rigs use Mixamo bone names. <strong>Export and Use on This Object</strong> writes a rigged GLB and adds the renderer and Animator; a <code>.trig</code> file keeps the editable rig.</p>
+      <p><a href="https://github.com/LazyAlgorithm/Tessera/blob/main/docs/rigging.md">Read the full rigging and weight painting guide →</a></p>
+
+      <h2 id="manual-themes">Editor themes</h2>
+      <p>Open <strong>Edit &gt; Preferences</strong> to choose Tessera Blue, Dark, Light, High Contrast, Forest, Ember or Plum, or make a custom theme. Colours update live, code editor colours can be chosen independently, and <code>.ttheme</code> files can be imported and exported.</p>
+      <p><a href="https://github.com/LazyAlgorithm/Tessera/blob/main/docs/themes.md">Read the full editor themes guide →</a></p>
+
       <h2 id="manual-decals">Decals</h2>
-      <div class="note" style="margin-bottom:14px"><div><strong>On the dev branch</strong>Decals are on <code>dev</code> and not yet on <code>main</code> or in a packaged build.</div></div>
       <p>A <strong>Decal</strong> presses a picture onto whatever solid surfaces lie inside its box (posters, signs, road markings, cracks, scorch marks), following their shape and lit and shadowed like them, with no change to their models or UVs.</p>
       <ul>
         <li><strong>GameObject &gt; Decal</strong> makes one stuck to the surface in the middle of the Scene view. The picture is pressed along the object's blue (forward) axis; the Scene view draws the box, and clicking inside it selects the decal.</li>
@@ -922,7 +951,6 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
       <p>For marks that come and go in numbers, <code>Decals.Spawn(Scene, point, normal, "Textures/hole.png", 0.12f, 20)</code> makes one 12 cm across that fades out after 20 seconds. They are kept in a pool (<code>Decals.MaxSpawned</code>, 256 by default) that recycles the oldest, and <code>Decals.Clear(Scene)</code> removes them. A Decal component is part of its object like any other component; spawned decals are not sent over the network, so make them on every machine from code that runs on each, such as where a hit is announced. See <code>docs/decals.md</code>.</p>
 
       <h2 id="manual-dialogue">Dialogue and subtitles</h2>
-      <div class="note" style="margin-bottom:14px"><div><strong>On the dev branch</strong>Dialogue and subtitles are on <code>dev</code> and not yet on <code>main</code> or in a packaged build.</div></div>
       <p>Branching conversations live in <code>.tdialogue</code> files: speakers, and nodes of steps that run from the top. A step is a line someone says (with an optional voice recording), an answer the player can pick, a variable set or added to, an event for the game, a jump to another node, or the end, and any step can have a condition such as <code>gold &gt;= 10</code>.</p>
       <ul>
         <li><strong>Project &gt; + &gt; Dialogue</strong> makes one and opens the <strong>Dialogue</strong> tab: nodes and speakers on the left, the selected node's steps in the middle, and a preview on the right that plays any branch with its answers, events and variables, without starting the game. The file is plain text, so it can also be written by hand.</li>
@@ -933,7 +961,6 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
       <p><strong>Subtitles</strong> also follow any sound an Audio Source plays that has an <code>.srt</code> file beside it, with <code>[captions]</code> for sounds shown when the player turns captions on. <code>Subtitles.Show</code> puts up a line from code, and the player's settings (on, captions, names, size, background) are there for an options menu. See <code>docs/dialogue.md</code>.</p>
 
       <h2 id="manual-sequencer">Sequencer (cutscenes)</h2>
-      <div class="note" style="margin-bottom:14px"><div><strong>On the dev branch</strong>The sequencer is on <code>dev</code> and not yet on <code>main</code> or in a packaged build.</div></div>
       <p>A <strong>sequence</strong> is a timeline for cutscenes, level intros, lifts and doors that open in stages: tracks that move objects, cut or blend between camera shots, play animations and sounds, show and hide things, fade the screen, show subtitles and fire events for the game. It lives in a <code>.tsequence</code> text file.</p>
       <ul>
         <li><strong>Project &gt; + &gt; Sequence</strong> opens the <strong>Sequencer</strong> tab. <strong>+ Track</strong> adds a track (on the selected object where it needs one); double-click a row to add a key, drag keys along the ruler, and edit the selected key underneath.</li>
@@ -945,7 +972,6 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
 
       <h2 id="manual-navigation">Navigation</h2>
       <p>A <strong>Navigation Surface</strong> bakes the walkable ground inside its box (or, with <strong>Flying</strong>, the open air) into a grid of cells, from the scene's static colliders and meshes; <strong>Bake &amp; Save Navigation</strong> in the Inspector writes it to a <code>.tnav</code> file. A <strong>Navigation Agent</strong> finds paths across it: call <code>SetDestination(point, speed, stoppingDistance)</code> and watch <code>HasArrived</code> or <code>PathFailed</code>. It walks through the object's Character Controller or Rigidbody when it has one. In multiplayer the server moves agents.</p>
-      <div class="note" style="margin-bottom:14px"><div><strong>On the dev branch</strong>The features below are on <code>dev</code> and not yet on <code>main</code> or in a packaged build.</div></div>
       <ul>
         <li><strong>Straight paths</strong>: agents go straight at any angle where they can, keeping the grid's clearance from walls.</li>
         <li><strong>Navigation Link</strong>: a jump, ladder, drop or teleporter between two places the grid does not join, one-way or both, with a cost. Agents cross it when it is shorter and the game hears <code>OnLinkStarted</code> / <code>OnLinkFinished</code> to animate them.</li>
@@ -958,7 +984,6 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
 
       <h2 id="manual-behavior">Behaviour trees</h2>
       <p>A behaviour tree decides what an AI character does. Draw one in the <strong>Behavior</strong> tab (Project &gt; + &gt; Behavior Tree), give the character a <strong>Behavior Tree Runner</strong> and a Navigation Agent, and press Play: the tab shows the selected character's tree live, running nodes amber, successes green, failures red. Saving while playing reloads it on every character using it.</p>
-      <div class="note" style="margin-bottom:14px"><div><strong>On the dev branch</strong>The features below are on <code>dev</code> and not yet on <code>main</code> or in a packaged build.</div></div>
       <ul>
         <li><strong>Run Subtree</strong>: one tree file runs another in its place, with the same memory. Open it from the node, see it live, and share one Wander tree between guards, animals and villagers. Files are read once for every character.</li>
         <li><strong>Events</strong>: the game tells the tree something with <code>SendEvent("Hit")</code> and the tree's <strong>Event Received</strong> reacts; <strong>Send Event</strong> tells the game back (<code>OnTreeEvent</code>).</li>
@@ -969,7 +994,6 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
       <p>In multiplayer, trees think on the server. See <code>docs/behavior-trees.md</code>; the Sandbox's Navigation scene has a guard that wanders and goes to look when it hears the crate.</p>
 
       <h2 id="manual-drawing-less">LOD, occlusion culling and GPU skinning</h2>
-      <div class="note" style="margin-bottom:14px"><div><strong>On the dev branch</strong>These features are on <code>dev</code> and not yet on <code>main</code> or in a packaged build.</div></div>
       <p>Three ways to draw big scenes and crowds faster, none of which needs baking.</p>
       <ul>
         <li><strong>LOD Group</strong> (Add Component &gt; Rendering): far away, an object is drawn with fewer triangles, and as a speck not at all. The levels are its children named <code>_LOD0</code>, <code>_LOD1</code> ... (as asset packs name them), or simplified meshes the engine makes when the scene loads. Each camera picks the level from how much of the screen the object covers; <code>LODGroup.Bias</code> is the quality setting. Select the group to see its levels and preview one.</li>
@@ -979,7 +1003,6 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
       <p>See <code>docs/lod.md</code>, <code>docs/occlusion-culling.md</code> and <code>docs/gpu-skinning.md</code>; the Sandbox has <code>Scenes/Culling.tscene</code> and <code>Scenes/Skinning.tscene</code>.</p>
 
       <h2 id="manual-quality">Graphics quality presets</h2>
-      <div class="note" style="margin-bottom:14px"><div><strong>On the dev branch</strong>These features are on <code>dev</code> and not yet on <code>main</code> or in a packaged build.</div></div>
       <p><strong>Quality</strong> gathers every graphics setting that trades looks for speed into four presets: <strong>Low</strong>, <strong>Medium</strong>, <strong>High</strong> and <strong>Ultra</strong>. Each sets render scale, antialiasing, shadows (map size and distance), ambient occlusion, depth of field, motion blur, LOD detail distance, foliage distance, GPU skinning and vsync together. High is what the engine always did, so existing projects look the same.</p>
       <pre><code>Quality.Set(.Low);                 // a preset
 Quality.Current.motionBlur = false; // or one setting (the level becomes Custom)
@@ -988,8 +1011,7 @@ Quality.Save();                    // applied by itself at the next start</code>
       <p><code>Quality.Recommended</code> suggests a preset for the machine (Low on phones, Medium on built-in graphics and in a browser). <code>--quality low</code> tries a preset for one run. In the editor, <strong>Window &gt; Graphics Quality</strong> previews each preset in the Scene and Game views. See <code>docs/quality.md</code>.</p>
 
       <h2 id="manual-macos">macOS</h2>
-      <div class="note" style="margin-bottom:14px"><div><strong>On the dev branch</strong>macOS support is on <code>dev</code> and not yet on <code>main</code> or in a packaged build.</div></div>
-      <p>Tessera builds and runs on Macs with Apple silicon (M1 and later, macOS 12 or newer) and draws with Metal. Every push builds it on a macOS machine in CI: the Beef compiler, the native libraries, every test fixture, the packaged editor, and a Sandbox scene drawn with Metal.</p>
+      <p>Tessera builds and runs on Macs with Apple silicon (M1 and later, macOS 12 or newer) and draws with Metal. The macOS workflow can be run manually to build the compiler, native libraries, tests and editor package. Automatic builds are paused until the result can be validated on a real Mac; published release packages currently cover Linux and Windows.</p>
       <ul>
         <li>Set up once: the Xcode command line tools, <code>brew install cmake ninja llvm@22</code>, the Beef compiler built from source, and the native libraries with CMake (the steps are in <code>docs/macos.md</code>).</li>
         <li>On a Mac, <strong>File &gt; Build</strong> builds macOS and web games, and the editor itself; or <code>tools/build_player.py --platform macos</code>.</li>
@@ -999,13 +1021,11 @@ Quality.Save();                    // applied by itself at the next start</code>
       <p>Limits: games are unsigned plain folders (open once with right-click &gt; Open), script reload while playing is Linux and Windows only, and it has not yet been tried on a real Mac by a person.</p>
 
       <h2 id="manual-textures">Textures: mipmaps and compression</h2>
-      <div class="note" style="margin-bottom:14px"><div><strong>On the dev branch</strong>These features are on <code>dev</code> and not yet on <code>main</code> or in a packaged build.</div></div>
       <p>Every texture gets <strong>mip levels</strong> (smaller copies down to 1 by 1) and <strong>anisotropic filtering</strong>, so far-away and slanted surfaces stay even instead of shimmering as the camera moves. Colour is averaged in linear light, and normal maps as directions, kept unit length.</p>
       <p>A built game also gets <strong>compressed copies</strong> of its pictures: BC1 for opaque ones and BC3 for see-through ones, as <code>.ktx</code> files with all their mip levels. They take a quarter to an eighth of the video memory and load without decoding. Normal maps, <code>UI/</code> pictures and web builds stay as they are. <strong>Compress textures</strong> in File &gt; Build turns it off for a project.</p>
       <p>The quality presets add <strong>Texture Detail</strong> (Low uses half-size textures) and <strong>Anisotropic Filtering</strong>. See <code>docs/textures.md</code>; the Sandbox's <code>Scenes/Textures.tscene</code> is a checker floor to compare with <code>--no-mipmaps</code>.</p>
 
       <h2 id="manual-reflections">Reflections and image-based lighting</h2>
-      <div class="note" style="margin-bottom:14px"><div><strong>On the dev branch</strong>These features are on <code>dev</code> and not yet on <code>main</code> or in a packaged build.</div></div>
       <p>Shiny surfaces mirror what is around them: a smooth metal shows a sharp picture, a rough one a soft blur, and a polished floor the walls beside it. Outdoors they mirror the <strong>sky</strong>, from a cube the engine makes from the scene's sky colours and sun.</p>
       <p>Indoors, add a <strong>Reflection Probe</strong> to each room (GameObject &gt; Reflection Probe) and size its box to the walls. It captures what it sees into a cube a few frames after the scene starts, and surfaces in the box mirror the room instead of the sky. Box Projection lines the reflections up with the walls, and Blend Distance fades them out past the box. <strong>Capture Now</strong> in its inspector captures it again after the room changes.</p>
       <p><strong>Ambient From Surroundings</strong> in the scene's Lighting settings takes ambient light from the same cubes (image-based lighting): the sky's light outdoors, and the room's own light inside a probe's box. The quality presets add <strong>Reflection Probes</strong> (off at Low) and <strong>Reflection Size</strong>. See <code>docs/reflections.md</code>; the Sandbox's <code>Scenes/Reflections.tscene</code> shows them all.</p>

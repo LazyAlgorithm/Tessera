@@ -115,6 +115,27 @@ Buttons are named by where they sit, so the same code works for every make: **So
 
 UI documents work with a controller by themselves: the d-pad or left stick moves a highlight between buttons, toggles and sliders, the South button presses, and left and right move a slider. The highlight appears when the player touches the controller and goes when they touch the mouse. The highlight starts on the top-left control, or on the one marked `autofocus` in the markup (`<button autofocus="1" ...>`). Set `UIDocumentData.ControllerNavigation = false` to steer menus yourself.
 
+## Touch screens
+
+On a phone or tablet the game draws its own on-screen controls, made once (at start) with `TouchControls` and bound in the input actions like any other control (`bind touch Fire`), so the game reads them as it reads keys or a controller. They only appear while a touch screen is in use and `TouchControls.Shown` is true (in play, not in a menu, where a tap is a click).
+
+| | |
+|---|---|
+| `AddStick(name, area, anchor, offset, radius)` | A thumbstick that appears where the thumb lands inside `area` (fractions of the screen: x, y, width, height). Bound as a vector. |
+| `AddLook(name, area)` | An area to drag across to turn the view, like the mouse. Bound as a vector (`bind touch Look`). |
+| `AddButton(name, label, anchor, offset, radius, dragLooks)` | A round button at `anchor` (0 to 1 each way) plus `offset` in screen units (the short side: the height when held sideways, the width when upright). With `dragLooks`, dragging the finger on it also turns the view through that look area, so one thumb can fire and aim. |
+| `AddSwipe(name, source, direction)` | A flick across another control, usually a look area: see below. |
+
+Every control has `visible` (a hidden one is not drawn and takes no touches), `dimmed` (drawn faded: it keeps its place but does nothing right now, which keeps a layout from shifting under the player's thumb), `lit` (drawn filled in, for a switch that is on) and `label`. A stick with `hideWhenIdle` is drawn only while a thumb is on it, where the thumb landed. `TouchControls.Scale` sizes everything at once and `EdgeMargin` keeps it in from the screen's edges (a player's setting, say).
+
+### Flicks
+
+`AddSwipe("CrouchFlick", "Look", .(0, 1))` watches the fingers of the `Look` area without taking any itself, so looking works as before. When a finger that started there is flicked the given way and lifted, the swipe control is down for that one frame. A flick is quick: from touch to lift within `swipeTime` (0.25 s), at least `swipeDistance` screen units (the short side) along the direction (0.12), and mostly along it. A slow drag, however far it goes, is aiming and never a flick.
+
+The view must not move for a flick, yet the look area turns it as the finger moves. So while a stroke could still become a flick (from the moment the finger lands: mostly the flick's way and on pace to cover the distance in time), its turn the flick's way is held back (`swipeHoldsLook`, on by default). If the stroke becomes a flick, the held turn is dropped and the view never moved; as soon as it cannot (it slows, turns aside or runs out of time) the held turn is released at once. Aiming that starts from a resting finger, or moves any other way, is never held; a very quick stroke the flick's way waits at most `swipeTime`.
+
+Being one frame long, a flick suits an action read with `InputActions.Pressed`, or a switch the game flips. Read it once a frame (in `OnUpdate`), not in a network tick's input, which is gathered at the tick rate and could miss it or see it twice. Avoid sideways flicks on a look area: turning quickly is part of aiming.
+
 ## Visual scripting
 
 Everything above is in the graph editor's node list as it is in code: search for "InputActions", "Gamepad" or "Input". `InputActions > Pressed` with "Jump" typed in, wired to a branch, is the usual start.

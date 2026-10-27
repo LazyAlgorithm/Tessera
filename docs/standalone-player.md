@@ -33,6 +33,8 @@ What is in the folder:
 
 With **Pack assets into one file** unticked (or `--loose`), the pack is replaced by what would have been in it: `game.tessera`, `Assets/` and `Engine/assets/shaders/`.
 
+Three more project settings shape a built game's window, set in `project.tessera` (they have no editor field yet, as few games need them): `windowWidth` and `windowHeight` give the window's size in points when it starts in a window (otherwise 1600 by 900), and `escapeQuits = 0` stops Escape from closing the game, for a game or tool with its own way out. A game's own way out calls `Application.Quit()` (or sets `Application.Instance.Running = false`): it closes a built game, and only stops Play in the editor. Tessera Hub, itself a Tessera project, uses all three.
+
 The player finds this package beside its executable, independent of working directory. --game overrides the package folder. --scene overrides the start scene. Application's renderer/headless/frame-limit options and network startup options remain available. --editor is rejected. A Linux build needs the system's graphics and X11 libraries, which every desktop has; a Windows build needs a Vulkan graphics driver and nothing else. ImGui remains a runtime dependency for component GUI; TesseraEditor panels/tools are excluded.
 
 Checked with a full game (Ringfall): both builds were moved to another folder and started from a different working directory; the Windows build was run under Wine.
@@ -58,6 +60,16 @@ What the pack does and does not do:
 
 Turning compression off keeps the scrambling and the checksums; it only saves the unpacking.
 
+### A pack for each scene
+
+**A pack for each scene** in the Build window (on unless you turn it off; `--single-pack` from a terminal, or `packSplit = 0` in `project.tessera`) gives each scene the files that only it uses in a pack of its own beside `game.tpak`: `scene-foundry.tpak` for `Scenes/Foundry.tscene`, say. Everything else, including whatever two scenes share, the start scene and what it uses, the engine's shaders and the manifest, stays in `game.tpak`.
+
+- **Updates.** Packs come out byte for byte the same from the same files, so changing one map rewrites that map's pack and nothing else. A store that patches by file, or by changed parts of a file (Steam does both), sends players only that.
+- **Loading.** The game mounts every pack at start. Only each pack's list of files is read, a few kilobytes, so starting takes no longer than with one pack; files are read from whichever pack holds them, as before.
+- **In a browser** the page downloads `game.tpak`, starts the game, and fetches the scene packs in the background, smallest first. `SceneManager.Load` waits for a scene's pack by itself. Code that adds a scene with `LoadAdditive` checks `AssetPack.SceneReady(path)` first and calls `AssetPack.Request(path)` to have that pack fetched next; `AssetPack.Waiting` is how many packs have not arrived.
+
+What a scene uses is found by reading it: the prefabs, models, materials, sounds and documents it names, what those name in turn, and files beside the scene with its name (a terrain's `.voxels`). Paths written in scripts as text (`"Audio/ui_click.wav"`) are found too, and go into `game.tpak`. A path a script puts together while running (`$"Models/prop_{kind}.glb"`) cannot be found by reading, so list those files under **Always shared** in the Build window (`packShared = Models/prop_*.glb; Audio/*` in `project.tessera`, wildcards separated by semicolons). A scene's pack is only made when its own files come to 64 KB or more; smaller ones stay in `game.tpak`.
+
 Game code that reads its own data files should go through the engine, so that it works packed and loose:
 
 ```beef
@@ -75,6 +87,7 @@ if (Assets.FileExists("Data/extra.txt")) { /* ... */ }
 | `AssetPack.Mounted`, `AssetPack.FileCount` | Whether the game is running from a pack. |
 | `AssetPack.FilesIn(folder, paths)` | The packed files in a folder, for code that would have listed a folder on disk. |
 | `AssetPack.Mount(packFile, root)` | Mounts another pack (downloadable content, say): its files appear inside `root`. |
+| `AssetPack.SceneReady(path)`, `AssetPack.Request(path)`, `AssetPack.Waiting` | In a browser: whether a scene's pack has downloaded, fetch it next, and how many are still coming. Always ready elsewhere. |
 
 Reading a file directly with `File.ReadAllText` only finds loose files. Files the game *writes* (saves, settings) belong in the player's own folder, not among the assets. Folders added with `Assets.AddSearchPath` (mods, Workshop items) stay loose and are still found first.
 
