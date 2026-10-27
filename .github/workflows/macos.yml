@@ -1,14 +1,13 @@
 # Builds Tessera on macOS (Apple silicon) with its own Beef compiler, built from source like Linux's, and the native
 # libraries for Metal; runs the engine's headless test fixtures there and packages the editor (docs/macos.md).
 #
-# It runs on pushes to dev, main and release, on version tags, and by hand. The macOS zip is attached to the run;
-# release.yml puts the Linux and Windows zips on releases.
+# Paused: macOS builds cannot be checked on a real Mac yet, so it no longer runs on pushes or tags, only by hand
+# (Actions > macOS > Run workflow). The macOS support stays in the engine; put the push trigger back to resume:
+#   push: {tags: ['v*'], branches: [dev, main, release]}
+# The macOS zip is attached to the run; release.yml puts the Linux and Windows zips on releases.
 name: macOS
 
 on:
-  push:
-    tags: ['v*']
-    branches: [dev, main, release]
   workflow_dispatch:
 
 env:

@@ -272,7 +272,7 @@ extension EditorApp
 		if (!mSeq.problems.IsEmpty)
 		{
 			ImGui.SameLine(0, 14);
-			ImGui.TextColored(.(1, 0.6f, 0.3f, 1), "Problems (hover)");
+			ImGui.TextColored(EditorTheme.Warning, "Problems (hover)");
 			if (ImGui.IsItemHovered())
 				ImGui.SetTooltip(mSeq.problems.CStr());
 		}
@@ -345,7 +345,7 @@ extension EditorApp
 			if (X(t) > sheetLeft + sheetWidth)
 				break;
 			ImGui.DrawLine(.(X(t), origin.y + rulerHeight - 6), .(X(t), origin.y + rulerHeight), .(0.6f, 0.6f, 0.6f, 1));
-			ImGui.DrawText(.(X(t) + 3, origin.y + 2), .(0.7f, 0.7f, 0.7f, 1), scope String()..AppendF("{}", t).CStr());
+			ImGui.DrawText(.(X(t) + 3, origin.y + 2), EditorTheme.TextDim, scope String()..AppendF("{}", t).CStr());
 		}
 		// Past the length: greyed.
 		ImGui.DrawRectFilled(.(X(mSeq.length), origin.y), .(X(end) + 1, origin.y + rulerHeight), .(0, 0, 0, 0.3f));

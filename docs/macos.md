@@ -2,7 +2,7 @@
 
 Tessera builds and runs on Macs with Apple silicon (M1 and later), macOS 12 or newer. It draws with Metal, which every such Mac has. A Mac builds macOS games and web games; Linux and Windows games are built on Linux (see `docs/windows.md`).
 
-**How far it has been tested.** Every push to `dev` builds Tessera on a GitHub macOS runner (`.github/workflows/macos.yml`): the Beef compiler from source, the native libraries, all the headless test fixtures (`tools/run_tests.py`; they all pass there), the packaged editor (kept as the run's `Tessera-macOS` download) and the Sandbox, which then draws two scenes with Metal (the run's `metal-pictures`). It has not yet been tried on a real Mac by a person, so expect to find things on the first try there, especially in the editor's windows and file dialogs.
+**How far it has been tested.** macOS builds are paused for now: the code stays, but `.github/workflows/macos.yml` no longer runs on pushes or tags, only by hand (Actions > macOS > Run workflow), and releases have no macOS zip. When run, it builds Tessera on a GitHub macOS runner: the Beef compiler from source, the native libraries, all the headless test fixtures (`tools/run_tests.py`; they all pass there), the packaged editor (kept as the run's `Tessera-macOS` download) and the Sandbox, which then draws two scenes with Metal (the run's `metal-pictures`). It has not yet been tried on a real Mac by a person, so expect to find things on the first try there, especially in the editor's windows and file dialogs.
 
 ## Setting up, once
 

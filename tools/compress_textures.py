@@ -101,7 +101,9 @@ def compress_folder(folder, engine, exclude=DEFAULT_EXCLUDE, materials=None):
         if not picture.is_file() or picture.suffix.lower() not in PICTURES:
             continue
         relative = picture.relative_to(folder).as_posix()
-        if any(fnmatch.fnmatch(relative, pattern) for pattern in patterns) or relative in normal or 'normal' in picture.name.lower():
+        # Baked lightmaps (docs/baked-lighting.md) are RGBM: block compression would spoil the range in alpha.
+        if any(fnmatch.fnmatch(relative, pattern) for pattern in patterns) or relative in normal or 'normal' in picture.name.lower() \
+                or picture.name.startswith('Lightmap-'):
             skipped += 1
             continue
         jobs.append((picture, relative in data))

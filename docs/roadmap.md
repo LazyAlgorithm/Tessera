@@ -45,7 +45,8 @@ search picks it up). A feature on `dev` but not yet in `main` says so in its sec
    it is there, Ringfall builds skip the public release (the run shows a notice), so the Hub shows "No release yet"
    for Ringfall. After adding it, push Ringfall to its `release` branch (or run its workflow) once.
 2. Try the Hub on Windows: unzip TesseraHub-Windows.zip from the tessera-hub Releases page and run TesseraHub.exe.
-3. Optional: try Tessera on a real Mac (E18, `docs/macos.md`); the Hub has no macOS build yet.
+3. Optional: try Tessera on a real Mac (E18, `docs/macos.md`); the Hub has no macOS build yet. macOS CI builds are paused
+   (2026-10-27, `macos.yml` runs only by hand) until a Mac is available to check them.
 
 ## Queued
 
@@ -182,15 +183,109 @@ Work agreed and queued, in order (see *How to use this page* above for what "don
    fit), with Ambient From Surroundings for image-based ambient light; Reflections scene setting, Reflection Probes
    and Reflection Size quality settings, `--no-reflections`. `docs/reflections.md`, `Tests/Reflections` (with
    `run.py`), Sandbox `Scenes/Reflections.tscene`.
-3. [ ] Shadows from point and spot lights, and more lights per view
-4. [ ] Baked lighting and global illumination
+3. [x] Shadows from point and spot lights, and more lights per view (done locally 2026-10-27, not pushed): clustered
+   lights (`LightClusters`: 16 x 9 x 24 clusters per view, up to 256 point and spot lights in view, the nearest kept,
+   32 per pixel; lights, shadow tiles and lists in one float texture per view read by `include/lighting.sh`); point
+   light shadows (six cube-face tiles) and spot light shadows in one shared atlas drawn in a single view with a scissor
+   per tile (a RenderView now uses 19 bgfx views, not 34); Quality's Shadowed Lights (2 / 4 / 8 / 16),
+   `--shadowed-lights`; the Scene view counts lights and shadow tiles; the editor compiles custom shaders again when
+   the engine's shader files are newer. `docs/lighting.md`, `Tests/Lighting` (with `run.py`), Sandbox
+   `Scenes/Lighting.tscene`. Still to do: push to `dev` and a Manual section on the website, when the user says.
+4. [x] Baked lighting and global illumination (done locally 2026-10-27, not pushed): `LightBaker` (CPU, rays traced in a
+   native BVH, `native/tessera_bake.cpp`): lightmaps for Mesh Renderers with Baked Lighting ticked (sky, Baked Only
+   lights with shadows, bounced light and glow, remembered hits so each bounce is lookups, an edge-aware smoothing
+   pass, RGBM PNGs) and a light probe grid (first-band spherical harmonics in a 3D texture, blended per pixel) for
+   everything else; lightmap coordinates made by the engine the same way every time (`LightmapUV`, with copies for
+   objects stretched unevenly); the editor's Window > Lighting (bakes in the background, settings saved with the
+   scene), `--bake-lighting`, `--lighting-window`, `--no-baked-lighting`. `docs/baked-lighting.md`, `Tests/Baking`
+   (with `run.py`), Sandbox `Scenes/BakedLighting.tscene` (baked).
 
 ## Editor
 
-- [ ] Themes: theme files, built-in themes (dark, light, high contrast, Tessera blue), a Theme page in Preferences
-  with live colour pickers, import and export
+- [x] Built-in 3D modeller (asked for 2026-10-26: "make a game entirely in the engine"), for low-poly props and maps.
+  Done locally 2026-10-26 (not pushed): `Engine/src/Modeling` (EditMesh, MeshShapes, MeshOps, MeshCsg, MeshUV,
+  GlbWriter, the Model Mesh component, `.tmesh` assets), the editor's Model window, Tab edit mode, shape drawing,
+  vertex colour painting and UV Editor (`Editor/src/Modeling`), `docs/modeling.md`, `Tests/Modeling`, `--model-test`.
+  Second pass, also local: a key for every tool, a right-click tool menu, Space search and an F1 sheet; tools that
+  follow the pointer (grab/rotate/scale with axis holds and typed amounts, extrude, inset, bevel, loop cut and slide,
+  knife); proportional editing and live mirroring; Alt+click loops, Ctrl+click paths, grow/shrink/invert, hiding;
+  poke, triangulate and back, solidify, smooth, collapse, make face; restyled selection (thick outlines, active and
+  hovered elements, face dots, depth-tested fills).
+  Third pass, also local (2026-10-26): rounded bevels (segments, smooth fans in the corners), edge slide (G G) and
+  vertex slide (Shift+V), knife points inside faces; the UV Editor picks pieces or points, pins (kept by unwrapping,
+  saved as `pin` lines in `.tmesh`) and stitches; palette and atlas cells (Ctrl+click, New Palette Texture); texture
+  painting in the Scene view (`TexturePaint`, `Assets.ReplaceTexture`); Make Levels of Detail (`MeshOps.Decimate`,
+  `_LOD<n>` children, and a LOD Group now treats its own renderer as level 0 when nothing is `_LOD0`). Tests: 25 new
+  checks in `Tests/Modeling`, 9 in `--model-test`, one in `Tests/Culling`.
+  Everything in the plan below is now in. Still to do before it counts as shipped: push to `dev` and a Manual
+  section on the website (`gh-pages`), when the user says. The plan was:
+  one editable-mesh core used in two places:
+  - **Scene view whiteboxing**: block-out shapes (box, wedge/ramp, stairs, cylinder, arch, door and window cut-outs)
+    drawn straight onto the grid or a surface, face pushing/pulling with snapping, boolean subtract/merge, world-aligned
+    texturing that stays put as shapes are resized, collision made automatically, and "Convert to Model" to finish
+    one in the Model window.
+  - **Model window**: vertex/edge/face/object modes; extrude, inset, bevel, loop cut, knife, bridge, fill, merge/weld,
+    split, subdivide, mirror (live symmetry), array; primitives; pivot, origin and transform tools; smooth/flat
+    shading and hard edges; per-face materials; undo throughout.
+  - **UVs and texturing**: mark seams, unwrap (angle-based / conformal), box, planar and cylinder projection, a UV
+    editor (move, scale, rotate, pin, stitch, pack, checker preview), atlas/palette texturing in the Synty style,
+    texture painting on the model, and vertex colours.
+  - Saved as `.tmesh` source plus an exported `.glb`, with LODs and colliders from the existing tools; docs, tests.
+- [x] Themes: theme files, built-in themes (dark, light, high contrast, Tessera blue), a Theme page in Preferences
+  with live colour pickers, import and export. Done locally 2026-10-27 (not pushed): `Editor/src/App/EditorTheme.bf`,
+  Edit > Preferences (`Editor/src/Tools/PreferencesWindow.bf`), `.ttheme` files, light code editor colours,
+  `docs/themes.md`, `Tests/Themes`, `--theme`, `--preferences`, `--theme-test`. Later the same day: Tessera Blue
+  made the default; Forest, Ember and Plum added.
+
+- [x] Rigging and weight painting, Mixamo-style, for people and four-legged animals (requested 2026-10-27, before the
+  shader graph). Done locally 2026-10-27 (not pushed): Window > Rigging (`Editor/src/Animation/RigEditor.bf`), markers
+  for Humanoid (Mixamo bone names, 25/41/65 bones) and Quadruped (spine, neck, tail, ears, jaw), Custom rigs, bone
+  editing with symmetry, bone-heat automatic weights (`native/tessera_rig.cpp`), a weight painting brush (add,
+  subtract, smooth, set, mirror), posing, `.trig` rig files and `_Rigged.glb` export (`Engine/src/Rigging/`),
+  `docs/rigging.md`, `Tests/Rigging`, `--rigger`, `--rigger-step`, `--rigger-test`.
+
+- [x] Rigging follow-ups (2026-10-27, local): CC0 test models by Quaternius in the Sandbox (person, husky, pug),
+  fingertip markers for people, a Head marker for animals, quadruped neck/tail guesses from the body's shape, joints
+  centred in legs, one rest facing for every exported skeleton (clips shared between rigs made here), Model and
+  Rigging docked beside the Inspector in the default layout (`--reset-layout`).
+- [x] Modeller follow-ups (2026-10-27, local): Show Only This Model in edit mode (on by default, `/`), and every
+  modelling shortcut editable in Edit > Preferences > Modelling (`Editor/src/Modeling/ModelShortcuts.bf`).
+- [x] Modelling views (2026-10-27, local): only the edited model's gizmos with Show Only, reference images (front,
+  back, sides, top, bottom; editor views only), the Scene view's view selector (axes, perspective/orthographic), and
+  Window > Model Views: four views (Top, Front, Left, Perspective) to model in, as 3ds Max has.
+- [ ] Hierarchy visibility and locks (requested 2026-10-27): an eye beside each object in the Hierarchy hides it in
+  the Scene view only (not disabled, still in the game and the Game view), as Unity's; holding the button down and
+  dragging over others hides (or shows) each one passed over; on a parent it takes the children too. A lock beside it
+  makes an object unpickable in the Scene view (still selectable in the Hierarchy), with the same drag. Both are kept
+  per user, not in the scene.
+- [ ] Model format conversion (requested 2026-10-27): FBX, OBJ, DAE, STL, PLY, 3DS... and `.blend` files used
+  directly in the project, as Unity does. Each is converted behind the scenes to a cached `.glb` on import and again
+  when the source changes (ufbx or assimp in the editor; Blender run in the background for `.blend`, so it must be
+  installed). Everything that reads models (skinning, materials, retargeting, LODs, rigging) keeps one path, and
+  builds ship the converted models. Rigged models' bones, clips and materials carry over; an Inspector page shows the
+  import settings (scale, axes, which clips, materials). Mesh Renderers also use a glTF's own textures (only Skinned
+  Mesh Renderers do now).
+- [ ] World streaming (asked about 2026-10-27): one large open world built in the editor as one scene, split
+  automatically into grid cells that load and unload around the player (and every player, on a server) with no code,
+  in the style of Unreal's World Partition. Cells load in the background and are added over several frames so there
+  is no hitch; far cells show merged low-detail stand-ins; a floating origin keeps precision far from the centre;
+  terrain, foliage, navigation and baked lighting stream per cell; objects can opt out (always loaded) and Streaming
+  Sources can be added (a camera, a vehicle). The editor loads only the cells round the view, with a map to pick
+  others. Builds on what exists: background loading, additive scenes, and voxel terrain's chunk streaming.
+- [ ] Profiler (requested 2026-10-27): like Unity's Profiler window, with more profilers, covering every part of the
+  engine. A timeline of frames (CPU, GPU, frame time) to scrub and pause on, a hierarchy and flame chart of the picked
+  frame (every system and every script method, with calls, self and total time, allocations), and modules for
+  rendering (draws, instances, triangles, passes, shadow tiles, GPU time per pass), memory (by kind and by asset,
+  snapshots to compare), physics, animation and skinning, audio, networking (bytes and messages per channel,
+  prediction and rollback), navigation and AI (behaviour trees), UI, particles, scripts and hot reload, asset loading
+  and streaming, the job system's threads, and garbage. Profile the editor, play mode, or a running build over the
+  network (a dedicated server too); save and load captures; `Profiler.Begin/End` markers and counters for game code.
 
 ## Last
 
 - [ ] Shader graph: materials' shaders built from nodes, on the existing node editor
 - [ ] Visual compute shaders: compute shaders built from nodes
+- [ ] Soft bodies (requested 2026-10-27, last): cloth (flags, capes, curtains, sails; pinned to bones or objects,
+  wind, collision with colliders and characters, tearing optional) and deformable bodies (jelly, rubber, soft tyres,
+  dented metal) that push and are pushed by rigidbodies. Simulated on the job threads (Jolt has soft bodies), with
+  an editor for pins and stiffness painted on the mesh, and networking like the predicted physics props.

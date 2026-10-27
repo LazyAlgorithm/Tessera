@@ -19,7 +19,7 @@ SAMPLER2D(s_lightmapShadowmask, 10);
 uniform vec4 u_lightmapTransform;
 uniform vec4 u_lightmapDecode;
 
-uniform vec4 u_material;      // x metallic, y roughness, z flat shading, w unlit
+uniform vec4 u_material;      // x metallic, y roughness, z flat shading, w 1 unlit, 2 the editor's preview light
 uniform vec4 u_emissive;
 uniform vec4 u_uvTransform;   // xy tiling, zw offset
 uniform vec4 u_surface;       // x alpha cutoff (0: no cutout), y time in seconds, z 1 when the glow takes the surface's own colour
@@ -72,7 +72,7 @@ void main()
 		discard;
 	}
 
-	if (u_material.w > 0.5)
+	if (u_material.w > 0.5 && u_material.w < 1.5)
 	{
 		gl_FragColor = vec4(albedo + emissive, alpha);
 		return;
@@ -110,6 +110,15 @@ void main()
 		vec3 bitangent = dp2perp * duv1.y + dp1perp * duv2.y;
 		float scale = inversesqrt(max(max(dot(tangent, tangent), dot(bitangent, bitangent)), 1.0e-12));
 		n = normalize(tangent * (scale * mapped.x) + bitangent * (scale * mapped.y) + n * mapped.z);
+	}
+
+	if (u_material.w > 1.5)
+	{
+		// The editor's Material Preview and Solid views: a light from the viewer and a little from above, the same
+		// wherever the scene's lights are, so every side of a model shows its colours.
+		float light = 0.22 + 0.6 * abs(dot(n, v)) + 0.18 * (n.y * 0.5 + 0.5);
+		gl_FragColor = vec4(albedo * light * occlusion + emissive, alpha);
+		return;
 	}
 
 	metallic = clamp(metallic, 0.0, 1.0);

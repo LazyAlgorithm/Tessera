@@ -21,8 +21,11 @@ struct QualityValues : IEquatable<QualityValues>
 	public float renderScale = 1;
 	/// Multisampled edges.
 	public bool antialias = true;
-	/// Shadows from the sun and spotlights.
+	/// Shadows from the sun, point and spot lights.
 	public bool shadows = true;
+	/// How many point and spot lights cast shadows in a view, the nearest first (a point light costs six times a
+	/// spot light's).
+	public int32 shadowedLights = 8;
 	/// The shadow map's size in pixels: sharper shadows cost memory and time.
 	public int32 shadowMapSize = 4096;
 	/// Times each scene's shadow distance: how far away things still cast shadows.
@@ -52,7 +55,7 @@ struct QualityValues : IEquatable<QualityValues>
 	{
 	}
 
-	public bool Equals(QualityValues other) => renderScale == other.renderScale && antialias == other.antialias && shadows == other.shadows && shadowMapSize == other.shadowMapSize && shadowDistance == other.shadowDistance && ambientOcclusion == other.ambientOcclusion && depthOfField == other.depthOfField && motionBlur == other.motionBlur && lodBias == other.lodBias && foliageDistance == other.foliageDistance && gpuSkinning == other.gpuSkinning && vsync == other.vsync && textureDetail == other.textureDetail && anisotropic == other.anisotropic && reflectionProbes == other.reflectionProbes && reflectionSize == other.reflectionSize;
+	public bool Equals(QualityValues other) => renderScale == other.renderScale && antialias == other.antialias && shadows == other.shadows && shadowedLights == other.shadowedLights && shadowMapSize == other.shadowMapSize && shadowDistance == other.shadowDistance && ambientOcclusion == other.ambientOcclusion && depthOfField == other.depthOfField && motionBlur == other.motionBlur && lodBias == other.lodBias && foliageDistance == other.foliageDistance && gpuSkinning == other.gpuSkinning && vsync == other.vsync && textureDetail == other.textureDetail && anisotropic == other.anisotropic && reflectionProbes == other.reflectionProbes && reflectionSize == other.reflectionSize;
 	public static bool operator ==(QualityValues a, QualityValues b) => a.Equals(b);
 }
 
@@ -80,6 +83,7 @@ static class Quality
 			v.renderScale = 0.7f;
 			v.antialias = false;
 			v.shadowMapSize = 1024;
+			v.shadowedLights = 2;
 			v.shadowDistance = 0.5f;
 			v.ambientOcclusion = false;
 			v.depthOfField = false;
@@ -93,6 +97,7 @@ static class Quality
 		case .Medium:
 			v.renderScale = 0.85f;
 			v.shadowMapSize = 2048;
+			v.shadowedLights = 4;
 			v.shadowDistance = 0.75f;
 			v.depthOfField = false;
 			v.motionBlur = false;
@@ -101,6 +106,7 @@ static class Quality
 			v.reflectionSize = 64;
 		case .High,.Custom:
 		case .Ultra:
+			v.shadowedLights = 16;
 			v.shadowDistance = 1.5f;
 			v.lodBias = 1.5f;
 			v.foliageDistance = 1.5f;
@@ -138,6 +144,7 @@ static class Quality
 		RenderView.Antialias = Current.antialias;
 		RenderView.ShadowsEnabled = Current.shadows;
 		RenderView.ShadowDistanceScale = Math.Max(Current.shadowDistance, 0.05f);
+		RenderView.MaxShadowedLights = Math.Clamp(Current.shadowedLights, 0, LightClusters.MaxTiles);
 		RenderResources.SetShadowAtlasSize(Current.shadowMapSize);
 		ScreenEffects.AmbientOcclusion = Current.ambientOcclusion;
 		ScreenEffects.DepthOfField = Current.depthOfField;
@@ -168,8 +175,8 @@ static class Quality
 	/// The settings as text, one `name=value` a line.
 	public static void Write(QualityValues v, String text)
 	{
-		text.AppendF("renderScale={}\nantialias={}\nshadows={}\nshadowMapSize={}\nshadowDistance={}\nambientOcclusion={}\ndepthOfField={}\nmotionBlur={}\nlodBias={}\nfoliageDistance={}\ngpuSkinning={}\nvsync={}\ntextureDetail={}\nanisotropic={}\nreflectionProbes={}\nreflectionSize={}\n",
-			v.renderScale, v.antialias ? 1 : 0, v.shadows ? 1 : 0, v.shadowMapSize, v.shadowDistance, v.ambientOcclusion ? 1 : 0, v.depthOfField ? 1 : 0, v.motionBlur ? 1 : 0, v.lodBias, v.foliageDistance, v.gpuSkinning ? 1 : 0, v.vsync ? 1 : 0, v.textureDetail, v.anisotropic ? 1 : 0, v.reflectionProbes ? 1 : 0, v.reflectionSize);
+		text.AppendF("renderScale={}\nantialias={}\nshadows={}\nshadowedLights={}\nshadowMapSize={}\nshadowDistance={}\nambientOcclusion={}\ndepthOfField={}\nmotionBlur={}\nlodBias={}\nfoliageDistance={}\ngpuSkinning={}\nvsync={}\ntextureDetail={}\nanisotropic={}\nreflectionProbes={}\nreflectionSize={}\n",
+			v.renderScale, v.antialias ? 1 : 0, v.shadows ? 1 : 0, v.shadowedLights, v.shadowMapSize, v.shadowDistance, v.ambientOcclusion ? 1 : 0, v.depthOfField ? 1 : 0, v.motionBlur ? 1 : 0, v.lodBias, v.foliageDistance, v.gpuSkinning ? 1 : 0, v.vsync ? 1 : 0, v.textureDetail, v.anisotropic ? 1 : 0, v.reflectionProbes ? 1 : 0, v.reflectionSize);
 	}
 
 	/// Reads settings from text (unknown or missing lines keep the values given).
@@ -191,6 +198,7 @@ static class Quality
 			case "renderScale": v.renderScale = Math.Clamp(number, 0.25f, 1);
 			case "antialias": v.antialias = flag;
 			case "shadows": v.shadows = flag;
+			case "shadowedLights": v.shadowedLights = (int32)Math.Clamp(number, 0, LightClusters.MaxTiles);
 			case "shadowMapSize": v.shadowMapSize = (int32)Math.Clamp(number, 256, 8192);
 			case "shadowDistance": v.shadowDistance = Math.Clamp(number, 0.05f, 4);
 			case "ambientOcclusion": v.ambientOcclusion = flag;

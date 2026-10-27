@@ -32,7 +32,7 @@ extension EditorApp
 
 			ImGui.Spacing();
 			if (!mSettingsMessage.IsEmpty)
-				ImGui.TextColored(.(1.0f, 0.82f, 0.35f, 1), mSettingsMessage.CStr());
+				ImGui.TextColored(EditorTheme.Warning, mSettingsMessage.CStr());
 			if (ImGui.Button("Rebuild & Reload", .(160, 28)))
 				RequestRebuild();
 		}

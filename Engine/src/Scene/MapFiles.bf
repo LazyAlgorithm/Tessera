@@ -86,7 +86,7 @@ static class MapFiles
 	const String InfoName = "map.txt";
 
 	/// File types a scene names as assets, which must be in the game for a map to work.
-	static readonly StringView[?] AssetExtensions = .(".glb", ".gltf", ".png", ".jpg", ".jpeg", ".tga", ".hdr", ".tmat", ".tprefab", ".tscene",
+	static readonly StringView[?] AssetExtensions = .(".glb", ".gltf", ".tmesh", ".png", ".jpg", ".jpeg", ".tga", ".hdr", ".tmat", ".tprefab", ".tscene",
 		".tanim", ".tcontroller", ".tshader", ".tsgraph", ".tgraph", ".tbt", ".tui", ".tcss", ".tinput", ".tdata", ".ogg", ".wav", ".mp3",
 		".flac", ".ttf", ".otf");
 

@@ -411,6 +411,7 @@ class Material
 	String mResolvedShader = new .() ~ delete _;
 	bgfx.TextureHandle mTexture = .() { idx = uint16.MaxValue };
 	String mResolvedTexture = new .("\0") ~ delete _;
+	int32 mTextureVersion = -1;
 
 	static Dictionary<String, Material> sCache = new .() ~ DeleteDictionaryAndKeysAndValues!(_);
 
@@ -433,9 +434,10 @@ class Material
 	{
 		get
 		{
-			if (!mTexture.Valid || mResolvedTexture != texture)
+			if (!mTexture.Valid || mResolvedTexture != texture || mTextureVersion != Assets.TextureVersion)
 			{
 				mResolvedTexture.Set(texture);
+				mTextureVersion = Assets.TextureVersion;
 				mTexture = Assets.GetTexture(texture);
 			}
 			return mTexture;

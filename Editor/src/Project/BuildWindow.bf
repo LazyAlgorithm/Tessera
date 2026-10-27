@@ -259,9 +259,9 @@ extension EditorApp
 		let web = mBuildTarget == .Web;
 		ImGui.PushTextWrapPos(0);
 		if (web)
-			ImGui.TextColored(Color(1.0f, 0.75f, 0.35f, 1), "This machine is not set up to build for the web yet. Run this once in a terminal (it downloads Emscripten, about 1 GB):");
+			ImGui.TextColored(EditorTheme.Warning, "This machine is not set up to build for the web yet. Run this once in a terminal (it downloads Emscripten, about 1 GB):");
 		else
-			ImGui.TextColored(Color(1.0f, 0.75f, 0.35f, 1), "This machine is not set up to build for Windows yet. Run this once in a terminal (it downloads about 3 GB, including Microsoft's Windows libraries under their licence):");
+			ImGui.TextColored(EditorTheme.Warning, "This machine is not set up to build for Windows yet. Run this once in a terminal (it downloads about 3 GB, including Microsoft's Windows libraries under their licence):");
 		ImGui.PopTextWrapPos();
 		let command = web ? scope $"{Project.Current.EngineRoot}/tools/web/setup.sh" : scope $"{Project.Current.EngineRoot}/tools/windows/setup.sh --accept-license";
 		ImGui.Text(command);

@@ -101,7 +101,8 @@ change, and adjust from there.
 
 The footer's **Hands** button opens **Hand Posing**, with a column for each hand:
 
-- **Pose Fingers** adds a Hand Pose to the hand bone, with the straight pose taken from the scene's pose of the bones.
+- **Pose Fingers** adds a Hand Pose to the hand bone, with the straight pose taken from the model's own rest pose
+  (not the clip's, so an idle's half-closed hand does not make every shape curl too far).
 - Ready-made shapes: Open, Relaxed, Fist, Grip, Trigger, Point, Pinch, Thumbs Up.
 - A slider for each finger (0 straight, 1 curled) and **Spread**. A finger the hand lacks is greyed out. POLYGON
   hands, whose middle, ring and little fingers are one chain named `finger_01...`, curl that chain with **Middle**.

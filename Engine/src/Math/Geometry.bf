@@ -21,6 +21,8 @@ struct Bounds
 	public Vector3 Center => (min + max) * 0.5f;
 	/// Half the box's size on each axis.
 	public Vector3 Extents => (max - min) * 0.5f;
+	/// The box's size on each axis.
+	public Vector3 Size => max - min;
 	/// Whether the box holds anything (an Empty one does not).
 	public bool IsValid => max.x >= min.x && max.y >= min.y && max.z >= min.z;
 
@@ -144,6 +146,18 @@ struct Frustum
 			let p = planes[i];
 			let r = e.x * Mathf.Abs(p.x) + e.y * Mathf.Abs(p.y) + e.z * Mathf.Abs(p.z);
 			if (p.x * c.x + p.y * c.y + p.z * c.z + p.w < -r)
+				return false;
+		}
+		return true;
+	}
+
+	/// Whether any of a sphere might be in view.
+	public bool IntersectsSphere(Vector3 center, float radius)
+	{
+		for (int i < 6)
+		{
+			let p = planes[i];
+			if (p.x * center.x + p.y * center.y + p.z * center.z + p.w < -radius)
 				return false;
 		}
 		return true;

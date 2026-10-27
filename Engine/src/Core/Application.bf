@@ -226,6 +226,13 @@ class Application
 		let quality = scope String();
 		if (GetArg("--quality", quality) && Quality.Parse(quality, let level))
 			Quality.Set(level);
+		// To compare: how many point and spot lights cast shadows (0: none).
+		let shadowed = scope String();
+		if (GetArg("--shadowed-lights", shadowed) && int32.Parse(shadowed) case .Ok(let count))
+			RenderView.MaxShadowedLights = Math.Clamp(count, 0, LightClusters.MaxTiles);
+		// To compare: lightmaps and baked light probes off (docs/baked-lighting.md).
+		if (HasArg("--no-baked-lighting"))
+			RenderView.UseBakedLighting = false;
 
 		mLastTicks = SDL.SDL_GetTicksNS();
 #if BF_PLATFORM_WASM

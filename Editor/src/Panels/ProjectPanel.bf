@@ -65,7 +65,7 @@ extension EditorApp
 		return false;
 	}
 
-	static bool IsModelFile(StringView path) => HasExtension(path, ".glb", ".gltf");
+	static bool IsModelFile(StringView path) => HasExtension(path, ".glb", ".gltf", ".tmesh");
 	static bool IsImageFile(StringView path) => HasExtension(path, ".png", ".jpg", ".jpeg", ".tga", ".bmp");
 	static bool IsAudioFile(StringView path) => HasExtension(path, ".wav", ".ogg", ".mp3", ".flac");
 
@@ -566,11 +566,11 @@ extension EditorApp
 		}
 		let lineHeight = ImGui.GetTextLineHeight();
 		let w1 = ImGui.CalcTextSize(first.CStr()).x;
-		ImGui.DrawText(.(pos.x + (width - w1) * 0.5f, pos.y), .(0.85f, 0.85f, 0.85f, 1), first.CStr());
+		ImGui.DrawText(.(pos.x + (width - w1) * 0.5f, pos.y), EditorTheme.Text, first.CStr());
 		if (!second.IsEmpty)
 		{
 			let w2 = ImGui.CalcTextSize(second.CStr()).x;
-			ImGui.DrawText(.(pos.x + (width - w2) * 0.5f, pos.y + lineHeight), .(0.85f, 0.85f, 0.85f, 1), second.CStr());
+			ImGui.DrawText(.(pos.x + (width - w2) * 0.5f, pos.y + lineHeight), EditorTheme.Text, second.CStr());
 		}
 	}
 

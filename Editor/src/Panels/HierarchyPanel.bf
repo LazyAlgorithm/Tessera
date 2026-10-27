@@ -90,7 +90,7 @@ extension EditorApp
 			flags |= ImGui.TreeFlags.Selected;
 		let inactive = !gameObject.ActiveInHierarchy;
 		if (inactive)
-			ImGui.PushStyleColor(ImGui.Col.Text, .(0.5f, 0.5f, 0.5f, 1));
+			ImGui.PushStyleColor(ImGui.Col.Text, EditorTheme.TextDim);
 		ImGui.PushID((int32)gameObject.Id);
 		let nodeLabel = scope String();
 		nodeLabel.AppendF("{}  {}###node", StringView(ObjectIcon(gameObject)), gameObject.Name.IsEmpty ? "(unnamed)" : (StringView)gameObject.Name);

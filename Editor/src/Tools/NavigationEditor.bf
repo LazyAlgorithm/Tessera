@@ -73,7 +73,7 @@ extension EditorApp
 		if (start != null && end != null)
 			ImGui.TextDisabled("Both ends reach a baked surface.");
 		else
-			ImGui.TextColored(.(1, 0.6f, 0.3f, 1), start == null && end == null ? "Neither end is near a baked surface (bake one, or move the ends)." : (start == null ? "The start (this object) is not near a baked surface." : "The end is not near a baked surface."));
+			ImGui.TextColored(EditorTheme.Warning, start == null && end == null ? "Neither end is near a baked surface (bake one, or move the ends)." : (start == null ? "The start (this object) is not near a baked surface." : "The end is not near a baked surface."));
 		if (ImGui.Button("Drop Ends to Ground"))
 		{
 			let endPoint = link.EndPoint;

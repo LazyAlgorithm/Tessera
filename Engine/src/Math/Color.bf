@@ -37,6 +37,25 @@ struct Color
 	/// Fully see-through black.
 	public static Color Clear => .(0, 0, 0, 0);
 
+	/// A colour from hue (0 to 1 round the colour wheel, red first), saturation and value (brightness), each 0 to 1.
+	public static Color FromHSV(float hue, float saturation, float value, float alpha = 1)
+	{
+		let h = (hue - Math.Floor(hue)) * 6;
+		let sector = (int)h % 6;
+		let f = h - Math.Floor(h);
+		let s = Math.Clamp(saturation, 0, 1), v = Math.Clamp(value, 0, 1);
+		let p = v * (1 - s), q = v * (1 - s * f), t = v * (1 - s * (1 - f));
+		switch (sector)
+		{
+		case 0: return .(v, t, p, alpha);
+		case 1: return .(q, v, p, alpha);
+		case 2: return .(p, v, t, alpha);
+		case 3: return .(p, q, v, alpha);
+		case 4: return .(t, p, v, alpha);
+		default: return .(v, p, q, alpha);
+		}
+	}
+
 	/// The colour's red, green and blue times a number (alpha is kept).
 	public static Color operator *(Color c, float s) => .(c.r * s, c.g * s, c.b * s, c.a);
 	/// The colour a fraction t of the way from a to b.

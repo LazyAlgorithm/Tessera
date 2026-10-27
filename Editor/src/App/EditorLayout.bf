@@ -29,6 +29,7 @@ extension EditorApp
 			mLayoutBuilt = true;
 			mResetLayout = false;
 		}
+		SaveOpenWindows();
 		// Leave room for the toolbar strip under the menu bar.
 		let toolbarHeight = ImGui.GetFrameHeight() + 10;
 		ImGui.SetNextWindowPos(.(viewport.workPos.x, viewport.workPos.y + toolbarHeight));
@@ -46,6 +47,7 @@ extension EditorApp
 		DrawConsole();
 		DrawGameView();
 		DrawSceneView();
+		DrawModelViews();
 		DrawScripts();
 		DrawGraph();
 		DrawBehavior();
@@ -62,7 +64,11 @@ extension EditorApp
 		DrawAchievements();
 		DrawInputActions();
 		DrawMapBuilder();
+		DrawModelWindow();
 		DrawQualityWindow();
+		DrawPreferencesWindow();
+		DrawLightingWindow();
+		DrawRigWindow();
 		CommitUndoWhenIdle();
 		if (mShowScene)
 		{
@@ -77,6 +83,13 @@ extension EditorApp
 				ImGui.SetWindowFocus("Scene");
 			if (Time.FrameCount > 10)
 				mFocusScene = false;
+		}
+		// The Inspector in front of the tabs docked with it, for a few frames while docking settles.
+		if (mFocusInspector > 0)
+		{
+			mFocusInspector--;
+			if (mRig == null && !mFocusRig)
+				ImGui.SetWindowFocus("Inspector");
 		}
 		if (mFocusGame && Time.FrameCount > 3)
 		{
@@ -96,6 +109,90 @@ extension EditorApp
 		igDockSpace(id, .(0, 0), 0, null);
 	}
 
+	/// The windows that can be closed, as they are named in the open-windows file. The layout file keeps where they
+	/// are docked, but not whether they are open, so that is kept beside it (windows5_<project>.txt).
+	static StringView[?] sOpenWindowNames = .("Model", "Rigging", "Animation", "Animator", "Dialogue", "Sequencer", "Map Builder", "UV Editor", "Graphics Quality", "Lighting", "Model Views", "Scripts");
+	int32 mOpenWindowsSaved = -1;
+
+	bool* OpenWindowFlag(int index)
+	{
+		switch (index)
+		{
+		case 0: return &mShowModel;
+		case 1: return &mShowRig;
+		case 2: return &mShowAnimation;
+		case 3: return &mShowAnimator;
+		case 4: return &mShowDialogue;
+		case 5: return &mShowSequencer;
+		case 6: return &mShowMapBuilder;
+		case 7: return &mShowUVEditor;
+		case 8: return &mShowQuality;
+		case 9: return &mShowLighting;
+		case 10: return &mShowModelViews;
+		default: return &mShowScripts;
+		}
+	}
+
+	void OpenWindowsFile(String file)
+	{
+		file.Append(mIniPath);
+		file.Replace("layout5_", "windows5_");
+		file.Replace(".ini", ".txt");
+	}
+
+	int32 OpenWindowsMask()
+	{
+		int32 mask = 0;
+		for (int i < sOpenWindowNames.Count)
+		{
+			if (*OpenWindowFlag(i))
+				mask |= 1 << i;
+		}
+		return mask;
+	}
+
+	/// Opens the windows that were open last time; with nothing saved yet, the default layout's (Model and Rigging).
+	void LoadOpenWindows()
+	{
+		let text = scope String();
+		if (File.ReadAllText(OpenWindowsFile(.. scope .()), text) case .Ok)
+		{
+			for (int i < sOpenWindowNames.Count)
+			{
+				bool open = false;
+				for (var line in text.Split('\n'))
+				{
+					line.Trim();
+					open |= line == sOpenWindowNames[i];
+				}
+				*OpenWindowFlag(i) = open;
+			}
+		}
+		else
+		{
+			// The first time: the Model and Rigging windows beside the Inspector, Model Views and Scripts beside the Scene view.
+			mShowModel = mShowRig = mShowModelViews = mShowScripts = true;
+			mDockModelViews = mDockScripts = true;
+		}
+		mOpenWindowsSaved = OpenWindowsMask();
+	}
+
+	/// Writes which windows are open when that changes.
+	void SaveOpenWindows()
+	{
+		let mask = OpenWindowsMask();
+		if (mask == mOpenWindowsSaved)
+			return;
+		mOpenWindowsSaved = mask;
+		let text = scope String();
+		for (int i < sOpenWindowNames.Count)
+		{
+			if ((mask & (1 << i)) != 0)
+				text.AppendF("{}\n", sOpenWindowNames[i]);
+		}
+		File.WriteAllText(OpenWindowsFile(.. scope .()), text).IgnoreError();
+	}
+
 	void BuildDefaultLayout(uint32 dockId, ImGui.Vec2 size)
 	{
 		ImGui.DockBuilderRemoveNode(dockId);
@@ -108,12 +205,22 @@ extension EditorApp
 		mAssetCenterDock = center;
 		mBottomDock = bottom;
 		ImGui.DockBuilderDockWindow("Hierarchy", left);
+		// The Model and Rigging windows are tabs beside the Inspector (which stays the tab shown).
 		ImGui.DockBuilderDockWindow("Inspector", right);
+		ImGui.DockBuilderDockWindow("Model", right);
+		ImGui.DockBuilderDockWindow("Rigging", right);
+		mShowModel = true;
+		mShowRig = true;
+		mDockModel = mDockRig = false;
+		mFocusInspector = 5;
 		ImGui.DockBuilderDockWindow("Project", bottom);
 		ImGui.DockBuilderDockWindow("Console", bottom);
 		// Tab order follows docking order: Game, Scene, then Scripts on the far right.
 		ImGui.DockBuilderDockWindow("Game", center);
 		ImGui.DockBuilderDockWindow("Scene", center);
+		ImGui.DockBuilderDockWindow("Model Views", center);
+		ImGui.DockBuilderDockWindow("Scripts", center);
+		mShowModelViews = mShowScripts = true;
 		mFocusScene = true;
 		ImGui.DockBuilderFinish(dockId);
 	}
@@ -172,6 +279,9 @@ extension EditorApp
 			if (ImGui.MenuItem("Turn 90 Degrees", null, false, Selected != null))
 				TurnSelected(90);
 			ImGui.Separator();
+			if (ImGui.MenuItem("Preferences..."))
+				mShowPreferences = true;
+			ImGui.Separator();
 			if (ImGui.MenuItem("Play / Stop", "Ctrl+P"))
 				TogglePlay();
 			ImGui.EndMenu();
@@ -206,8 +316,24 @@ extension EditorApp
 			}
 			if (ImGui.MenuItem("Map Builder", null, mShowMapBuilder))
 				mShowMapBuilder = !mShowMapBuilder;
+			if (ImGui.MenuItem("Model Views", null, mShowModelViews))
+				mShowModelViews = mFocusModelViews = !mShowModelViews;
+			if (ImGui.MenuItem("Model", null, mShowModel))
+			{
+				mShowModel = !mShowModel;
+				mDockModel = mModelFocus = mShowModel;
+			}
+			if (ImGui.MenuItem("UV Editor", null, mShowUVEditor))
+				mShowUVEditor = !mShowUVEditor;
 			if (ImGui.MenuItem("Graphics Quality", null, mShowQuality))
 				mShowQuality = !mShowQuality;
+			if (ImGui.MenuItem("Lighting", null, mShowLighting))
+				mShowLighting = !mShowLighting;
+			if (ImGui.MenuItem("Rigging", null, mShowRig))
+			{
+				mShowRig = !mShowRig;
+				mDockRig = mFocusRig = mShowRig;
+			}
 			if (ImGui.MenuItem("Reset Layout"))
 				mResetLayout = true;
 			if (ImGui.MenuItem("Scene Grid", null, mShowGrid))
@@ -284,6 +410,8 @@ extension EditorApp
 		ImGui.Separator();
 		if (ImGui.MenuItem("Map Builder...", null, mShowMapBuilder))
 			mShowMapBuilder = !mShowMapBuilder;
+		if (ImGui.MenuItem("Model...", null, mShowModel))
+			mShowModel = !mShowModel;
 	}
 
 	/// The project's prefabs or models, one submenu per folder; choosing one puts it in the middle of the Scene view.
@@ -357,7 +485,7 @@ extension EditorApp
 	bool ToolButton(char8* label, bool active, float width = 0)
 	{
 		if (active)
-			ImGui.PushStyleColor(ImGui.Col.Button, .(0.24f, 0.44f, 0.66f, 1));
+			ImGui.PushStyleColor(ImGui.Col.Button, EditorTheme.Accent);
 		let pressed = ImGui.Button(label, .(width, 0));
 		if (active)
 			ImGui.PopStyleColor();
@@ -424,7 +552,7 @@ extension EditorApp
 		// Capture the state first: pressing the button changes it before the matching pop.
 		let wasPlaying = mPlay != .Edit;
 		if (wasPlaying)
-			ImGui.PushStyleColor(ImGui.Col.Button, .(0.20f, 0.46f, 0.72f, 1));
+			ImGui.PushStyleColor(ImGui.Col.Button, EditorTheme.Accent);
 		if (ImGui.Button(wasPlaying ? Icons.StopLabel : Icons.PlayLabel, .(buttonWidth, 0)))
 			TogglePlay();
 		if (wasPlaying)
@@ -449,7 +577,7 @@ extension EditorApp
 		if (!mStatus.IsEmpty)
 		{
 			ImGui.SameLine(0, 24);
-			ImGui.TextColored(.(1, 0.82f, 0.35f, 1), mStatus.CStr());
+			ImGui.TextColored(EditorTheme.Warning, mStatus.CStr());
 		}
 		else if (mScene.Network != null && mScene.Network.Mode != .Offline)
 		{

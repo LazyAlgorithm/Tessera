@@ -57,6 +57,9 @@ static class Textures
 		let slash = name.LastIndexOf('/');
 		if (slash >= 0)
 			name = name.Substring(slash + 1);
+		// Baked lightmaps (docs/baked-lighting.md) hold light, not colour.
+		if (name.StartsWith("Lightmap-"))
+			return .Data;
 		return name.IndexOf("normal", true) >= 0 ? .Normal : .Color;
 	}
 

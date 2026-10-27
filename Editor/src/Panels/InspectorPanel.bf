@@ -50,6 +50,10 @@ extension EditorApp
 	{
 		if (ImGui.Begin("Inspector"))
 		{
+			// Where this panel is docked is where the Model window opens.
+			let inspectorDock = ImGui.GetWindowDockID();
+			if (inspectorDock != 0)
+				mInspectorDock = inspectorDock;
 			let selected = Selected;
 			// Selecting another object takes the Inspector back from an asset clicked in the Project panel.
 			if (mSelectedId != mInspectedObject)
@@ -513,17 +517,17 @@ extension EditorApp
 		let letter = ImGui.CalcTextSize("X").x + 4;
 		let width = Math.Max((ImGui.GetContentRegionAvail().x - letter * 3 - spacing * 2) / 3, 24);
 		ImGui.AlignTextToFramePadding();
-		ImGui.TextColored(.(0.95f, 0.45f, 0.42f, 1), "X");
+		ImGui.TextColored(EditorTheme.Error, "X");
 		ImGui.SameLine(0, 4);
 		ImGui.SetNextItemWidth(width);
 		changed |= ImGui.DragFloat("##x", ref value.x, speed);
 		ImGui.SameLine(0, spacing);
-		ImGui.TextColored(.(0.55f, 0.85f, 0.42f, 1), "Y");
+		ImGui.TextColored(EditorTheme.Good, "Y");
 		ImGui.SameLine(0, 4);
 		ImGui.SetNextItemWidth(width);
 		changed |= ImGui.DragFloat("##y", ref value.y, speed);
 		ImGui.SameLine(0, spacing);
-		ImGui.TextColored(.(0.45f, 0.62f, 0.98f, 1), "Z");
+		ImGui.TextColored(EditorTheme.Info, "Z");
 		ImGui.SameLine(0, 4);
 		ImGui.SetNextItemWidth(width);
 		changed |= ImGui.DragFloat("##z", ref value.z, speed);

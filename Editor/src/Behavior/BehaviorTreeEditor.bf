@@ -613,7 +613,7 @@ extension EditorApp
 			return;
 		let rows = selectedNode.def.parameters.Count;
 		ImGui.SetCursorScreenPos(.(canvas.origin.x + 10, canvas.origin.y + 10));
-		ImGui.PushStyleColor(ImGui.Col.ChildBg, .(0.10f, 0.10f, 0.11f, 0.92f));
+		ImGui.PushStyleColor(ImGui.Col.ChildBg, EditorTheme.Canvas);
 		ImGui.BeginChild("treevalues", .(300, 92 + rows * 27 + (selectedNode.def.key == "subtree" ? 26 : 0)), ImGui.ChildBorders);
 		ImGui.Text(selectedNode.def.title);
 		for (int32 i = 0; i < (int32)rows; i++)
@@ -641,7 +641,7 @@ extension EditorApp
 			if (ImGui.SmallButton("New Subtree File"))
 				CreateSubtreeFile(selectedNode);
 		}
-		ImGui.PushStyleColor(ImGui.Col.Text, .(0.62f, 0.64f, 0.68f, 1));
+		ImGui.PushStyleColor(ImGui.Col.Text, EditorTheme.CanvasText);
 		ImGui.TextWrapped(selectedNode.def.description.CStr());
 		ImGui.PopStyleColor();
 		ImGui.EndChild();
@@ -691,7 +691,7 @@ extension EditorApp
 		let count = runner.Blackboard.Values.Count;
 		let height = 34 + Math.Max(count, 1) * 19;
 		ImGui.SetCursorScreenPos(.(canvas.origin.x + 10, canvas.origin.y + canvas.size.y - height - 10));
-		ImGui.PushStyleColor(ImGui.Col.ChildBg, .(0.10f, 0.10f, 0.11f, 0.92f));
+		ImGui.PushStyleColor(ImGui.Col.ChildBg, EditorTheme.Canvas);
 		ImGui.BeginChild("treeblackboard", .(300, height), ImGui.ChildBorders);
 		ImGui.Text(scope String()..AppendF("Blackboard of {}", runner.GameObject.Name));
 		if (count == 0)

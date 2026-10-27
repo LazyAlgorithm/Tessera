@@ -206,6 +206,15 @@ TN_API bool tn_image_write_png(const char* path, const uint8_t* pixels, int widt
 	return stbi_write_png(path, width, height, 4, pixels, width * 4) != 0;
 }
 
+// The same as PNG bytes in memory (for putting pictures inside a .glb). Free them with tn_image_free_png.
+TN_API uint8_t* tn_image_encode_png(const uint8_t* pixels, int width, int height, int* size)
+{
+	*size = 0;
+	return stbi_write_png_to_mem(pixels, width * 4, width, height, 4, size);
+}
+
+TN_API void tn_image_free_png(uint8_t* bytes) { STBIW_FREE(bytes); }
+
 // ------------------------------------------------------------------------------------------
 // Dear ImGui backend
 // ------------------------------------------------------------------------------------------
@@ -292,7 +301,7 @@ namespace
 		const ImVec4 accent(0.173f, 0.365f, 0.529f, 1.0f);
 		const ImVec4 accentHover(0.227f, 0.447f, 0.690f, 1.0f);
 		c[ImGuiCol_Text] = ImVec4(0.824f, 0.824f, 0.824f, 1.0f);
-		c[ImGuiCol_TextDisabled] = ImVec4(0.500f, 0.500f, 0.500f, 1.0f);
+		c[ImGuiCol_TextDisabled] = ImVec4(0.520f, 0.520f, 0.520f, 1.0f);
 		c[ImGuiCol_WindowBg] = window;
 		c[ImGuiCol_ChildBg] = ImVec4(0, 0, 0, 0);
 		c[ImGuiCol_PopupBg] = ImVec4(0.190f, 0.190f, 0.190f, 0.98f);
@@ -390,6 +399,39 @@ TN_API bool tn_imgui_init(SDL_Window* window, const char* iniPath, float uiScale
 	s_texUniform = bgfx::createUniform("s_tex", bgfx::UniformType::Sampler);
 
 	return bgfx::isValid(s_imguiProgram);
+}
+
+// The interface's colours, for editor themes: how many there are, each one's name, reading and setting them, and
+// ImGui's own dark or light colours to start from.
+TN_API int tn_imgui_color_count()
+{
+	return ImGuiCol_COUNT;
+}
+
+TN_API const char* tn_imgui_color_name(int index)
+{
+	return index >= 0 && index < ImGuiCol_COUNT ? ImGui::GetStyleColorName(index) : "";
+}
+
+TN_API void tn_imgui_get_color(int index, float* rgba)
+{
+	if (index < 0 || index >= ImGuiCol_COUNT) return;
+	const ImVec4& c = ImGui::GetStyle().Colors[index];
+	rgba[0] = c.x; rgba[1] = c.y; rgba[2] = c.z; rgba[3] = c.w;
+}
+
+TN_API void tn_imgui_set_color(int index, const float* rgba)
+{
+	if (index < 0 || index >= ImGuiCol_COUNT) return;
+	ImGui::GetStyle().Colors[index] = ImVec4(rgba[0], rgba[1], rgba[2], rgba[3]);
+}
+
+TN_API void tn_imgui_base_colors(bool light)
+{
+	if (light)
+		ImGui::StyleColorsLight();
+	else
+		ImGui::StyleColorsDark();
 }
 
 TN_API void tn_imgui_shutdown()

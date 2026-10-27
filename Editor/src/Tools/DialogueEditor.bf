@@ -138,7 +138,7 @@ extension EditorApp
 		if (!mDialogue.problems.IsEmpty)
 		{
 			ImGui.SameLine(0, 14);
-			ImGui.TextColored(.(1, 0.6f, 0.3f, 1), "Problems (hover)");
+			ImGui.TextColored(EditorTheme.Warning, "Problems (hover)");
 			if (ImGui.IsItemHovered())
 				ImGui.SetTooltip(mDialogue.problems.CStr());
 		}
@@ -469,7 +469,7 @@ extension EditorApp
 			ImGui.EndCombo();
 		}
 		if (!asset.problems.IsEmpty)
-			ImGui.TextColored(.(1, 0.6f, 0.3f, 1), asset.problems.CStr());
+			ImGui.TextColored(EditorTheme.Warning, asset.problems.CStr());
 		if (mPlay == .Edit)
 			return;
 		switch (runner.View)

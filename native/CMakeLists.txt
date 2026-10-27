@@ -108,6 +108,8 @@ add_library(tessera_native STATIC
 	${TP}/TextEdit/extras/TrieAutoComplete.cpp
 	tessera_native.cpp
 	tessera_code.cpp
+	tessera_bake.cpp
+	tessera_rig.cpp
 	tessera_assets.c
 	tessera_pack.c
 	tessera_guard.c

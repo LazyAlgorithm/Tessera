@@ -413,3 +413,42 @@ object 1121 parent 1120 active 1 name "Shot Wide"
 transform 0 0 0 0 0 0 1 1 1 1
 object 1122 parent 1120 active 1 name "Shot Boulder"
 transform 0 0 0 0 0 0 1 1 1 1
+object 1123 parent 0 active 1 name "Rig Test Person"
+transform -6 40.5 -5 0 0 0 1 1 1 1
+component Tessera.MeshRenderer enabled 1
+field mesh "Models/Rigging/Person.glb"
+field color 1 1 1 1
+field metallic 0
+field roughness 0.85
+field emissive 0 0 0 1
+field emissiveIntensity 0
+field flatShading 0
+field unlit 0
+field castShadows 1
+field texture ""
+object 1124 parent 0 active 1 name "Rig Test Dog"
+transform -3 40.5 -5 0 0 0 1 1 1 1
+component Tessera.MeshRenderer enabled 1
+field mesh "Models/Rigging/Husky.glb"
+field color 1 1 1 1
+field metallic 0
+field roughness 0.85
+field emissive 0 0 0 1
+field emissiveIntensity 0
+field flatShading 0
+field unlit 0
+field castShadows 1
+field texture ""
+object 1125 parent 0 active 1 name "Rig Test Pug"
+transform -1.5 40.5 -5 0 0 0 1 1 1 1
+component Tessera.MeshRenderer enabled 1
+field mesh "Models/Rigging/Pug.glb"
+field color 1 1 1 1
+field metallic 0
+field roughness 0.85
+field emissive 0 0 0 1
+field emissiveIntensity 0
+field flatShading 0
+field unlit 0
+field castShadows 1
+field texture ""

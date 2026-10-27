@@ -4,7 +4,8 @@ using Bgfx;
 
 namespace Tessera;
 
-/// The sun's shadows: four cascades fitted round the camera's view, drawn into the shadow atlas.
+/// The sun's shadows (four cascades fitted round the camera's view, drawn into the shadow atlas) and the point and
+/// spot lights' (tiles of a second atlas, docs/lighting.md).
 extension RenderView
 {
 	/// The sun's four shadow cascades, one tile of the shadow atlas each.
@@ -19,38 +20,36 @@ extension RenderView
 				Gfx.ClearDepth);
 			bgfx.set_view_transform(view, &mCascadeView[cascade], &mCascadeProj[cascade]);
 			bgfx.touch(view);
+			mShadowPassViewProj = mCascadeViewProj[cascade];
+			mShadowScissor = default;
 			SubmitShadowCascade(view, cascade);
 		}
 		let filterRadius = mCascadeRadius[0] * 2.0f / RenderResources.ShadowTileSize * 1.5f;
 		mShadowParams = .(1.0f / RenderResources.ShadowAtlasSize, ShadowBias, 1.0f, filterRadius);
 	}
 
-	/// A perspective depth map for each shadowed spotlight. Casters come from the light's view, including walls
-	/// outside the camera frustum: a wall behind the viewer must still stop a remote flashlight.
-	void DrawSpotShadows()
+	/// The point and spot lights' shadows, all in one view: each tile is a spot light's view or one face of a point
+	/// light's cube, drawn through its own matrix and kept to its part of the atlas by a scissor. Casters come from
+	/// the light's view, including walls outside the camera's: a wall behind the viewer must still stop a remote
+	/// flashlight.
+	void DrawLocalShadows()
 	{
-		RenderResources.EnsureSpotShadows();
-		let tile = RenderResources.SpotShadowTileSize;
-		for (int slot < RenderResources.MaxLights)
+		RenderResources.EnsureLocalShadows();
+		let size = RenderResources.ShadowAtlasSize;
+		let view = (uint16)(ViewBase + LocalShadowView);
+		SetUpView(view, "Point and spot shadows", RenderResources.LocalShadowFrameBuffer, 0, 0, size, size, Gfx.ClearDepth);
+		Matrix4 identity = .Identity;
+		bgfx.set_view_transform(view, &identity, &identity);
+		bgfx.touch(view);
+		List<RenderItem> visible = scope .();
+		for (let tile in mLights.Tiles)
 		{
-			let light = mSpotLights[slot];
-			if (light == null) continue;
-			let position = light.Transform.Position;
-			let direction = light.Transform.Forward;
-			var lightView = Matrix4.LookAt(position, position + direction, light.Transform.Rotation * Vector3.Up);
-			var lightProj = Matrix4.Perspective(Math.Clamp(light.spotAngle, 1, 170), 1, 0.02f, light.range, Gfx.HomogeneousDepth);
-			let viewProj = lightProj * lightView;
-			mSpotShadowMtx[slot] = SpotAtlasTransform(slot) * viewProj;
-			mSpotShadowParams[slot] = .(Math.Clamp(light.shadowStrength, 0, 1), 1.0f / RenderResources.ShadowAtlasSize, 0.000002f, 0.008f);
-			let view = (uint16)(ViewBase + SpotShadowView + slot);
-			SetUpView(view, "Spot shadow", RenderResources.SpotShadowFrameBuffer, (int32)(slot % 4) * tile, (int32)(slot / 4) * tile, tile, tile, Gfx.ClearDepth);
-			bgfx.set_view_transform(view, &lightView, &lightProj);
-			bgfx.touch(view);
-			let frustum = Frustum(viewProj, Gfx.HomogeneousDepth);
-			List<RenderItem> visible = scope .();
+			mShadowPassViewProj = tile.drawViewProj;
+			mShadowScissor = .(tile.x, tile.y, tile.size, tile.size);
+			visible.Clear();
 			for (let item in mShadowItems)
 			{
-				if (frustum.Intersects(.(item.center - Vector3(item.radius), item.center + Vector3(item.radius))))
+				if (tile.frustum.IntersectsSphere(item.center, item.radius))
 					visible.Add(item);
 			}
 			int start = 0;
@@ -63,19 +62,7 @@ extension RenderView
 				start = end;
 			}
 		}
-	}
-
-	static Matrix4 SpotAtlasTransform(int slot)
-	{
-		Matrix4 bias = default;
-		bias.m[0] = 0.125f;
-		bias.m[12] = 0.125f + (float)(slot % 4) * 0.25f;
-		bias.m[5] = Gfx.OriginBottomLeft ? 0.125f : -0.125f;
-		bias.m[13] = Gfx.OriginBottomLeft ? 0.875f - (float)(slot / 4) * 0.25f : 0.125f + (float)(slot / 4) * 0.25f;
-		bias.m[10] = Gfx.HomogeneousDepth ? 0.5f : 1;
-		bias.m[14] = Gfx.HomogeneousDepth ? 0.5f : 0;
-		bias.m[15] = 1;
-		return bias;
+		mShadowScissor = default;
 	}
 
 	/// How far behind a cascade's view things can stand and still cast a shadow into it.

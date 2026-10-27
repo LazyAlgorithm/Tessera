@@ -361,7 +361,7 @@ extension EditorApp
 				ImGui.SetTooltip("Sets Shape to Mesh with the Mesh Renderer's model. The model must be closed (no open sides) to be filled in.");
 		}
 		if (voxels.shape == .Mesh && voxels.IsEmpty)
-			ImGui.TextColored(.(1.0f, 0.6f, 0.3f, 1), voxels.mesh.IsEmpty ? "Choose a model in Mesh." : "Nothing came of that model: is it closed, with no open sides?");
+			ImGui.TextColored(EditorTheme.Warning, voxels.mesh.IsEmpty ? "Choose a model in Mesh." : "Nothing came of that model: is it closed, with no open sides?");
 		ImGui.SetNextItemWidth(-1);
 		ImGui.SliderFloat("##carvesize", ref mBrushSize, 0.1f, 10, "Brush %.2f");
 		ImGui.TextWrapped("At runtime call Carve(point, radius) from a script; loose pieces break off and fall.");

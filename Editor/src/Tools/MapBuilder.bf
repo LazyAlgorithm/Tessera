@@ -959,7 +959,8 @@ extension EditorApp
 	void UpdateQuickAdd(ImGui.Vec2 origin, ImGui.Vec2 size)
 	{
 		let typing = (ImGui.tn_imgui_capture_flags() & 4) != 0;
-		if (mSceneHovered && !mFlying && !typing && mPlay == .Edit && ImGui.IsKeyPressed(ImGui.Key.Space))
+		// In a model's edit mode, Space finds a model tool instead (ModelCommands.bf).
+		if (mSceneHovered && !mFlying && !typing && mPlay == .Edit && !mModelEditing && ImGui.IsKeyPressed(ImGui.Key.Space))
 		{
 			let mouse = ImGui.GetMousePos();
 			let ray = mSceneCamera.ViewportPointToRay((mouse.x - origin.x) / size.x, (mouse.y - origin.y) / size.y);

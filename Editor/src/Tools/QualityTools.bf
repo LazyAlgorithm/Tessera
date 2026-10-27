@@ -41,6 +41,7 @@ extension EditorApp
 				changed = true;
 			}
 			changed |= ImGui.SliderFloat("Shadow Distance", ref v.shadowDistance, 0.25f, 3, "x%.2f");
+			changed |= ImGui.DragInt("Shadowed Lights", ref v.shadowedLights, 0.1f, 0, 32);
 			changed |= ImGui.Checkbox("Ambient Occlusion", ref v.ambientOcclusion);
 			changed |= ImGui.Checkbox("Depth of Field", ref v.depthOfField);
 			changed |= ImGui.Checkbox("Motion Blur", ref v.motionBlur);

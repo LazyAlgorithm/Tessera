@@ -265,6 +265,20 @@ static class Assets
 		}
 		let full = scope String();
 		ResolvePath(filePart, full);
+		// A model saved from the editor's modeller (docs/modeling.md); "#n" picks the faces of material slot n.
+		if (filePart.EndsWith(".tmesh", .OrdinalIgnoreCase))
+		{
+			let text = scope String();
+			if (AssetPack.ReadAllText(full, text) case .Err)
+				return null;
+			let edit = scope EditMesh();
+			if (!edit.Read(text))
+				return null;
+			let mesh = new Mesh();
+			mesh.Name.Set(path);
+			edit.Build(mesh, .One, only);
+			return mesh;
+		}
 		let scene = Native.tn_gltf_load(full.CStr());
 		if (scene == null)
 			return null;
@@ -273,11 +287,14 @@ static class Assets
 		let mesh = new Mesh();
 		mesh.Name.Set(path);
 		let count = Native.tn_gltf_prim_count(scene);
+		// Second coordinates on every part: the model brought its own lightmap layout.
+		var allUV2 = count > 0;
 		for (uint32 p = 0; p < count; p++)
 		{
 			if (only >= 0 && (uint32)only != p)
 				continue;
 			let prim = Native.tn_gltf_get_prim(scene, p);
+			allUV2 &= prim.uv2s != null;
 			Matrix4 world = default;
 			for (int i < 16)
 				world.m[i] = prim.world[i];
@@ -316,6 +333,12 @@ static class Assets
 				mesh.RecalculateNormals();
 		}
 		mesh.RecalculateBounds();
+		if (allUV2 && mesh.Indices.Count > 0)
+		{
+			mesh.LightmapUVs = true;
+			mesh.LightmapUVsFromModel = true;
+			mesh.LightmapUVScale = LightmapUV.MeasureScale(mesh);
+		}
 		return mesh;
 	}
 
@@ -334,6 +357,31 @@ static class Assets
 			return Gfx.WhiteTexture;
 		let texture = Textures.Create(pixels, width, height, kind == .Color ? Textures.KindOf(path) : kind);
 		sTextures[new String(path)] = texture.idx;
+		return texture;
+	}
+
+	/// Goes up each time ReplaceTexture changes a texture, so renderers and materials holding one look it up again.
+	public static int32 TextureVersion;
+
+	/// Puts new RGBA pixels under a texture's name (painting a texture in the editor): every renderer and material
+	/// naming it draws the new pixels from the next frame. The old texture is released.
+	public static bgfx.TextureHandle ReplaceTexture(StringView path, uint8* pixels, int32 width, int32 height)
+	{
+		if (pixels == null || width <= 0 || height <= 0 || !Gfx.Initialized)
+			return Gfx.WhiteTexture;
+		let texture = Textures.Create(pixels, width, height, Textures.KindOf(path));
+		if (sTextures.GetAndRemoveAlt(path) case .Ok(let pair))
+		{
+			if (pair.value != Gfx.WhiteTexture.idx)
+			{
+				bgfx.TextureHandle old;
+				old.idx = pair.value;
+				bgfx.destroy_texture(old);
+			}
+			delete pair.key;
+		}
+		sTextures[new String(path)] = texture.idx;
+		TextureVersion++;
 		return texture;
 	}
 

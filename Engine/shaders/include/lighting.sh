@@ -1,17 +1,22 @@
 // The lighting every lit surface shares (fs_mesh.sc, custom shaders, decals): the sun with four shadow cascades,
-// up to MAX_LIGHTS point, spot and directional lights with spotlight shadows, hemisphere ambient, reflections of
-// the sky and of reflection probes (docs/reflections.md), and distance fog. Include after bgfx_shader.sh.
+// point, spot and extra directional lights by cluster with point and spot shadows (docs/lighting.md), hemisphere
+// ambient or baked light probes (docs/baked-lighting.md), reflections of the sky and of reflection probes (docs/reflections.md), and distance fog. Include after
+// bgfx_shader.sh.
 #ifndef TESSERA_LIGHTING_SH
 #define TESSERA_LIGHTING_SH
 
-#define MAX_LIGHTS 16
 #define PI 3.14159265
 
 SAMPLER2DSHADOW(s_shadowMap, 1);
-SAMPLER2DSHADOW(s_spotShadowMap, 11);
+// The point and spot lights' shadow tiles.
+SAMPLER2DSHADOW(s_localShadowMap, 11);
+// The view's lights, their shadow tiles and the clusters' lists of them, laid out as in LightClusters.bf.
+SAMPLER2D(s_lightData, 15);
 // What surfaces mirror: the nearest reflection probe's cube and the sky's, each with rougher levels down its mips.
 SAMPLERCUBE(s_reflectionProbe, 13);
 SAMPLERCUBE(s_reflectionSky, 14);
+// Baked light probes (LightProbes.bf): x by y by three blocks of z (red, green, blue), each texel a + b.n.
+SAMPLER3D(s_lightProbes, 12);
 
 uniform vec4 u_camPos;
 uniform vec4 u_sunDir;        // xyz: direction towards the sun, w: shadow strength
@@ -19,14 +24,12 @@ uniform vec4 u_sunColor;      // rgb premultiplied by intensity
 uniform vec4 u_ambientSky;
 uniform vec4 u_ambientGround;
 uniform vec4 u_fogColor;      // rgb, a: density
-uniform vec4 u_lightPosRange[MAX_LIGHTS];  // xyz position, w range
-uniform vec4 u_lightColor[MAX_LIGHTS];     // rgb premultiplied by intensity, w: 1 for spot
-uniform vec4 u_lightDirSpot[MAX_LIGHTS];   // xyz spot direction, w cos(outer angle)
-uniform vec4 u_lightParams[MAX_LIGHTS];    // x cos(inner angle)
-uniform vec4 u_lightCount;
+uniform vec4 u_lightCount;    // x: directional lights at the start of the list, y: the sun's shadow mask channel + 1,
+                              // z: lights in all
+uniform mat4 u_clusterViewProj; // the camera the clusters were made for
+uniform vec4 u_clusterForward;  // xyz: its forward direction
+uniform vec4 u_clusterParams;   // x, y: a depth's slice is floor(log(depth) * x + y), z: the near distance
 uniform mat4 u_shadowMtx[4];
-uniform mat4 u_spotShadowMtx[MAX_LIGHTS];
-uniform vec4 u_spotShadowParams[MAX_LIGHTS]; // strength, texel size, depth bias, normal offset
 uniform vec4 u_cascadeSplits;
 uniform vec4 u_shadowParams;  // x texel size, y depth bias, z enabled, w normal offset
 uniform vec4 u_reflection;    // x: 1 with reflection cubes (0: the ambient colours stand in), y: the sky cube's
@@ -35,6 +38,9 @@ uniform vec4 u_probeMin;      // the probe's box, xyz: its lowest corner, w: 1 t
 uniform vec4 u_probeMax;      // xyz: its highest corner, w: how far outside it its reflections fade out
 uniform vec4 u_probePos;      // xyz: where the probe saw from, w: its cube's last level
 uniform vec4 u_ambientParams; // x: 1 to take ambient light from the reflection cubes, y: the scene's ambient intensity
+uniform vec4 u_lightProbeMin;   // xyz: the first probe, w: 1 with baked light probes
+uniform vec4 u_lightProbeScale; // xyz: 1 / (last probe - first probe)
+uniform vec4 u_lightProbeCount; // xyz: probes along each axis
 
 vec3 toLinear3(vec3 c)
 {
@@ -71,28 +77,118 @@ vec3 brdf(vec3 n, vec3 v, vec3 l, vec3 albedo, float metallic, float roughness, 
 	return (diffuse * (vec3_splat(1.0) - fresnel) + specular) * ndotl;
 }
 
-// Perspective shadow comparison for a spotlight, bounded to its atlas tile so filtering never reads a neighbour.
-float spotShadow(int index, vec3 wpos, vec3 normal)
+// Must match LightClusters.bf.
+#define TW_DATA_WIDTH 64
+#define TW_TILE_TEXEL 2048
+#define TW_CLUSTER_TEXEL 2560
+#define TW_INDEX_TEXEL 6016
+#define TW_GRID_X 16
+#define TW_GRID_Y 9
+#define TW_GRID_Z 24
+
+vec4 lightTexel(int i)
 {
-    vec4 params = u_spotShadowParams[index];
-    if (params.x <= 0.0) return 1.0;
-    vec4 clip = mul(u_spotShadowMtx[index], vec4(wpos + normal * params.w, 1.0));
-    if (clip.w <= 0.0) return 1.0;
-    vec3 sc = clip.xyz / clip.w;
-    if (sc.z < 0.0 || sc.z > 1.0) return 1.0;
-    // The matrix already accounts for the graphics API's texture origin. Find the tile from its centre.
-    vec4 centreClip = mul(u_spotShadowMtx[index], vec4(u_lightPosRange[index].xyz + u_lightDirSpot[index].xyz, 1.0));
-    vec2 tileMin = floor((centreClip.xy / centreClip.w) * 4.0) * 0.25;
-    vec2 lo = tileMin + vec2_splat(params.y * 1.5);
-    vec2 hi = tileMin + vec2_splat(0.25 - params.y * 1.5);
-    if (any(lessThan(sc.xy, tileMin)) || any(greaterThan(sc.xy, tileMin + vec2_splat(0.25)))) return 1.0;
-    float depth = sc.z - params.z;
-    float sum = 0.0;
-    sum += shadow2D(s_spotShadowMap, vec3(clamp(sc.xy + vec2(-0.5,-0.5) * params.y, lo, hi), depth));
-    sum += shadow2D(s_spotShadowMap, vec3(clamp(sc.xy + vec2( 0.5,-0.5) * params.y, lo, hi), depth));
-    sum += shadow2D(s_spotShadowMap, vec3(clamp(sc.xy + vec2(-0.5, 0.5) * params.y, lo, hi), depth));
-    sum += shadow2D(s_spotShadowMap, vec3(clamp(sc.xy + vec2( 0.5, 0.5) * params.y, lo, hi), depth));
-    return mix(1.0, sum * 0.25, params.x);
+	int row = i / TW_DATA_WIDTH;
+	return texelFetch(s_lightData, ivec2(i - row * TW_DATA_WIDTH, row), 0);
+}
+
+// The light number at a place in the clusters' lists (four to a texel).
+int clusterLight(int k)
+{
+	vec4 four = lightTexel(TW_INDEX_TEXEL + k / 4);
+	int part = k - (k / 4) * 4;
+	float value = part == 0 ? four.x : (part == 1 ? four.y : (part == 2 ? four.z : four.w));
+	return int(value + 0.5);
+}
+
+// Where the list of lights for the cluster round wpos starts, and how long it is.
+vec2 clusterList(vec3 wpos)
+{
+	vec4 clip = mul(u_clusterViewProj, vec4(wpos, 1.0));
+	vec2 ndc = clip.xy / max(clip.w, 1.0e-6);
+	int x = int(clamp(floor((ndc.x * 0.5 + 0.5) * float(TW_GRID_X)), 0.0, float(TW_GRID_X - 1)));
+	int y = int(clamp(floor((ndc.y * 0.5 + 0.5) * float(TW_GRID_Y)), 0.0, float(TW_GRID_Y - 1)));
+	float depth = dot(wpos - u_camPos.xyz, u_clusterForward.xyz);
+	float slice = depth <= u_clusterParams.z ? 0.0 : floor(log(depth) * u_clusterParams.x + u_clusterParams.y);
+	int z = int(clamp(slice, 0.0, float(TW_GRID_Z - 1)));
+	return lightTexel(TW_CLUSTER_TEXEL + x + y * TW_GRID_X + z * TW_GRID_X * TW_GRID_Y).xy;
+}
+
+// A point or spot light's shadow at wpos: its tile (a point light's cube face facing wpos), compared through four
+// taps kept inside the tile. toLight runs from wpos to the light.
+float localShadow(vec4 shadow, vec3 wpos, vec3 normal, vec3 toLight, float dist)
+{
+	int tile = int(shadow.y + 0.5);
+	if (shadow.z > 1.5)
+	{
+		vec3 d = -toLight;
+		vec3 a = abs(d);
+		if (a.x >= a.y && a.x >= a.z)
+			tile += d.x > 0.0 ? 0 : 1;
+		else if (a.y >= a.z)
+			tile += d.y > 0.0 ? 2 : 3;
+		else
+			tile += d.z > 0.0 ? 4 : 5;
+	}
+	int t = TW_TILE_TEXEL + tile * 8;
+	mat4 mtx = mtxFromCols(lightTexel(t), lightTexel(t + 1), lightTexel(t + 2), lightTexel(t + 3));
+	vec4 bounds = lightTexel(t + 4); // the tile in texture coordinates, a texel and a half in
+	vec4 info = lightTexel(t + 5);   // x: texel size, y: depth bias, z: a texel's width a metre from the light
+	// Pushed off the surface by about a texel where it lands, against shadow acne.
+	vec4 clip = mul(mtx, vec4(wpos + normal * (dist * info.z * 1.5), 1.0));
+	if (clip.w <= 0.0) return 1.0;
+	vec3 sc = clip.xyz / clip.w;
+	if (sc.z < 0.0 || sc.z > 1.0) return 1.0;
+	vec2 edge = vec2_splat(info.x * 1.5);
+	if (any(lessThan(sc.xy, bounds.xy - edge)) || any(greaterThan(sc.xy, bounds.zw + edge))) return 1.0;
+	float depth = sc.z - info.y;
+	float sum = 0.0;
+	sum += shadow2D(s_localShadowMap, vec3(clamp(sc.xy + vec2(-0.5,-0.5) * info.x, bounds.xy, bounds.zw), depth));
+	sum += shadow2D(s_localShadowMap, vec3(clamp(sc.xy + vec2( 0.5,-0.5) * info.x, bounds.xy, bounds.zw), depth));
+	sum += shadow2D(s_localShadowMap, vec3(clamp(sc.xy + vec2(-0.5, 0.5) * info.x, bounds.xy, bounds.zw), depth));
+	sum += shadow2D(s_localShadowMap, vec3(clamp(sc.xy + vec2( 0.5, 0.5) * info.x, bounds.xy, bounds.zw), depth));
+	return mix(1.0, sum * 0.25, shadow.x);
+}
+
+// One light of the view's list on a surface.
+vec3 shadeLight(int index, vec3 wpos, vec3 n, vec3 v, vec3 albedo, float metallic, float roughness,
+	float specularLevel, vec4 bakedMask, bool lightmapped)
+{
+	int base = index * 8;
+	vec4 posRange = lightTexel(base);     // xyz position, w range
+	vec4 colorType = lightTexel(base + 1); // rgb premultiplied by intensity, w: 0 point, 1 spot, 2 directional
+	vec4 dirSpot = lightTexel(base + 2);   // xyz direction, w cos(outer angle)
+	vec4 params = lightTexel(base + 3);    // x cos(inner angle), y inverse square, z shadow mask channel + 1, w baked only
+	if (params.w > 0.5 && lightmapped)
+		return vec3_splat(0.0);
+	vec3 toLight = posRange.xyz - wpos;
+	float dist = length(toLight);
+	float range = posRange.w;
+	bool directional = colorType.w > 1.5;
+	if (!directional && dist >= range)
+		return vec3_splat(0.0);
+	vec3 l = directional ? -dirSpot.xyz : toLight / max(dist, 1.0e-4);
+	float atten = 1.0;
+	if (!directional)
+	{
+		float falloff = clamp(1.0 - dist / max(range, 1.0e-4), 0.0, 1.0);
+		atten = falloff * falloff / (1.0 + dist * dist * 0.1);
+		if (params.y > 0.5)
+		{
+			float ratio = dist * dist / max(range * range, 1.0e-8);
+			float fade = max(1.0 - ratio * ratio, 0.0);
+			atten = fade * fade / max(dist * dist, 1.0e-6);
+		}
+		if (colorType.w > 0.5)
+			atten *= smoothstep(dirSpot.w, params.x, dot(-l, dirSpot.xyz));
+		if (atten <= 0.0)
+			return vec3_splat(0.0);
+		vec4 shadow = lightTexel(base + 4); // x strength (0: none), y first tile, z tiles (1 spot, 6 point)
+		if (shadow.x > 0.0)
+			atten *= localShadow(shadow, wpos, n, toLight, dist);
+	}
+	if (params.z > 0.5) atten *= bakedMask[int(params.z - 1.0)];
+	return brdf(n, v, l, albedo, metallic, roughness, specularLevel) * colorType.rgb * atten * PI;
 }
 
 float shadowTap(mat4 mtx, vec3 wpos)
@@ -145,6 +241,18 @@ float sunShadow(vec3 wpos, vec3 n, float viewDepth)
 vec3 hemisphereAmbient(vec3 n)
 {
 	return mix(u_ambientGround.rgb, u_ambientSky.rgb, n.y * 0.5 + 0.5);
+}
+
+// The baked light probes' ambient light at a point for a surface facing n, blended between the eight probes round it.
+vec3 probeAmbient(vec3 wpos, vec3 n)
+{
+	vec3 t = clamp((wpos - u_lightProbeMin.xyz) * u_lightProbeScale.xyz, 0.0, 1.0);
+	vec3 count = u_lightProbeCount.xyz;
+	vec3 uvw = (t * (count - 1.0) + 0.5) / vec3(count.x, count.y, count.z * 3.0);
+	vec4 r = texture3D(s_lightProbes, uvw);
+	vec4 g = texture3D(s_lightProbes, uvw + vec3(0.0, 0.0, 1.0 / 3.0));
+	vec4 b = texture3D(s_lightProbes, uvw + vec3(0.0, 0.0, 2.0 / 3.0));
+	return max(vec3(r.x + dot(r.yzw, n), g.x + dot(g.yzw, n), b.x + dot(b.yzw, n)), vec3_splat(0.0));
 }
 
 // Where a reflection probe's cube is looked up for a ray from wpos along dir: with box projection, the direction from
@@ -212,9 +320,13 @@ vec3 shadeSurface(vec3 wpos, vec3 n, vec3 v, float viewDepth, vec3 albedo, float
 	vec3 mirrored = reflect(-v, n);
 	vec3 f0 = mix(vec3_splat(0.04 * specularLevel), albedo, metallic);
 	vec3 color;
+	// Without a lightmap, baked light probes give the light bounced round the scene (docs/baked-lighting.md).
+	bool probed = !lightmapped && u_lightProbeMin.w > 0.5;
+	if (probed)
+		ambient = probeAmbient(wpos, n);
 	if (u_reflection.x > 0.5)
 	{
-		if (u_ambientParams.x > 0.5 && !lightmapped)
+		if (u_ambientParams.x > 0.5 && !lightmapped && !probed)
 			ambient = environmentAmbient(wpos, n);
 		// What the surface mirrors of its surroundings, from the sky's and the probe's cubes: metals all of it,
 		// tinted, and other things a little, more at a grazing angle.
@@ -240,38 +352,17 @@ vec3 shadeSurface(vec3 wpos, vec3 n, vec3 v, float viewDepth, vec3 albedo, float
 	}
 	color += brdf(n, v, u_sunDir.xyz, albedo, metallic, roughness, specularLevel) * u_sunColor.rgb * shadow * PI;
 
-	for (int i = 0; i < MAX_LIGHTS; i++)
+	// Extra directional lights reach every pixel; the others by the cluster the pixel is in.
+	int directionalCount = int(u_lightCount.x + 0.5);
+	for (int i = 0; i < directionalCount; i++)
+		color += shadeLight(i, wpos, n, v, albedo, metallic, roughness, specularLevel, bakedMask, lightmapped);
+	if (u_lightCount.z > float(directionalCount) + 0.5)
 	{
-		if (float(i) >= u_lightCount.x)
-		{
-			break;
-		}
-		if (u_lightParams[i].w > 0.5 && lightmapped) continue;
-		vec3 toLight = u_lightPosRange[i].xyz - wpos;
-		float dist = length(toLight);
-		float range = u_lightPosRange[i].w;
-		bool directional = u_lightColor[i].w > 1.5;
-		if (directional || dist < range)
-		{
-			vec3 l = directional ? -u_lightDirSpot[i].xyz : toLight / max(dist, 1.0e-4);
-			float falloff = clamp(1.0 - dist / max(range, 1.0e-4), 0.0, 1.0);
-			float atten = falloff * falloff / (1.0 + dist * dist * 0.1);
-			if (u_lightParams[i].y > 0.5)
-			{
-				float ratio = dist * dist / max(range * range, 1.0e-8);
-				float fade = max(1.0 - ratio * ratio, 0.0);
-				atten = fade * fade / max(dist * dist, 1.0e-6);
-			}
-			if (directional) atten = 1.0;
-			else if (u_lightColor[i].w > 0.5)
-			{
-				float cosAngle = dot(-l, u_lightDirSpot[i].xyz);
-				atten *= smoothstep(u_lightDirSpot[i].w, u_lightParams[i].x, cosAngle);
-				atten *= spotShadow(i, wpos, n);
-			}
-			if (u_lightParams[i].z > 0.5) atten *= bakedMask[int(u_lightParams[i].z - 1.0)];
-			color += brdf(n, v, l, albedo, metallic, roughness, specularLevel) * u_lightColor[i].rgb * atten * PI;
-		}
+		vec2 list = clusterList(wpos);
+		int first = int(list.x + 0.5);
+		int count = int(list.y + 0.5);
+		for (int k = 0; k < count; k++)
+			color += shadeLight(clusterLight(first + k), wpos, n, v, albedo, metallic, roughness, specularLevel, bakedMask, lightmapped);
 	}
 	return color;
 }

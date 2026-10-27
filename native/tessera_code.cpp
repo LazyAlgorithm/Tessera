@@ -24,7 +24,14 @@ namespace
 		size_t savedUndoIndex = 0;
 		size_t lastUndoIndex = 0;
 		bool markup = false;
+		// Which of the editor's code colour sets this document was last given (tn_code_set_palette).
+		int paletteVersion = 0;
 	};
+
+	// The code colours every document uses, set by the editor's theme (tn_code_set_palette); version 0 is the
+	// built-in Visual Studio dark set.
+	TextEditor::Palette s_palette;
+	int s_paletteVersion = 0;
 
 	// What the editor knows about the engine's and the project's code. The editor (ApiIndex.bf) fills it by reading
 	// the source files themselves, so new engine features and the game's own scripts show up without anyone
@@ -319,9 +326,27 @@ namespace
 		}
 		return palette;
 	}
+
 }
 
 TN_API void tn_imgui_push_mono_font();
+
+// The colours of every code editor: TextEditor::Color::count colours (text, keyword, ... currentLineHighlightBorder,
+// in that order) as 0xAABBGGRR, from the editor's theme (EditorTheme.CodeColors).
+TN_API void tn_code_set_palette(const uint32_t* colors, int count)
+{
+	if (count != (int)TextEditor::Color::count) return;
+	for (int i = 0; i < count; i++) s_palette[i] = colors[i];
+	s_paletteVersion++;
+}
+
+// The colours last set (for the editor's tests): false when none were.
+TN_API bool tn_code_get_palette(uint32_t* colors, int count)
+{
+	if (count != (int)TextEditor::Color::count || s_paletteVersion == 0) return false;
+	for (int i = 0; i < count; i++) colors[i] = s_palette[i];
+	return true;
+}
 
 // Markup convenience: typing the '>' that ends an opening tag writes the matching closing tag
 // after the cursor, so "<panel>" becomes "<panel>|</panel>".
@@ -475,6 +500,11 @@ TN_API const char* tn_code_get_text(void* handle)
 TN_API void tn_code_render(void* handle, const char* id, float width, float height)
 {
 	Document* document = (Document*)handle;
+	if (document->paletteVersion != s_paletteVersion)
+	{
+		document->editor.SetPalette(s_palette);
+		document->paletteVersion = s_paletteVersion;
+	}
 	tn_imgui_push_mono_font();
 	document->editor.Render(id, ImVec2(width, height));
 	ImGui::PopFont();

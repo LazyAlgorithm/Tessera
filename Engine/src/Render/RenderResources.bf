@@ -7,14 +7,11 @@ namespace Tessera;
 /// Shaders, uniforms and the shadow atlas shared by every RenderView.
 static class RenderResources
 {
-	public const int MaxLights = 16;
 	public const int CascadeCount = 4;
 	/// The shadow map's size in pixels (four cascades in a 2 x 2 grid). Set before the first frame is drawn; phones
 	/// use a smaller one (Gfx.UseMobileQuality).
 	public static int32 ShadowAtlasSize = 4096;
 	public static int32 ShadowTileSize => ShadowAtlasSize / 2;
-	/// Sixteen spotlights, one 1024px tile each at desktop quality.
-	public static int32 SpotShadowTileSize => ShadowAtlasSize / 4;
 
 	public static bool Ready;
 	public static bgfx.ProgramHandle MeshProgram;
@@ -33,19 +30,23 @@ static class RenderResources
 	public static bgfx.ProgramHandle DecalProgram;
 	public static bgfx.UniformHandle uDecalBox, uDecalInverse, uDecalColor, uDecalAxis, uDecalParams;
 
-	public static bgfx.UniformHandle sAlbedo, sShadowMap, sSpotShadowMap, sColor;
+	public static bgfx.UniformHandle sAlbedo, sShadowMap, sLocalShadowMap, sColor;
 	public static bgfx.UniformHandle uWind, uWindZone, uWindPush, uSway, uBender, uBenderPush;
 	public static bgfx.UniformHandle uCamPos, uSunDir, uSunColor, uAmbientSky, uAmbientGround, uFogColor;
 	public static bgfx.UniformHandle uMaterial, uEmissive, uUvTransform, uSurface, uParams, uPbr, sTexture1, sTexture2, sNormalMap, sMetalRoughMap, sOcclusionMap, sEmissiveMap;
 	public static bgfx.UniformHandle sLightmap, sLightmapDirection, sLightmapShadowmask, uLightmapTransform, uLightmapDecode;
-	public static bgfx.UniformHandle uLightPosRange, uLightColor, uLightDirSpot, uLightParams, uLightCount;
-	public static bgfx.UniformHandle uShadowMtx, uCascadeSplits, uShadowParams, uSpotShadowMtx, uSpotShadowParams;
+	/// Baked light probes (LightProbes): the grid's 3D texture and where it is.
+	public static bgfx.UniformHandle sLightProbes, uLightProbeMin, uLightProbeScale, uLightProbeCount;
+	// Lights by cluster (LightClusters, docs/lighting.md).
+	public static bgfx.UniformHandle sLightData, uLightCount, uClusterViewProj, uClusterForward, uClusterParams;
+	public static bgfx.UniformHandle uShadowMtx, uCascadeSplits, uShadowParams, uShadowViewProj;
 	public static bgfx.UniformHandle uSkyZenith, uSkyHorizon, uSkyGround, uPostParams;
 
 	public static bgfx.TextureHandle ShadowMap;
 	public static bgfx.FrameBufferHandle ShadowFrameBuffer;
-	public static bgfx.TextureHandle SpotShadowMap = .() { idx = uint16.MaxValue };
-	public static bgfx.FrameBufferHandle SpotShadowFrameBuffer = .() { idx = uint16.MaxValue };
+	/// Point and spot lights' shadows: tiles of one atlas the size of the sun's, made when a light first needs it.
+	public static bgfx.TextureHandle LocalShadowMap = .() { idx = uint16.MaxValue };
+	public static bgfx.FrameBufferHandle LocalShadowFrameBuffer = .() { idx = uint16.MaxValue };
 
 	public static void EnsureCreated()
 	{
@@ -91,9 +92,8 @@ static class RenderResources
 
 		sAlbedo = bgfx.create_uniform("s_albedo", .Sampler, 1);
 		sShadowMap = bgfx.create_uniform("s_shadowMap", .Sampler, 1);
-		sSpotShadowMap = bgfx.create_uniform("s_spotShadowMap", .Sampler, 1);
-		uSpotShadowMtx = bgfx.create_uniform("u_spotShadowMtx", .Mat4, MaxLights);
-		uSpotShadowParams = bgfx.create_uniform("u_spotShadowParams", .Vec4, MaxLights);
+		sLocalShadowMap = bgfx.create_uniform("s_localShadowMap", .Sampler, 1);
+		uShadowViewProj = bgfx.create_uniform("u_shadowViewProj", .Mat4, 1);
 		sColor = bgfx.create_uniform("s_color", .Sampler, 1);
 		uCamPos = bgfx.create_uniform("u_camPos", .Vec4, 1);
 		uSunDir = bgfx.create_uniform("u_sunDir", .Vec4, 1);
@@ -120,15 +120,19 @@ static class RenderResources
 		sLightmapShadowmask = bgfx.create_uniform("s_lightmapShadowmask", .Sampler, 1);
 		uLightmapTransform = bgfx.create_uniform("u_lightmapTransform", .Vec4, 1);
 		uLightmapDecode = bgfx.create_uniform("u_lightmapDecode", .Vec4, 1);
+		sLightProbes = bgfx.create_uniform("s_lightProbes", .Sampler, 1);
+		uLightProbeMin = bgfx.create_uniform("u_lightProbeMin", .Vec4, 1);
+		uLightProbeScale = bgfx.create_uniform("u_lightProbeScale", .Vec4, 1);
+		uLightProbeCount = bgfx.create_uniform("u_lightProbeCount", .Vec4, 1);
 		sNormalMap = bgfx.create_uniform("s_normalMap", .Sampler, 1);
 		sMetalRoughMap = bgfx.create_uniform("s_metalRoughMap", .Sampler, 1);
 		sOcclusionMap = bgfx.create_uniform("s_occlusionMap", .Sampler, 1);
 		sEmissiveMap = bgfx.create_uniform("s_emissiveMap", .Sampler, 1);
-		uLightPosRange = bgfx.create_uniform("u_lightPosRange", .Vec4, MaxLights);
-		uLightColor = bgfx.create_uniform("u_lightColor", .Vec4, MaxLights);
-		uLightDirSpot = bgfx.create_uniform("u_lightDirSpot", .Vec4, MaxLights);
-		uLightParams = bgfx.create_uniform("u_lightParams", .Vec4, MaxLights);
+		sLightData = bgfx.create_uniform("s_lightData", .Sampler, 1);
 		uLightCount = bgfx.create_uniform("u_lightCount", .Vec4, 1);
+		uClusterViewProj = bgfx.create_uniform("u_clusterViewProj", .Mat4, 1);
+		uClusterForward = bgfx.create_uniform("u_clusterForward", .Vec4, 1);
+		uClusterParams = bgfx.create_uniform("u_clusterParams", .Vec4, 1);
 		uShadowMtx = bgfx.create_uniform("u_shadowMtx", .Mat4, CascadeCount);
 		uCascadeSplits = bgfx.create_uniform("u_cascadeSplits", .Vec4, 1);
 		uShadowParams = bgfx.create_uniform("u_shadowParams", .Vec4, 1);
@@ -158,23 +162,26 @@ static class RenderResources
 		let shadowFlags = Gfx.TextureRenderTarget | Gfx.SamplerCompareLequal | Gfx.SamplerClamp;
 		ShadowMap = bgfx.create_texture_2d((uint16)ShadowAtlasSize, (uint16)ShadowAtlasSize, false, 1, .D32F, shadowFlags, null, 0);
 		ShadowFrameBuffer = bgfx.create_frame_buffer_from_handles(1, &ShadowMap, true);
-		if (SpotShadowFrameBuffer.idx != uint16.MaxValue)
+		if (LocalShadowFrameBuffer.idx != uint16.MaxValue)
 		{
-			bgfx.destroy_frame_buffer(SpotShadowFrameBuffer);
-			SpotShadowFrameBuffer.idx = uint16.MaxValue;
-			SpotShadowMap.idx = uint16.MaxValue;
-			EnsureSpotShadows();
+			bgfx.destroy_frame_buffer(LocalShadowFrameBuffer);
+			LocalShadowFrameBuffer.idx = uint16.MaxValue;
+			LocalShadowMap.idx = uint16.MaxValue;
+			EnsureLocalShadows();
 		}
 	}
 
-	/// Allocate spotlight depth storage only when a scene actually has a shadowed spotlight.
-	public static void EnsureSpotShadows()
+	/// Makes the point and spot lights' shadow atlas, the first time a scene has a light that casts shadows.
+	public static void EnsureLocalShadows()
 	{
-		if (SpotShadowFrameBuffer.idx != uint16.MaxValue) return;
+		if (LocalShadowFrameBuffer.idx != uint16.MaxValue) return;
 		let flags = Gfx.TextureRenderTarget | Gfx.SamplerCompareLequal | Gfx.SamplerClamp;
-		SpotShadowMap = bgfx.create_texture_2d((uint16)ShadowAtlasSize, (uint16)ShadowAtlasSize, false, 1, .D32F, flags, null, 0);
-		SpotShadowFrameBuffer = bgfx.create_frame_buffer_from_handles(1, &SpotShadowMap, true);
+		LocalShadowMap = bgfx.create_texture_2d((uint16)ShadowAtlasSize, (uint16)ShadowAtlasSize, false, 1, .D32F, flags, null, 0);
+		LocalShadowFrameBuffer = bgfx.create_frame_buffer_from_handles(1, &LocalShadowMap, true);
 	}
+
+	/// The atlas the lit shaders read point and spot shadows from (the sun's stands in before there is one).
+	public static bgfx.TextureHandle LocalShadowTexture => LocalShadowMap.idx != uint16.MaxValue ? LocalShadowMap : ShadowMap;
 
 	public static void Destroy()
 	{
@@ -185,6 +192,11 @@ static class RenderResources
 		bgfx.destroy_uniform(sLightmapShadowmask);
 		bgfx.destroy_uniform(uLightmapTransform);
 		bgfx.destroy_uniform(uLightmapDecode);
+		bgfx.destroy_uniform(sLightProbes);
+		bgfx.destroy_uniform(uLightProbeMin);
+		bgfx.destroy_uniform(uLightProbeScale);
+		bgfx.destroy_uniform(uLightProbeCount);
+		LightProbes.Release();
 		bgfx.destroy_program(MeshProgram);
 		bgfx.destroy_program(ShadowProgram);
 		bgfx.destroy_program(SkyProgram);
@@ -205,13 +217,12 @@ static class RenderResources
 		bgfx.destroy_uniform(uDecalAxis);
 		bgfx.destroy_uniform(uDecalParams);
 		bgfx.destroy_frame_buffer(ShadowFrameBuffer);
-		if (SpotShadowFrameBuffer.idx != uint16.MaxValue)
-			bgfx.destroy_frame_buffer(SpotShadowFrameBuffer);
-		SpotShadowFrameBuffer.idx = uint16.MaxValue;
-		SpotShadowMap.idx = uint16.MaxValue;
-		bgfx.destroy_uniform(sSpotShadowMap);
-		bgfx.destroy_uniform(uSpotShadowMtx);
-		bgfx.destroy_uniform(uSpotShadowParams);
+		if (LocalShadowFrameBuffer.idx != uint16.MaxValue)
+			bgfx.destroy_frame_buffer(LocalShadowFrameBuffer);
+		LocalShadowFrameBuffer.idx = uint16.MaxValue;
+		LocalShadowMap.idx = uint16.MaxValue;
+		bgfx.destroy_uniform(sLocalShadowMap);
+		bgfx.destroy_uniform(uShadowViewProj);
 		Ready = false;
 	}
 }

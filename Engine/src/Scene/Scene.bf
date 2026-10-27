@@ -38,6 +38,17 @@ class SceneEnvironment
 	/// box the room it captured (image-based lighting, docs/reflections.md). Ambient Intensity still scales it.
 	/// Lightmapped surfaces keep their lightmaps.
 	public bool ambientFromSurroundings;
+	/// Baked light probes (docs/baked-lighting.md): the `.tprobes` file the editor's Lighting window writes, which
+	/// gives moving things and surfaces without a lightmap the light bounced round the scene. Empty: the two ambient
+	/// colours.
+	public String lightProbes = new .() ~ delete _;
+	/// How the editor's Lighting window bakes this scene (docs/baked-lighting.md): lightmap texels per metre, rays per
+	/// texel, bounces, and the light probes and how far apart they are.
+	public float bakeTexelsPerMetre = 8;
+	public int32 bakeSamples = 256;
+	public int32 bakeBounces = 3;
+	public bool bakeProbes = true;
+	public float bakeProbeSpacing = 3;
 
 	// ---- Screen effects (docs/post-processing.md). All off by default; colour grading's defaults leave the picture
 	// as it always was. ----
@@ -133,6 +144,12 @@ class SceneEnvironment
 		colorFilter = other.colorFilter;
 		vignette = other.vignette;
 		colorLookup.Set(other.colorLookup);
+		lightProbes.Set(other.lightProbes);
+		bakeTexelsPerMetre = other.bakeTexelsPerMetre;
+		bakeSamples = other.bakeSamples;
+		bakeBounces = other.bakeBounces;
+		bakeProbes = other.bakeProbes;
+		bakeProbeSpacing = other.bakeProbeSpacing;
 		colorLookupStrength = other.colorLookupStrength;
 	}
 }

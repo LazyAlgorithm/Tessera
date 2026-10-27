@@ -348,7 +348,7 @@ extension EditorApp
 			mFocusScripts = false;
 		}
 		ImGui.PushStyleVar(ImGui.StyleVar.WindowPadding, ImGui.Vec2(0, 0));
-		ImGui.PushStyleColor(ImGui.Col.WindowBg, .(0.118f, 0.118f, 0.118f, 1));
+		ImGui.PushStyleColor(ImGui.Col.WindowBg, EditorTheme.CodeBackground);
 		let visible = ImGui.Begin("Scripts", &mShowScripts, ImGui.WindowFlags.NoScrollbar | ImGui.WindowFlags.NoScrollWithMouse);
 		ImGui.PopStyleColor();
 		ImGui.PopStyleVar();
@@ -411,9 +411,9 @@ extension EditorApp
 		}
 		ImGui.SameLine(0, 14);
 		if (mCheckRunning)
-			ImGui.TextColored(.(1.0f, 0.82f, 0.35f, 1), "Compiling...");
+			ImGui.TextColored(EditorTheme.Warning, "Compiling...");
 		else if (mProblems.Count > 0)
-			ImGui.TextColored(.(1.0f, 0.45f, 0.4f, 1), scope String()..AppendF("{} problem(s)", mProblems.Count).CStr());
+			ImGui.TextColored(EditorTheme.Error, scope String()..AppendF("{} problem(s)", mProblems.Count).CStr());
 		else
 			ImGui.TextDisabled("Ctrl+S save   Ctrl+F find   Ctrl+Space complete");
 	}
@@ -425,7 +425,7 @@ extension EditorApp
 		if (active != null && active.readOnly)
 		{
 			ImGui.SetCursorPosX(6);
-			ImGui.TextColored(.(1.0f, 0.82f, 0.35f, 1), "Generated from a graph: read-only. Edit the graph, or");
+			ImGui.TextColored(EditorTheme.Warning, "Generated from a graph: read-only. Edit the graph, or");
 			ImGui.SameLine();
 			if (ImGui.SmallButton("Convert to Script"))
 			{
@@ -487,7 +487,7 @@ extension EditorApp
 			Path.GetFileName(problem.file, fileName);
 			let label = scope String();
 			label.AppendF("{}({}): {}##{}", fileName, problem.line + 1, problem.message, i);
-			ImGui.PushStyleColor(ImGui.Col.Text, problem.isError ? Color(1.0f, 0.5f, 0.45f, 1) : Color(1.0f, 0.82f, 0.35f, 1));
+			ImGui.PushStyleColor(ImGui.Col.Text, problem.isError ? EditorTheme.Error : EditorTheme.Warning);
 			if (ImGui.Selectable(label.CStr()))
 				OpenScript(problem.file, problem.line);
 			ImGui.PopStyleColor();

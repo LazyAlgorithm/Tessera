@@ -11,7 +11,8 @@ class LODGroup : Component
 	public enum Source
 	{
 		/// The children (or deeper objects) named `..._LOD0`, `..._LOD1`, `..._LOD2`, `..._LOD3` are the levels, as model
-		/// files from most tools name them. Renderers without such a name are drawn at every level.
+		/// files from most tools name them. Renderers without such a name are drawn at every level, except the
+		/// group's own when there is no `_LOD0`: that is level 0.
 		Children,
 		/// Every renderer under the object is simplified when the scene loads to make the lower levels.
 		Generated
@@ -142,6 +143,17 @@ class LODGroup : Component
 			}
 		}
 		Walk(Transform, -1);
+		// The group's own renderer, without a level in its name, is level 0 when the levels under it start at 1
+		// (as the modeller's Make Levels of Detail leaves them).
+		if (source == .Children && mLevelCount > 1)
+		{
+			let own = GameObject.GetComponent<MeshRenderer>();
+			bool hasZero = false;
+			for (let renderer in mRenderers)
+				hasZero |= renderer.LodLevel == 0;
+			if (own != null && own.LodLevel < 0 && !hasZero)
+				own.LodLevel = 0;
+		}
 		mHierarchyHash = HashHierarchy();
 		mPickedFrame = -1;
 	}

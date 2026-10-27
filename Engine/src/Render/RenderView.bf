@@ -4,13 +4,30 @@ using Bgfx;
 
 namespace Tessera;
 
+/// How a view draws its surfaces (the editor's views; the game draws Rendered).
+public enum ViewShading
+{
+	/// Lit by the scene's lights, with shadows, reflections and fog.
+	Rendered,
+	/// Textures and colours under a light from the viewer, the same from every side.
+	MaterialPreview,
+	/// Colours without textures under a light from the viewer: the shape alone.
+	Solid,
+	/// Textures and colours as they are, without light.
+	Unlit,
+	/// Only the edges of the triangles, seen through.
+	Wireframe
+}
+
 /// Pipeline: four shadow cascades for the sun, an HDR multisampled forward pass with sky,
 /// instanced opaque geometry and debug lines, see-through geometry, the viewmodel (a first-person camera's arms and
 /// weapon, over everything: Camera.viewmodelLayer), the screen effects the scene asks for (ambient occlusion, depth of
 /// field and motion blur, from a depth pass: docs/post-processing.md), bloom, then a tonemapping resolve with colour
 /// grading. Decals (docs/decals.md) are laid over the solid scene, using the same depth pass, before see-through
-/// things. Each RenderView uses 34 consecutive bgfx view ids: sun shadows 0 to 3, spotlight shadows 4 to 19, then
-/// the scene, depth, decals, transparency, viewmodel, screen effects, bloom and tonemap in views 20 to 33.
+/// things. Point, spot and extra directional lights are sorted into clusters (LightClusters, docs/lighting.md), so a
+/// view can have hundreds; the nearest that cast shadows get tiles of one shadow atlas. Each RenderView uses 19
+/// consecutive bgfx view ids: sun shadows 0 to 3, point and spot shadows 4, then the scene, depth, decals,
+/// transparency, viewmodel, screen effects, bloom and tonemap in views 5 to 18.
 class RenderView
 {
 	struct RenderItem
@@ -37,22 +54,22 @@ class RenderView
 	}
 
 	/// How many bgfx view ids one RenderView uses, from ViewBase. Give each RenderView a ViewBase this far apart.
-	public const int ViewCount = 18 + RenderResources.MaxLights;
-	const int SpotShadowView = 4;
+	public const int ViewCount = 19;
 	// Each pass's view id, from ViewBase (the four shadow cascades are ShadowView to ShadowView + 3).
 	const int ShadowView = 0;
-	const int SceneView = 4 + RenderResources.MaxLights;
-	const int DepthView = 5 + RenderResources.MaxLights;
-	const int DecalView = 6 + RenderResources.MaxLights;
-	const int TransparentView = 7 + RenderResources.MaxLights;
-	const int ViewmodelView = 8 + RenderResources.MaxLights;
-	const int AoView = 9 + RenderResources.MaxLights;
-	const int AoApplyView = 10 + RenderResources.MaxLights;
-	const int DofBlurView = 11 + RenderResources.MaxLights;
-	const int DofCombineView = 12 + RenderResources.MaxLights;
-	const int MotionView = 13 + RenderResources.MaxLights;
-	const int BloomView = 14 + RenderResources.MaxLights;
-	const int TonemapView = 17 + RenderResources.MaxLights;
+	const int LocalShadowView = 4;
+	const int SceneView = 5;
+	const int DepthView = 6;
+	const int DecalView = 7;
+	const int TransparentView = 8;
+	const int ViewmodelView = 9;
+	const int AoView = 10;
+	const int AoApplyView = 11;
+	const int DofBlurView = 12;
+	const int DofCombineView = 13;
+	const int MotionView = 14;
+	const int BloomView = 15;
+	const int TonemapView = 18;
 
 	/// What the scene target is cleared to (RGBA): opaque black, under the sky.
 	const uint32 SceneClearColor = 0x000000ff;
@@ -73,6 +90,10 @@ class RenderView
 	public bool ShowAmbientOcclusion = true;
 	public bool ShowDepthOfField = true;
 	public bool ShowMotionBlur = true;
+	/// How surfaces are drawn (the editor's views; see ViewShading).
+	public ViewShading shading = .Rendered;
+	/// A wireframe view's line colour.
+	public Color wireColor = .(0.08f, 0.09f, 0.11f, 1);
 	public bool ToBackbuffer;
 	/// How much of the output's resolution the 3D scene is drawn at: below 1 it is drawn smaller and stretched to
 	/// fit, which costs much less on a phone's many pixels. The interface is drawn afterwards at full resolution.
@@ -87,6 +108,25 @@ class RenderView
 	public static bool ShadowsEnabled = true;
 	/// Times each scene's shadow distance, in every view (a quality setting).
 	public static float ShadowDistanceScale = 1;
+	/// How many point and spot lights cast shadows in a view, the nearest first (a quality setting).
+	public static int32 MaxShadowedLights = 8;
+	/// Whether lightmaps and baked light probes are used (docs/baked-lighting.md); `--no-baked-lighting` turns them
+	/// off, to compare.
+	public static bool UseBakedLighting = true;
+	/// Objects (by id) whose renderers are not drawn: the editor's rigger hides the model it draws itself.
+	public static HashSet<uint32> HiddenObjects = new .() ~ delete _;
+	/// Objects only the editor's views draw (views with drawEditorOnly on): the modeller's reference images.
+	public static HashSet<uint32> EditorOnlyObjects = new .() ~ delete _;
+	/// Draws no renderers at all in this view (the sky, gizmos and the editor's own drawing still show): the rigger
+	/// shows its model on its own.
+	public bool hideRenderers;
+	/// When not 0, the only object whose renderers this view draws (the editor's modeller shows the model it edits).
+	public uint32 onlyObject;
+	/// Draws the EditorOnlyObjects too (the editor's Scene and model views).
+	public bool drawEditorOnly;
+	// The scene's baked light probes, if any.
+	LightProbeGrid mProbeGrid;
+	List<Mesh> mLightmapMeshes = new .() ~ delete _;
 	public bool DrawGizmos;
 	public bool DrawShadows = true;
 	/// Whether drawing this view advances the reflection captures under way (docs/reflections.md). Off for views of
@@ -164,7 +204,8 @@ class RenderView
 
 	// Frame constants, re-sent with every draw because bgfx orders uniform updates by sorted draw.
 	Vector4 mCamPos, mSunDir, mSunColor, mAmbientSky, mAmbientGround, mFogColor, mLightCount, mCascadeSplits, mShadowParams;
-	Vector4[RenderResources.MaxLights] mLightPosRange, mLightColor, mLightDirSpot, mLightParams;
+	Vector4 mClusterForward, mClusterParams;
+	Matrix4 mClusterViewProj;
 	Matrix4[RenderResources.CascadeCount] mShadowMtx;
 	Matrix4[RenderResources.CascadeCount] mCascadeViewProj;
 	Matrix4[RenderResources.CascadeCount] mCascadeView;
@@ -173,10 +214,12 @@ class RenderView
 	float[RenderResources.CascadeCount] mCascadeRadius;
 	Vector3 mLightRight, mLightUp;
 	bool mHasSun;
-	Light[RenderResources.MaxLights] mSpotLights;
-	Matrix4[RenderResources.MaxLights] mSpotShadowMtx;
-	Vector4[RenderResources.MaxLights] mSpotShadowParams;
-	bool mHasSpotShadows;
+	/// This view's point, spot and extra directional lights, in clusters, and the shadow tiles of the nearest.
+	LightClusters mLights = new .() ~ delete _;
+	bool mHasLocalShadows;
+	// Where the shadow pass being drawn looks from, and (point and spot tiles) the part of the atlas it may draw in.
+	Matrix4 mShadowPassViewProj;
+	int32[4] mShadowScissor;
 	/// Whether the depth pass was drawn this frame (decals and the screen effects share it).
 	bool mDepthDrawn;
 	List<DecalItem> mDecalItems = new .() ~ delete _;
@@ -287,9 +330,9 @@ class RenderView
 
 		let frustum = Frustum(camera.projection * camera.view, Gfx.HomogeneousDepth);
 		let env = scene.Environment;
-		let sun = GatherLights(scene);
+		let sun = GatherLights(scene, camera);
 		let lightDirection = SetSun(sun);
-		let castShadows = DrawShadows && ShadowsEnabled && sun != null && sun.castShadows;
+		let castShadows = DrawShadows && ShadowsEnabled && sun != null && sun.castShadows && shading == .Rendered;
 		SetFrameConstants(camera, env);
 		Reflections.Update(scene, mSunDir, mSunColor, CapturesReflections && !Capture);
 		mReflectionIntensity = Math.Max(env.reflectionIntensity, 0);
@@ -297,11 +340,8 @@ class RenderView
 
 		ClearItems();
 		var shadowRange = env.shadowDistance * ShadowDistanceScale + ShadowRangeMargin;
-		for (let light in mSpotLights)
-		{
-			if (light != null)
-				shadowRange = Math.Max(shadowRange, (light.Transform.Position - camera.position).Length + light.range);
-		}
+		for (let tile in mLights.Tiles)
+			shadowRange = Math.Max(shadowRange, (tile.light.Transform.Position - camera.position).Length + tile.light.range);
 		mOcclusionOn = camera.occlusionCulling && !camera.orthographic;
 		if (mOcclusionOn)
 		{
@@ -311,10 +351,10 @@ class RenderView
 			Occluders = mOcclusion.Occluders;
 			OccluderTriangles = mOcclusion.OccluderTriangles;
 		}
-		GatherRenderers(scene, camera, frustum, castShadows || mHasSpotShadows, shadowRange);
+		GatherRenderers(scene, camera, frustum, castShadows || mHasLocalShadows, shadowRange);
 		if (mOcclusionOn)
 			OcclusionCulled = mOcclusion.Culled;
-		GatherFoliage(scene, camera, frustum, castShadows || mHasSpotShadows, shadowRange);
+		GatherFoliage(scene, camera, frustum, castShadows || mHasLocalShadows, shadowRange);
 		Wind.Gather(scene, camera.position, out mWind, ref mWindZone, ref mWindPush);
 		FoliageBender.Gather(scene, camera.position, ref mBender, ref mBenderPush);
 		VisibleRenderers = (int32)(mItems.Count + mViewmodelItems.Count);
@@ -327,8 +367,8 @@ class RenderView
 			mShadowParams = .(1.0f / RenderResources.ShadowAtlasSize, 0, 0, 0);
 			mCascadeSplits = .(0, 0, 0, 0);
 		}
-		if (mHasSpotShadows)
-			DrawSpotShadows();
+		if (mHasLocalShadows)
+			DrawLocalShadows();
 		DrawScene(scene, camera, frustum, env);
 		mDepthDrawn = false;
 		DrawDecals(scene, camera, frustum);
@@ -354,9 +394,9 @@ class RenderView
 		bgfx.set_view_clear(view, clearFlags, clearColor, 1.0f, 0);
 	}
 
-	/// Fills in the scene's point, spot and extra directional lights, and returns the sun: the directional light
-	/// that casts shadows (or the first one, if none does).
-	Light GatherLights(Scene scene)
+	/// Picks the sun (the directional light that casts shadows, or the first one, if none does) and sorts the
+	/// scene's other lights into this view's clusters. Returns the sun.
+	Light GatherLights(Scene scene, CameraData camera)
 	{
 		Light sun = null;
 		// Directional lights other than the sun go in the ordinary light list, so fill lights still count.
@@ -367,38 +407,23 @@ class RenderView
 			if (sun == null || (!sun.castShadows && light.castShadows))
 				sun = light;
 		}
-		mHasSpotShadows = false;
-		for (int i < RenderResources.MaxLights)
-		{
-			mSpotLights[i] = null;
-			mSpotShadowParams[i] = .(0, 0, 0, 0);
-		}
-		int lightCount = 0;
-		for (let light in scene.Lights)
-		{
-			if (!light.IsActiveAndEnabled || !light.GameObject.InActiveWorld || light == sun)
-				continue;
-			if (lightCount >= RenderResources.MaxLights)
-				continue;
-			let position = light.Transform.Position;
-			let color = Linear(light.color, light.intensity);
-			mLightPosRange[lightCount] = .(position, light.range);
-			mLightColor[lightCount] = .(color.x, color.y, color.z, light.type == .Directional ? 2 : (light.type == .Spot ? 1 : 0));
-			let outer = Math.Cos(light.spotAngle * 0.5f * Mathf.Deg2Rad);
-			let innerAngle = light.innerSpotAngle < 0 ? light.spotAngle * 0.8f : Math.Clamp(light.innerSpotAngle, 0, light.spotAngle);
-			let inner = Math.Cos(innerAngle * 0.5f * Mathf.Deg2Rad);
-			mLightDirSpot[lightCount] = .(light.Transform.Forward, outer);
-			mLightParams[lightCount] = .(inner, light.inverseSquare ? 1 : 0, light.shadowMaskChannel + 1, light.bakedOnly ? 1 : 0);
-			if (DrawShadows && ShadowsEnabled && light.type == .Spot && light.castShadows && light.shadowStrength > 0 && light.range > 0.05f && light.intensity > 0)
-			{
-				mSpotLights[lightCount] = light;
-				mHasSpotShadows = true;
-			}
-			lightCount++;
-		}
-		mLightCount = .(lightCount, sun != null ? sun.shadowMaskChannel + 1 : 0, 0, 0);
+		let shadowed = DrawShadows && ShadowsEnabled ? MaxShadowedLights : 0;
+		mLights.Build(scene, camera, sun, shadowed, RenderResources.ShadowAtlasSize);
+		mHasLocalShadows = mLights.Tiles.Count > 0;
+		mLightCount = .(mLights.DirectionalCount, sun != null ? sun.shadowMaskChannel + 1 : 0, mLights.Lights.Count, 0);
+		mClusterViewProj = mLights.ViewProj;
+		mClusterForward = .(mLights.CameraForward, 0);
+		mClusterParams = .(mLights.SliceScale, mLights.SliceOffset, mLights.Near, 0);
+		if (Gfx.Initialized)
+			mLights.Upload();
 		return sun;
 	}
+
+	/// This view's lights after the last Render: how many, and how many were left out (more than LightClusters.MaxLights).
+	public int32 LightCount => (int32)mLights.Lights.Count;
+	public int32 LightsDropped => mLights.Dropped;
+	/// Point and spot shadow tiles drawn by the last Render.
+	public int32 ShadowTiles => (int32)mLights.Tiles.Count;
 
 	/// Sets the sun's colour and direction (none: no sunlight, and a default direction). Returns the direction its
 	/// light travels in.
@@ -423,10 +448,12 @@ class RenderView
 	void SetFrameConstants(CameraData camera, SceneEnvironment env)
 	{
 		mCamPos = .(camera.position, 1);
+		mProbeGrid = UseBakedLighting ? LightProbes.Get(env.lightProbes) : null;
 		mAmbientSky = Linear(env.ambientSky, env.ambientIntensity);
 		mAmbientGround = Linear(env.ambientGround, env.ambientIntensity);
 		let fog = Linear(env.fogColor);
-		mFogColor = .(fog.x, fog.y, fog.z, env.fogDensity);
+		// No fog through an orthographic camera: how far away it stands means nothing to what it shows.
+		mFogColor = .(fog.x, fog.y, fog.z, camera.orthographic ? 0 : env.fogDensity);
 	}
 
 	void ClearItems()
@@ -447,10 +474,16 @@ class RenderView
 			// Outside the scene's world state: not drawn and casts no shadow.
 			if (!renderer.IsActiveAndEnabled || !renderer.GameObject.InActiveWorld)
 				continue;
+			if (hideRenderers || (HiddenObjects.Count > 0 && HiddenObjects.Contains(renderer.GameObject.Id)) || (onlyObject != 0 && renderer.GameObject.Id != onlyObject && !EditorOnlyObjects.Contains(renderer.GameObject.Id)))
+				continue;
+			if (!drawEditorOnly && EditorOnlyObjects.Count > 0 && EditorOnlyObjects.Contains(renderer.GameObject.Id))
+				continue;
 			// A renderer with parts draws each with its own material; otherwise its one mesh (a "part" of its own).
 			let parts = renderer.RuntimeParts;
 			let hasParts = parts != null && parts.Count > 0;
 			let partCount = hasParts ? parts.Count : 1;
+			// Baked lighting: the meshes with lightmap coordinates, made the first time (LightmapUV).
+			let lightmapped = !renderer.lightmap.IsEmpty && UseBakedLighting && LightmapUV.MeshesFor(renderer, mLightmapMeshes) && mLightmapMeshes.Count == partCount;
 			// Levels of detail (docs/lod.md): the group picks one level for this camera, and too small is not drawn.
 			let lodGroup = renderer.LodGroup;
 			let lodLevel = lodGroup != null ? lodGroup.LevelFor(camera) : 0;
@@ -462,6 +495,8 @@ class RenderView
 			for (int partIndex < partCount)
 			{
 				var mesh = hasParts ? parts[partIndex].mesh : renderer.ActiveMesh;
+				if (lightmapped)
+					mesh = mLightmapMeshes[partIndex];
 				if (lodGroup != null)
 					mesh = lodGroup.MeshAt(renderer, mesh, lodLevel);
 				if (mesh == null || !mesh.HasGpuData || (hasParts && parts[partIndex].hidden))
@@ -717,6 +752,14 @@ class RenderView
 		bgfx.InstanceDataBuffer buffer = default;
 		bgfx.alloc_instance_data_buffer(&buffer, (uint32)drawCount, stride);
 		FillInstances((InstanceData*)buffer.data, items, start, drawCount);
+		let wire = !shadowPass && shading == .Wireframe;
+		if (wire)
+		{
+			// Black lines, coloured by their glow alone (see ApplyShading).
+			let data = (InstanceData*)buffer.data;
+			for (int i < drawCount)
+				data[i].color = .(0, 0, 0, 1);
+		}
 
 		let first = items[start];
 		let mesh = first.mesh;
@@ -724,12 +767,21 @@ class RenderView
 			bgfx.set_dynamic_vertex_buffer(0, mesh.DynamicBuffer, 0, (uint32)mesh.VertexCount);
 		else
 			bgfx.set_vertex_buffer(0, mesh.VertexBuffer, 0, (uint32)mesh.VertexCount);
-		bgfx.set_index_buffer(mesh.IndexBuffer, 0, (uint32)mesh.IndexCount);
+		bgfx.IndexBufferHandle edges = default;
+		int32 edgeCount = 0;
+		let lines = wire && mesh.EdgeLines(out edges, out edgeCount);
+		if (lines)
+			bgfx.set_index_buffer(edges, 0, (uint32)edgeCount);
+		else
+			bgfx.set_index_buffer(mesh.IndexBuffer, 0, (uint32)mesh.IndexCount);
 		bgfx.set_instance_data_buffer(&buffer, 0, (uint32)drawCount);
 
 		if (shadowPass)
 		{
 			SetWindUniforms(first.renderer.windSway);
+			bgfx.set_uniform(RenderResources.uShadowViewProj, &mShadowPassViewProj, 1);
+			if (mShadowScissor[2] > 0)
+				bgfx.set_scissor((uint16)mShadowScissor[0], (uint16)mShadowScissor[1], (uint16)mShadowScissor[2], (uint16)mShadowScissor[3]);
 			bgfx.set_state(Gfx.StateWriteZ | Gfx.StateDepthLess, 0);
 			bgfx.submit(view, RenderResources.ShadowProgram, 0, 0xff);
 			return;
@@ -739,9 +791,12 @@ class RenderView
 		SetFrameUniforms();
 		Reflections.Bind(first.probe, mReflectionIntensity, mCubeAmbient);
 		var surface = ResolveSurface(renderer, first.material, first.world);
-		SetLightmapUniforms(renderer);
+		ApplyShading(ref surface);
+		SetLightmapUniforms(renderer, first.mesh);
 		SetSurfaceUniforms(renderer, ref surface);
-		if (transparent)
+		if (lines)
+			bgfx.set_state(Gfx.StateWriteRGB | Gfx.StateWriteA | Gfx.StateWriteZ | Gfx.StateDepthLess | Gfx.StateLines | Gfx.StateMsaa, 0);
+		else if (transparent)
 			bgfx.set_state(Gfx.StateWriteRGB | Gfx.StateDepthLess | surface.cull | Gfx.StateMsaa | Gfx.StateBlendAlpha, 0);
 		else
 			bgfx.set_state(Gfx.StateWriteRGB | Gfx.StateWriteA | Gfx.StateWriteZ | Gfx.StateDepthLess | surface.cull | Gfx.StateMsaa, 0);
@@ -750,6 +805,36 @@ class RenderView
 		DrawCalls++;
 		Instances += (int32)drawCount;
 		Triangles += (int32)drawCount * mesh.IndexCount / 3;
+	}
+
+	/// An editor view's shading (ViewShading) in place of the surface's own lighting. Every mode but Rendered draws
+	/// with the standard shader: u_material.w 1 is unlit, 2 the light from the viewer.
+	void ApplyShading(ref Surface surface)
+	{
+		if (shading == .Rendered)
+			return;
+		surface.program = RenderResources.MeshProgram;
+		surface.values = default;
+		switch (shading)
+		{
+		case .MaterialPreview:
+			surface.material.w = 2;
+		case .Solid:
+			surface.material.w = 2;
+			surface.texture = Gfx.WhiteTexture;
+			surface.pbr = default;
+			surface.normalMap = surface.metalRoughMap = surface.occlusionMap = surface.emissiveMap = "";
+		case .Unlit:
+			surface.material.w = 1;
+		case .Wireframe:
+			surface.material.w = 1;
+			surface.texture = Gfx.WhiteTexture;
+			surface.pbr = default;
+			surface.surface.x = 0;
+			surface.emissive = Linear(wireColor, 1);
+			surface.normalMap = surface.metalRoughMap = surface.occlusionMap = surface.emissiveMap = "";
+		default:
+		}
 	}
 
 	/// Each instance's world matrix and colour: the renderer's colour, times the item's tint and the material's colour.
@@ -809,12 +894,14 @@ class RenderView
 		return surface;
 	}
 
-	/// The renderer's baked lighting: its lightmap, and the direction and shadowmask maps that go with it.
-	static void SetLightmapUniforms(MeshRenderer renderer)
+	/// The renderer's baked lighting: its lightmap, and the direction and shadowmask maps that go with it. A mesh
+	/// without lightmap coordinates (a lower level of detail) is drawn without it, lit by the light probes.
+	static void SetLightmapUniforms(MeshRenderer renderer, Mesh mesh)
 	{
 		Vector4 bakedTransform = renderer.lightmapScaleOffset;
 		Vector4 bakedDecode = renderer.lightmapDecode;
-		bakedDecode.w = renderer.lightmap.IsEmpty ? 0 : (1 + (renderer.lightmapDirection.IsEmpty ? 0 : 1) + (renderer.lightmapShadowmask.IsEmpty ? 0 : 2));
+		let lightmapped = UseBakedLighting && !renderer.lightmap.IsEmpty && mesh.LightmapUVs;
+		bakedDecode.w = !lightmapped ? 0 : (1 + (renderer.lightmapDirection.IsEmpty ? 0 : 1) + (renderer.lightmapShadowmask.IsEmpty ? 0 : 2));
 		bgfx.set_uniform(RenderResources.uLightmapTransform, &bakedTransform, 1);
 		bgfx.set_uniform(RenderResources.uLightmapDecode, &bakedDecode, 1);
 		bgfx.set_texture(8, RenderResources.sLightmap, Assets.GetTexture(renderer.lightmap, .Data), uint32.MaxValue);
@@ -833,7 +920,6 @@ class RenderView
 		bgfx.set_uniform(RenderResources.uParams, &surface.values, ShaderAsset.MaxValues);
 		bgfx.set_texture(0, RenderResources.sAlbedo, surface.texture, uint32.MaxValue);
 		bgfx.set_texture(1, RenderResources.sShadowMap, RenderResources.ShadowMap, uint32.MaxValue);
-		bgfx.set_texture(11, RenderResources.sSpotShadowMap, RenderResources.SpotShadowMap.idx != uint16.MaxValue ? RenderResources.SpotShadowMap : RenderResources.ShadowMap, uint32.MaxValue);
 		bgfx.set_texture(2, RenderResources.sTexture1, Assets.GetTexture(surface.textures[0]), uint32.MaxValue);
 		bgfx.set_texture(3, RenderResources.sTexture2, Assets.GetTexture(surface.textures[1]), uint32.MaxValue);
 		bgfx.set_uniform(RenderResources.uPbr, &surface.pbr, 1);
@@ -889,7 +975,6 @@ class RenderView
 				bgfx.set_texture(stage, stage == 4 ? RenderResources.sNormalMap : (stage == 5 ? RenderResources.sMetalRoughMap : (stage == 6 ? RenderResources.sOcclusionMap : RenderResources.sEmissiveMap)), Gfx.WhiteTexture, uint32.MaxValue);
 			bgfx.set_texture(0, RenderResources.sAlbedo, Gfx.WhiteTexture, uint32.MaxValue);
 			bgfx.set_texture(1, RenderResources.sShadowMap, RenderResources.ShadowMap, uint32.MaxValue);
-			bgfx.set_texture(11, RenderResources.sSpotShadowMap, RenderResources.SpotShadowMap.idx != uint16.MaxValue ? RenderResources.SpotShadowMap : RenderResources.ShadowMap, uint32.MaxValue);
 			bgfx.set_state(Gfx.StateWriteRGB | Gfx.StateWriteA | Gfx.StateWriteZ | Gfx.StateDepthLess | Gfx.StateCullCcw | Gfx.StateMsaa, 0);
 			bgfx.submit(view, RenderResources.MeshProgram, 0, 0xff);
 			DrawCalls++;
@@ -926,17 +1011,17 @@ class RenderView
 		bgfx.set_uniform(RenderResources.uWindPush, &mWindPush, 4);
 		bgfx.set_uniform(RenderResources.uBender, &mBender, 8);
 		bgfx.set_uniform(RenderResources.uBenderPush, &mBenderPush, 8);
-		bgfx.set_uniform(RenderResources.uLightPosRange, &mLightPosRange, RenderResources.MaxLights);
-		bgfx.set_uniform(RenderResources.uLightColor, &mLightColor, RenderResources.MaxLights);
-		bgfx.set_uniform(RenderResources.uLightDirSpot, &mLightDirSpot, RenderResources.MaxLights);
-		bgfx.set_uniform(RenderResources.uLightParams, &mLightParams, RenderResources.MaxLights);
 		bgfx.set_uniform(RenderResources.uLightCount, &mLightCount, 1);
-		bgfx.set_uniform(RenderResources.uSpotShadowMtx, &mSpotShadowMtx, RenderResources.MaxLights);
-		bgfx.set_uniform(RenderResources.uSpotShadowParams, &mSpotShadowParams, RenderResources.MaxLights);
+		bgfx.set_uniform(RenderResources.uClusterViewProj, &mClusterViewProj, 1);
+		bgfx.set_uniform(RenderResources.uClusterForward, &mClusterForward, 1);
+		bgfx.set_uniform(RenderResources.uClusterParams, &mClusterParams, 1);
+		bgfx.set_texture(15, RenderResources.sLightData, mLights.Texture, uint32.MaxValue);
+		bgfx.set_texture(11, RenderResources.sLocalShadowMap, RenderResources.LocalShadowTexture, uint32.MaxValue);
 		bgfx.set_uniform(RenderResources.uShadowMtx, &mShadowMtx, RenderResources.CascadeCount);
 		bgfx.set_uniform(RenderResources.uCascadeSplits, &mCascadeSplits, 1);
 		bgfx.set_uniform(RenderResources.uShadowParams, &mShadowParams, 1);
 		Reflections.Bind(-1, mReflectionIntensity, mCubeAmbient);
+		LightProbes.Bind(mProbeGrid);
 	}
 
 	void SubmitSky(uint16 view, SceneEnvironment env)

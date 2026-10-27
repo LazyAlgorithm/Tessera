@@ -6,7 +6,7 @@ The level is picked for each camera from how much of the screen's height the obj
 
 ## Where the levels come from
 
-**Children** (the default): objects under the group named `..._LOD0`, `..._LOD1`, `..._LOD2` and `..._LOD3` are the levels, the way most modelling tools and asset packs name them (`Rock_LOD0`, `Rock_LOD1`). Only the level picked is drawn. A renderer without such a name (a decal, a shadow blob) is drawn at every level. The group finds its renderers again by itself when objects are added under it.
+**Children** (the default): objects under the group named `..._LOD0`, `..._LOD1`, `..._LOD2` and `..._LOD3` are the levels, the way most modelling tools and asset packs name them (`Rock_LOD0`, `Rock_LOD1`). Only the level picked is drawn. A renderer without such a name (a decal, a shadow blob) is drawn at every level, except the group object's own renderer when nothing is named `_LOD0`: that one is level 0 (the modeller's **Make Levels of Detail** builds groups that way). The group finds its renderers again by itself when objects are added under it.
 
 **Generated**: every renderer under the group is simplified when it is first drawn far away, into **Generated Levels** levels (2 to 4) keeping **Level 1 Triangles**, **Level 2 Triangles** and **Level 3 Triangles** of its triangles (half, a fifth and a twelfth by default). Simplifying merges vertices that lie close together and face much the same way, so hard edges of low-poly models stay hard and thin walls do not close up. It suits rocks, trees and props; for hero objects, models made with their own LOD meshes look better. Skinned characters are not simplified.
 

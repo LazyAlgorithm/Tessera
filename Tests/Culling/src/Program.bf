@@ -132,6 +132,18 @@ class Program
 		rock.RemoveComponent(group);
 		Check(lod0.LodGroup == null && lod1.LodGroup == null, "removing the group lets its renderers go");
 
+		// ---- the group object's own renderer as level 0 ----
+		let crate = scene.CreateGameObject("Crate");
+		let own = crate.AddComponent<MeshRenderer>();
+		own.mesh.Set("builtin:cube");
+		let crateLow = scene.CreateGameObject("Crate_LOD1");
+		crateLow.Transform.SetParent(crate.Transform, false);
+		let low = crateLow.AddComponent<MeshRenderer>();
+		low.mesh.Set("builtin:cube");
+		let crateGroup = crate.AddComponent<LODGroup>();
+		crateGroup.Refresh();
+		Check(crateGroup.LevelCount == 2 && own.LodLevel == 0 && low.LodLevel == 1, "without a _LOD0, the group's own renderer is level 0");
+
 		// ---- generated levels ----
 		let slab = Slab(16);
 		let full = slab.Indices.Count / 3;

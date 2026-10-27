@@ -66,6 +66,13 @@ static class SceneSerializer
 		Number(text, "vignette", env.vignette, defaults.vignette);
 		if (!env.colorLookup.IsEmpty)
 			text.AppendF("env colorLookup {}\n", Quote(env.colorLookup, .. scope .()));
+		if (!env.lightProbes.IsEmpty)
+			text.AppendF("env lightProbes {}\n", Quote(env.lightProbes, .. scope .()));
+		Number(text, "bakeTexelsPerMetre", env.bakeTexelsPerMetre, defaults.bakeTexelsPerMetre);
+		Number(text, "bakeSamples", env.bakeSamples, defaults.bakeSamples);
+		Number(text, "bakeBounces", env.bakeBounces, defaults.bakeBounces);
+		Number(text, "bakeProbes", env.bakeProbes ? 1 : 0, defaults.bakeProbes ? 1 : 0);
+		Number(text, "bakeProbeSpacing", env.bakeProbeSpacing, defaults.bakeProbeSpacing);
 		Number(text, "colorLookupStrength", env.colorLookupStrength, defaults.colorLookupStrength);
 	}
 
@@ -494,6 +501,12 @@ static class SceneSerializer
 		case "reflectionIntensity": env.reflectionIntensity = value;
 		case "ambientFromSurroundings": env.ambientFromSurroundings = value != 0;
 		case "colorLookup": env.colorLookup.Set(tokens[2]);
+		case "lightProbes": env.lightProbes.Set(tokens[2]);
+		case "bakeTexelsPerMetre": env.bakeTexelsPerMetre = value;
+		case "bakeSamples": env.bakeSamples = (int32)value;
+		case "bakeBounces": env.bakeBounces = (int32)value;
+		case "bakeProbes": env.bakeProbes = value != 0;
+		case "bakeProbeSpacing": env.bakeProbeSpacing = value;
 		case "colorLookupStrength": env.colorLookupStrength = value;
 		}
 	}

@@ -48,6 +48,9 @@ class MeshRenderer : Component
 	/// Casts its shadow without being drawn itself. For what the camera must not see but the sun still should:
 	/// the head and arms of a first-person player's own body, say.
 	public bool shadowOnly = false;
+	/// Takes part in baked lighting (docs/baked-lighting.md): the Lighting window gives it a lightmap, and it blocks and
+	/// bounces light for the others. For things that never move: walls, floors, rocks, buildings.
+	public bool bakedLighting = false;
 	/// Optional albedo texture path relative to the project.
 	public String texture = new .() ~ delete _;
 	/// A material (.tmat) made in the editor. With one set, it decides how the surface looks and the fields above
@@ -174,6 +177,7 @@ class MeshRenderer : Component
 	bool mResolved;
 	bgfx.TextureHandle mTexture = .() { idx = uint16.MaxValue };
 	String mResolvedTexture = new .() ~ delete _;
+	int32 mTextureVersion = -1;
 	int64 mLastDrawnFrame = -1;
 
 	/// The frame (Time.FrameCount) this renderer was last drawn on, in any view or shadow map; -1 if never.
@@ -253,9 +257,10 @@ class MeshRenderer : Component
 	{
 		get
 		{
-			if (!mTexture.Valid || mResolvedTexture != texture)
+			if (!mTexture.Valid || mResolvedTexture != texture || mTextureVersion != Assets.TextureVersion)
 			{
 				mResolvedTexture.Set(texture);
+				mTextureVersion = Assets.TextureVersion;
 				mTexture = Assets.GetTexture(texture);
 			}
 			return mTexture;

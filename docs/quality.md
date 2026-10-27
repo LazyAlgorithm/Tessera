@@ -2,7 +2,7 @@
 
 Players have machines from phones to big desktops. **Quality** gathers every graphics setting that trades looks for speed into four presets, **Low**, **Medium**, **High** and **Ultra**, applies them to the engine at once, and remembers the player's choice between runs. A game's options screen needs only a few lines.
 
-**High** is what the engine always did, so a project that never touches Quality looks exactly as before.
+**High** is what the engine always did, so a project that never touches Quality looks as before (apart from point lights, which now cast shadows too: docs/lighting.md).
 
 ## What each preset sets
 
@@ -10,7 +10,8 @@ Players have machines from phones to big desktops. **Quality** gathers every gra
 |---|---|---|---|---|---|
 | Render Scale | 0.7 | 0.85 | 1 | 1 | Share of the window's resolution the 3D scene is drawn at; the interface stays sharp (`RenderView.RenderScale`). |
 | Antialias | off | on | on | on | Multisampled edges (`RenderView.Antialias`). |
-| Shadows | on | on | on | on | Sun and spotlight shadows (`RenderView.ShadowsEnabled`). |
+| Shadows | on | on | on | on | Sun, point and spot light shadows (`RenderView.ShadowsEnabled`). |
+| Shadowed Lights | 2 | 4 | 8 | 16 | How many point and spot lights cast shadows in a view, the nearest first; a point light costs six spot lights (`RenderView.MaxShadowedLights`, docs/lighting.md). |
 | Shadow Map | 1024 | 2048 | 4096 | 4096 | Shadow map size in pixels; smaller is blurrier and cheaper (`RenderResources.SetShadowAtlasSize`). |
 | Shadow Distance | ×0.5 | ×0.75 | ×1 | ×1.5 | Times each scene's Shadow Distance (`RenderView.ShadowDistanceScale`). |
 | Ambient Occlusion, Depth of Field, Motion Blur | off | AO only | on | on | The costly screen effects (`ScreenEffects`); a scene's own settings still decide whether it uses them. |

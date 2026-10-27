@@ -433,6 +433,16 @@ class SkinnedMeshRenderer : Component
 		}
 	}
 
+	/// Has every renderer of a model load it again (SkinnedModel.Forget).
+	public static void ModelChanged(StringView path)
+	{
+		for (let renderer in sAll)
+		{
+			if (renderer.model == path)
+				renderer.mLoadedPath.Clear();
+		}
+	}
+
 	void Reload()
 	{
 		if (model.IsEmpty || mLoadedPath == model)

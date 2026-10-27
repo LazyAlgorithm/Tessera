@@ -102,7 +102,7 @@ class Program
 		Check(true, "spawning into no scene is ignored");
 
 		// ---- the renderer ----
-		Check(RenderView.ViewCount == 34, "each RenderView sets a view aside for decals");
+		Check(RenderView.ViewCount == 19, "each RenderView sets a view aside for decals");
 
 		Console.WriteLine(sFailures == 0 ? "All decal tests passed." : scope $"{sFailures} decal test(s) failed.");
 		return sFailures == 0 ? 0 : 1;

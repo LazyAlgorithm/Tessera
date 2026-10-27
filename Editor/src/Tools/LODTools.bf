@@ -27,7 +27,7 @@ extension EditorApp
 			ImGui.TextDisabled(scope String()..AppendF("  Level {}: {} renderer(s), {} triangles, below {:0.#}%", i, renderers, triangles, below * 100).CStr());
 		}
 		if (group.source == .Children && group.LevelCount == 1)
-			ImGui.TextColored(.(1, 0.6f, 0.3f, 1), "No children named _LOD1, _LOD2 ... found: name them so, or use Generated.");
+			ImGui.TextColored(EditorTheme.Warning, "No children named _LOD1, _LOD2 ... found: name them so, or use Generated.");
 		ImGui.Text("Preview");
 		for (int32 i = -1; i < group.LevelCount; i++)
 		{
@@ -35,7 +35,7 @@ extension EditorApp
 			ImGui.PushID(i);
 			let active = LODGroup.ForceLevel == i;
 			if (active)
-				ImGui.PushStyleColor(ImGui.Col.Button, .(0.25f, 0.45f, 0.75f, 1));
+				ImGui.PushStyleColor(ImGui.Col.Button, EditorTheme.Accent);
 			if (ImGui.SmallButton(i < 0 ? "Auto" : scope String()..AppendF("{}", i).CStr()))
 				LODGroup.ForceLevel = i;
 			if (active)
