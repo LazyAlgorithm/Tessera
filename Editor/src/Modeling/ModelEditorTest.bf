@@ -357,7 +357,7 @@ extension EditorApp
 			mScene.Destroy(made);
 			let edgeMesh = block.GetComponent<MeshRenderer>().ActiveMesh;
 			bgfx.IndexBufferHandle edges;
-			int32 edgeCount;
+			int32 edgeCount = 0;
 			Expect(edgeMesh != null && edgeMesh.EdgeLines(out edges, out edgeCount) && edgeCount > 0 && edgeCount % 2 == 0, "a mesh's edges for wireframe");
 		}
 		// Gizmos: with Show Only, only the edited model's are drawn.
