@@ -15,9 +15,20 @@ class Mesh
 	public List<uint32> Indices = new .() ~ delete _;
 	/// The box round the vertices (see RecalculateBounds).
 	public Bounds Bounds = .(.Zero, .Zero);
+	/// Whether the vertices' uv2 lay the surface out for a lightmap (from the model file, or made by LightmapUV).
+	public bool LightmapUVs;
+	/// How far uv2 goes for one unit of the mesh's own size (for how many lightmap texels it needs).
+	public float LightmapUVScale = 1;
+	/// The lightmap coordinates came with the model file (kept as they are, whatever an object's scale).
+	public bool LightmapUVsFromModel;
+	/// Copies laid out for objects that stretch this mesh unevenly (LightmapUV.MeshesFor), freed with it.
+	public List<LightmapUV.Copies> LightmapCopies ~ DeleteContainerAndItems!(_);
 
 	bgfx.VertexBufferHandle mVertexBuffer = .() { idx = uint16.MaxValue };
 	bgfx.IndexBufferHandle mIndexBuffer = .() { idx = uint16.MaxValue };
+	/// Each edge of the triangles once, as lines (made when a wireframe view first draws the mesh).
+	bgfx.IndexBufferHandle mEdgeBuffer = .() { idx = uint16.MaxValue };
+	int32 mEdgeCount;
 	int32 mUploadedIndexCount;
 	int32 mUploadedVertexCount;
 	bgfx.DynamicVertexBufferHandle mDynamicBuffer = .() { idx = uint16.MaxValue };
@@ -27,6 +38,10 @@ class Mesh
 	/// Give it its Indices and call UploadIndices; keep its Bounds in step with the source's.
 	public Mesh VertexSource;
 
+	/// Whether a compute shader may write its vertices (UploadDynamic with computeWritable).
+	public bool IsComputeWritable => mComputeWritable;
+	bool mComputeWritable;
+
 	/// True for meshes whose vertices are rewritten every frame (skinned characters).
 	public bool IsDynamic => VertexSource != null ? VertexSource.IsDynamic : mDynamicBuffer.Valid;
 	/// The graphics card's copy of the vertices, for a mesh uploaded with UploadDynamic.
@@ -35,6 +50,7 @@ class Mesh
 	/// For a part (VertexSource): sends its own indices to the GPU.
 	public void UploadIndices()
 	{
+		ReleaseEdges();
 		if (mIndexBuffer.Valid && Gfx.Initialized)
 			bgfx.destroy_index_buffer(mIndexBuffer);
 		mIndexBuffer.idx = uint16.MaxValue;
@@ -48,13 +64,15 @@ class Mesh
 	}
 
 	/// Creates GPU buffers that UpdateDynamic can refill. The vertex count must stay the same afterwards.
-	public void UploadDynamic()
+	/// computeWritable lets a compute shader write the vertices too (GPU skinning).
+	public void UploadDynamic(bool computeWritable = false)
 	{
 		ReleaseGpu();
 		RecalculateBounds();
 		if (Vertices.Count == 0 || Indices.Count == 0 || !Gfx.Initialized)
 			return;
-		mDynamicBuffer = bgfx.create_dynamic_vertex_buffer((uint32)Vertices.Count, &Gfx.MeshLayout, 0);
+		mDynamicBuffer = bgfx.create_dynamic_vertex_buffer((uint32)Vertices.Count, &Gfx.MeshLayout, computeWritable ? (uint16)bgfx.BufferFlags.ComputeReadWrite : 0);
+		mComputeWritable = computeWritable;
 		bgfx.update_dynamic_vertex_buffer(mDynamicBuffer, 0, bgfx.copy(Vertices.Ptr, (uint32)(Vertices.Count * sizeof(MeshVertex))));
 		mIndexBuffer = bgfx.create_index_buffer(bgfx.copy(Indices.Ptr, (uint32)(Indices.Count * 4)), 0x1000);
 		mUploadedIndexCount = (int32)Indices.Count;
@@ -181,10 +199,49 @@ class Mesh
 		if (mDynamicBuffer.Valid)
 			bgfx.destroy_dynamic_vertex_buffer(mDynamicBuffer);
 		mDynamicBuffer.idx = uint16.MaxValue;
+		mComputeWritable = false;
 		mVertexBuffer.idx = uint16.MaxValue;
 		mIndexBuffer.idx = uint16.MaxValue;
 		mUploadedIndexCount = 0;
 		mUploadedVertexCount = 0;
+		ReleaseEdges();
+	}
+
+	void ReleaseEdges()
+	{
+		if (mEdgeBuffer.Valid && Gfx.Initialized)
+			bgfx.destroy_index_buffer(mEdgeBuffer);
+		mEdgeBuffer.idx = uint16.MaxValue;
+		mEdgeCount = 0;
+	}
+
+	/// The mesh's edges as lines, for a wireframe view: each edge of its triangles once. False when it has no
+	/// triangles on the CPU to find them from.
+	public bool EdgeLines(out bgfx.IndexBufferHandle buffer, out int32 count)
+	{
+		if (!mEdgeBuffer.Valid && Gfx.Initialized && Indices.Count >= 3)
+		{
+			let seen = scope HashSet<uint64>();
+			let lines = scope List<uint32>(Indices.Count * 2);
+			for (int i = 0; i + 2 < Indices.Count; i += 3)
+			{
+				for (int k < 3)
+				{
+					let a = Indices[i + k];
+					let b = Indices[i + (k + 1) % 3];
+					if (seen.Add(((uint64)Math.Min(a, b) << 32) | Math.Max(a, b)))
+					{
+						lines.Add(a);
+						lines.Add(b);
+					}
+				}
+			}
+			mEdgeBuffer = bgfx.create_index_buffer(bgfx.copy(lines.Ptr, (uint32)(lines.Count * 4)), 0x1000);
+			mEdgeCount = (int32)lines.Count;
+		}
+		buffer = mEdgeBuffer;
+		count = mEdgeCount;
+		return mEdgeBuffer.Valid;
 	}
 
 	/// Ray test against the CPU triangles in mesh space. Returns the distance or a negative value.

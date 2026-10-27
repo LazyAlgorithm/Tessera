@@ -69,7 +69,7 @@ class CheatViolation
 /// for what it cannot see.
 static class AntiCheat
 {
-	public const uint8 MsgAntiCheat = 247;
+	public const uint8 MsgAntiCheat = 243;
 	const uint8 MessageChallenge = 1, MessageAnswer = 2, MessageNotice = 3, MessageReport = 4;
 	const uint32 FlagDebugger = 1, FlagInjected = 2, FlagClock = 4;
 

@@ -111,21 +111,8 @@ extension EditorApp
 	/// The way the character faces, from its left side to its right (across the hips or the shoulders).
 	static Vector3 RigForward(SkinnedMeshRenderer skinned, Transform fallback)
 	{
-		let map = skinned.Model.HumanMap;
-		var left = skinned.Bone(map[.LeftUpperLeg]);
-		var right = skinned.Bone(map[.RightUpperLeg]);
-		if (left == null || right == null)
-		{
-			left = skinned.Bone(map[.LeftUpperArm]);
-			right = skinned.Bone(map[.RightUpperArm]);
-		}
-		if (left == null || right == null)
-			return fallback.Forward;
-		var across = right.Position - left.Position;
-		across.y = 0;
-		if (across.Length < 0.0001f)
-			return fallback.Forward;
-		return Vector3.Cross(across, .Up).Normalized;
+		let forward = LimbIK.HumanForward(skinned);
+		return forward != .Zero ? forward : fallback.Forward;
 	}
 
 	/// Set Up IK Rig: for each hand and foot a target object holding a Limb IK, a pole the elbow or knee points at,
@@ -150,11 +137,13 @@ extension EditorApp
 				limb = target.GameObject.AddComponent<LimbIK>();
 			limb.tip = tip;
 			limb.target = target;
-			// The pole sits out from the elbow or knee the way it bends now, or behind (elbows) or in front (knees).
+			// The pole sits out from the elbow or knee the way it bends now, or behind (elbows) or in front (knees)
+			// when the limb is nearly straight or bent clearly the wrong way.
 			let length = (middle.Position - upper.Position).Length;
 			var bend = middle.Position - (upper.Position + tip.Position) * 0.5f;
-			if (bend.Length < length * 0.05f)
-				bend = i < 2 ? -forward : forward;
+			let natural = i < 2 ? -forward : forward;
+			if (bend.Length < length * 0.05f || Vector3.Dot(bend.Normalized, natural) < -0.5f)
+				bend = natural;
 			let poleName = scope $"IK {(i < 2 ? "Elbow" : "Knee")} {RigLimbs[i].Substring(5)}";
 			limb.pole = RigObject(root, poleName, middle.Position + bend.Normalized * Math.Max(length, 0.1f), .Identity);
 			made++;
@@ -471,11 +460,20 @@ extension EditorApp
 		var pose = hand.GameObject.GetComponent<HandPose>();
 		if (pose != null || !make)
 			return pose;
-		// The fingers' straight pose is taken from the scene's pose of the bones, not whatever the clip shows.
+		// The fingers' straight pose is taken from the model's own rest pose, not whatever the clip shows (an idle's
+		// half-closed hand would make every shape curl too far), else from the scene's pose of the bones.
 		let fingers = scope List<Transform>();
 		Descendants(hand, fingers);
+		let skinned = FindSkinned(animator);
+		let model = skinned != null ? skinned.Model : null;
 		for (let bone in fingers)
 		{
+			let joint = model != null ? model.FindJoint(bone.GameObject.Name) : -1;
+			if (joint >= 0)
+			{
+				bone.LocalRotation = model.Joints[joint].restRotation;
+				continue;
+			}
 			Vector3 position, scale;
 			Quaternion rotation;
 			if (animator.RestPose(bone, out position, out rotation, out scale))

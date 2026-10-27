@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
-"""Build and package the Tessera editor for Linux or Windows, without build caches."""
+"""Build and package the Tessera editor for Linux, Windows or macOS, without build caches."""
 import argparse
 import os
 from pathlib import Path
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 import tomllib
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--platform', choices=('linux', 'windows'), required=True)
+    parser.add_argument('--platform', choices=('linux', 'windows', 'macos'), required=True)
     parser.add_argument('--folder', type=Path, required=True)
     parser.add_argument('--config', choices=('Debug', 'Release'), default='Release')
     parser.add_argument('--skip-build', action='store_true', help='Package an existing launcher explicitly')
@@ -24,23 +25,28 @@ def main():
     if output.exists() and (not output.is_dir() or (any(output.iterdir()) and not (output / 'tessera-package.txt').is_file())):
         parser.error('Output is not an earlier Tessera package; choose another folder.')
     windows = args.platform == 'windows'
+    macos = args.platform == 'macos'
     if os.name == 'nt' and not windows:
         parser.error('Linux packages must be built on Linux.')
-    target = 'Win64' if windows else 'Linux64'
+    if macos != (sys.platform == 'darwin'):
+        parser.error('macOS packages are built on a Mac, and a Mac builds only them.')
+    target = 'Win64' if windows else 'macOS' if macos else 'Linux64'
     native = 'native-win' if windows else 'native'
     config = tomllib.loads((root / 'Launcher/BeefProj.toml').read_text())['Configs'][args.config][target]
     extension = 'lib' if windows else 'a'
     archives = sorted(set(re.findall(r'build/' + native + r'/[A-Za-z0-9_./-]+\.' + extension, config['OtherLinkFlags'])))
     launcher = root / f'build/{args.config}_{target}/TesseraLauncher' / ('TesseraLauncher.exe' if windows else 'TesseraLauncher')
     shaderc = Path(f'build/{native}/bgfx/cmake/bgfx/shaderc' + ('.exe' if windows else ''))
-    for relative in [*archives, shaderc]:
+    # texturec compresses a game's pictures when File > Build makes it.
+    texturec = Path(f'build/{native}/bgfx/cmake/bimg/texturec' + ('.exe' if windows else ''))
+    for relative in [*archives, shaderc, texturec]:
         if not (root / relative).is_file():
             parser.error(f'Missing {relative}; build native dependencies first.')
     if not args.skip_build:
         # Source checkouts rebuild native changes; distributed packages already
         # contain the archives and do not need CMake or third-party source.
         if (root / 'build' / native / 'CMakeCache.txt').is_file():
-            subprocess.run(['cmake', '--build', str(root / 'build' / native), '--target', 'tessera_native', 'shaderc', '-j', '4'], check=True)
+            subprocess.run(['cmake', '--build', str(root / 'build' / native), '--target', 'tessera_native', 'shaderc', 'texturec', '-j', '4'], check=True)
         if windows and os.name != 'nt':
             toolchain = Path(os.environ.get('TESSERA_WIN', Path.home() / '.local/share/tessera-win'))
             command = ['wine', str(toolchain / 'beef/bin/BeefBuild.exe'), '-workspace=.', f'-config={args.config}', '-platform=Win64', '-verbosity=minimal']
@@ -77,9 +83,9 @@ def main():
         for name in ('BeefSpace.toml', 'icon.png', 'THIRD_PARTY_LICENSES.txt'):
             shutil.copy2(root / name, stage / name)
         (stage / 'tools').mkdir()
-        for name in ('build_player.py', 'pack_assets.py', 'reload_scripts.py', 'package_engine.py', 'toolchain.txt'):
+        for name in ('build_player.py', 'pack_assets.py', 'compress_textures.py', 'macos_link.py', 'reload_scripts.py', 'package_engine.py', 'toolchain.txt'):
             shutil.copy2(root / 'tools' / name, stage / 'tools' / name)
-        for relative in [*archives, shaderc]:
+        for relative in [*archives, shaderc, texturec]:
             destination = stage / relative
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(root / relative, destination)
@@ -90,13 +96,15 @@ def main():
             for dll in launcher.parent.glob('*.dll'):
                 shutil.copy2(dll, stage / dll.name)
         # webgl: the editor's File > Build can make web builds (after tools/web/setup.sh).
-        keep = {'spirv', 'webgl'} if windows else {'spirv', 'glsl', 'webgl'}
+        keep = {'spirv', 'webgl'} if windows else {'metal', 'webgl'} if macos else {'spirv', 'glsl', 'webgl'}
         for backend in (stage / 'Engine/assets/shaders').iterdir():
             if backend.is_dir() and backend.name not in keep:
                 shutil.rmtree(backend)
-        prerequisites = ('Beef toolchain, Microsoft C++ Build Tools, and Python 3.11+ on PATH.' if windows else 'BeefBuild and Python 3.11+ on PATH, plus system graphics/audio drivers and X11 libraries.')
+        prerequisites = ('Beef toolchain, Microsoft C++ Build Tools, and Python 3.11+ on PATH.' if windows
+                         else 'BeefBuild (built for macOS) and Python 3.11+ on PATH, and the Xcode command line tools.' if macos
+                         else 'BeefBuild and Python 3.11+ on PATH, plus system graphics/audio drivers and X11 libraries.')
         (stage / 'tessera-package.txt').write_text(
-            f'Tessera early beta for {args.platform} (x64), {args.config}.\n'
+            f'Tessera early beta for {args.platform} ({"Apple silicon" if macos else "x64"}), {args.config}.\n'
             f'Start {"Tessera.exe" if windows else "./Tessera"}.\n'
             f'For editing/building projects: {prerequisites}\n'
             'Engine/editor source and native archives are required to compile project scripts.\n'

@@ -50,6 +50,10 @@ extension EditorApp
 	{
 		if (ImGui.Begin("Inspector"))
 		{
+			// Where this panel is docked is where the Model window opens.
+			let inspectorDock = ImGui.GetWindowDockID();
+			if (inspectorDock != 0)
+				mInspectorDock = inspectorDock;
 			let selected = Selected;
 			// Selecting another object takes the Inspector back from an asset clicked in the Project panel.
 			if (mSelectedId != mInspectedObject)
@@ -105,6 +109,10 @@ extension EditorApp
 			changed |= ImGui.ColorEdit3("##ag", ref env.ambientGround);
 			BeginProperty("Ambient Intensity");
 			changed |= ImGui.SliderFloat("##ai", ref env.ambientIntensity, 0, 2);
+			BeginProperty("Ambient From Surroundings");
+			changed |= ImGui.Checkbox("##afs", ref env.ambientFromSurroundings);
+			if (ImGui.IsItemHovered())
+				ImGui.SetTooltip("Light from all around: the sky, and inside a Reflection Probe's box the room it saw,\ninstead of the Ambient Sky and Ground colours. Ambient Intensity still scales it.");
 			BeginProperty("Exposure");
 			changed |= ImGui.SliderFloat("##ex", ref env.exposure, 0.1f, 4);
 			BeginProperty("Bloom");
@@ -113,6 +121,10 @@ extension EditorApp
 			changed |= ImGui.SliderFloat("##bt", ref env.bloomThreshold, 0, 4);
 			BeginProperty("Shadow Distance");
 			changed |= ImGui.DragFloat("##sd", ref env.shadowDistance, 1, 10, 1000);
+			BeginProperty("Reflections");
+			changed |= ImGui.SliderFloat("##ri", ref env.reflectionIntensity, 0, 2);
+			if (ImGui.IsItemHovered())
+				ImGui.SetTooltip("How strongly surfaces mirror the sky and the reflection probes.\nPut a Reflection Probe in each room so that indoors does not mirror the sky.");
 			ImGui.EndTable();
 		}
 		if (ImGui.CollapsingHeader("Sky and Fog", ImGui.TreeFlags.DefaultOpen) && BeginPropertyTable("sky"))
@@ -350,6 +362,22 @@ extension EditorApp
 			DrawLimbIKTools(limb);
 		if (let foliage = component as Foliage)
 			DrawFoliageTools(foliage);
+		if (let decal = component as Decal)
+			DrawDecalTools(decal);
+		if (let probe = component as ReflectionProbe)
+			DrawReflectionProbeTools(probe);
+		if (let runner = component as DialogueRunner)
+			DrawDialogueRunnerTools(runner);
+		if (let sequencePlayer = component as SequencePlayer)
+			DrawSequencePlayerTools(sequencePlayer);
+		if (let link = component as NavigationLink)
+			DrawNavigationLinkTools(link);
+		if (let obstacle = component as NavigationObstacle)
+			DrawNavigationObstacleTools(obstacle);
+		if (let area = component as NavigationArea)
+			DrawNavigationAreaTools(area);
+		if (let lodGroup = component as LODGroup)
+			DrawLODGroupTools(lodGroup);
 		if (let hand = component as HandPose)
 			DrawHandPoseTools(hand);
 		if (let feet = component as FootPlacement)
@@ -367,7 +395,7 @@ extension EditorApp
 	{
 		if (skinned.Model == null)
 			return;
-		ImGui.TextDisabled(scope String()..AppendF("{} bones, {} clips", skinned.Model.Joints.Count, skinned.Model.Clips.Count).CStr());
+		ImGui.TextDisabled(scope String()..AppendF("{} bones, {} clips, {} vertices bent on the {}", skinned.Model.Joints.Count, skinned.Model.Clips.Count, skinned.Model.Positions.Count, skinned.SkinnedOnGpu ? "GPU" : "CPU").CStr());
 		DrawBoneMapLine(skinned);
 		DrawSkinnedParts(skinned);
 		for (let animation in skinned.Model.Clips)
@@ -489,17 +517,17 @@ extension EditorApp
 		let letter = ImGui.CalcTextSize("X").x + 4;
 		let width = Math.Max((ImGui.GetContentRegionAvail().x - letter * 3 - spacing * 2) / 3, 24);
 		ImGui.AlignTextToFramePadding();
-		ImGui.TextColored(.(0.95f, 0.45f, 0.42f, 1), "X");
+		ImGui.TextColored(EditorTheme.Error, "X");
 		ImGui.SameLine(0, 4);
 		ImGui.SetNextItemWidth(width);
 		changed |= ImGui.DragFloat("##x", ref value.x, speed);
 		ImGui.SameLine(0, spacing);
-		ImGui.TextColored(.(0.55f, 0.85f, 0.42f, 1), "Y");
+		ImGui.TextColored(EditorTheme.Good, "Y");
 		ImGui.SameLine(0, 4);
 		ImGui.SetNextItemWidth(width);
 		changed |= ImGui.DragFloat("##y", ref value.y, speed);
 		ImGui.SameLine(0, spacing);
-		ImGui.TextColored(.(0.45f, 0.62f, 0.98f, 1), "Z");
+		ImGui.TextColored(EditorTheme.Info, "Z");
 		ImGui.SameLine(0, 4);
 		ImGui.SetNextItemWidth(width);
 		changed |= ImGui.DragFloat("##z", ref value.z, speed);
@@ -510,11 +538,11 @@ extension EditorApp
 	static StringView ComponentCategory(StringView fullName, StringView name)
 	{
 		if (!fullName.StartsWith("Tessera.")) return "Scripts";
-		if (name == "Camera" || name == "Light" || name == "MeshRenderer") return "Rendering";
+		if (name == "Camera" || name == "Light" || name == "MeshRenderer" || name == "Decal" || name == "LODGroup" || name == "ReflectionProbe") return "Rendering";
 		if (name == "Rigidbody" || name.EndsWith("Collider") || name == "CharacterController") return "Physics";
-		if (name == "SkinnedMeshRenderer" || name == "Animator") return "Animation";
+		if (name == "SkinnedMeshRenderer" || name == "Animator" || name == "SequencePlayer") return "Animation";
 		if (name == "UIDocument") return "UI";
-		if (name.StartsWith("Audio")) return "Audio";
+		if (name.StartsWith("Audio") || name == "DialogueRunner") return "Audio";
 		if (name.StartsWith("Navigation") || name.StartsWith("BehaviorTree")) return "AI";
 		if (name == "ParticleSystem") return "Particles";
 		if (name.StartsWith("Voxel") || name == "SpawnPoint") return "World";
@@ -610,7 +638,7 @@ extension EditorApp
 			let temporary = scope String();
 			let text = original != null ? original : temporary;
 			bool changed;
-			if (field.name == "mesh" || field.name == "model" || field.name == "texture" || field.name == "document" || field.name == "prefab" || field.name == "tree" || field.name == "controller" || field.name == "material" || field.name == "interiorMaterial" || field.name == "scene" || field.name == "shader" || field.name == "bakedData" || field.name == "audioClip" || field.name.EndsWith("Prefab"))
+			if (field.name == "mesh" || field.name == "model" || field.name == "texture" || field.name == "document" || field.name == "prefab" || field.name == "tree" || field.name == "controller" || field.name == "material" || field.name == "interiorMaterial" || field.name == "scene" || field.name == "shader" || field.name == "bakedData" || field.name == "audioClip" || field.name == "dialogue" || field.name == "sequence" || field.name.EndsWith("Prefab"))
 				changed = DrawAssetPicker(text, field.name);
 			else
 				changed = ImGui.InputText("##v", text);
@@ -657,6 +685,8 @@ extension EditorApp
 		if (kind == "material" || kind == "interiorMaterial") return HasExtension(path, ".tmat");
 		if (kind == "shader") return HasExtension(path, ".tcompute");
 		if (kind == "document") return HasExtension(path, ".tui");
+		if (kind == "dialogue") return HasExtension(path, ".tdialogue");
+		if (kind == "sequence") return HasExtension(path, ".tsequence");
 		if (kind == "scene") return HasExtension(path, ".tscene");
 		return HasExtension(path, ".tprefab");
 	}

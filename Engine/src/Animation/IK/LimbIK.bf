@@ -9,7 +9,8 @@ namespace Tessera;
 ///
 /// Tip is the hand or foot. The two bones above it are bent to reach (Middle and Upper name them when they are not
 /// simply its parents). Target is any object: put empty objects on a weapon where the hands belong. Pole is an object
-/// the elbow or knee points towards; without one the limb keeps bending the way the clip bends it.
+/// the elbow or knee points towards; without one the limb keeps bending the way the clip bends it, and a humanoid's
+/// limb that is straight bends the natural way (elbows back, knees forward).
 ///
 /// IK runs after the Animator and after every script's LateUpdate, so a clip plays underneath and the hands stay on a
 /// weapon that sways or recoils. Weight blends between the clip's pose (0) and the target (1). It is worked out on
@@ -46,6 +47,10 @@ class LimbIK : IKComponent
 	Quaternion mGoalRotation = .Identity;
 	bool mHasGoal;
 	float mHeldWeight = 1;
+	// The humanoid the tip belongs to, looked up once for each tip: which limb it is and the hips that tell its facing.
+	Transform mBendFor;
+	int mBendSign;
+	Transform mLeftHip, mRightHip;
 
 	public override float Weight { get => weight; set => weight = value; }
 	public override int32 Order => 20;
@@ -111,6 +116,60 @@ class LimbIK : IKComponent
 		tip.LocalRotation = saved;
 	}
 
+	/// The way a character faces, from its hips (else its shoulders): scene space is left-handed, so facing +Z its
+	/// right is +X. Zero when the model is not a humanoid.
+	public static Vector3 HumanForward(SkinnedMeshRenderer skinned)
+	{
+		if (skinned == null || skinned.Model == null || !skinned.Model.HumanMap.IsHumanoid)
+			return .Zero;
+		let map = skinned.Model.HumanMap;
+		var left = skinned.Bone(map[.LeftUpperLeg]);
+		var right = skinned.Bone(map[.RightUpperLeg]);
+		if (left == null || right == null)
+		{
+			left = skinned.Bone(map[.LeftUpperArm]);
+			right = skinned.Bone(map[.RightUpperArm]);
+		}
+		return left != null && right != null ? Facing(left, right) : .Zero;
+	}
+
+	static Vector3 Facing(Transform left, Transform right)
+	{
+		var across = right.Position - left.Position;
+		across.y = 0;
+		return across.LengthSquared > 1.0e-8f ? Vector3.Cross(across, .Up).Normalized : .Zero;
+	}
+
+	/// The way this limb's elbow or knee naturally points, in world space: behind the character for an arm, in front
+	/// for a leg. Zero when the tip is not a humanoid's hand or foot.
+	public Vector3 NaturalBend()
+	{
+		if (tip == null)
+			return .Zero;
+		if (mBendFor != tip)
+		{
+			mBendFor = tip;
+			mBendSign = 0;
+			mLeftHip = mRightHip = null;
+			for (var parent = tip.Parent; parent != null && mBendSign == 0; parent = parent.Parent)
+			{
+				let skinned = parent.GameObject.GetComponent<SkinnedMeshRenderer>();
+				if (skinned == null || skinned.Model == null || !skinned.Model.HumanMap.IsHumanoid)
+					continue;
+				let map = skinned.Model.HumanMap;
+				if (skinned.Bone(map[.LeftHand]) == tip || skinned.Bone(map[.RightHand]) == tip)
+					mBendSign = -1;
+				else if (skinned.Bone(map[.LeftFoot]) == tip || skinned.Bone(map[.RightFoot]) == tip)
+					mBendSign = 1;
+				mLeftHip = skinned.Bone(map[.LeftUpperLeg]) ?? skinned.Bone(map[.LeftUpperArm]);
+				mRightHip = skinned.Bone(map[.RightUpperLeg]) ?? skinned.Bone(map[.RightUpperArm]);
+			}
+		}
+		if (mBendSign == 0 || mLeftHip == null || mRightHip == null || mLeftHip.GameObject.IsDestroyed || mRightHip.GameObject.IsDestroyed)
+			return .Zero;
+		return Facing(mLeftHip, mRightHip) * mBendSign;
+	}
+
 	/// Moves the target (and turns it) to where the tip is now, so that turning IK on changes nothing until the
 	/// target is moved.
 	public void TargetToTip()
@@ -159,7 +218,24 @@ class LimbIK : IKComponent
 		var wrist = position;
 		if (gripPoint != .Zero)
 			wrist = position - final * (before.Conjugate * (tip.TransformPoint(gripPoint) - tip.Position));
-		IKSolver.TwoBone(top, mid, tip, wrist, pole != null && !pole.GameObject.IsDestroyed, pole != null ? pole.Position : .Zero);
+		var usePole = pole != null && !pole.GameObject.IsDestroyed;
+		var polePosition = usePole ? pole.Position : Vector3.Zero;
+		if (!usePole)
+		{
+			// No pole: the clip's bend decides, unless the limb is nearly straight and the bend is only noise.
+			let reach = (mid.Position - top.Position).Length;
+			let bend = mid.Position - (top.Position + tip.Position) * 0.5f;
+			if (bend.Length < reach * 0.05f)
+			{
+				let natural = NaturalBend();
+				if (natural != .Zero)
+				{
+					usePole = true;
+					polePosition = mid.Position + natural * Math.Max(reach, 0.1f);
+				}
+			}
+		}
+		IKSolver.TwoBone(top, mid, tip, wrist, usePole, polePosition);
 		if (turn > 0)
 			tip.Rotation = Quaternion.Slerp(tip.Rotation, rotation, turn);
 		else

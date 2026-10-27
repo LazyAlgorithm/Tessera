@@ -134,7 +134,7 @@ extension EditorApp
 			return;
 		let name = scope String();
 		Path.GetFileName(mPrefabPath, name);
-		ImGui.PushStyleColor(ImGui.Col.ChildBg, .(0.13f, 0.30f, 0.46f, 1));
+		ImGui.PushStyleColor(ImGui.Col.ChildBg, EditorTheme.Prefab);
 		ImGui.BeginChild("prefabbar", .(0, 54), ImGui.ChildBorders);
 		ImGui.Text(scope $"{name}{mDirty ? "*" : ""}");
 		if (ImGui.SmallButton("Back to Scene"))

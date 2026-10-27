@@ -46,4 +46,98 @@ extension EditorApp
 			}
 		}
 	}
+
+	// ---- Navigation Links, Obstacles and Areas ----
+
+	/// The baked surface whose grid a point is on (within a distance), or null.
+	NavigationSurface SurfaceUnder(Vector3 point, float distance, out int32 cell)
+	{
+		cell = -1;
+		for (let component in mScene.ComponentsOfType(typeof(NavigationSurface)))
+		{
+			let surface = (NavigationSurface)component;
+			if (surface.Data == null || !surface.IsActiveAndEnabled)
+				continue;
+			cell = surface.Data.Nearest(point, distance);
+			if (cell >= 0)
+				return surface;
+		}
+		return null;
+	}
+
+	void DrawNavigationLinkTools(NavigationLink link)
+	{
+		let snap = Math.Max(link.snapDistance, 0.5f);
+		let start = SurfaceUnder(link.StartPoint, snap, ?);
+		let end = SurfaceUnder(link.EndPoint, snap, ?);
+		if (start != null && end != null)
+			ImGui.TextDisabled("Both ends reach a baked surface.");
+		else
+			ImGui.TextColored(EditorTheme.Warning, start == null && end == null ? "Neither end is near a baked surface (bake one, or move the ends)." : (start == null ? "The start (this object) is not near a baked surface." : "The end is not near a baked surface."));
+		if (ImGui.Button("Drop Ends to Ground"))
+		{
+			let endPoint = link.EndPoint;
+			if (RaycastScene(Ray(link.StartPoint + Vector3.Up * 0.5f, .Down), let point, ?, link.GameObject, true, 50))
+				link.Transform.Position = point;
+			if (RaycastScene(Ray(endPoint + Vector3.Up * 0.5f, .Down), let endHit, ?, link.GameObject, true, 50))
+				link.end = link.Transform.Rotation.Normalized.Conjugate * (endHit - link.Transform.Position);
+			MarkDirty();
+		}
+		ImGui.SameLine();
+		if (ImGui.Button("End at View Centre"))
+		{
+			// Where the Scene view's camera looks.
+			let forward = Quaternion.Euler(mCamPitch, mCamYaw, 0) * Vector3.Forward;
+			if (RaycastScene(Ray(mCamPosition, forward), let point, ?, link.GameObject, true, 500))
+			{
+				link.end = link.Transform.Rotation.Normalized.Conjugate * (point - link.Transform.Position);
+				MarkDirty();
+			}
+		}
+		ImGui.TextDisabled(scope String()..AppendF("{:0.0} m long. Agents cross it with OnLinkStarted / OnLinkFinished.", (link.EndPoint - link.StartPoint).Length).CStr());
+	}
+
+	/// Sizes an obstacle or area to what its object draws.
+	bool FitNavigationShape(GameObject gameObject, ref Vector3 size, ref Vector3 center)
+	{
+		if (!HierarchyBounds(gameObject, let bounds) || !bounds.IsValid)
+			return false;
+		// In the object's own space (its scale and turn taken out).
+		let inverse = gameObject.Transform.WorldToLocal;
+		var local = Bounds.Empty;
+		for (int corner < 8)
+		{
+			let point = Vector3((corner & 1) != 0 ? bounds.max.x : bounds.min.x, (corner & 2) != 0 ? bounds.max.y : bounds.min.y, (corner & 4) != 0 ? bounds.max.z : bounds.min.z);
+			local.Encapsulate(inverse.TransformPoint(point));
+		}
+		let scale = gameObject.Transform.LocalScale;
+		size = (local.max - local.min) * scale;
+		center = (local.max + local.min) * 0.5f * scale;
+		return true;
+	}
+
+	void DrawNavigationObstacleTools(NavigationObstacle obstacle)
+	{
+		if (ImGui.Button("Fit to Object"))
+		{
+			if (FitNavigationShape(obstacle.GameObject, ref obstacle.size, ref obstacle.center))
+				MarkDirty();
+			else
+				Log.Warning("Fit to Object: the object draws nothing to fit to.");
+		}
+		ImGui.SameLine();
+		ImGui.TextDisabled(mPlay == .Edit ? "Shown carved where it stands." : (obstacle.Carving ? "Carving." : "Moving: steered round."));
+	}
+
+	void DrawNavigationAreaTools(NavigationArea area)
+	{
+		if (ImGui.Button("Fit to Object"))
+		{
+			var center = Vector3.Zero;
+			if (FitNavigationShape(area.GameObject, ref area.size, ref center))
+				MarkDirty();
+		}
+		ImGui.SameLine();
+		ImGui.TextDisabled(area.blocked ? "Agents never enter it." : scope String()..AppendF("Crossing costs {:0.#} times its length.", area.cost).CStr());
+	}
 }

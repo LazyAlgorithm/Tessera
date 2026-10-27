@@ -209,6 +209,8 @@ static class AssetPreviews
 		if (sView == null)
 		{
 			sView = new RenderView(ViewBase);
+			// Its scene is not the one being edited: the reflection captures follow the editor's views.
+			sView.CapturesReflections = false;
 			sView.ShowAmbientOcclusion = false;
 			sView.ShowDepthOfField = false;
 			sView.ShowMotionBlur = false;

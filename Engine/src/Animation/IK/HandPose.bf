@@ -314,8 +314,10 @@ class HandPose : IKComponent
 	void FindAxes(Transform root)
 	{
 		// The palm faces square to the fan of the fingers. Which of the two sides is the palm cannot be told from
-		// the fingers alone (a right hand palm down has the shape of a left hand palm up), so the thumb decides:
-		// it sits on the palm's side of the fingers. With no thumb to go by, Flip Curl is there.
+		// the fingers alone (a right hand palm down has the shape of a left hand palm up), so the hand's side
+		// decides, from its name; with no side in the name the thumb does: it sits on the palm's side of the
+		// fingers. Only the knuckles are used, since the "straight" pose may be an animation's half-curled hand.
+		// With neither to go by, Flip Curl is there.
 		Finger first = null, last = null;
 		for (int i = 1; i < 5; i++)
 		{
@@ -340,17 +342,22 @@ class HandPose : IKComponent
 			return position;
 		}
 		let firstBase = first.bones[0].LocalPosition, lastBase = last.bones[0].LocalPosition;
-		var along = (Reach(first) + Reach(last)) * 0.5f;
+		var along = (firstBase + lastBase) * 0.5f;
 		if (along.LengthSquared < 1.0e-10f)
-			along = (firstBase + lastBase) * 0.5f;
+			along = (Reach(first) + Reach(last)) * 0.5f;
 		along = along.LengthSquared > 1.0e-10f ? along.Normalized : Vector3.Forward;
 		var across = lastBase - firstBase;
 		across = across - along * Vector3.Dot(across, along);
 		if (across.LengthSquared < 1.0e-10f)
 			across = Vector3.Cross(Math.Abs(along.y) < 0.9f ? Vector3.Up : Vector3.Right, along);
 		across = across.Normalized;
+		// In the scene's left-handed space a left hand's palm is along x across (index to little finger); a right
+		// hand's the other way.
 		var palm = Vector3.Cross(along, across).Normalized;
-		if (mFingers[0] != null)
+		let side = BoneMap.Simplify(root.GameObject.Name, scope String());
+		if (side == 1)
+			palm = -palm;
+		else if (side != -1 && mFingers[0] != null)
 		{
 			let thumbSide = Vector3.Dot(Reach(mFingers[0]) - firstBase, palm);
 			if (thumbSide < 0)
@@ -362,6 +369,8 @@ class HandPose : IKComponent
 			if (finger == null)
 				continue;
 			finger.curlAxis.Clear();
+			var knuckle = finger.bones[0].LocalPosition;
+			knuckle = knuckle - palm * Vector3.Dot(knuckle, palm);
 			var toHand = Quaternion.Identity;
 			for (int i < finger.bones.Count)
 			{
@@ -369,8 +378,10 @@ class HandPose : IKComponent
 				// The way the bone points: towards the next bone, or on from the last one.
 				var direction = ((i + 1) < finger.bones.Count) ? toHand * finger.bones[i + 1].LocalPosition : (i > 0 ? toHand * (finger.rest[i].Conjugate * finger.bones[i].LocalPosition) : along);
 				direction = direction.LengthSquared > 1.0e-10f ? direction.Normalized : along;
-				// Turning about this axis swings the bone's direction towards the palm.
-				var axis = Vector3.Cross(direction, palm);
+				// Turning about this axis swings the bone's direction towards the palm. A finger bends in one plane,
+				// so its knuckle's direction from the wrist serves every bone of it: a bone already curled into the
+				// palm points along the palm's normal, which gives no axis.
+				var axis = Vector3.Cross(f == 0 || knuckle.LengthSquared < 1.0e-10f ? direction : knuckle, palm);
 				if (f == 0)
 				{
 					// A thumb closes across the palm as much as into it.

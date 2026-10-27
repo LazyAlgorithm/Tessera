@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a player (Linux, Windows with --platform windows, or the web with --platform web) with no TesseraEditor
+"""Build a player (Linux, Windows with --platform windows, the web with --platform web, or macOS on a Mac) with no TesseraEditor
 dependency and stage its runtime assets.
 
 A Windows player is built here on Linux: the Windows Beef compiler runs under Wine and links against the native
@@ -15,9 +15,12 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 import tomllib
 
+import compress_textures
+import macos_link
 import pack_assets
 
 # Windows system libraries the native libraries call into (SDL, bgfx, ENet, miniaudio).
@@ -69,11 +72,12 @@ def main():
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--scene', help='Asset-relative start scene')
     parser.add_argument('--config', choices=('Debug', 'Release'), default='Release')
-    parser.add_argument('--platform', choices=('linux', 'windows', 'web'), default='windows' if os.name == 'nt' else 'linux')
+    parser.add_argument('--platform', choices=('linux', 'windows', 'web', 'macos'), default='windows' if os.name == 'nt' else 'macos' if sys.platform == 'darwin' else 'linux')
     parser.add_argument('--replace', action='store_true', help='Replace the output folder if it holds an earlier build (it must contain game.tessera)')
     parser.add_argument('--fullscreen', action='store_true', help='The game starts fullscreen, whatever the project says')
     parser.add_argument('--windowed', action='store_true', help='The game starts in a window, whatever the project says')
     parser.add_argument('--no-compress', action='store_true', help='Pack the assets without compressing them')
+    parser.add_argument('--no-texture-compression', action='store_true', help='Leave pictures uncompressed for the graphics card (no .ktx copies)')
     parser.add_argument('--single-pack', action='store_true', help='Put every asset in game.tpak, with no pack per scene')
     parser.add_argument('--loose', action='store_true', help='Leave the assets as loose files instead of packing them into game.tpak')
     parser.add_argument('--console', action='store_true', help='Windows: keep a console window for log output (a dedicated server wants one)')
@@ -94,6 +98,11 @@ def main():
             settings[key.strip()] = value.strip()
     windows = args.platform == 'windows'
     web = args.platform == 'web'
+    macos = args.platform == 'macos'
+    if macos and sys.platform != 'darwin':
+        parser.error('A macOS player is built on a Mac.')
+    if sys.platform == 'darwin' and not (macos or web):
+        parser.error('A Mac builds macOS and web players.')
     # On a Windows machine Beef builds for Windows by itself; on Linux its Windows release runs under Wine.
     cross = windows and os.name != 'nt'
     if os.name == 'nt' and not windows:
@@ -173,13 +182,16 @@ def main():
             config = {'OtherLinkFlags': '$(LinkFlags) ' + ' '.join([f'"{wine_path(natives / lib) if cross else natives / lib}"' for lib in WINDOWS_NATIVE_LIBS] + [lib + '.lib' for lib in WINDOWS_SYSTEM_LIBS])}
         elif web:
             config = {'OtherLinkFlags': '$(LinkFlags) ' + ' '.join([str(natives / lib) for lib in WEB_NATIVE_LIBS] + list(WEB_LINK_FLAGS))}
+        elif macos:
+            # The project's own settings are for Linux; a Mac links the same libraries as built for macOS.
+            config = {'OtherLinkFlags': macos_link.flags(str(engine / 'build' / 'native'))}
         else:
             config = proj['Configs'][args.config]['Linux64']
         target_type = 'BeefGUIApplication' if windows and not args.console else 'BeefConsoleApplication'
-        beef_platform = 'Win64' if windows else 'wasm32' if web else 'Linux64'
+        beef_platform = 'Win64' if windows else 'wasm32' if web else 'macOS' if macos else 'Linux64'
         lines = ['FileVersion = 1', 'Dependencies = {' + ', '.join(f'{key} = {q(value)}' for key, value in dependencies.items()) + '}', '[Project]', f'Name = {q(name)}', f'TargetType = {q(target_type)}', f'StartupObject = {q(name + ".Program")}', f'[Configs.{args.config}.{beef_platform}]']
         for key, value in config.items():
-            if not windows and not web and isinstance(value, str) and recorded_engine and str(engine) != recorded_engine:
+            if not windows and not web and not macos and isinstance(value, str) and recorded_engine and str(engine) != recorded_engine:
                 value = value.replace(recorded_engine, str(engine))
             lines.append(f'{key} = {q(value)}')
         (workspace / 'BeefProj.toml').write_text('\n'.join(lines) + '\n')
@@ -192,7 +204,7 @@ def main():
             if built.returncode != 0:
                 raise SystemExit('The Windows build failed.')
         else:
-            subprocess.run([os.environ.get('BEEFBUILD', 'BeefBuild'), f'-workspace={workspace}', f'-config={args.config}', '-verbosity=minimal'] + (['-platform=Win64'] if windows else ['-platform=wasm32'] if web else []), check=True)
+            subprocess.run([os.environ.get('BEEFBUILD', 'BeefBuild'), f'-workspace={workspace}', f'-config={args.config}', '-verbosity=minimal'] + (['-platform=Win64'] if windows else ['-platform=wasm32'] if web else ['-platform=macOS'] if macos else []), check=True)
         output.parent.mkdir(parents=True, exist_ok=True)
         staging = Path(tempfile.mkdtemp(prefix=output.name + '-', dir=output.parent))
         try:
@@ -206,7 +218,8 @@ def main():
                 shutil.copy2(built_folder / executable, staging / executable)
             # Of the engine's files a game reads only the compiled shaders, and only those of the graphics backends
             # it can start on this system: Vulkan, plus OpenGL as the fallback on Linux; WebGL 2 in a browser.
-            for backend in (('webgl',) if web else ('spirv',) if windows else ('spirv', 'glsl')):
+            # Metal on a Mac.
+            for backend in (('webgl',) if web else ('spirv',) if windows else ('metal',) if macos else ('spirv', 'glsl')):
                 shutil.copytree(engine / 'Engine' / 'assets' / 'shaders' / backend, staging / 'Engine' / 'assets' / 'shaders' / backend)
             for file in (engine / 'Engine' / 'assets').iterdir():
                 if file.is_file():
@@ -220,13 +233,18 @@ def main():
                 target = staging / 'Assets' / file.relative_to(project / 'src')
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(file, target)
+            # Pictures compressed for the graphics card (docs/textures.md): a .ktx beside each, which the engine uses in its
+            # place. Not for the web, whose browsers do not all read the same compressed formats.
+            if not web and not args.no_texture_compression and settings.get('compressTextures', '1') != '0':
+                made, skipped, errors = compress_textures.compress_folder(staging / 'Assets', engine, settings.get('textureCompressExclude', compress_textures.DEFAULT_EXCLUDE))
+                print(f'Textures: {made} compressed, {skipped} left as they are' + ''.join(f'\n  note: {error}' for error in errors))
             # A web page cannot load Steam.
             steam = '' if web else settings.get('steamAppId', '')
             if steam:
                 # A game that is not started from Steam says which app it is with this file, and needs Valve's
                 # Steamworks library beside it: the project's own copy if it has one, else one found on this machine.
                 (staging / 'steam_appid.txt').write_text(steam + '\n')
-                library = 'steam_api64.dll' if windows else 'libsteam_api.so'
+                library = 'steam_api64.dll' if windows else 'libsteam_api.dylib' if macos else 'libsteam_api.so'
                 for candidate in (project / library, project / 'Libraries' / library, Path.home() / '.local/share/Steam/steamrt64' / library):
                     if candidate.is_file():
                         shutil.copy2(candidate, staging / library)

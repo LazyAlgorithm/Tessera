@@ -46,7 +46,8 @@ This is what Limb IK is for. One Limb IK is one arm, so a two-handed weapon take
 3. Drag `GripRight` into **Target**. The arm bends to put the hand there.
 4. Add a second Limb IK for the left hand and `GripLeft`.
 5. If an elbow points the wrong way, make an empty object out to the side and a little behind, and drag it into
-   **Pole**. The elbow points towards it.
+   **Pole**. The elbow points towards it. Without a pole, a humanoid's limb bends the way its clip bends it, and
+   when it is straight (a T or A pose) the natural way: elbows back, knees forward (`NaturalBend()`).
 6. To turn the hand on the grip: set **Weight** to 0, rotate the hand until it looks right, press **Keep Hand's
    Rotation**, and bring Weight back to 1. That fills in **Rotation Offset**. **Rotation Weight** 1 locks the hand to
    the target's rotation; 0 leaves the wrist to the animation.
@@ -97,8 +98,11 @@ When no name matches, five children are taken as thumb to pinky in order and few
 on. A child named only "finger" (POLYGON characters' middle, ring and little fingers, which are one chain) takes the
 first free slot from the middle finger on. A finger is that child and the bones below it, up to four. The Inspector says what was found.
 
-Which way to curl is worked out from the hand's shape, using the thumb to tell the palm from the back of the hand.
-If the fingers curl backwards, tick **Flip Curl**; if only the thumb is wrong, **Flip Thumb**.
+Which way to curl is worked out from the knuckles and the hand's side, read from its name (`hand_l`, `RightHand`,
+`Hand.L`...); a hand whose name gives no side uses the thumb to tell the palm from the back of the hand. The
+straight pose is the fingers' pose when the Hand Pose is added: add it with the fingers straight (Hand Posing's
+**Pose Fingers** does this for you). If the fingers curl backwards, tick **Flip Curl**; if only the thumb is wrong,
+**Flip Thumb**.
 
 Curls are measured from the fingers' straight pose, which is remembered the first time the hand is found. If the
 hand was not flat at that moment: set Weight to 0, straighten the fingers, and press **Use Current Pose As

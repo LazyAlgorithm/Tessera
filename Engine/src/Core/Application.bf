@@ -114,6 +114,9 @@ class Application
 		return false;
 	}
 
+	/// Whether the player's saved graphics settings are applied at start (the editor keeps its own).
+	protected virtual bool LoadsPlayerQuality => true;
+
 	/// Value following a named option, e.g. GetArg("--scene", path).
 	public bool GetArg(StringView name, String value)
 	{
@@ -148,6 +151,9 @@ class Application
 			mFrameLimit = SceneSerializer.ParseInt(value);
 		GetArg("--screenshot", mScreenshotPath);
 		GetArg("--engine-root", mEngineRootHint);
+		// Bend skinned models on the CPU, to compare with the GPU (docs/gpu-skinning.md).
+		if (HasArg("--cpu-skinning"))
+			GpuSkinning.Enabled = false;
 		if (HasArg("--headless"))
 			Headless = true;
 		// Either one overrides how the game was built to start.
@@ -209,6 +215,24 @@ class Application
 			Shutdown();
 			return 1;
 		}
+		// The player's saved graphics settings (docs/quality.md), then --quality <low|medium|high|ultra> for this run.
+		if (!Headless && LoadsPlayerQuality)
+			Quality.Load();
+		// To compare: textures without mip levels or compressed copies.
+		Textures.Mipmaps = !HasArg("--no-mipmaps");
+		Textures.UseCompressed = !HasArg("--no-compressed-textures");
+		// To compare: shiny surfaces mirroring the ambient colours, as before reflection cubes.
+		Reflections.Enabled = !HasArg("--no-reflections");
+		let quality = scope String();
+		if (GetArg("--quality", quality) && Quality.Parse(quality, let level))
+			Quality.Set(level);
+		// To compare: how many point and spot lights cast shadows (0: none).
+		let shadowed = scope String();
+		if (GetArg("--shadowed-lights", shadowed) && int32.Parse(shadowed) case .Ok(let count))
+			RenderView.MaxShadowedLights = Math.Clamp(count, 0, LightClusters.MaxTiles);
+		// To compare: lightmaps and baked light probes off (docs/baked-lighting.md).
+		if (HasArg("--no-baked-lighting"))
+			RenderView.UseBakedLighting = false;
 
 		mLastTicks = SDL.SDL_GetTicksNS();
 #if BF_PLATFORM_WASM
@@ -339,6 +363,10 @@ class Application
 		{
 			ShaderAsset.ReleaseAll();
 			Compute.Shutdown();
+			GpuSkinning.Shutdown();
+			Reflections.Shutdown();
+			Textures.LogTotals();
+			Reflections.LogTotals();
 			RenderResources.Destroy();
 			Gfx.Shutdown();
 			if (Window != null)

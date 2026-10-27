@@ -156,6 +156,15 @@ extension EditorApp
 		mAnimClipChoicesFrame = -1000;
 	}
 
+	// The window's colours, from the editor's theme: panels a shade off the window, the sheet a little darker, lines
+	// and ink in the theme's text colour.
+	static Color AnimUi(int32 col) => ImGui.GetStyleColor(col);
+	static Color AnimShade(float amount) => Color.Lerp(AnimUi(ImGui.Col.WindowBg), .(0, 0, 0, 1), amount);
+	static Color AnimInk(float alpha) => .(EditorTheme.Text.r, EditorTheme.Text.g, EditorTheme.Text.b, alpha);
+	static Color AnimPanel => Color.Lerp(AnimUi(ImGui.Col.WindowBg), EditorTheme.Text, 0.05f);
+	static Color AnimSheet => AnimShade(EditorTheme.IsLight ? 0.06f : 0.25f);
+	static Color AnimGap => AnimShade(EditorTheme.IsLight ? 0.25f : 0.55f);
+
 	static void DrawKeyDiamond(ImGui.Vec2 center, float radius, Color color)
 	{
 		ImGui.DrawQuadFilled(.(center.x - radius, center.y), .(center.x, center.y - radius), .(center.x + radius, center.y), .(center.x, center.y + radius), color);
@@ -172,19 +181,19 @@ extension EditorApp
 		let hovered = ImGui.IsItemHovered();
 		if (hovered)
 			ImGui.SetTooltip(tip);
-		Color back = hovered ? Color(1, 1, 1, 0.13f) : Color(1, 1, 1, 0.05f);
+		Color back = hovered ? AnimInk(0.13f) : AnimInk(0.05f);
 		if (active)
-			back = icon == 0 ? Color(0.62f, 0.13f, 0.13f, 1) : Color(0.24f, 0.40f, 0.60f, 1);
+			back = icon == 0 ? Color.Lerp(AnimPanel, EditorTheme.Error, 0.6f) : EditorTheme.Accent;
 		ImGui.DrawRectFilled(min, .(min.x + size.x, min.y + size.y), back, 2);
 		let c = ImGui.Vec2(min.x + 13, min.y + height * 0.5f);
-		let ink = Color(0.84f, 0.84f, 0.84f, 1);
+		let ink = AnimInk(0.85f);
 		const float r = 4.5f;
 		void Left(float x) => ImGui.DrawTriangleFilled(.(x + r * 0.7f, c.y - r), .(x + r * 0.7f, c.y + r), .(x - r * 0.7f, c.y), ink);
 		void Right(float x) => ImGui.DrawTriangleFilled(.(x - r * 0.7f, c.y - r), .(x + r * 0.7f, c.y), .(x - r * 0.7f, c.y + r), ink);
 		void Bar(float x) => ImGui.DrawRectFilled(.(x - 1, c.y - r), .(x + 1, c.y + r), ink);
 		switch (icon)
 		{
-		case 0: ImGui.DrawCircleFilled(c, 5, active ? Color(1, 0.42f, 0.36f, 1) : Color(0.86f, 0.22f, 0.20f, 1));
+		case 0: ImGui.DrawCircleFilled(c, 5, EditorTheme.Error);
 		case 1:
 			Bar(c.x - 7);
 			Left(c.x - 2.5f);
@@ -291,8 +300,8 @@ extension EditorApp
 			}
 			ImGui.PopID();
 			let center = ImGui.Vec2(x, y + rowHeight * 0.5f);
-			DrawKeyDiamond(center, 6, .(0.10f, 0.10f, 0.10f, 1));
-			DrawKeyDiamond(center, 4.5f, selected ? Color(0.36f, 0.66f, 1, 1) : hovered ? Color(1, 1, 1, 1) : Color(0.80f, 0.80f, 0.80f, 1));
+			DrawKeyDiamond(center, 6, AnimGap);
+			DrawKeyDiamond(center, 4.5f, selected ? EditorTheme.Accent : hovered ? AnimInk(1) : AnimInk(0.75f));
 		}
 		ImGui.PopClipRect();
 	}
@@ -497,7 +506,7 @@ extension EditorApp
 		view.mouse = ImGui.GetMousePos();
 		view.rowHeight = ImGui.GetFrameHeight() + 2;
 		view.footerHeight = view.rowHeight + 4;
-		mAnimLeftWidth = Mathf.Clamp(mAnimLeftWidth, 250, Math.Max(view.avail.x - 160, 250));
+		mAnimLeftWidth = Mathf.Clamp(mAnimLeftWidth, 330, Math.Max(view.avail.x - 160, 330));
 		view.leftWidth = mAnimLeftWidth;
 		view.sheetLeft = view.origin.x + view.leftWidth + 3;
 		view.sheetRight = view.origin.x + view.avail.x;
@@ -562,13 +571,13 @@ extension EditorApp
 	{
 		let origin = view.origin;
 		let rowHeight = view.rowHeight;
-		let panel = Color(0.235f, 0.235f, 0.235f, 1);
+		let panel = AnimPanel;
 		ImGui.DrawRectFilled(origin, .(origin.x + view.leftWidth, origin.y + rowHeight * 2), panel);
-		ImGui.DrawRectFilled(.(view.sheetLeft, origin.y), .(view.sheetRight, origin.y + rowHeight), recording ? Color(0.40f, 0.15f, 0.14f, 1) : Color(0.22f, 0.22f, 0.22f, 1));
-		ImGui.DrawRectFilled(.(view.sheetLeft, origin.y + rowHeight), .(view.sheetRight, origin.y + rowHeight * 2), .(0.19f, 0.19f, 0.19f, 1));
+		ImGui.DrawRectFilled(.(view.sheetLeft, origin.y), .(view.sheetRight, origin.y + rowHeight), recording ? Color.Lerp(AnimUi(ImGui.Col.FrameBg), EditorTheme.Error, 0.35f) : AnimUi(ImGui.Col.FrameBg));
+		ImGui.DrawRectFilled(.(view.sheetLeft, origin.y + rowHeight), .(view.sheetRight, origin.y + rowHeight * 2), AnimSheet);
 		ImGui.DrawRectFilled(.(origin.x, view.bottom - view.footerHeight), .(view.sheetRight, view.bottom), panel);
-		ImGui.DrawRectFilled(.(origin.x + view.leftWidth, origin.y), .(view.sheetLeft, view.bottom - view.footerHeight), .(0.11f, 0.11f, 0.11f, 1));
-		ImGui.DrawLine(.(origin.x, origin.y + rowHeight * 2 - 1), .(view.sheetRight, origin.y + rowHeight * 2 - 1), .(0.11f, 0.11f, 0.11f, 1));
+		ImGui.DrawRectFilled(.(origin.x + view.leftWidth, origin.y), .(view.sheetLeft, view.bottom - view.footerHeight), AnimGap);
+		ImGui.DrawLine(.(origin.x, origin.y + rowHeight * 2 - 1), .(view.sheetRight, origin.y + rowHeight * 2 - 1), AnimGap);
 	}
 
 	/// The toolbar's first row: preview, record, the transport buttons and the frame at the marker.
@@ -579,7 +588,7 @@ extension EditorApp
 		ImGui.SetCursorScreenPos(.(origin.x + 4, origin.y + 1));
 		let previewing = mClipPreview && !mClipPreviewOff;
 		if (previewing)
-			ImGui.PushStyleColor(ImGui.Col.Button, .(0.24f, 0.40f, 0.60f, 1));
+			ImGui.PushStyleColor(ImGui.Col.Button, EditorTheme.Accent);
 		if (ImGui.Button("Preview", .(0, ImGui.GetFrameHeight())))
 		{
 			if (previewing)
@@ -662,7 +671,7 @@ extension EditorApp
 	{
 		let origin = view.origin;
 		ImGui.SetCursorScreenPos(.(origin.x + 4, origin.y + view.rowHeight + 1));
-		ImGui.SetNextItemWidth(Math.Max(view.leftWidth - 150, 90));
+		ImGui.SetNextItemWidth(Math.Max(view.leftWidth - (40 + 26 + 58 + 66 + 8 * 4) - 12, 60));
 		let clipLabel = scope String();
 		Path.GetFileNameWithoutExtension(mClipPath, clipLabel);
 		bool createClip = false;
@@ -694,7 +703,10 @@ extension EditorApp
 			return false;
 		ImGui.BeginDisabled(!editing);
 		LoadAutoKeyChoice();
-		ImGui.SetCursorScreenPos(.(origin.x + view.leftWidth - 142, origin.y + view.rowHeight + 1));
+		// Samples, Add Key, Key IK and Auto Key end at the left panel's edge, never over the timeline.
+		let spacing = 8;
+		let barWidth = 40 + 26 + 58 + 66 + spacing * 3;
+		ImGui.SetCursorScreenPos(.(origin.x + view.leftWidth - barWidth - 4, origin.y + view.rowHeight + 1));
 		ImGui.SetNextItemWidth(40);
 		int32 samples = (int32)view.rate;
 		if (ImGui.DragInt("##samples", ref samples, 0.25f, 1, 240))
@@ -714,7 +726,7 @@ extension EditorApp
 			ImGui.SetTooltip("Writes the pose IK is making now into the clip, as keys at the time marker on every bone IK moves:\na hand held on a target, curled fingers, a turned head. The clip then plays that pose without the IK.");
 		ImGui.SameLine();
 		if (mClipAutoKey)
-			ImGui.PushStyleColor(ImGui.Col.Button, .(0.75f, 0.45f, 0.10f, 1));
+			ImGui.PushStyleColor(ImGui.Col.Button, EditorTheme.Warning);
 		let wasAutoKey = mClipAutoKey;
 		if (ImGui.Button("Auto Key", .(66, ImGui.GetFrameHeight())))
 		{
@@ -788,23 +800,23 @@ extension EditorApp
 		for (int32 f = view.firstFrame; view.TimeToX(f / rate) < view.sheetRight; f += step)
 		{
 			let x = view.TimeToX(f / rate);
-			ImGui.DrawLine(.(x, origin.y + rowHeight * 0.35f), .(x, origin.y + rowHeight), .(1, 1, 1, 0.42f));
+			ImGui.DrawLine(.(x, origin.y + rowHeight * 0.35f), .(x, origin.y + rowHeight), AnimInk(0.42f));
 			let label = scope String();
 			label.AppendF("{}:{:00}", f / wholeRate, f % wholeRate);
-			ImGui.DrawText(.(x + 4, origin.y + 1), .(1, 1, 1, 0.55f), label.CStr());
+			ImGui.DrawText(.(x + 4, origin.y + 1), AnimInk(0.55f), label.CStr());
 			if (minor <= 0)
 				continue;
 			for (int32 m = f + minor; m < f + step; m += minor)
 			{
 				let minorX = view.TimeToX(m / rate);
-				ImGui.DrawLine(.(minorX, origin.y + rowHeight * 0.68f), .(minorX, origin.y + rowHeight), .(1, 1, 1, 0.22f));
+				ImGui.DrawLine(.(minorX, origin.y + rowHeight * 0.68f), .(minorX, origin.y + rowHeight), AnimInk(0.22f));
 			}
 		}
 		for (let time in keyTimes)
 		{
 			let center = ImGui.Vec2(view.TimeToX(time), origin.y + rowHeight * 1.5f);
-			DrawKeyDiamond(center, 6, .(0.10f, 0.10f, 0.10f, 1));
-			DrawKeyDiamond(center, 4.5f, .(0.80f, 0.80f, 0.80f, 1));
+			DrawKeyDiamond(center, 6, AnimGap);
+			DrawKeyDiamond(center, 4.5f, AnimInk(0.75f));
 		}
 		ImGui.PopClipRect();
 	}
@@ -876,9 +888,9 @@ extension EditorApp
 		let rowsBottom = rowsTop + rowsHeight;
 		if (ImGui.IsWindowHovered() && view.mouse.x < view.sheetLeft && Input.MouseWheel != 0)
 			ImGui.SetScrollY(Mathf.Clamp(ImGui.GetScrollY() - Input.MouseWheel * view.rowHeight * 2, 0, ImGui.GetScrollMaxY()));
-		ImGui.DrawRectFilled(.(origin.x, rowsTop), .(origin.x + view.leftWidth, rowsBottom), .(0.22f, 0.22f, 0.22f, 1));
-		ImGui.DrawRectFilled(.(origin.x + view.leftWidth, rowsTop), .(view.sheetLeft, rowsBottom), .(0.11f, 0.11f, 0.11f, 1));
-		ImGui.DrawRectFilled(.(view.sheetLeft, rowsTop), .(view.sheetRight, rowsBottom), .(0.165f, 0.165f, 0.165f, 1));
+		ImGui.DrawRectFilled(.(origin.x, rowsTop), .(origin.x + view.leftWidth, rowsBottom), AnimPanel);
+		ImGui.DrawRectFilled(.(origin.x + view.leftWidth, rowsTop), .(view.sheetLeft, rowsBottom), AnimGap);
+		ImGui.DrawRectFilled(.(view.sheetLeft, rowsTop), .(view.sheetRight, rowsBottom), AnimSheet);
 		// The divider between the two halves can be dragged.
 		ImGui.SetCursorScreenPos(.(origin.x + view.leftWidth, rowsTop));
 		ImGui.InvisibleButton("##split", .(3, rowsHeight));
@@ -887,7 +899,7 @@ extension EditorApp
 		// Faint lines down the sheet at the ruler's labelled frames.
 		ImGui.PushClipRect(.(view.sheetLeft, rowsTop), .(view.sheetRight, rowsBottom));
 		for (int32 f = view.firstFrame; view.TimeToX(f / view.rate) < view.sheetRight; f += view.step)
-			ImGui.DrawLine(.(view.TimeToX(f / view.rate), rowsTop), .(view.TimeToX(f / view.rate), rowsBottom), .(1, 1, 1, 0.05f));
+			ImGui.DrawLine(.(view.TimeToX(f / view.rate), rowsTop), .(view.TimeToX(f / view.rate), rowsBottom), AnimInk(0.05f));
 		ImGui.PopClipRect();
 
 		float y = start.y;
@@ -903,10 +915,10 @@ extension EditorApp
 
 		// Past the end of the clip is darker, and the time marker runs over every row.
 		ImGui.PushClipRect(.(view.sheetLeft, rowsTop), .(view.sheetRight, rowsBottom));
-		ImGui.DrawRectFilled(.(Math.Max(view.TimeToX(clip.duration), view.sheetLeft), rowsTop), .(view.sheetRight, rowsBottom), .(0, 0, 0, 0.28f));
+		ImGui.DrawRectFilled(.(Math.Max(view.TimeToX(clip.duration), view.sheetLeft), rowsTop), .(view.sheetRight, rowsBottom), .(0, 0, 0, EditorTheme.IsLight ? 0.1f : 0.28f));
 		if (view.TimeToX(0) > view.sheetLeft)
-			ImGui.DrawRectFilled(.(view.sheetLeft, rowsTop), .(view.TimeToX(0), rowsBottom), .(0, 0, 0, 0.28f));
-		ImGui.DrawLine(.(view.TimeToX(mClipTime), rowsTop), .(view.TimeToX(mClipTime), rowsBottom), .(1, 1, 1, 0.95f), 1);
+			ImGui.DrawRectFilled(.(view.sheetLeft, rowsTop), .(view.TimeToX(0), rowsBottom), .(0, 0, 0, EditorTheme.IsLight ? 0.1f : 0.28f));
+		ImGui.DrawLine(.(view.TimeToX(mClipTime), rowsTop), .(view.TimeToX(mClipTime), rowsBottom), AnimInk(0.95f), 1);
 		ImGui.PopClipRect();
 		ImGui.EndChild();
 		return removeTrack;
@@ -948,16 +960,16 @@ extension EditorApp
 			ImGui.EndPopup();
 		}
 		if (isSelected)
-			ImGui.DrawRectFilled(.(origin.x, y), .(origin.x + leftWidth, y + rowHeight), .(0.17f, 0.36f, 0.53f, 1));
+			ImGui.DrawRectFilled(.(origin.x, y), .(origin.x + leftWidth, y + rowHeight), AnimUi(ImGui.Col.Header));
 		else if (rowHovered)
-			ImGui.DrawRectFilled(.(origin.x, y), .(origin.x + leftWidth, y + rowHeight), .(1, 1, 1, 0.05f));
+			ImGui.DrawRectFilled(.(origin.x, y), .(origin.x + leftWidth, y + rowHeight), AnimInk(0.05f));
 		let arrow = ImGui.Vec2(origin.x + 12, y + rowHeight * 0.5f);
-		let arrowColor = Color(0.75f, 0.75f, 0.75f, 1);
+		let arrowColor = AnimInk(0.75f);
 		if (expanded)
 			ImGui.DrawTriangleFilled(.(arrow.x - 4, arrow.y - 2.5f), .(arrow.x + 4, arrow.y - 2.5f), .(arrow.x, arrow.y + 3.5f), arrowColor);
 		else
 			ImGui.DrawTriangleFilled(.(arrow.x - 2.5f, arrow.y - 4), .(arrow.x + 3.5f, arrow.y), .(arrow.x - 2.5f, arrow.y + 4), arrowColor);
-		ImGui.DrawText(.(origin.x + 24, y + lineOffset), childTransform != null ? Color(0.86f, 0.86f, 0.86f, 1) : Color(0.55f, 0.55f, 0.55f, 1), track.bone.CStr());
+		ImGui.DrawText(.(origin.x + 24, y + lineOffset), childTransform != null ? EditorTheme.Text : EditorTheme.TextDim, track.bone.CStr());
 		if (row % 2 == 1)
 			ImGui.DrawRectFilled(.(view.sheetLeft, y), .(view.sheetRight, y + rowHeight), .(1, 1, 1, 0.025f));
 		DrawTrackKeys(clip, t, y, rowHeight, view.sheetLeft, view.sheetRight, 0);
@@ -973,7 +985,7 @@ extension EditorApp
 		bool changed = false;
 		for (int32 p < 3)
 		{
-			ImGui.DrawText(.(origin.x + 40, y + lineOffset), .(0.72f, 0.72f, 0.72f, 1), p == 0 ? "Position" : p == 1 ? "Rotation" : "Scale");
+			ImGui.DrawText(.(origin.x + 40, y + lineOffset), EditorTheme.TextDim, p == 0 ? "Position" : p == 1 ? "Rotation" : "Scale");
 			let fieldWidth = Mathf.Clamp(leftWidth - 118, 120, 220);
 			ImGui.SetCursorScreenPos(.(origin.x + leftWidth - fieldWidth - 4, y + 1));
 			ImGui.SetNextItemWidth(fieldWidth);
@@ -1049,8 +1061,8 @@ extension EditorApp
 			mAnimLeftWidth = view.mouse.x - origin.x;
 		ImGui.PushClipRect(.(view.sheetLeft, origin.y), .(view.sheetRight, view.RowsTop));
 		let x = view.TimeToX(mClipTime);
-		let headColor = recording ? Color(1, 0.45f, 0.40f, 1) : Color(1, 1, 1, 0.95f);
-		ImGui.DrawRectFilled(.(Math.Max(view.TimeToX(clip.duration), view.sheetLeft), origin.y + view.rowHeight), .(view.sheetRight, view.RowsTop), .(0, 0, 0, 0.28f));
+		let headColor = recording ? EditorTheme.Error : AnimInk(0.95f);
+		ImGui.DrawRectFilled(.(Math.Max(view.TimeToX(clip.duration), view.sheetLeft), origin.y + view.rowHeight), .(view.sheetRight, view.RowsTop), .(0, 0, 0, EditorTheme.IsLight ? 0.1f : 0.28f));
 		ImGui.DrawLine(.(x, origin.y), .(x, view.RowsTop), headColor, 1);
 		ImGui.DrawRectFilled(.(x - 1, origin.y), .(x + 2, origin.y + view.rowHeight * 0.45f), headColor);
 		ImGui.PopClipRect();
@@ -1148,7 +1160,7 @@ extension EditorApp
 		ImGui.SameLine(0, 12);
 		let buttonsEnd = DrawRigButtons(animator, ImGui.GetCursorScreenPos().x, ImGui.GetCursorScreenPos().y);
 		let hint = "Scroll to zoom    Middle-drag to pan    Drag keys to retime    Right-click a key to delete";
-		ImGui.DrawText(.(Math.Max(view.sheetLeft, buttonsEnd) + 8, view.bottom - view.footerHeight + (view.footerHeight - ImGui.GetTextLineHeight()) * 0.5f), .(1, 1, 1, 0.32f), hint);
+		ImGui.DrawText(.(Math.Max(view.sheetLeft, buttonsEnd) + 8, view.bottom - view.footerHeight + (view.footerHeight - ImGui.GetTextLineHeight()) * 0.5f), AnimInk(0.32f), hint);
 	}
 
 	/// Key IK: a key at the marker on every bone below the Animator that an IK component moves, holding the pose IK

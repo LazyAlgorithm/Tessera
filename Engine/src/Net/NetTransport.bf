@@ -133,6 +133,15 @@ class ENetTransport : NetTransport
 		return true;
 	}
 
+	/// ENet throttles a connection whose round trip suddenly gets slower by dropping unreliable packets at random.
+	/// Snapshots and voice already cope with loss and lateness themselves (interpolation, a jitter buffer), and losing
+	/// them on a moment's jitter (Wi-Fi, a busy machine) makes other players stutter; so the throttle never slows.
+	/// Each end sets it once connected (setting it while connecting would send a command before the handshake).
+	static void KeepUnreliable(void* peer)
+	{
+		ENet.enet_peer_throttle_configure(peer, 5000, 32, 0);
+	}
+
 	void Release()
 	{
 		if (mHeld != null)
@@ -153,6 +162,7 @@ class ENetTransport : NetTransport
 			switch (raw.type)
 			{
 			case ENet.EventConnect:
+				KeepUnreliable(raw.peer);
 				event.kind = .Connected;
 				return true;
 			case ENet.EventDisconnect:

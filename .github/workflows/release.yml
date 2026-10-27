@@ -31,7 +31,7 @@ env:
   # Beef's compiler for Linux, built from source. Windows uses Beef's own Windows release.
   BEEF_COMMIT: b62833e327d6b08f3566b31102c57646de6916b0
   LLVM_VERSION: '22'
-  NATIVE_TARGETS: tessera_native bgfx bimg bimg_decode bx SDL3-static joltc Jolt enet shaderc
+  NATIVE_TARGETS: tessera_native bgfx bimg bimg_decode bx SDL3-static joltc Jolt enet shaderc texturec
 
 jobs:
   linux:

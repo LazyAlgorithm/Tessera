@@ -114,7 +114,7 @@ class Settings : Component
 
 ## How it is drawn
 
-When the scene uses ambient occlusion, depth of field or motion blur, a **depth pass** draws the solid objects a second time with a very cheap shader. It records each pixel's distance in front of the camera at the scene's resolution. The viewmodel (`Camera.viewmodelLayer`) is marked so that every effect leaves it alone: it gets no occlusion, it stays in focus, and it is never smeared. The sky is marked as far away. The effects then run in order, each reading the picture so far:
+When the scene uses ambient occlusion, depth of field or motion blur (or a decal is in view: `docs/decals.md`), a **depth pass** draws the solid objects a second time with a very cheap shader. It records each pixel's distance in front of the camera at the scene's resolution. The viewmodel (`Camera.viewmodelLayer`) is marked so that every effect leaves it alone: it gets no occlusion, it stays in focus, and it is never smeared. The sky is marked as far away. The effects then run in order, each reading the picture so far:
 
 1. **Ambient occlusion** is worked out at half size. It takes twelve samples in the half-ball above each surface (the surface's facing comes from its neighbours' depths). It is then blurred without crossing from one surface to another, and the picture is darkened by it.
 2. **Depth of field** is a 24-tap round blur at half size. In it, each nearby pixel counts only as far as its own blur reaches, so a sharp subject does not smear into the background behind it. The blur is then blended with the sharp picture by how out of focus each pixel is.
@@ -129,21 +129,22 @@ Bloom and the tonemap read the result. Colour grading happens in the tonemap:
 
 None of this runs, and nothing is allocated for it, until a scene asks for one of the effects.
 
-Each RenderView now uses `RenderView.ViewCount` (33) bgfx view ids from its `ViewBase`:
+Each RenderView now uses `RenderView.ViewCount` (19) bgfx view ids from its `ViewBase`:
 
 | Views | Pass |
 |---|---|
 | 0 to 3 | sun shadows |
-| 4 to 19 | spotlight shadows |
-| 20 | scene |
-| 21 | see-through |
-| 22 | viewmodel |
-| 23 | depth |
-| 24 and 25 | ambient occlusion |
-| 26 and 27 | depth of field |
-| 28 | motion blur |
-| 29 to 31 | bloom |
-| 32 | tonemap |
+| 4 | point and spot light shadows (every tile, docs/lighting.md) |
+| 5 | scene |
+| 6 | depth |
+| 7 | decals |
+| 8 | see-through |
+| 9 | viewmodel |
+| 10 and 11 | ambient occlusion |
+| 12 and 13 | depth of field |
+| 14 | motion blur |
+| 15 to 17 | bloom |
+| 18 | tonemap |
 
 A game that makes its own RenderViews should space their `ViewBase`s at least `RenderView.ViewCount` apart.
 

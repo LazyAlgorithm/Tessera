@@ -13,7 +13,9 @@ enum LightType : int32
 	Spot
 }
 
-/// Directional, point or spot light. The sun casts cascaded shadows; spot lights cast perspective shadows.
+/// Directional, point or spot light. The sun casts cascaded shadows; point and spot lights cast shadows from tiles
+/// of a shared atlas (a point light six, one for each face of a cube), the nearest few of them in each view
+/// (Quality's Shadowed Lights). A view draws up to 256 point and spot lights, by cluster (docs/lighting.md).
 [Component]
 class Light : Component
 {
@@ -37,7 +39,7 @@ class Light : Component
 	/// How wide a spot light's cone is, in degrees.
 	[Range(1, 170)]
 	public float spotAngle = 45.0f;
-	/// Whether the light casts shadows (directional and spot lights are drawn in real time).
+	/// Whether the light casts shadows. A point light's cost six spot lights' (one for each face of its cube).
 	public bool castShadows = true;
 	/// How dark the light's shadows are: 1 is fully dark, 0 none.
 	[Range(0, 1)]

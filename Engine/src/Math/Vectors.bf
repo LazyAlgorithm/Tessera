@@ -38,6 +38,7 @@ struct Vector2
 
 	/// The dot product: how much two directions point the same way, times their lengths.
 	public static float Dot(Vector2 a, Vector2 b) => a.x * b.x + a.y * b.y;
+	public static Vector2 Lerp(Vector2 a, Vector2 b, float t) => .(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t);
 	public static bool operator ==(Vector2 a, Vector2 b) => a.x == b.x && a.y == b.y;
 	public static bool operator !=(Vector2 a, Vector2 b) => a.x != b.x || a.y != b.y;
 

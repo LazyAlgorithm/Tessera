@@ -11,6 +11,8 @@ enum BuildTarget
 {
 	Linux,
 	Windows,
+	/// Built on a Mac (Apple silicon), which builds only macOS and web games (docs/macos.md).
+	MacOS,
 	/// A folder of web files (WebAssembly) to put on any web server, played in a browser on computers and phones.
 	Web
 }
@@ -58,7 +60,11 @@ extension EditorApp
 		{
 			var lines = text.Split('\n');
 			if (lines.GetNext() case .Ok(let system))
-				mBuildTarget = system == "windows" ? .Windows : system == "web" ? .Web : .Linux;
+				mBuildTarget = system == "windows" ? .Windows : system == "web" ? .Web : system == "macos" ? .MacOS : .Linux;
+#if BF_PLATFORM_MACOS
+			if (mBuildTarget != .Web)
+				mBuildTarget = .MacOS;
+#endif
 			if (lines.GetNext() case .Ok(let folder))
 				mBuildFolder.Set(folder);
 		}
@@ -119,7 +125,7 @@ extension EditorApp
 			DrawBuildTarget();
 			if (!mBuildEditor)
 				DrawGameBuildOptions(Project.Current);
-			let ready = mBuildTarget == .Linux || (mBuildTarget == .Windows ? WindowsBuildReady() : WebBuildReady());
+			let ready = mBuildTarget == .Linux || mBuildTarget == .MacOS || (mBuildTarget == .Windows ? WindowsBuildReady() : WebBuildReady());
 			if (!ready)
 				DrawBuildSetupHint();
 			let output = scope String();
@@ -129,14 +135,25 @@ extension EditorApp
 		ImGui.End();
 	}
 
-	/// What is built (the game or the editor) and for which system. A Windows machine builds Windows games; the other
-	/// choices need Linux.
+	/// The system this editor runs on, which it can always build for.
+#if BF_PLATFORM_MACOS
+	static BuildTarget NativeTarget => .MacOS;
+#else
+	static BuildTarget NativeTarget => .Linux;
+#endif
+
+	/// What is built (the game or the editor) and for which system. A Windows machine builds Windows games, a Mac
+	/// macOS and web ones; the other choices need Linux.
 	void DrawBuildTarget()
 	{
 #if BF_PLATFORM_WINDOWS
 		mBuildTarget = .Windows;
 		mBuildEditor = false;
 #else
+	#if BF_PLATFORM_MACOS
+		if (mBuildTarget == .Linux || mBuildTarget == .Windows)
+			mBuildTarget = .MacOS;
+	#endif
 		ImGui.SeparatorText("Build");
 		if (ImGui.RadioButton("Game", !mBuildEditor))
 		{
@@ -149,7 +166,7 @@ extension EditorApp
 			mBuildEditor = true;
 			mBuildMessage.Clear();
 			if (mBuildTarget == .Web)
-				mBuildTarget = .Linux;
+				mBuildTarget = NativeTarget;
 		}
 		if (mBuildEditor)
 		{
@@ -157,6 +174,14 @@ extension EditorApp
 			ImGui.TextDisabled("Tessera itself, to use on another machine");
 		}
 		ImGui.SeparatorText("For");
+	#if BF_PLATFORM_MACOS
+		// A Mac builds for itself and the web.
+		if (ImGui.RadioButton("macOS", mBuildTarget == .MacOS))
+		{
+			mBuildTarget = .MacOS;
+			mBuildMessage.Clear();
+		}
+	#else
 		if (ImGui.RadioButton("Linux", mBuildTarget == .Linux))
 		{
 			mBuildTarget = .Linux;
@@ -168,6 +193,7 @@ extension EditorApp
 			mBuildTarget = .Windows;
 			mBuildMessage.Clear();
 		}
+	#endif
 		// The editor itself does not run in a browser; only games do.
 		ImGui.BeginDisabled(mBuildEditor);
 		ImGui.SameLine();
@@ -199,6 +225,10 @@ extension EditorApp
 		}
 		ImGui.SeparatorText("Assets");
 		ImGui.BeginDisabled(mBuildTarget == .Web);
+		if (ImGui.Checkbox("Compress textures", ref project.CompressTextures))
+			project.Save();
+		ImGui.SameLine();
+		ImGui.TextDisabled(mBuildTarget == .Web ? "Web builds keep pictures as they are" : project.CompressTextures ? "A quarter to an eighth of the video memory, and quicker to load" : "Pictures as they are, decoded when loaded");
 		if (ImGui.Checkbox("Pack assets into one file", ref project.PackAssets))
 			project.Save();
 		ImGui.EndDisabled();
@@ -229,9 +259,9 @@ extension EditorApp
 		let web = mBuildTarget == .Web;
 		ImGui.PushTextWrapPos(0);
 		if (web)
-			ImGui.TextColored(Color(1.0f, 0.75f, 0.35f, 1), "This machine is not set up to build for the web yet. Run this once in a terminal (it downloads Emscripten, about 1 GB):");
+			ImGui.TextColored(EditorTheme.Warning, "This machine is not set up to build for the web yet. Run this once in a terminal (it downloads Emscripten, about 1 GB):");
 		else
-			ImGui.TextColored(Color(1.0f, 0.75f, 0.35f, 1), "This machine is not set up to build for Windows yet. Run this once in a terminal (it downloads about 3 GB, including Microsoft's Windows libraries under their licence):");
+			ImGui.TextColored(EditorTheme.Warning, "This machine is not set up to build for Windows yet. Run this once in a terminal (it downloads about 3 GB, including Microsoft's Windows libraries under their licence):");
 		ImGui.PopTextWrapPos();
 		let command = web ? scope $"{Project.Current.EngineRoot}/tools/web/setup.sh" : scope $"{Project.Current.EngineRoot}/tools/windows/setup.sh --accept-license";
 		ImGui.Text(command);

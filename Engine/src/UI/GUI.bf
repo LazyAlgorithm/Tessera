@@ -46,6 +46,7 @@ static class GUI
 			if (component.IsAwake && component.IsActiveAndEnabled)
 				component.OnGUI();
 		}
+		Subtitles.Draw();
 		Achievements.DrawToasts();
 	}
 

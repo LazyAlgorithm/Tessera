@@ -72,6 +72,11 @@ extension EditorApp
 				let middle = limb.Middle, upper = limb.Upper;
 				let along = (limb.tip.Position - upper.Position);
 				var outward = middle.Position - (upper.Position + along * 0.5f);
+				// A straight limb, or one bent clearly the wrong way, gets the natural bend: elbows back, knees forward.
+				// (A model's front is often its object's back, so the object's Forward cannot be trusted for this.)
+				let natural = limb.NaturalBend();
+				if (natural != .Zero && (outward.Length < along.Length * 0.025f || Vector3.Dot(outward.Normalized, natural) < -0.5f))
+					outward = natural;
 				if (outward.LengthSquared < 1.0e-6f)
 					outward = -limb.Transform.Forward;
 				let pole = mScene.CreateGameObject(scope $"{limb.tip.GameObject.Name} Pole" , limb.Transform).Transform;
@@ -101,7 +106,7 @@ extension EditorApp
 			ImGui.SetTooltip("Moves the target to where the hand is now.");
 		let reach = limb.Reach;
 		if (reach > 1)
-			ImGui.TextColored(.(1.0f, 0.6f, 0.3f, 1), "The target is out of reach: the limb is straight.");
+			ImGui.TextColored(EditorTheme.Warning, "The target is out of reach: the limb is straight.");
 		else
 			ImGui.TextDisabled("Move the target with the Move tool. From code: LetGo() and Grab() free and return one limb.");
 	}
@@ -140,7 +145,7 @@ extension EditorApp
 			total++;
 		}
 		if (total == 0)
-			ImGui.TextColored(.(1.0f, 0.6f, 0.3f, 1), "No fingers found below the hand. Fingers are the hand's children and the bones below them.");
+			ImGui.TextColored(EditorTheme.Warning, "No fingers found below the hand. Fingers are the hand's children and the bones below them.");
 		else
 		{
 			ImGui.PushTextWrapPos(0);

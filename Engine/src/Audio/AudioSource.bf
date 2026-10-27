@@ -51,6 +51,9 @@ class AudioSource : Component
 	[Range(0, 360)] public float coneAngle = 360;
 	/// Volume behind the cone, 0 to 1.
 	[Range(0, 1)] public float coneOuterVolume = 0.3f;
+	/// Shows the clip's subtitle file while it plays, when it has one: the same name ending .srt
+	/// (`Voice/intro.ogg` and `Voice/intro.srt`). See docs/dialogue.md.
+	public bool subtitles = true;
 
 	void* mSource;
 	String mLoaded = new .() ~ delete _;
@@ -88,8 +91,17 @@ class AudioSource : Component
 			Play();
 	}
 
-	public override void OnDisable() => Unload();
-	public override void OnDestroy() => Unload();
+	public override void OnDisable()
+	{
+		Subtitles.Forget(this);
+		Unload();
+	}
+
+	public override void OnDestroy()
+	{
+		Subtitles.Forget(this);
+		Unload();
+	}
 
 	void Unload()
 	{
@@ -126,6 +138,8 @@ class AudioSource : Component
 		mOcclusion = mOcclusionTarget = occlusion ? ProbeOcclusion() : 0;
 		Push();
 		Audio.tn_audio_source_play(mSource, 1);
+		if (subtitles)
+			Subtitles.Follow(this, audioClip);
 	}
 
 	/// Plays a different clip on this source.

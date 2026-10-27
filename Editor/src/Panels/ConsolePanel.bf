@@ -26,8 +26,8 @@ extension EditorApp
 				switch (entry.level)
 				{
 				case .Info: ImGui.Text(entry.text);
-				case .Warning: ImGui.TextColored(.(1.0f, 0.82f, 0.35f, 1), entry.text.CStr());
-				case .Error: ImGui.TextColored(.(1.0f, 0.42f, 0.38f, 1), entry.text.CStr());
+				case .Warning: ImGui.TextColored(EditorTheme.Warning, entry.text.CStr());
+				case .Error: ImGui.TextColored(EditorTheme.Error, entry.text.CStr());
 				}
 			}
 			ImGui.PopFont();

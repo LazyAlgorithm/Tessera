@@ -65,7 +65,7 @@ extension EditorApp
 		return false;
 	}
 
-	static bool IsModelFile(StringView path) => HasExtension(path, ".glb", ".gltf");
+	static bool IsModelFile(StringView path) => HasExtension(path, ".glb", ".gltf", ".tmesh");
 	static bool IsImageFile(StringView path) => HasExtension(path, ".png", ".jpg", ".jpeg", ".tga", ".bmp");
 	static bool IsAudioFile(StringView path) => HasExtension(path, ".wav", ".ogg", ".mp3", ".flac");
 
@@ -473,6 +473,8 @@ extension EditorApp
 		.(".tbt", .(0.70f, 0.44f, 0.20f, 1), "TREE"),
 		.(".tcontroller", .(0.78f, 0.48f, 0.14f, 1), "ANIMATOR"),
 		.(".tanim", .(0.30f, 0.55f, 0.75f, 1), "CLIP"),
+		.(".tdialogue", .(0.72f, 0.40f, 0.48f, 1), "DIALOGUE"),
+		.(".tsequence", .(0.80f, 0.36f, 0.30f, 1), "SEQUENCE"),
 		.(".tmat", .(0.62f, 0.36f, 0.66f, 1), "MATERIAL"),
 		.(".tdata", .(0.20f, 0.60f, 0.52f, 1), "DATA"),
 		.(".tshader", .(0.40f, 0.62f, 0.30f, 1), "SHADER"),
@@ -564,11 +566,11 @@ extension EditorApp
 		}
 		let lineHeight = ImGui.GetTextLineHeight();
 		let w1 = ImGui.CalcTextSize(first.CStr()).x;
-		ImGui.DrawText(.(pos.x + (width - w1) * 0.5f, pos.y), .(0.85f, 0.85f, 0.85f, 1), first.CStr());
+		ImGui.DrawText(.(pos.x + (width - w1) * 0.5f, pos.y), EditorTheme.Text, first.CStr());
 		if (!second.IsEmpty)
 		{
 			let w2 = ImGui.CalcTextSize(second.CStr()).x;
-			ImGui.DrawText(.(pos.x + (width - w2) * 0.5f, pos.y + lineHeight), .(0.85f, 0.85f, 0.85f, 1), second.CStr());
+			ImGui.DrawText(.(pos.x + (width - w2) * 0.5f, pos.y + lineHeight), EditorTheme.Text, second.CStr());
 		}
 	}
 
@@ -600,6 +602,10 @@ extension EditorApp
 			BeginNewItem(11, "NewCompute");
 		if (ImGui.MenuItem("UI Document"))
 			BeginNewItem(4, "NewUI");
+		if (ImGui.MenuItem("Dialogue"))
+			BeginNewItem(14, "NewDialogue");
+		if (ImGui.MenuItem("Sequence (cutscene)"))
+			BeginNewItem(15, "NewSequence");
 		if (ImGui.BeginMenu("Data Asset"))
 		{
 			let types = scope List<Type>();
@@ -658,6 +664,10 @@ extension EditorApp
 			OpenAnimator(entry.path);
 		else if (entry.name.EndsWith(".tanim"))
 			OpenAnimationClip(entry.path);
+		else if (entry.name.EndsWith(".tdialogue"))
+			OpenDialogue(entry.path);
+		else if (entry.name.EndsWith(".tsequence"))
+			OpenSequence(entry.path);
 		else if (entry.name.EndsWith(".tmat"))
 			OpenMaterial(entry.path);
 		else if (entry.name.EndsWith(".tprefab"))
@@ -687,7 +697,7 @@ extension EditorApp
 		}
 		if (ImGui.BeginPopupModal("Create Asset", null, ImGui.WindowFlags.AlwaysAutoResize))
 		{
-			ImGui.Text(mNewItemKind == 0 ? "Folder name" : (mNewItemKind == 1 ? "Script class name" : (mNewItemKind == 3 ? "Graph name (becomes the component's class name)" : (mNewItemKind == 6 ? "Behavior tree name" : (mNewItemKind == 7 ? "Animator controller name" : (mNewItemKind == 8 ? "Animation clip name" : (mNewItemKind == 9 ? "Material name" : (mNewItemKind == 10 ? "Shader name" : (mNewItemKind == 11 ? "Compute shader name" : (mNewItemKind == 12 ? "Shader graph name" : "Scene name"))))))))));
+			ImGui.Text(mNewItemKind == 0 ? "Folder name" : (mNewItemKind == 1 ? "Script class name" : (mNewItemKind == 3 ? "Graph name (becomes the component's class name)" : (mNewItemKind == 6 ? "Behavior tree name" : (mNewItemKind == 7 ? "Animator controller name" : (mNewItemKind == 8 ? "Animation clip name" : (mNewItemKind == 9 ? "Material name" : (mNewItemKind == 10 ? "Shader name" : (mNewItemKind == 11 ? "Compute shader name" : (mNewItemKind == 12 ? "Shader graph name" : (mNewItemKind == 14 ? "Dialogue name" : (mNewItemKind == 15 ? "Sequence name" : "Scene name"))))))))))));
 			ImGui.SetNextItemWidth(300);
 			let enter = ImGui.InputText("##newname", mNewItemName, ImGui.InputFlags.EnterReturnsTrue);
 			if (mNewItemKind == 1)
@@ -827,6 +837,28 @@ extension EditorApp
 			delete asset;
 			File.WriteAllText(path, text).IgnoreError();
 			DataAsset.ClearCache();
+		case 14:
+			let path = scope $"{mBrowsePath}/{mNewItemName}.tdialogue";
+			if (File.Exists(path))
+			{
+				Log.Error(scope $"{path} already exists.");
+				break;
+			}
+			let text = scope String();
+			NewDialogueText(text);
+			File.WriteAllText(path, text).IgnoreError();
+			OpenDialogue(path);
+		case 15:
+			let path = scope $"{mBrowsePath}/{mNewItemName}.tsequence";
+			if (File.Exists(path))
+			{
+				Log.Error(scope $"{path} already exists.");
+				break;
+			}
+			let text = scope String();
+			NewSequenceText(text);
+			File.WriteAllText(path, text).IgnoreError();
+			OpenSequence(path);
 		default:
 		}
 		RefreshAssetList();

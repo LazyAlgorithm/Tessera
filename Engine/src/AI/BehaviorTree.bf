@@ -261,6 +261,27 @@ class BehaviorTreeData
 		}
 	}
 
+	/// Copies a node and everything under it, moved by offset, keeping their links; the copy has no parent.
+	/// Returns the copy's id, or 0.
+	public int32 Duplicate(int32 id, Vector2 offset)
+	{
+		let source = Find(id);
+		if (source == null || source.def.kind == .Root)
+			return 0;
+		let copy = AddNode(source.def, source.position + offset);
+		for (int i < Math.Min(copy.values.Count, source.values.Count))
+			copy.values[i].Set(source.values[i]);
+		List<int32> children = scope .();
+		ChildrenOf(id, children);
+		for (let child in children)
+		{
+			let childCopy = Duplicate(child, offset);
+			if (childCopy != 0)
+				Connect(copy.id, childCopy);
+		}
+		return copy.id;
+	}
+
 	/// Writes the tree to a .tbt file.
 	public void Save(StringView path)
 	{

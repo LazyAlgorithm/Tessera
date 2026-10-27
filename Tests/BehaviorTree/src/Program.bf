@@ -56,6 +56,21 @@ class Program
 			data.Connect(parent, node.id);
 			return node.id;
 		}
+		/// Saves the tree to a new file and returns its path.
+		public void Save(String path)
+		{
+			path.Set(scope $"{sFolder}/tree{sFile++}.tbt");
+			data.Save(path);
+		}
+		/// Writes a changed tree over the file a runner uses and reloads it.
+		public void Rewrite(BehaviorTreeRunner runner)
+		{
+			let path = scope String();
+			Assets.ResolvePath(runner.tree, path);
+			data.Save(path);
+			BehaviorTreeAssets.Invalidate(path);
+			runner.Reload();
+		}
 		/// Saves the tree and gives a runner on a new object.
 		public BehaviorTreeRunner Run(Scene scene, GameObject object = null)
 		{
@@ -67,6 +82,180 @@ class Program
 			runner.Start();
 			return runner;
 		}
+	}
+
+	/// E15: subtrees, shared files, events, hearing, tags, numbers, chance, Run Once, duplicating, sight points.
+	static bool Upgrades(Scene scene, delegate void(Vector3 min, Vector3 max) solid)
+	{
+		bool ok = true;
+		// ---- subtrees ----
+		{
+			let sub = scope TreeBuilder();
+			let subFlag = sub.Node("bb.set", sub.root, 0, "fromSub", "true");
+			let subPath = sub.Save(.. scope .());
+			let main = scope TreeBuilder();
+			let sequence = main.Node("sequence", main.root, 0);
+			main.Node("bb.set", sequence, -100, "fromMain", "true");
+			let call = main.Node("subtree", sequence, 100, subPath);
+			let before = BehaviorTreeAssets.LoadedCount;
+			let runner = main.Run(scene);
+			ok &= Check(runner.Tick(Dt) == .Success && runner.Blackboard.GetFlag("fromMain") && runner.Blackboard.GetFlag("fromSub") && runner.StatusOf(call) == .Success, "a Run Subtree node runs another file's tree with the same blackboard");
+			ok &= Check(runner.UsesFile(subPath) && runner.StatusOf(subPath, subFlag) == .Success, "the runner reports the subtree's nodes by file, for the editor");
+			ok &= Check(BehaviorTreeAssets.LoadedCount == before + 2, "the tree and its subtree are each read once");
+			let mainPath = scope String(runner.tree);
+			let second = scene.CreateGameObject("Second").AddComponent<BehaviorTreeRunner>();
+			second.tree.Set(mainPath);
+			second.Start();
+			ok &= Check(BehaviorTreeAssets.LoadedCount == before + 2 && second.Tick(Dt) == .Success, "a second runner of the same tree shares the loaded files");
+			// The subtree changes: after Invalidate, a reload reads it again.
+			sub.data.Find(subFlag).values[0].Set("changed");
+			sub.data.Save(subPath);
+			BehaviorTreeAssets.Invalidate(subPath);
+			runner.Reload();
+			runner.Tick(Dt);
+			ok &= Check(runner.Blackboard.GetFlag("changed"), "an invalidated file is read again on reload");
+			// A tree that runs itself is refused rather than built forever.
+			let loop = scope TreeBuilder();
+			let itself = loop.Node("subtree", loop.root, 0, "");
+			let loopPath = loop.Save(.. scope .());
+			loop.data.Find(itself).values[0].Set(loopPath);
+			loop.data.Save(loopPath);
+			let looping = scene.CreateGameObject("Loop").AddComponent<BehaviorTreeRunner>();
+			looping.tree.Set(loopPath);
+			looping.Start();
+			ok &= Check(looping.Tick(Dt) == .Failure, "a subtree that runs its own tree fails instead of looping");
+		}
+		// ---- events ----
+		{
+			let b = scope TreeBuilder();
+			b.Node("event.received", b.root, 0, "Hit", "1", "true");
+			let runner = b.Run(scene);
+			let none = runner.Tick(Dt);
+			runner.SendEvent("Hit");
+			let got = runner.Tick(Dt);
+			let again = runner.Tick(Dt);
+			runner.SendEvent("Hit");
+			Time.Time += 5;
+			let stale = runner.Tick(Dt);
+			ok &= Check(none == .Failure && got == .Success && again == .Failure && stale == .Failure, "Event Received succeeds once per event sent, and not for an old one");
+			let b2 = scope TreeBuilder();
+			b2.Node("event.send", b2.root, 0, "Alarm");
+			let sender = b2.Run(scene);
+			List<String> heard = scope .();
+			defer
+			{
+				ClearAndDeleteItems!(heard);
+			}
+			sender.OnTreeEvent.Add(new (name) => heard.Add(new String(name)));
+			sender.Tick(Dt);
+			ok &= Check(heard.Count == 1 && heard[0] == "Alarm", "Send Event calls the runner's OnTreeEvent");
+		}
+		// ---- hearing and tags ----
+		{
+			let b = scope TreeBuilder();
+			b.Node("hear", b.root, 0, "1", "1", "noise");
+			let runner = b.Run(scene, scene.CreateGameObject("Ears"));
+			runner.Transform.Position = .(4, 0, 4);
+			let shooter = scene.CreateGameObject("Shooter");
+			AINoise.Forget();
+			ok &= Check(runner.Tick(Dt) == .Failure, "nothing is heard in silence");
+			AINoise.Make(scene, .(6, 0, 4), 3, shooter);
+			let heard = runner.Tick(Dt);
+			Vector3 noisePoint = default;
+			let remembered = runner.Blackboard.TryGetPosition("noise", scene, out noisePoint) && (noisePoint - Vector3(6, 0, 4)).Length < 0.01f;
+			ok &= Check(heard == .Success && remembered && runner.Blackboard.GetObject("noise.source", scene) == shooter, "a noise within earshot is heard, with where and who");
+			ok &= Check(runner.Tick(Dt) == .Failure, "each noise is heard once");
+			AINoise.Make(scene, .(9, 0, 4), 3, shooter);
+			ok &= Check(runner.Tick(Dt) == .Failure, "a noise out of earshot is not heard");
+			AINoise.Make(scene, .(4, 0, 4), 3, runner.GameObject);
+			ok &= Check(runner.Tick(Dt) == .Failure, "an object does not hear its own noise");
+			AINoise.Make(scene, .(5, 0, 4), 3, shooter);
+			Time.Time += 3;
+			ok &= Check(runner.Tick(Dt) == .Failure, "an old noise is not heard");
+			shooter.Transform.Position = .(5, 0, 5);
+			shooter.AddTag("Enemy");
+			let b2 = scope TreeBuilder();
+			b2.Node("near", b2.root, 0, "#Enemy", "3", "foe");
+			let tagRunner = b2.Run(scene, scene.CreateGameObject("Tag Looker"));
+			tagRunner.Transform.Position = .(4, 0, 4);
+			ok &= Check(tagRunner.Tick(Dt) == .Success && tagRunner.Blackboard.GetObject("foe", scene) == shooter, "#Tag finds objects by tag");
+		}
+		// ---- numbers, start values, chance, random selector, Run Once ----
+		{
+			let b = scope TreeBuilder();
+			let sequence = b.Node("sequence", b.root, 0);
+			b.Node("bb.number", sequence, -200, "count", "2", "false");
+			b.Node("bb.number", sequence, -100, "count", "1", "true");
+			b.Node("bb.compare", sequence, 0, "count", ">=", "3");
+			let less = b.Node("bb.compare", sequence, 100, "count", "<", "3");
+			let runner = b.Run(scene);
+			ok &= Check(runner.Tick(Dt) == .Failure && runner.Blackboard.GetNumber("count") == 3 && runner.StatusOf(less) == .Failure, "Set Number sets and adds; Compare Number compares");
+			let starter = scene.CreateGameObject("Starter").AddComponent<BehaviorTreeRunner>();
+			starter.startValues.Set("ammo 3; alert true;post 1 2 3");
+			starter.Start();
+			Vector3 post = default;
+			let hasPost = starter.Blackboard.TryGetPosition("post", scene, out post);
+			ok &= Check(starter.Blackboard.GetNumber("ammo") == 3 && starter.Blackboard.GetFlag("alert") && hasPost && post == Vector3(1, 2, 3), "Start Values fill the blackboard");
+			let chance = scope TreeBuilder();
+			let never = chance.Node("chance", chance.root, 0, "0");
+			let chanceRunner = chance.Run(scene);
+			bool anySuccess = false;
+			for (int i < 20)
+				anySuccess |= chanceRunner.Tick(Dt) == .Success;
+			chance.data.Find(never).values[0].Set("1");
+			chance.Rewrite(chanceRunner);
+			ok &= Check(!anySuccess && chanceRunner.Tick(Dt) == .Success, "Chance 0 never succeeds and 1 always does");
+			let random = scope TreeBuilder();
+			let pick = random.Node("random.selector", random.root, 0);
+			random.Node("bb.number", pick, -100, "a", "1", "true");
+			random.Node("bb.number", pick, 100, "b", "1", "true");
+			let randomRunner = random.Run(scene);
+			for (int i < 40)
+				randomRunner.Tick(Dt);
+			let a = randomRunner.Blackboard.GetNumber("a");
+			let bCount = randomRunner.Blackboard.GetNumber("b");
+			ok &= Check(a + bCount == 40 && a > 5 && bCount > 5, "Random Selector tries its children in a random order");
+			let once = scope TreeBuilder();
+			let gate = once.Node("once", once.root, 0);
+			once.Node("bb.number", gate, 0, "times", "1", "true");
+			let onceRunner = once.Run(scene);
+			for (int i < 5)
+				onceRunner.Tick(Dt);
+			ok &= Check(onceRunner.Blackboard.GetNumber("times") == 1 && onceRunner.StatusOf(gate) == .Success, "Run Once runs its child once");
+		}
+		// ---- duplicating in the editor ----
+		{
+			let b = scope TreeBuilder();
+			let sequence = b.Node("sequence", b.root, 0);
+			b.Node("wait", sequence, -100, "2");
+			b.Node("log", sequence, 100, "hi");
+			let nodes = b.data.nodes.Count;
+			let links = b.data.links.Count;
+			let copy = b.data.Duplicate(sequence, .(40, 40));
+			List<int32> children = scope .();
+			b.data.ChildrenOf(copy, children);
+			ok &= Check(copy != 0 && b.data.nodes.Count == nodes + 3 && b.data.links.Count == links + 2 && b.data.ParentOf(copy) == 0 && children.Count == 2 && b.data.Find(children[1]).values[0] == "hi", "Duplicate copies a node and what is under it");
+			ok &= Check(b.data.Duplicate(b.root, .(40, 40)) == 0, "the Root is not duplicated");
+		}
+		// ---- sight points: a target half behind low cover ----
+		{
+			solid(.(4, 0, -4.2f), .(8, 1.2f, -3.8f));
+			let target = scene.CreateGameObject("Crouching Target");
+			target.Transform.Position = .(6, 0.02f, -3);
+			target.AddComponent<CapsuleCollider>();
+			scene.Physics.CreateBody(target.Transform, target.GetComponent<CapsuleCollider>().GetShape(), null);
+			scene.Physics.Step(Dt);
+			let looker = scene.CreateGameObject("Sentry");
+			looker.Transform.Position = .(6, 0.02f, -8);
+			let one = scope TreeBuilder();
+			let seeOne = one.Node("see", one.root, 0, "Crouching Target", "10", "90", "1.6", "target", "1");
+			let oneRunner = one.Run(scene, looker);
+			let missed = oneRunner.Tick(Dt);
+			one.data.Find(seeOne).values[5].Set("3");
+			one.Rewrite(oneRunner);
+			ok &= Check(missed == .Failure && oneRunner.Tick(Dt) == .Success, "one sight ray misses a target behind low cover; three see its head");
+		}
+		return ok;
 	}
 
 	public static int Main(String[] args)
@@ -330,6 +519,8 @@ class Program
 			Run(brain, 30);
 			ok &= Check(brain.StatusOf(patrol) == .Running, "losing sight sends the guard back to its patrol");
 		}
+
+		ok &= Upgrades(scene, scope (min, max) => Solid(min, max));
 
 		Scene.Active = null;
 		return ok ? 0 : 1;

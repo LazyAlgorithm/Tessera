@@ -53,10 +53,12 @@ class EditorApp : Application
 	bool mFocusGame;
 	bool mShowDemo;
 	bool mFocusScene = true;
+	int32 mFocusInspector;
 	/// Bring the Scene view to the front now, whatever else is open (set when a prefab is opened).
 	bool mShowScene;
 	uint32 mAssetCenterDock;
 	uint32 mBottomDock;
+	uint32 mInspectorDock;
 	bool mShowScripts;
 	bool mShowGraph;
 	bool mShowUI;
@@ -72,6 +74,9 @@ class EditorApp : Application
 	int32 mGizmoOperation = 0;
 	bool mGizmoLocal = true;
 	bool mShowGrid = true;
+	// The Scene view's camera culls what is hidden (as a game camera with Occlusion Culling does), and shows its picture.
+	bool mSceneOcclusion;
+	bool mShowOcclusionPicture;
 	CameraData mSceneCamera;
 	ImGui.Vec2 mSceneSize = .(640, 360);
 	ImGui.Vec2 mGameSize = .(640, 360);
@@ -104,11 +109,19 @@ class EditorApp : Application
 		mLayoutBuilt = File.Exists(mIniPath);
 		if (!ImGui.tn_imgui_init(Window, mIniPath.CStr(), 1.0f))
 			return false;
+		LoadOpenWindows();
+		// The editor's colours (docs/themes.md): the theme last used, or --theme <name> for this run.
+		let themeArg = scope String();
+		GetArg("--theme", themeArg);
+		let codeThemeArg = scope String();
+		GetArg("--code-theme", codeThemeArg);
+		EditorTheme.Init(themeArg, codeThemeArg);
 
 		mBrowsePath.Set(Assets.ProjectPath);
 		InitializeScriptReload();
 		mSceneView = new RenderView(10);
 		mSceneView.DrawGizmos = true;
+		mSceneView.drawEditorOnly = true;
 		// Depth of field and motion blur get in the way of editing (Scene Settings > Screen Effects can show them).
 		mSceneView.ShowDepthOfField = false;
 		mSceneView.ShowMotionBlur = false;
@@ -174,6 +187,22 @@ class EditorApp : Application
 			else
 				mShowAnimation = true;
 		}
+		if (AssetArg("--sequence", full..Clear()) && File.Exists(full))
+		{
+			OpenSequence(full);
+			mSeqFocusAfter = 30;
+			let seconds = scope String();
+			if (GetArg("--sequence-time", seconds) && (float.Parse(seconds) case .Ok(let time)))
+			{
+				mSeqTime = time;
+				ApplySequencePreview(false, time);
+			}
+		}
+		if (AssetArg("--dialogue", full..Clear()) && File.Exists(full))
+		{
+			OpenDialogue(full);
+			mDialogueFocusAfter = 30;
+		}
 		if (AssetArg("--behavior", full..Clear()) && File.Exists(full))
 		{
 			OpenBehavior(full);
@@ -189,6 +218,56 @@ class EditorApp : Application
 		if (HasArg("--undo-test-foliage"))
 			RunFoliageUndoTest();
 		let selectName = scope String();
+		// Test switch: --lod-level <n> draws every LOD Group at that level.
+		let lodArg = scope String();
+		if (GetArg("--lod-level", lodArg))
+			LODGroup.ForceLevel = (int32)SceneSerializer.ParseInt(lodArg);
+		if (HasArg("--scene-occlusion"))
+			mSceneOcclusion = mShowOcclusionPicture = true;
+		if (HasArg("--quality-window"))
+			mShowQuality = true;
+		if (HasArg("--preferences"))
+			mShowPreferences = true;
+		// --model-views: Window > Model Views open; --scene-view "front|top|...|ortho": the Scene view's view selector.
+		if (HasArg("--model-views"))
+			mShowModelViews = true;
+		let sceneViewArg = scope String();
+		GetArg("--scene-view", sceneViewArg);
+		for (let part in sceneViewArg.Split(','))
+		{
+			if (part == "ortho")
+				SetSceneOrtho(true);
+			for (int k = 1; k < sModelViewNames.Count; k++)
+			{
+				if (StringView.Compare(part, sModelViewNames[k], true) == 0)
+				{
+					float yaw, pitch;
+					ModelViewAngles((ModelViewKind)k, out yaw, out pitch);
+					LookSceneAlong(AnglesForward(yaw, pitch));
+				}
+			}
+		}
+		// --preferences-page modelling: Preferences open on its Modelling page.
+		let preferencesPage = scope String();
+		GetArg("--preferences-page", preferencesPage);
+		if (preferencesPage == "modelling")
+		{
+			mShowPreferences = true;
+			mPreferencesPage = 1;
+		}
+		// As Window > Reset Layout.
+		if (HasArg("--reset-layout"))
+			mResetLayout = true;
+		ApplyLightingSwitches();
+		ApplyRiggerSwitches();
+		if (HasArg("--theme-test"))
+			RunThemeTest();
+		// Bakes every Navigation Surface in the scene (not saved), to see the grid without pressing Bake.
+		if (HasArg("--bake-navigation"))
+		{
+			for (let component in mScene.ComponentsOfType(typeof(NavigationSurface)))
+				((NavigationSurface)component).Bake();
+		}
 		if (GetArg("--select", selectName))
 		{
 			let found = mScene.Find(selectName);
@@ -199,6 +278,7 @@ class EditorApp : Application
 			}
 		}
 		ApplyRigSwitches();
+		ApplyModelSwitches();
 		if (HasArg("--map-builder-test"))
 			RunMapBuilderTest();
 		// Test switch: saves the opened scene as Ctrl+S does, with the map warning, once the layout has settled
@@ -342,6 +422,8 @@ class EditorApp : Application
 
 	protected override void OnShutdown()
 	{
+		// A rig being made is kept (RigEditor.bf).
+		StopRig();
 		AssetPreviews.Shutdown();
 		if (mCheckThread != null)
 			mCheckThread.Join();
@@ -428,15 +510,7 @@ class EditorApp : Application
 		mCamPosition = camera.Transform.Position - rotation * Vector3.Forward * 6.0f + Vector3(0, 2, 0);
 	}
 
-	Camera FindGameCamera()
-	{
-		for (let camera in mScene.Cameras)
-		{
-			if (camera.IsActiveAndEnabled)
-				return camera;
-		}
-		return null;
-	}
+	Camera FindGameCamera() => mScene.ViewCamera;
 
 	protected override void OnRender()
 	{
@@ -446,12 +520,17 @@ class EditorApp : Application
 		ImGui.tn_imgui_new_frame();
 		DrawUI();
 		// Hidden dock tabs do not need a second scene render or editor gizmos.
+		UpdateModelShowOnly();
+		mSceneView.shading = mSceneShading;
+		SyncModelReferences();
+		if (mSceneVisible || AnyModelViewVisible)
+			BuildGizmos();
 		if (mSceneVisible)
 		{
-			BuildGizmos();
 			mSceneView.Resize((int32)mSceneSize.x, (int32)mSceneSize.y);
 			mSceneView.Render(mScene, mSceneCamera);
 		}
+		RenderModelViews();
 
 		AssetPreviews.Update();
 		let gameCamera = FindGameCamera();

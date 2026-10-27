@@ -96,15 +96,7 @@ class GameApp : Application
 
 	String mEffectsArg = new .() ~ delete _;
 
-	Camera FindCamera()
-	{
-		for (let camera in mScene.Cameras)
-		{
-			if (camera.IsActiveAndEnabled)
-				return camera;
-		}
-		return null;
-	}
+	Camera FindCamera() => mScene.ViewCamera;
 
 	protected override void OnRender()
 	{

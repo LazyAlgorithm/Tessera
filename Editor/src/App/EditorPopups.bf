@@ -71,37 +71,47 @@ extension EditorApp
 			return;
 		}
 		let typing = (ImGui.tn_imgui_capture_flags() & 4) != 0;
-		if (typing)
+		// A modelling tool that follows the pointer owns the keyboard until it ends (ModelTools.bf).
+		if (typing || ModelToolActive)
 			return;
 		let ctrl = ImGui.IsKeyDown(ImGui.Key.LeftCtrl);
+		// While a model is edited, its own keys (ModelCommands.bf) take Delete, Ctrl+D, Ctrl+R, E, R and F.
+		let modelling = mModelEditing;
 		if (ctrl && ImGui.IsKeyPressed(ImGui.Key.S))
 			SaveScene();
 		if (ctrl && ImGui.IsKeyPressed(ImGui.Key.P))
 			TogglePlay();
-		if (ctrl && ImGui.IsKeyPressed(ImGui.Key.R))
+		if (ctrl && ImGui.IsKeyPressed(ImGui.Key.R) && !modelling)
 			RequestRebuild();
 		if (mPlay == .Playing && mGameFocused)
 			return;
-		if (ctrl && ImGui.IsKeyPressed(ImGui.Key.D))
+		if (ctrl && ImGui.IsKeyPressed(ImGui.Key.D) && !modelling)
 			DuplicateSelected();
+		// While rigging, Ctrl+Z undoes the rig's changes (RigEditor.bf).
 		if (ctrl && ImGui.IsKeyPressed(ImGui.Key.Z))
 		{
-			if (ImGui.IsKeyDown(ImGui.Key.LeftShift))
-				Redo();
-			else
-				Undo();
+			let redo = ImGui.IsKeyDown(ImGui.Key.LeftShift);
+			if (!RigUndo(redo))
+			{
+				if (redo)
+					Redo();
+				else
+					Undo();
+			}
 		}
-		if (ctrl && ImGui.IsKeyPressed(ImGui.Key.Y))
+		if (ctrl && ImGui.IsKeyPressed(ImGui.Key.Y) && !RigUndo(true))
 			Redo();
-		if (ImGui.IsKeyPressed(ImGui.Key.Delete))
+		if (ImGui.IsKeyPressed(ImGui.Key.Delete) && !modelling)
 			DeleteSelected();
+		if (!mFlying)
+			HandleViewKeys(ctrl);
 		if (!mFlying && !ctrl)
 		{
 			if (ImGui.IsKeyPressed(ImGui.Key.W))
 				mGizmoOperation = 0;
-			if (ImGui.IsKeyPressed(ImGui.Key.E))
+			if (ImGui.IsKeyPressed(ImGui.Key.E) && !modelling)
 				mGizmoOperation = 1;
-			if (ImGui.IsKeyPressed(ImGui.Key.R))
+			if (ImGui.IsKeyPressed(ImGui.Key.R) && !modelling)
 				mGizmoOperation = 2;
 			if (ImGui.IsKeyPressed(ImGui.Key.T))
 				mGizmoOperation = 3;
@@ -112,7 +122,8 @@ extension EditorApp
 				TurnSelected(-mSnapRotate);
 			if (!mPlacing && ImGui.IsKeyPressed(ImGui.Key.RightBracket, true))
 				TurnSelected(mSnapRotate);
-			if (ImGui.IsKeyPressed(ImGui.Key.F))
+			// F frames in the view the pointer is over (a Model View, or else the Scene view).
+			if (ImGui.IsKeyPressed(ImGui.Key.F) && !modelling && !FrameKeyModelView())
 				FocusSelected();
 		}
 	}

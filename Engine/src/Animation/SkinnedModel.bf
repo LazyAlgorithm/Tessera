@@ -63,6 +63,20 @@ class SkinnedModel
 	public bool HasOwnMaterials;
 
 	static Dictionary<String, SkinnedModel> sCache = new .() ~ DeleteDictionaryAndKeysAndValues!(_);
+	/// Models read again since (Forget): kept until the end, as clips and renderers may still point at them.
+	static List<SkinnedModel> sRetired = new .() ~ DeleteContainerAndItems!(_);
+
+	/// Reads a model's file again the next time it is asked for (after the rigger wrote it again), and has the
+	/// Skinned Mesh Renderers that use it load it again.
+	public static void Forget(StringView path)
+	{
+		if (sCache.GetAndRemoveAlt(path) case .Ok(let pair))
+		{
+			delete pair.key;
+			sRetired.Add(pair.value);
+		}
+		SkinnedMeshRenderer.ModelChanged(path);
+	}
 
 	/// A joint's pose in a clip at a time (seconds), in the model's own right-handed space, as the clip's frames give it.
 	public void SampleJoint(Clip clip, float time, bool loop, int joint, out Vector3 position, out Quaternion rotation, out Vector3 scale)
@@ -647,6 +661,7 @@ class SkinnedModel
 		public String name = new .() ~ delete _;
 		public uint8[] pixels ~ delete _;
 		public int32 width, height;
+		public TextureKind kind;
 	}
 
 	/// True when the model is loaded already (Load returns it at once).
@@ -668,7 +683,7 @@ class SkinnedModel
 	public static SkinnedModel Adopt(StringView path, SkinnedModel model, List<PendingImage> images)
 	{
 		for (let image in images)
-			Assets.AddTexture(image.name, image.pixels.Ptr, image.width, image.height);
+			Assets.AddTexture(image.name, image.pixels.Ptr, image.width, image.height, image.kind);
 		if (sCache.TryGetValueAlt(path, let cached))
 		{
 			delete model;
@@ -774,13 +789,14 @@ class SkinnedModel
 				continue;
 			if (images == null)
 			{
-				Assets.AddTexture(name, pixels, width, height);
+				Assets.AddTexture(name, pixels, width, height, Textures.GltfImageKind(scene, i));
 				continue;
 			}
 			let image = new PendingImage();
 			image.name.Set(name);
 			image.width = width;
 			image.height = height;
+			image.kind = Textures.GltfImageKind(scene, i);
 			image.pixels = new uint8[width * height * 4];
 			Internal.MemCpy(image.pixels.Ptr, pixels, width * height * 4);
 			images.Add(image);

@@ -45,51 +45,105 @@ extension EditorApp
 				HandleSceneCameraInput();
 
 				let selected = Selected;
-				// An active sculpting or placing tool owns the mouse instead of selection and the transform gizmo.
-				bool gizmoActive = UpdateBrush(selected, origin, size) || UpdatePlacement(origin, size);
-				if (selected != null && !gizmoActive && !selected.IsFolder)
+				// Only one view takes the mouse each frame: the last one pointed at (the Scene view or a Model View).
+				if (mSceneHovered && ModelViewsCanSwitch)
+					mModelViewActive = -1;
+				if (mModelViewActive == -1 || !ModelViewsShown)
 				{
-					ImGui.tn_gizmo_begin(origin.x, origin.y, size.x, size.y, false);
-					var world = selected.Transform.LocalToWorld;
-					var view = mSceneCamera.view;
-					var projection = mSceneCamera.projection;
-					float[3] snap = .(mSnapMove, mSnapMove, mSnapMove);
-					if (mGizmoOperation == 1)
-						snap = .(mSnapRotate, mSnapRotate, mSnapRotate);
-					else if (mGizmoOperation == 2)
-						snap = .(mSnapScale, mSnapScale, mSnapScale);
-					let snapping = SnapActive;
-					if (ImGui.tn_gizmo_manipulate(&view.m, &projection.m, mGizmoOperation, mGizmoLocal, &world.m, snapping ? &snap : null))
+					// An active sculpting or placing tool owns the mouse instead of selection and the transform gizmo.
+					bool gizmoActive = UpdateRigTools(selected, origin, size) || UpdateModelTools(selected, origin, size) || UpdateBrush(selected, origin, size) || UpdatePlacement(origin, size);
+					gizmoActive = ObjectGizmo(selected, origin, size, gizmoActive);
+					if (mSceneHovered && ImGui.IsMouseClicked(0) && !gizmoActive && !mFlying && !ViewSelectorHovered(origin, size))
 					{
-						let parent = selected.Transform.Parent;
-						let local = parent != null ? parent.WorldToLocal * world : world;
-						Vector3 t, s;
-						Quaternion q;
-						local.Decompose(out t, out q, out s);
-						selected.Transform.LocalPosition = t;
-						selected.Transform.LocalRotation = q;
-						selected.Transform.LocalScale = s;
-						MarkDirty();
+						let mouse = ImGui.GetMousePos();
+						Pick((mouse.x - origin.x) / size.x, (mouse.y - origin.y) / size.y);
 					}
-					gizmoActive = ImGui.tn_gizmo_is_using() || ImGui.tn_gizmo_is_over();
 				}
-
-				if (mSceneHovered && ImGui.IsMouseClicked(0) && !gizmoActive && !mFlying)
-				{
-					let mouse = ImGui.GetMousePos();
-					Pick((mouse.x - origin.x) / size.x, (mouse.y - origin.y) / size.y);
-				}
+				DrawViewSelector(origin, size);
 
 				UpdateQuickAdd(origin, size);
 				DrawSceneOverlays(origin, size);
 				let stats = scope String();
 				stats.AppendF("{} draws  {} instances  {}k tris", mSceneView.DrawCalls, mSceneView.Instances, mSceneView.Triangles / 1000);
+				if (mSceneView.LightCount > 0)
+					stats.AppendF("  {} lights", mSceneView.LightCount);
+				if (mSceneView.LightsDropped > 0)
+					stats.AppendF(" ({} more left out)", mSceneView.LightsDropped);
+				if (mSceneView.ShadowTiles > 0)
+					stats.AppendF("  {} shadow tiles", mSceneView.ShadowTiles);
+				if (mSceneView.LodCulled > 0)
+					stats.AppendF("  {} too small (LOD)", mSceneView.LodCulled);
+				if (mSceneOcclusion)
+					stats.AppendF("  {} hidden by {} occluders ({}k tris)", mSceneView.OcclusionCulled, mSceneView.Occluders, mSceneView.OccluderTriangles / 1000);
+				if (mShowOcclusionPicture)
+					DrawOcclusionPicture(origin, size);
 				ImGui.DrawText(.(origin.x + 10, origin.y + 8), .(1, 1, 1, 0.65f), stats.CStr());
 				if (mFlying)
 					ImGui.DrawText(.(origin.x + 10, origin.y + size.y - 24), .(1, 1, 1, 0.65f), scope $"WASD move, Q/E down/up, Shift faster, wheel sets speed ({mCamSpeed:0.0} m/s)" .CStr());
 			}
 		}
 		ImGui.End();
+	}
+
+	/// The move, turn or scale gizmo on the selected object (when no tool has the mouse). True while it is in use or
+	/// pointed at, so a click does not pick.
+	bool ObjectGizmo(GameObject selected, ImGui.Vec2 origin, ImGui.Vec2 size, bool toolActive)
+	{
+		if (selected == null || toolActive || selected.IsFolder)
+			return toolActive;
+		ImGui.tn_gizmo_begin(origin.x, origin.y, size.x, size.y, mSceneCamera.orthographic);
+		var world = selected.Transform.LocalToWorld;
+		var view = mSceneCamera.view;
+		var projection = mSceneCamera.projection;
+		float[3] snap = .(mSnapMove, mSnapMove, mSnapMove);
+		if (mGizmoOperation == 1)
+			snap = .(mSnapRotate, mSnapRotate, mSnapRotate);
+		else if (mGizmoOperation == 2)
+			snap = .(mSnapScale, mSnapScale, mSnapScale);
+		let snapping = SnapActive;
+		if (ImGui.tn_gizmo_manipulate(&view.m, &projection.m, mGizmoOperation, mGizmoLocal, &world.m, snapping ? &snap : null))
+		{
+			let parent = selected.Transform.Parent;
+			let local = parent != null ? parent.WorldToLocal * world : world;
+			Vector3 t, s;
+			Quaternion q;
+			local.Decompose(out t, out q, out s);
+			selected.Transform.LocalPosition = t;
+			selected.Transform.LocalRotation = q;
+			selected.Transform.LocalScale = s;
+			MarkDirty();
+		}
+		return ImGui.tn_gizmo_is_using() || ImGui.tn_gizmo_is_over();
+	}
+
+	/// The Scene view's occlusion picture in its bottom-right corner: nearer occluders brighter, empty dark.
+	void DrawOcclusionPicture(ImGui.Vec2 origin, ImGui.Vec2 size)
+	{
+		let occlusion = mSceneView.Occlusion;
+		let block = 4;
+		let width = OcclusionBuffer.Width;
+		let height = OcclusionBuffer.Height;
+		let corner = ImGui.Vec2(origin.x + size.x - width - 10, origin.y + size.y - height - 10);
+		ImGui.DrawRectFilled(corner, .(corner.x + width, corner.y + height), .(0, 0, 0, 0.55f));
+		if (occlusion == null || !mSceneOcclusion)
+		{
+			ImGui.DrawText(.(corner.x + 8, corner.y + 8), .(1, 1, 1, 0.7f), "Turn on Window > Scene Occlusion Culling");
+			return;
+		}
+		let depth = occlusion.Depth;
+		for (int y = 0; y < height; y += block)
+		{
+			for (int x = 0; x < width; x += block)
+			{
+				let d = depth[(y + block / 2) * width + x + block / 2];
+				if (d == float.MaxValue)
+					continue;
+				let shade = Math.Clamp(1 - Math.Log(Math.Max(d, 1)) / 6.5f, 0.15f, 1);
+				ImGui.DrawRectFilled(.(corner.x + x, corner.y + y), .(corner.x + x + block, corner.y + y + block), .(0.3f * shade, 0.75f * shade, shade, 0.9f));
+			}
+		}
+		ImGui.DrawRect(corner, .(corner.x + width, corner.y + height), .(1, 1, 1, 0.4f));
+		ImGui.DrawText(.(corner.x + 6, corner.y + 4), .(1, 1, 1, 0.8f), "Occlusion picture");
 	}
 
 	void UpdateSceneCamera(float aspect)
@@ -102,17 +156,31 @@ extension EditorApp
 		mSceneCamera.far = 2000.0f;
 		mSceneCamera.fieldOfView = 60;
 		mSceneCamera.aspect = aspect;
-		mSceneCamera.orthographic = false;
-		mSceneCamera.orthographicSize = 5;
+		mSceneCamera.orthographic = mSceneOrtho;
+		mSceneCamera.occlusionCulling = mSceneOcclusion && !mSceneOrtho;
+		mSceneCamera.orthographicSize = mSceneOrthoSize;
 		mSceneCamera.view = Matrix4.LookAt(mCamPosition, mCamPosition + forward, rotation * Vector3.Up);
-		mSceneCamera.projection = Matrix4.Perspective(60, aspect, 0.1f, 2000.0f, Gfx.HomogeneousDepth);
+		if (mSceneOrtho)
+		{
+			// Seen from far back (OrthoBack), so nothing in front of the pivot is cut off.
+			mSceneCamera.near = 1;
+			mSceneCamera.projection = Matrix4.Ortho(-mSceneOrthoSize * aspect, mSceneOrthoSize * aspect, -mSceneOrthoSize, mSceneOrthoSize, 1, 2000, Gfx.HomogeneousDepth);
+		}
+		else
+			mSceneCamera.projection = Matrix4.Perspective(60, aspect, 0.1f, 2000.0f, Gfx.HomogeneousDepth);
 	}
 
 	void HandleSceneCameraInput()
 	{
 		// Right mouse: fly. Middle mouse: pan. Wheel: dolly.
-		if (mSceneHovered && ImGui.IsMouseClicked(1))
+		// A modelling tool takes the right button to cancel (ModelTools.bf).
+		if (mSceneHovered && ImGui.IsMouseClicked(1) && !ModelToolActive)
+		{
 			mFlying = true;
+			// Looking round leaves an orthographic view for perspective, as Blender does.
+			if (mSceneOrtho)
+				SetSceneOrtho(false);
+		}
 		if (!ImGui.IsMouseDown(1))
 			mFlying = false;
 		let rotation = Quaternion.Euler(mCamPitch, mCamYaw, 0);
@@ -149,12 +217,17 @@ extension EditorApp
 			if (ImGui.IsMouseDown(2))
 			{
 				let delta = Input.MouseDelta;
-				let pan = 0.02f * Math.Clamp(mCamSpeed / 12, 0.1f, 10);
+				let pan = mSceneOrtho ? 2 * mSceneOrthoSize / Math.Max(mSceneSize.y, 1) : 0.02f * Math.Clamp(mCamSpeed / 12, 0.1f, 10);
 				mCamPosition = mCamPosition - right * (delta.x * pan) + up * (delta.y * pan);
 			}
 			let wheel = Input.MouseWheel;
-			if (wheel != 0)
-				mCamPosition = mCamPosition + forward * (wheel * 1.5f * Math.Clamp(mCamSpeed / 12, 0.05f, 10));
+			if (wheel != 0 && !ModelOwnsWheel)
+			{
+				if (mSceneOrtho)
+					mSceneOrthoSize = Math.Clamp(mSceneOrthoSize * Math.Pow(0.87f, wheel), 0.02f, 1000);
+				else
+					mCamPosition = mCamPosition + forward * (wheel * 1.5f * Math.Clamp(mCamSpeed / 12, 0.05f, 10));
+			}
 		}
 	}
 
@@ -167,8 +240,10 @@ extension EditorApp
 		float bestDistance = float.MaxValue;
 		for (let renderer in mScene.Renderers)
 		{
-			// Hidden by the world state shown: not clickable either.
-			if (!renderer.IsActiveAndEnabled || !renderer.GameObject.InActiveWorld)
+			// Hidden by the world state shown: not clickable either; nor are reference images, or what Show Only hides.
+			if (!renderer.IsActiveAndEnabled || !renderer.GameObject.InActiveWorld || RenderView.EditorOnlyObjects.Contains(renderer.GameObject.Id))
+				continue;
+			if (mSceneView.onlyObject != 0 && renderer.GameObject.Id != mSceneView.onlyObject)
 				continue;
 			let mesh = renderer.ActiveMesh;
 			if (mesh == null)
@@ -196,23 +271,50 @@ extension EditorApp
 				best = renderer.GameObject;
 			}
 		}
+		// A decal is clicked where the ray enters its box before reaching the surface it lies on.
+		for (let component in mScene.ComponentsOfType(typeof(Decal)))
+		{
+			let decal = (Decal)component;
+			if (!decal.IsActiveAndEnabled || !decal.GameObject.InActiveWorld)
+				continue;
+			let volume = decal.BoxMatrix;
+			let toLocal = volume.Inverse;
+			let localOrigin = toLocal.TransformPoint(ray.origin);
+			let localEnd = toLocal.TransformPoint(ray.origin + ray.direction);
+			let localRay = Ray(localOrigin, (localEnd - localOrigin).Normalized);
+			let t = Bounds(.(-0.5f), .(0.5f)).IntersectRay(localRay);
+			if (t < 0)
+				continue;
+			let distance = (volume.TransformPoint(localRay.GetPoint(t)) - ray.origin).Length;
+			if (distance <= bestDistance)
+			{
+				bestDistance = distance;
+				best = decal.GameObject;
+			}
+		}
 		// Generated children (voxel chunks) select the object that owns them.
 		while (best != null && best.Transient && best.Transform.Parent != null)
 			best = best.Transform.Parent.GameObject;
 		mSelectedId = best != null ? best.Id : 0;
 	}
 
+	/// The one object the Scene view shows while modelling (Show Only) or rigging (the model on its own); else 0.
+	uint32 IsolatedObject => mSceneView.onlyObject != 0 ? mSceneView.onlyObject : ((mRig != null && mSceneView.hideRenderers) ? mRigObject : 0);
+
 	void BuildGizmos()
 	{
 		if (mShowGrid)
 			Gizmos.Lines.Grid(mCamPosition, 60, 1.0f, .(1, 1, 1, 0.07f), .(1, 1, 1, 0.18f));
 		let selected = Selected;
+		// While one object is shown on its own (modelling, rigging), only its gizmos are drawn.
+		let only = IsolatedObject;
 		for (let component in mScene.Components)
 		{
-			if (component.IsActiveAndEnabled)
+			if (component.IsActiveAndEnabled && (only == 0 || component.GameObject.Id == only))
 				component.OnDrawGizmos(component.GameObject == selected);
 		}
-		if (selected != null)
+		// A model in edit mode shows its own edges instead of the object's box.
+		if (selected != null && EditedModel == null)
 		{
 			let renderer = selected.GetComponent<MeshRenderer>();
 			if (renderer != null && renderer.ActiveMesh != null)
@@ -220,5 +322,6 @@ extension EditorApp
 		}
 		BuildMapBuilderGizmos();
 		BuildBoneGizmos();
+		BuildModelGizmos();
 	}
 }

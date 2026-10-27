@@ -243,8 +243,21 @@ static class ShaderCompiler
 		}
 	}
 
-	/// Compiles every shader in the project whose compiled file is missing or older than its source (all of them
-	/// with `everything`). Returns how many failed.
+	/// The newest of the engine's shader templates and the files they include: a shader compiled before then is
+	/// out of date (a change to the lighting reaches custom shaders only when they are compiled again).
+	static DateTime NewestTemplate(StringView engineRoot)
+	{
+		var newest = DateTime.MinValue;
+		for (let name in StringView[?]("fs_mesh.sc", "vs_mesh.sc", "cs_template.sc", "include/lighting.sh", "include/wind.sh", "include/bgfx_shader.sh"))
+		{
+			if (File.GetLastWriteTimeUtc(scope $"{engineRoot}/Engine/shaders/{name}") case .Ok(let time) && time > newest)
+				newest = time;
+		}
+		return newest;
+	}
+
+	/// Compiles every shader in the project whose compiled file is missing or older than its source or the engine's
+	/// templates (all of them with `everything`). Returns how many failed.
 	public static int CompileProject(StringView engineRoot, String log, bool everything = false)
 	{
 		List<String> shaders = scope .();
@@ -255,6 +268,7 @@ static class ShaderCompiler
 		}
 		Collect(Assets.ProjectPath, Assets.ProjectPath, shaders, 0);
 		int failed = 0;
+		let templates = NewestTemplate(engineRoot);
 		for (let shaderPath in shaders)
 		{
 			if (!everything)
@@ -266,7 +280,7 @@ static class ShaderCompiler
 				{
 					if (File.GetLastWriteTimeUtc(scope $"{Assets.ProjectPath}/{shaderPath}") case .Ok(let written))
 					{
-						if (built >= written)
+						if (built >= written && built >= templates)
 							continue;
 					}
 				}

@@ -2,7 +2,9 @@
 
 Build native dependencies first using the engine's normal build setup. These fixtures use BeefBuild and the local native archives, without a display or GPU.
 
-For Layers, AnimationLayers, AsyncLoading, IK, Foliage, VoxelObject, Viewmodel, PostProcessing, SkinnedMaterials, Http, Saving, Navigation, CharacterController, BehaviorTree, Network, Audio, Voice, Animator, Material, Terrain, SpawnPoints, Achievements, References, InspectorTypes, ScriptCatalog, CodeEditor, GraphApi, GraphVariables, ShapeQueries, Scenes, Joints, UIDocuments, InputActions, Retargeting and PhysicsPrediction:
+For Layers, AnimationLayers, AsyncLoading, IK, Foliage, VoxelObject, Viewmodel, PostProcessing, SkinnedMaterials, Http, Saving, Navigation, CharacterController, BehaviorTree, Network, Audio, Voice, Animator, Material, Terrain, SpawnPoints, Achievements, References, InspectorTypes, ScriptCatalog, CodeEditor, GraphApi, GraphVariables, ShapeQueries, Scenes, Joints, UIDocuments, InputActions, Retargeting, PhysicsPrediction, Decals, Dialogue, Sequencer, Culling, Quality, Modeling, GpuSkinning, Textures, Reflections, Lighting, Themes, Baking and Rigging (Textures, Reflections, Lighting, Baking and GpuSkinning also `python3 run.py` there, with a graphics card):
+
+`python3 tools/run_tests.py` builds and runs all of them (or the ones named) and reports each; `--platform macos` on a Mac.
 
 ```sh
 BeefBuild -workspace=Tests/Navigation -config=Debug -run

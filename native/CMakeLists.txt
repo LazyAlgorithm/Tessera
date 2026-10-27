@@ -32,7 +32,8 @@ if(EMSCRIPTEN)
 	set(BGFX_CONFIG_MULTITHREADED OFF CACHE BOOL "" FORCE)
 endif()
 set(BGFX_BUILD_TOOLS_GEOMETRY OFF CACHE BOOL "" FORCE)
-set(BGFX_BUILD_TOOLS_TEXTURE OFF CACHE BOOL "" FORCE)
+# texturec: tools/build_player.py compresses a game's pictures with it (BC7 .ktx with mip levels).
+set(BGFX_BUILD_TOOLS_TEXTURE ON CACHE BOOL "" FORCE)
 set(BGFX_BUILD_TOOLS_BIN2C OFF CACHE BOOL "" FORCE)
 set(BGFX_CONFIG_VIDEO OFF CACHE BOOL "" FORCE)
 # Linux windows are X11 (XWayland on Wayland desktops). With bgfx's Wayland path compiled in,
@@ -107,6 +108,8 @@ add_library(tessera_native STATIC
 	${TP}/TextEdit/extras/TrieAutoComplete.cpp
 	tessera_native.cpp
 	tessera_code.cpp
+	tessera_bake.cpp
+	tessera_rig.cpp
 	tessera_assets.c
 	tessera_pack.c
 	tessera_guard.c

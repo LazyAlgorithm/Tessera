@@ -696,7 +696,7 @@ extension EditorApp
 		if (editable == 0)
 			return;
 		ImGui.SetCursorScreenPos(.(canvas.origin.x + 10, canvas.origin.y + 10));
-		ImGui.PushStyleColor(ImGui.Col.ChildBg, .(0.10f, 0.10f, 0.11f, 0.92f));
+		ImGui.PushStyleColor(ImGui.Col.ChildBg, EditorTheme.Canvas);
 		ImGui.BeginChild("values", .(250, 34 + editable * 27), ImGui.ChildBorders);
 		ImGui.Text(NodeGraph.Title(selectedNode, .. scope String()));
 		for (int32 i = 0; i < (int32)selectedNode.def.inputs.Count; i++)
@@ -768,7 +768,7 @@ extension EditorApp
 	{
 		const float VariablesWidth = 470;
 		ImGui.SetCursorScreenPos(.(topRight.x - VariablesWidth, topRight.y));
-		ImGui.PushStyleColor(ImGui.Col.ChildBg, .(0.10f, 0.10f, 0.11f, 0.92f));
+		ImGui.PushStyleColor(ImGui.Col.ChildBg, EditorTheme.Canvas);
 		ImGui.BeginChild("variables", .(VariablesWidth, 62 + Math.Min(mGraph.variables.Count, 8) * 27), ImGui.ChildBorders);
 		ImGui.Text("Variables");
 		ImGui.SameLine();

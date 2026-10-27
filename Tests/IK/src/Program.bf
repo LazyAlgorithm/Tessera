@@ -292,6 +292,45 @@ class Program
 			ok &= Check(pose.BoneCount(0) == 2 && pose.BoneCount(1) == 2 && pose.BoneCount(2) == 2 && pose.BoneCount(3) == 0, "a finger named only \"finger\" is the middle finger");
 		}
 
+		// Quaternius-style hands taken while an idle clip has them half-curled, with the thumb raised above the
+		// knuckles: a left and a right hand, palms down, fingers along +Z. A fist must still close them.
+		for (int s < 2)
+		{
+			// Left-handed space, fingers along +Z, palm down: a right hand's thumb is on the -X side.
+			let mirror = s == 0 ? 1.0f : -1.0f;
+			let hand = Bone(scene, s == 0 ? "hand_l" : "hand_r", root.Transform, .(4 + s, 1, 0));
+			Transform[5] joints = default;
+			for (int f < 5)
+			{
+				var bone = Bone(scene, scope $"{names[f]}_01_{s == 0 ? "l" : "r"}" , hand, f == 0 ? Vector3(mirror * 0.04f, 0, 0.02f) : Vector3(mirror * (0.045f - f * 0.02f), 0, 0.09f));
+				bone.LocalRotation = Quaternion.Euler(f == 0 ? -50 : 20, 0, 0);
+				for (int j = 2; j <= 3; j++)
+				{
+					bone = Bone(scene, scope $"{names[f]}_0{j}_{s == 0 ? "l" : "r"}" , bone, .(0, 0, 0.03f));
+					bone.LocalRotation = Quaternion.Euler(f == 0 ? 0 : 20, 0, 0);
+					if (j == 2)
+						joints[f] = bone;
+				}
+				Bone(scene, scope $"{names[f]}_04_leaf_{s == 0 ? "l" : "r"}" , bone, .(0, 0, 0.025f));
+			}
+			let pose = hand.GameObject.AddComponent<HandPose>();
+			Step(scene);
+			// The second joint: the first bone turning towards the palm (down) lowers it. Tips can wrap past it.
+			Vector3[5] start = default;
+			for (int f < 5)
+				start[f] = hand.InverseTransformPoint(joints[f].Position);
+			pose.shape = .Fist;
+			pose.OnValidate();
+			Step(scene);
+			bool closed = true;
+			for (int f = 1; f < 5; f++)
+			{
+				let now = hand.InverseTransformPoint(joints[f].Position);
+				closed &= now.y < start[f].y - 0.01f;
+			}
+			ok &= Check(closed, s == 0 ? "a half-curled left hand closes into a fist" : "a half-curled right hand closes into a fist");
+		}
+
 		// ---- feet on the ground ----
 		let walker = scene.CreateGameObject("Walker");
 		walker.Transform.Position = .(10, 1, 0);

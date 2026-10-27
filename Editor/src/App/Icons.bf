@@ -25,7 +25,7 @@ static class Icons
 	public const char8* PauseLabel = "\u{f04c}  Pause";
 	public const char8* StepLabel = "\u{f051}  Step";
 
-	public static readonly Color FolderColor = .(0.86f, 0.72f, 0.38f, 1);
-	public static readonly Color ObjectColor = .(0.55f, 0.75f, 0.95f, 1);
-	public static readonly Color ComponentColor = .(0.72f, 0.78f, 0.86f, 1);
+	public static Color FolderColor => EditorTheme.Folder;
+	public static Color ObjectColor => EditorTheme.Object;
+	public static Color ComponentColor => EditorTheme.Component;
 }

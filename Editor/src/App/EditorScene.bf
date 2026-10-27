@@ -19,6 +19,8 @@ extension EditorApp
 	/// Saves the user asks for check; saves made on the way to an export or a build do not.
 	void SaveScene(bool checkMap = true)
 	{
+		// A sequence preview's poses are not the scene's own: they go back first.
+		StopSequencePreview();
 		if (mPlay != .Edit)
 		{
 			Log.Warning("Stop play mode before saving the scene.");
@@ -79,6 +81,7 @@ extension EditorApp
 	{
 		if (mPlay != .Edit)
 			return;
+		StopSequencePreview();
 		if (EditingPrefab)
 		{
 			Log.Warning("A prefab is open. Go back to the scene to play.");

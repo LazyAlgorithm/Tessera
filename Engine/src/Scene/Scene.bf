@@ -32,6 +32,23 @@ class SceneEnvironment
 	public float bloomThreshold = 1.0f;
 	/// How far from the camera the sun's shadows are drawn, in metres. Shorter is sharper.
 	public float shadowDistance = 120.0f;
+	/// How strongly surfaces mirror the sky and the reflection probes (docs/reflections.md): 1 as they are, 0 none.
+	public float reflectionIntensity = 1;
+	/// Ambient light from what is around instead of the two ambient colours: the sky, and inside a reflection probe's
+	/// box the room it captured (image-based lighting, docs/reflections.md). Ambient Intensity still scales it.
+	/// Lightmapped surfaces keep their lightmaps.
+	public bool ambientFromSurroundings;
+	/// Baked light probes (docs/baked-lighting.md): the `.tprobes` file the editor's Lighting window writes, which
+	/// gives moving things and surfaces without a lightmap the light bounced round the scene. Empty: the two ambient
+	/// colours.
+	public String lightProbes = new .() ~ delete _;
+	/// How the editor's Lighting window bakes this scene (docs/baked-lighting.md): lightmap texels per metre, rays per
+	/// texel, bounces, and the light probes and how far apart they are.
+	public float bakeTexelsPerMetre = 8;
+	public int32 bakeSamples = 256;
+	public int32 bakeBounces = 3;
+	public bool bakeProbes = true;
+	public float bakeProbeSpacing = 3;
 
 	// ---- Screen effects (docs/post-processing.md). All off by default; colour grading's defaults leave the picture
 	// as it always was. ----
@@ -111,6 +128,8 @@ class SceneEnvironment
 		bloom = other.bloom;
 		bloomThreshold = other.bloomThreshold;
 		shadowDistance = other.shadowDistance;
+		reflectionIntensity = other.reflectionIntensity;
+		ambientFromSurroundings = other.ambientFromSurroundings;
 		ambientOcclusion = other.ambientOcclusion;
 		occlusionRadius = other.occlusionRadius;
 		depthOfField = other.depthOfField;
@@ -125,6 +144,12 @@ class SceneEnvironment
 		colorFilter = other.colorFilter;
 		vignette = other.vignette;
 		colorLookup.Set(other.colorLookup);
+		lightProbes.Set(other.lightProbes);
+		bakeTexelsPerMetre = other.bakeTexelsPerMetre;
+		bakeSamples = other.bakeSamples;
+		bakeBounces = other.bakeBounces;
+		bakeProbes = other.bakeProbes;
+		bakeProbeSpacing = other.bakeProbeSpacing;
 		colorLookupStrength = other.colorLookupStrength;
 	}
 }
@@ -156,8 +181,28 @@ class Scene
 	public List<Light> Lights = new .() ~ delete _;
 	/// Every Camera in the scene.
 	public List<Camera> Cameras = new .() ~ delete _;
+	/// When set (and active), the camera the game is seen through instead of the first one: a cutscene's.
+	public Camera CameraOverride;
+	/// The camera the game is seen through: CameraOverride when it is active, otherwise the first active camera.
+	public Camera ViewCamera
+	{
+		get
+		{
+			if (CameraOverride != null && CameraOverride.IsActiveAndEnabled)
+				return CameraOverride;
+			for (let camera in Cameras)
+			{
+				if (camera.IsActiveAndEnabled)
+					return camera;
+			}
+			return null;
+		}
+	}
+
 	/// Every Particle System in the scene.
 	public List<ParticleSystem> Particles = new .() ~ delete _;
+	/// The decals made by Decals.Spawn, oldest first. Their texture strings are owned here.
+	public List<SpawnedDecal> SpawnedDecals = new .() ~ { for (let decal in _) delete decal.texture; delete _; };
 
 	/// Every registered component under its class and each class above it (down to Component), in the order they
 	/// were registered: FindComponent and ComponentsOfType look here instead of at every component in the scene.
@@ -313,6 +358,7 @@ class Scene
 		mDestroyQueue.Clear();
 		mPendingStart.Clear();
 		mNextId = 1;
+		Decals.Clear(this);
 	}
 
 	/// Makes an empty object (with only a Transform), at the top of the scene or under a parent.

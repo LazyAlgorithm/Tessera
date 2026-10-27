@@ -109,6 +109,10 @@ static class ImGui
 		public const int32 Header = 25;
 		public const int32 HeaderHovered = 26;
 		public const int32 HeaderActive = 27;
+		public const int32 TextDisabled = 1;
+		public const int32 PopupBg = 4;
+		public const int32 Border = 5;
+		public const int32 CheckMark = 18;
 	}
 
 	public static class StyleVar
@@ -180,6 +184,7 @@ static class ImGui
 		public const int32 ChildWindows = 1 << 0;
 		public const int32 RootWindow = 1 << 1;
 		public const int32 AllowWhenBlockedByActiveItem = 1 << 7;
+		public const int32 AllowWhenDisabled = 1 << 10;
 	}
 
 	public static class DockFlags
@@ -192,6 +197,7 @@ static class ImGui
 	public static class ColorFlags
 	{
 		public const int32 NoAlpha = 1 << 1;
+		public const int32 AlphaBar = 1 << 16;
 		public const int32 NoInputs = 1 << 5;
 		public const int32 NoLabel = 1 << 7;
 		public const int32 HDR = 1 << 19;
@@ -204,17 +210,31 @@ static class ImGui
 		public const int32 Home = 519;
 		public const int32 End = 520;
 		public const int32 Delete = 522;
+		public const int32 Backspace = 523;
 		public const int32 Space = 524;
 		public const int32 Enter = 525;
 		public const int32 Escape = 526;
 		public const int32 LeftCtrl = 527;
 		public const int32 LeftShift = 528;
 		public const int32 LeftAlt = 529;
+		public const int32 Zero = 536;
+		public const int32 One = 537;
+		public const int32 Two = 538;
+		public const int32 Three = 539;
+		public const int32 Nine = 545;
 		public const int32 A = 546;
+		public const int32 B = 547;
+		public const int32 C = 548;
 		public const int32 D = 549;
 		public const int32 E = 550;
 		public const int32 F = 551;
 		public const int32 G = 552;
+		public const int32 H = 553;
+		public const int32 I = 554;
+		public const int32 J = 555;
+		public const int32 K = 556;
+		public const int32 L = 557;
+		public const int32 M = 558;
 		public const int32 N = 559;
 		public const int32 O = 560;
 		public const int32 P = 561;
@@ -222,13 +242,29 @@ static class ImGui
 		public const int32 R = 563;
 		public const int32 S = 564;
 		public const int32 T = 565;
+		public const int32 V = 567;
 		public const int32 W = 568;
+		public const int32 X = 569;
 		public const int32 Y = 570;
 		public const int32 Z = 571;
+		public const int32 F1 = 572;
 		public const int32 F2 = 573;
 		public const int32 F5 = 576;
+		public const int32 Minus = 598;
+		public const int32 Period = 599;
+		public const int32 Equal = 602;
 		public const int32 LeftBracket = 603;
 		public const int32 RightBracket = 605;
+		public const int32 Keypad0 = 612;
+		public const int32 Keypad1 = 613;
+		public const int32 Keypad3 = 615;
+		public const int32 Keypad5 = 617;
+		public const int32 Keypad7 = 619;
+		public const int32 Keypad9 = 621;
+		public const int32 KeypadDecimal = 622;
+		public const int32 KeypadSubtract = 625;
+		public const int32 KeypadAdd = 626;
+		public const int32 KeypadEnter = 627;
 		public const int32 ModCtrl = 4096;
 		public const int32 ModShift = 8192;
 	}
@@ -248,6 +284,28 @@ static class ImGui
 	[CLink] public static extern void tn_imgui_push_font(void* font, float size);
 	[CLink] public static extern int32 tn_imgui_capture_flags();
 	[CLink] public static extern bool tn_imgui_slider_float(char8* label, float* value, float min, float max, char8* format);
+	[CLink] static extern int32 tn_imgui_color_count();
+	[CLink] static extern char8* tn_imgui_color_name(int32 index);
+	[CLink] static extern void tn_imgui_get_color(int32 index, float* rgba);
+	[CLink] static extern void tn_imgui_set_color(int32 index, float* rgba);
+	[CLink] static extern void tn_imgui_base_colors(bool light);
+
+	/// The interface's colours (Col), for themes: how many, each one's name ("WindowBg"), reading and setting one,
+	/// and starting again from ImGui's own dark or light colours.
+	public static int32 StyleColorCount => tn_imgui_color_count();
+	public static StringView StyleColorName(int32 index) => .(tn_imgui_color_name(index));
+	public static Color GetStyleColor(int32 index)
+	{
+		Color color = default;
+		tn_imgui_get_color(index, &color.r);
+		return color;
+	}
+	public static void SetStyleColor(int32 index, Color color)
+	{
+		var color;
+		tn_imgui_set_color(index, &color.r);
+	}
+	public static void StyleColorsBase(bool light) => tn_imgui_base_colors(light);
 	[CLink] public static extern void tn_gizmo_begin(float x, float y, float width, float height, bool orthographic);
 	[CLink] public static extern bool tn_gizmo_manipulate(float* view, float* projection, int32 operation, bool local, float* matrix, float* snap);
 	[CLink] public static extern bool tn_gizmo_is_using();
@@ -285,6 +343,7 @@ static class ImGui
 	[CLink] static extern bool igDragInt(char8* label, int32* v, float speed, int32 min, int32 max, char8* format, int32 flags);
 	[CLink] static extern bool igSliderFloat(char8* label, float* v, float min, float max, char8* format, int32 flags);
 	[CLink] static extern bool igInputText(char8* label, char8* buffer, uint size, int32 flags, void* callback, void* userData);
+	[CLink] static extern bool igInputTextMultiline(char8* label, char8* buffer, uint size, Vec2 boxSize, int32 flags, void* callback, void* userData);
 	[CLink] static extern bool igInputTextWithHint(char8* label, char8* hint, char8* buffer, uint size, int32 flags, void* callback, void* userData);
 	[CLink] static extern bool igInputInt(char8* label, int32* v, int32 step, int32 stepFast, int32 flags);
 	[CLink] static extern bool igColorEdit3(char8* label, float* color, int32 flags);
@@ -465,6 +524,23 @@ static class ImGui
 	public static bool ColorEdit3(char8* label, ref Color color, int32 flags = 0) => igColorEdit3(label, &color.r, flags);
 	public static bool ColorEdit4(char8* label, ref Color color, int32 flags = 0) => igColorEdit4(label, &color.r, flags);
 
+	/// Edits a String of several lines in place, in a box of the given size (0: the default). Returns true when the
+	/// text changed. Holds up to capacity characters.
+	public static bool InputTextMultiline(char8* label, String text, Vec2 size = .(0, 0), int32 flags = 0, int capacity = 4096)
+	{
+		let buffer = scope char8[capacity];
+		let count = Math.Min(text.Length, capacity - 1);
+		Internal.MemCpy(buffer.Ptr, text.Ptr, count);
+		buffer[count] = 0;
+		let changed = igInputTextMultiline(label, buffer.Ptr, (uint)capacity, size, flags, null, null);
+		if (changed)
+		{
+			text.Clear();
+			text.Append(buffer.Ptr);
+		}
+		return changed;
+	}
+
 	/// Edits a String in place. Returns true when the text changed (or Enter was pressed with EnterReturnsTrue).
 	public static bool InputText(char8* label, String text, int32 flags = 0, char8* hint = null)
 	{
@@ -633,6 +709,8 @@ static class ImGui
 	public static Vec2 CalcTextSizeWrapped(char8* text, float wrapWidth) => igCalcTextSize(text, null, false, Math.Max(wrapWidth, 1));
 	[CLink] static extern void* igGetFont();
 	[CLink] static extern float igGetFontSize();
+	/// The size of the font in use, in pixels.
+	public static float GetFontSize() => igGetFontSize();
 	[CLink] static extern void ImDrawList_AddText_FontPtr(void* list, void* font, float fontSize, Vec2 pos, uint32 color, char8* text, char8* textEnd, float wrapWidth, Vec4* clip);
 	/// Text broken into lines no wider than wrapWidth, in the current font and size.
 	public static void DrawTextWrapped(Vec2 pos, Color color, char8* text, float wrapWidth) => ImDrawList_AddText_FontPtr(igGetWindowDrawList(), igGetFont(), igGetFontSize(), pos, color.ToABGR(), text, null, Math.Max(wrapWidth, 1), null);

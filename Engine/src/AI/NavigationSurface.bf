@@ -33,6 +33,10 @@ class NavigationSurface : Component
 	/// Show the walkable cells in the Scene view while the surface is selected.
 	public bool drawNavigation = true;
 	NavigationData mData ~ delete _;
+	// The links, obstacles and areas last put on the grid, and a hash of how they were, to notice a change.
+	List<NavigationLink> mLinks = new .() ~ delete _;
+	int64 mOverlayHash;
+	NavigationData mOverlayData;
 
 	/// The baked grid, or null before a bake or load.
 	public NavigationData Data => mData;
@@ -47,6 +51,131 @@ class NavigationSurface : Component
 	{
 		if (rebuildOnStart)
 			Bake();
+	}
+
+	/// The Navigation Link a path's leg crosses (FindPath's link id), or null.
+	public NavigationLink LinkOf(int32 id) => id >= 0 && id < mLinks.Count ? mLinks[id] : null;
+
+	public override void Update() => RefreshOverlay();
+
+	static void Mix(ref int64 hash, float value)
+	{
+		var copy = value;
+		hash = hash * 1099511628211 + (int64)(*(uint32*)&copy) + 7;
+	}
+
+	static void Mix(ref int64 hash, Vector3 value)
+	{
+		Mix(ref hash, value.x);
+		Mix(ref hash, value.y);
+		Mix(ref hash, value.z);
+	}
+
+	static void Mix(ref int64 hash, Quaternion value)
+	{
+		Mix(ref hash, value.x);
+		Mix(ref hash, value.y);
+		Mix(ref hash, value.z);
+		Mix(ref hash, value.w);
+	}
+
+	/// Puts the scene's Navigation Links, Obstacles and Areas on the grid when any of them changed (called each frame;
+	/// in the editor, when the surface is drawn). Agents plan again after a change.
+	public void RefreshOverlay()
+	{
+		let data = mData;
+		if (data == null)
+			return;
+		let playing = Scene.IsPlaying;
+		int64 hash = 17;
+		let obstacles = Scene.ComponentsOfType(typeof(NavigationObstacle));
+		let areas = Scene.ComponentsOfType(typeof(NavigationArea));
+		let links = Scene.ComponentsOfType(typeof(NavigationLink));
+		for (let component in obstacles)
+		{
+			let obstacle = (NavigationObstacle)component;
+			// In the editor an obstacle is shown carved where it stands.
+			let carving = obstacle.IsActiveAndEnabled && obstacle.GameObject.InActiveWorld && obstacle.carve && (obstacle.Carving || !playing);
+			if (!carving)
+				continue;
+			Mix(ref hash, playing ? obstacle.CarvedPosition : obstacle.Transform.Position + obstacle.Transform.Rotation * obstacle.center);
+			Mix(ref hash, playing ? obstacle.CarvedRotation : obstacle.Transform.Rotation);
+			Mix(ref hash, obstacle.size);
+			Mix(ref hash, (float)obstacle.shape);
+		}
+		for (let component in areas)
+		{
+			let area = (NavigationArea)component;
+			if (!area.IsActiveAndEnabled || !area.GameObject.InActiveWorld)
+				continue;
+			Mix(ref hash, area.Transform.Position);
+			Mix(ref hash, area.Transform.Rotation);
+			Mix(ref hash, area.size);
+			Mix(ref hash, area.blocked ? -1 : area.cost);
+		}
+		for (let component in links)
+		{
+			let link = (NavigationLink)component;
+			if (!link.IsActiveAndEnabled || !link.GameObject.InActiveWorld)
+				continue;
+			Mix(ref hash, link.StartPoint);
+			Mix(ref hash, link.EndPoint);
+			Mix(ref hash, link.bidirectional ? 1 : 0);
+			Mix(ref hash, link.costMultiplier);
+			Mix(ref hash, link.snapDistance);
+		}
+		// Also after a rebake (a new grid, or the same one rebuilt).
+		Mix(ref hash, (float)data.cells.Count);
+		if (hash == mOverlayHash && mOverlayData == data)
+			return;
+		mOverlayHash = hash;
+		mOverlayData = data;
+		data.ClearOverlay();
+		for (let component in areas)
+		{
+			let area = (NavigationArea)component;
+			if (!area.IsActiveAndEnabled || !area.GameObject.InActiveWorld)
+				continue;
+			if (area.blocked)
+				data.Block(area.Transform.Position, area.Transform.Rotation, area.size * 0.5f, false);
+			else
+				data.SetCost(area.Transform.Position, area.Transform.Rotation, area.size * 0.5f, area.cost);
+		}
+		for (let component in obstacles)
+		{
+			let obstacle = (NavigationObstacle)component;
+			if (!obstacle.IsActiveAndEnabled || !obstacle.GameObject.InActiveWorld || !obstacle.carve || !(obstacle.Carving || !playing))
+				continue;
+			let position = playing ? obstacle.CarvedPosition : obstacle.Transform.Position + obstacle.Transform.Rotation * obstacle.center;
+			let rotation = playing ? obstacle.CarvedRotation : obstacle.Transform.Rotation;
+			data.Block(position, rotation, obstacle.HalfExtents, obstacle.shape == .Cylinder);
+		}
+		mLinks.Clear();
+		let found = scope List<NavigationData.Link>();
+		for (let component in links)
+		{
+			let link = (NavigationLink)component;
+			if (!link.IsActiveAndEnabled || !link.GameObject.InActiveWorld)
+				continue;
+			let snap = Math.Max(link.snapDistance, data.cellSize);
+			let from = data.Nearest(link.StartPoint, snap);
+			let to = data.Nearest(link.EndPoint, snap);
+			if (from < 0 || to < 0)
+			{
+				// It may belong to another surface; only one whose ends are both off every grid is a mistake.
+				continue;
+			}
+			NavigationData.Link entry;
+			entry.from = from;
+			entry.to = to;
+			entry.twoWay = link.bidirectional;
+			entry.cost = Math.Max((link.EndPoint - link.StartPoint).Length, data.cellSize * 0.5f) * Math.Max(link.costMultiplier, 0.1f);
+			entry.id = (int32)mLinks.Count;
+			mLinks.Add(link);
+			found.Add(entry);
+		}
+		data.SetLinks(found);
+		data.Touch();
 	}
 
 	public bool LoadData()
@@ -150,7 +279,27 @@ class NavigationSurface : Component
 		if ((baked.min - area.min).Length > 0.01f || (baked.max - area.max).Length > 0.01f)
 			Gizmos.Lines.Box(baked, .(0.2f, 0.8f, 1, 0.35f));
 		if (!drawNavigation) return;
+		RefreshOverlay();
 		const int MaxGizmoQuads = 20000;
+		// Cells an obstacle or a blocked area cuts out, red; costly areas, purple.
+		{
+			let h = data.cellSize * 0.45f;
+			let lift = Vector3(0, 0.06f, 0);
+			int marked = 0;
+			for (int32 i < (int32)data.cells.Count)
+			{
+				let blocked = data.Blocked(i);
+				let costly = data.CostScale(i) > 1;
+				if ((!blocked && !costly) || !data.cells[i].walkable || marked++ > MaxGizmoQuads)
+					continue;
+				let p = data.cells[i].position + lift;
+				let color = blocked ? Color(1, 0.2f, 0.15f, 0.6f) : Color(0.7f, 0.3f, 1, 0.5f);
+				if (data.flying)
+					Gizmos.Lines.Box(Bounds(p - .(h, h, h), p + .(h, h, h)), color);
+				else
+					Gizmos.Triangles.Quad(p + .(-h, 0, -h), p + .(h, 0, -h), p + .(h, 0, h), p + .(-h, 0, h), color);
+			}
+		}
 		let edge = Color(0.05f, 0.35f, 0.75f, 1);
 		if (!data.flying)
 		{

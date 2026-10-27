@@ -411,6 +411,7 @@ class Material
 	String mResolvedShader = new .() ~ delete _;
 	bgfx.TextureHandle mTexture = .() { idx = uint16.MaxValue };
 	String mResolvedTexture = new .("\0") ~ delete _;
+	int32 mTextureVersion = -1;
 
 	static Dictionary<String, Material> sCache = new .() ~ DeleteDictionaryAndKeysAndValues!(_);
 
@@ -433,9 +434,10 @@ class Material
 	{
 		get
 		{
-			if (!mTexture.Valid || mResolvedTexture != texture)
+			if (!mTexture.Valid || mResolvedTexture != texture || mTextureVersion != Assets.TextureVersion)
 			{
 				mResolvedTexture.Set(texture);
+				mTextureVersion = Assets.TextureVersion;
 				mTexture = Assets.GetTexture(texture);
 			}
 			return mTexture;
@@ -633,9 +635,15 @@ class Material
 			case "flatShading": flatShading = tokens[1] == "1";
 			case "unlit": unlit = tokens[1] == "1";
 			case "texture": texture.Set(tokens[1]);
-			case "normalMap": normalMap.Set(tokens[1]);
-			case "metallicRoughnessMap": metallicRoughnessMap.Set(tokens[1]);
-			case "occlusionMap": occlusionMap.Set(tokens[1]);
+			case "normalMap":
+				normalMap.Set(tokens[1]);
+				Textures.Hint(normalMap, .Normal);
+			case "metallicRoughnessMap":
+				metallicRoughnessMap.Set(tokens[1]);
+				Textures.Hint(metallicRoughnessMap, .Data);
+			case "occlusionMap":
+				occlusionMap.Set(tokens[1]);
+				Textures.Hint(occlusionMap, .Data);
 			case "emissiveMap": emissiveMap.Set(tokens[1]);
 			case "normalStrength": normalStrength = Math.Max(F(1), 0);
 			case "occlusionStrength": occlusionStrength = Mathf.Clamp01(F(1));
