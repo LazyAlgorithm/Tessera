@@ -342,7 +342,7 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
       <div class="feature"><span class="chip" style="background:var(--cobalt)"></span><h3>Modelling</h3><p>Draw shapes in the scene, edit vertices, edges and faces, unwrap UVs, paint textures and export GLB models.</p></div>
       <div class="feature"><span class="chip" style="background:var(--jade)"></span><h3>Rigging</h3><p>Humanoid, quadruped and custom skeletons, automatic weights, weight painting and pose previews, in the editor.</p></div>
       <div class="feature"><span class="chip" style="background:var(--saffron)"></span><h3>Lighting</h3><p>Bake bounced light into lightmaps and probes while you work. Moving objects take their ambient light from nearby probes.</p></div>
-      <div class="feature"><span class="chip" style="background:var(--brick)"></span><h3>Editor themes</h3><p>Eight built-in themes, live colour editing, separate code colours, and theme import and export.</p></div>
+      <div class="feature"><span class="chip" style="background:var(--brick)"></span><h3>Editor themes</h3><p>Seven built-in themes, live colour editing, separate code colours, and theme import and export.</p></div>
     </div>
   </div>
 
@@ -892,7 +892,7 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
       <p><code>--lag &lt;ms&gt;</code>, <code>--jitter &lt;ms&gt;</code> and <code>--loss &lt;percent&gt;</code> simulate a poor connection; use the same values on both. <code>--netstats</code> prints bytes, corrections and buffered ticks every second.</p>
 
       <h2 id="manual-render">Rendering and materials</h2>
-      <p>A forward HDR pipeline on bgfx: four shadow cascades from the sun, up to 16 point and spot lights (spot lights cast real-time shadows), metallic/roughness shading, per-triangle flat shading, fog, bloom and tonemapping. Identical mesh and material pairs are instanced automatically.</p>
+      <p>A forward HDR pipeline on bgfx: four shadow cascades from the sun, up to 256 visible point and spot lights sorted into clusters, with real-time shadows from the nearest shadow-casting lights, metallic/roughness shading, per-triangle flat shading, fog, bloom and tonemapping. Identical mesh and material pairs are instanced automatically.</p>
       <ul>
         <li>Materials (<code>.tmat</code>) are shared between objects and edited live in the Inspector.</li>
         <li>Shader graphs make shaders without code; <code>.tshader</code> surface shaders keep the engine's lighting, shadows and fog.</li>
@@ -1003,7 +1003,7 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
       <p>See <code>docs/lod.md</code>, <code>docs/occlusion-culling.md</code> and <code>docs/gpu-skinning.md</code>; the Sandbox has <code>Scenes/Culling.tscene</code> and <code>Scenes/Skinning.tscene</code>.</p>
 
       <h2 id="manual-quality">Graphics quality presets</h2>
-      <p><strong>Quality</strong> gathers every graphics setting that trades looks for speed into four presets: <strong>Low</strong>, <strong>Medium</strong>, <strong>High</strong> and <strong>Ultra</strong>. Each sets render scale, antialiasing, shadows (map size and distance), ambient occlusion, depth of field, motion blur, LOD detail distance, foliage distance, GPU skinning and vsync together. High is what the engine always did, so existing projects look the same.</p>
+      <p><strong>Quality</strong> gathers every graphics setting that trades looks for speed into four presets: <strong>Low</strong>, <strong>Medium</strong>, <strong>High</strong> and <strong>Ultra</strong>. Each sets render scale, antialiasing, shadows (map size, distance and shadowed lights), reflection probes, texture detail and filtering, ambient occlusion, depth of field, motion blur, LOD detail distance, foliage distance, GPU skinning and vsync together. High is what the engine always did, so existing projects look the same.</p>
       <pre><code>Quality.Set(.Low);                 // a preset
 Quality.Current.motionBlur = false; // or one setting (the level becomes Custom)
 Quality.Apply();
@@ -1193,9 +1193,8 @@ Quality.Save();                    // applied by itself at the next start</code>
 <section class="view" id="v-download" data-view="download" hidden><span id="download" class="route-anchor" aria-hidden="true"></span>
   <div class="section-head" style="margin-bottom:28px">
     <div><p class="eyebrow">Download · early beta</p><h1 style="margin-top:8px;font-size:clamp(1.9rem,4vw,2.6rem)">Get Tessera</h1></div>
-    <p>Early beta packages. Availability depends on published releases and repository visibility; private GitHub releases require authorized access.</p>
+    <p>Early beta packages for Linux and Windows, available from the public GitHub releases page.</p>
   </div>
-  <div class="note" style="margin-bottom:18px"><div><strong>Distribution note:</strong> The source repository may be private. If a download link shows a 404 or access error, the package has not been made publicly available. Public download hosting should be configured before launch.</div></div>
   <div class="made">
     <a class="card" href="https://github.com/LazyAlgorithm/Tessera/releases" target="_blank" rel="noopener">
       <span class="meta">Linux x64 · Tessera-Linux.zip</span>
@@ -1212,7 +1211,7 @@ Quality.Save();                    // applied by itself at the next start</code>
     <div class="card">
       <span class="meta">Source · build.sh</span>
       <h3>From source</h3>
-      <p>Clone the repository and run <code>./build.sh</code>, then <code>./tessera</code>. Windows packages are built from Linux after <code>tools/windows/setup.sh</code>.</p>
+      <p>Clone the repository and run <code>./build.sh</code>, then <code>./tessera</code>. Windows packages build on Windows in CI; cross-compiling from Linux uses <code>tools/windows/setup.sh</code>.</p>
     </div>
   </div>
   <div class="section" style="margin-top:48px">
