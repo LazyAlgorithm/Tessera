@@ -188,6 +188,29 @@ class Program
 			ok &= Check(distinct, "the engine's message ids are all different, and all 240 or above");
 		}
 
+		// ---- a body's motion record (RemoteSnapshotFormat.QuantizedBody) ----
+		{
+			let writer = scope NetWriter();
+			BodyState moving = default;
+			moving.position = .(1.23456f, -0.5f, 30);
+			moving.rotation = Quaternion.Euler(20, 75, -10).Normalized;
+			moving.linearVelocity = .(0.004f, -2.5f, 0.75f);
+			moving.angularVelocity = .(-12, 0.3f, 0);
+			NetPack.WriteMotion(writer, moving);
+			BodyState resting = default;
+			resting.position = .(500, 0, 0);
+			resting.rotation = .Identity;
+			NetPack.WriteMotion(writer, resting);
+			var reader = NetReader(writer.Data.Ptr, writer.Data.Count);
+			let flags = reader.Read<uint8>();
+			let back = NetPack.ReadMotion(ref reader, flags);
+			let farFlags = reader.Read<uint8>();
+			let far = NetPack.ReadMotion(ref reader, farFlags);
+			ok &= Check(writer.Data.Count < 2 * 30 && (back.position - moving.position).Length < 1.0e-4f && Math.Abs(Quaternion.Dot(back.rotation, moving.rotation)) > 0.9999f
+				&& (back.linearVelocity - moving.linearVelocity).Length < 1.0e-3f && (back.angularVelocity - moving.angularVelocity).Length < 1.0e-3f, "a body's motion record is small and keeps its position, turn and both velocities");
+			ok &= Check(reader.Ok && (farFlags & NetPack.FlagExactTransform) != 0 && far.position == resting.position && far.linearVelocity == .Zero && far.angularVelocity == .Zero, "far out it carries exact floats, and a resting body's velocities take a byte each");
+		}
+
 		// ---- offline first: nothing below needs a session ----
 		{
 			let alone = scope Scene();
