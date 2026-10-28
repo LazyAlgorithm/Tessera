@@ -6,7 +6,10 @@ namespace Tessera;
 [Reflect(.All)]
 enum RemoteSnapshotFormat : int32
 {
-	Legacy, ExactTransform, QuantizedTransform }
+	Legacy, ExactTransform, QuantizedTransform,
+	/// A physics body shown in the past, with how it is moving: a finely packed position and rotation plus both
+	/// velocities, about a third of the size of a full record. For many small bodies clients only watch.
+	QuantizedBody }
 
 /// Whether clients simulate a physics body themselves rather than showing it a moment in the past.
 [Reflect(.All)]

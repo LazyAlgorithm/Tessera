@@ -172,6 +172,79 @@ static class NetPack
 	public const uint8 FlagPredicted = 64;
 	/// 0.1 millimetre position steps in metre-based worlds. Outside +/-838m, use exact floats.
 	public const float FinePositionScale = 10000;
+	/// A body shown in the past with its motion (RemoteSnapshotFormat.QuantizedBody): position in MotionPositionScale
+	/// steps (exact floats with FlagExactTransform), packed rotation, and both velocities.
+	public const uint8 FlagMotion = 128;
+	/// Position steps per unit in a motion record: about 15 micrometres in metre-based worlds, out to 128 units.
+	public const float MotionPositionScale = 65536;
+
+	/// Writes a body's motion record (FlagMotion); the caller may add FlagSleeping to its first byte.
+	public static void WriteMotion(NetWriter writer, BodyState state)
+	{
+		let limit = 8388607 / MotionPositionScale;
+		let position = state.position;
+		if (position.x.IsFinite && position.y.IsFinite && position.z.IsFinite && Math.Abs(position.x) < limit && Math.Abs(position.y) < limit && Math.Abs(position.z) < limit)
+		{
+			writer.Write(FlagMotion);
+			writer.Write24((int32)Math.Round(position.x * MotionPositionScale));
+			writer.Write24((int32)Math.Round(position.y * MotionPositionScale));
+			writer.Write24((int32)Math.Round(position.z * MotionPositionScale));
+			writer.Write(PackRotation(state.rotation));
+		}
+		else
+		{
+			writer.Write((uint8)(FlagMotion | FlagExactTransform));
+			writer.Write(position);
+			writer.Write(state.rotation);
+		}
+		WriteScaledVector(writer, state.linearVelocity);
+		WriteScaledVector(writer, state.angularVelocity);
+	}
+
+	/// Reads what WriteMotion wrote, with the flags it was written with.
+	public static BodyState ReadMotion(ref NetReader reader, uint8 flags)
+	{
+		BodyState state = default;
+		if ((flags & FlagExactTransform) != 0)
+		{
+			state.position = reader.Read<Vector3>();
+			state.rotation = reader.Read<Quaternion>();
+		}
+		else
+		{
+			state.position = .(reader.Read24() / MotionPositionScale, reader.Read24() / MotionPositionScale, reader.Read24() / MotionPositionScale);
+			state.rotation = UnpackRotation(reader.Read<uint32>());
+		}
+		state.linearVelocity = ReadScaledVector(ref reader);
+		state.angularVelocity = ReadScaledVector(ref reader);
+		return state;
+	}
+
+	/// A vector as a power-of-two scale shared by three 16-bit numbers (one byte when it is zero).
+	static void WriteScaledVector(NetWriter writer, Vector3 vector)
+	{
+		let largest = Math.Max(Math.Abs(vector.x), Math.Max(Math.Abs(vector.y), Math.Abs(vector.z)));
+		if (!largest.IsFinite || largest < 1.0e-7f)
+		{
+			writer.Write((int8) - 128);
+			return;
+		}
+		let exponent = (int32)Math.Clamp(Math.Ceiling(Math.Log(largest) / Math.Log(2.0)), -100, 100);
+		let scale = (float)(32767 / Math.Pow(2.0, exponent));
+		writer.Write((int8)exponent);
+		writer.Write((int16)Math.Clamp(Math.Round(vector.x * scale), -32767, 32767));
+		writer.Write((int16)Math.Clamp(Math.Round(vector.y * scale), -32767, 32767));
+		writer.Write((int16)Math.Clamp(Math.Round(vector.z * scale), -32767, 32767));
+	}
+
+	static Vector3 ReadScaledVector(ref NetReader reader)
+	{
+		let exponent = reader.Read<int8>();
+		if (exponent == -128)
+			return .Zero;
+		let step = (float)(Math.Pow(2.0, exponent) / 32767);
+		return .(reader.Read<int16>() * step, reader.Read<int16>() * step, reader.Read<int16>() * step);
+	}
 
 	/// Writes a position and rotation, packed small when quantized.
 	public static void WriteTransform(NetWriter writer, Vector3 position, Quaternion rotation, bool quantized)

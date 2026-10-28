@@ -331,16 +331,20 @@ extension NetworkManager
 	{
 		WriteNetId(writer, identity.NetId);
 		let flagsAt = writer.Data.Count;
-		if (identity.ownerId == clientId || identity.remoteFormat == .Legacy && identity.fullPrecision)
+		// A body set to be predicted (physicsPrediction On) is, whatever its other snapshot settings.
+		let predicted = identity.ownerId != clientId && identity.PhysicsPredictable;
+		if (identity.ownerId == clientId || identity.remoteFormat == .Legacy && identity.fullPrecision && !(predicted && identity.physicsPrediction == .On))
 		{
 			writer.Write(NetPack.FlagFull);
 			writer.Write(identity.CaptureState());
 		}
-		else if (identity.PhysicsPredictable)
+		else if (predicted)
 		{
 			WritePredictedBody(writer, identity);
 			return;
 		}
+		else if (identity.remoteFormat == .QuantizedBody && identity.GetComponent<Rigidbody>()?.HasBody == true)
+			NetPack.WriteMotion(writer, identity.GetComponent<Rigidbody>().State);
 		else if (identity.remoteFormat != .Legacy)
 			NetPack.WriteTransform(writer, identity.Transform.Position, identity.Transform.Rotation, identity.remoteFormat == .QuantizedTransform);
 		else

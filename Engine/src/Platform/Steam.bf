@@ -33,6 +33,7 @@ static class Steam
 	static function uint64(void* user) sGetSteamID;
 	static function char8*(void* friends) sGetPersonaName;
 	static function void(void* utils) sInitRelay;
+	static function bool(void* utils, int32 setting, int32 value) sSetGlobalInt;
 	static function void(void* sockets) sSocketsRunCallbacks;
 	public static function bool(void* utils, function void(void* info) callback) SetConnectionStatusCallback;
 	public static function uint32(void* sockets, int32 virtualPort, int32 optionCount, void* options) CreateListenSocketP2P;
@@ -68,6 +69,8 @@ static class Steam
 
 	/// The project's Steam App ID, from Project Settings. 0 means the game does not use Steam.
 	public static uint32 AppId;
+	/// The most a Steam connection may send a second, in bytes. Set before Steam starts.
+	public static int32 SendRate = 1024 * 1024;
 
 	/// Connects to Steam with the project's App ID, once. Quietly false when the project has none.
 	public static bool Start() => sReady || (AppId != 0 && Init(AppId));
@@ -389,6 +392,7 @@ static class Steam
 		sGetSteamID = (.)Symbol("SteamAPI_ISteamUser_GetSteamID");
 		sGetPersonaName = (.)Symbol("SteamAPI_ISteamFriends_GetPersonaName");
 		sInitRelay = (.)Symbol("SteamAPI_ISteamNetworkingUtils_InitRelayNetworkAccess");
+		sSetGlobalInt = (.)Symbol("SteamAPI_ISteamNetworkingUtils_SetGlobalConfigValueInt32");
 		sSocketsRunCallbacks = (.)Symbol("SteamAPI_ISteamNetworkingSockets_RunCallbacks");
 		SetConnectionStatusCallback = (.)Symbol("SteamAPI_ISteamNetworkingUtils_SetGlobalCallback_SteamNetConnectionStatusChanged");
 		CreateListenSocketP2P = (.)Symbol("SteamAPI_ISteamNetworkingSockets_CreateListenSocketP2P");
@@ -506,6 +510,15 @@ static class Steam
 		// Finds relay servers ahead of time so the first connection does not wait for it.
 		if (sUtils != null && sInitRelay != null)
 			sInitRelay(sUtils);
+		// Steam holds each connection to 256 KB a second unless told otherwise; a physics-heavy game can go past that
+		// for a moment, and everything sent after it then waits in Steam's queue. Allow up to SendRate.
+		if (sUtils != null && sSetGlobalInt != null)
+		{
+			const int32 SendRateMin = 10;
+			const int32 SendRateMax = 11;
+			sSetGlobalInt(sUtils, SendRateMin, SendRate);
+			sSetGlobalInt(sUtils, SendRateMax, SendRate);
+		}
 		sReady = true;
 		ListenForJoinRequests();
 		sError.Clear();

@@ -112,6 +112,8 @@ extension NetworkManager
 				state = NetPack.ReadBody(ref reader);
 			else if ((flags & NetPack.FlagFull) != 0)
 				state = reader.Read<BodyState>();
+			else if ((flags & NetPack.FlagMotion) != 0)
+				state = NetPack.ReadMotion(ref reader, flags);
 			else if ((flags & (NetPack.FlagExactTransform | NetPack.FlagFineTransform)) != 0)
 				NetPack.ReadTransform(ref reader, flags, out state.position, out state.rotation);
 			else
@@ -149,7 +151,7 @@ extension NetworkManager
 				identity.HoldKey((uint32)(serverTick - interval));
 			// Character motors may use velocity slots for prediction metadata. Only
 			// rigidbodies carry physical spin that is safe to extrapolate.
-			if ((flags & (NetPack.FlagFull | NetPack.FlagPredicted)) != 0 && identity.GetComponent<Rigidbody>() != null)
+			if ((flags & (NetPack.FlagFull | NetPack.FlagPredicted | NetPack.FlagMotion)) != 0 && identity.GetComponent<Rigidbody>() != null)
 				identity.PushBodyKey(serverTick, state, asleep);
 			else
 				identity.PushKey(serverTick, state.position, state.rotation, asleep);
