@@ -13,6 +13,7 @@
 #include <Jolt/Physics/Collision/GroupFilter.h>
 #include <Jolt/Physics/Collision/Shape/MeshShape.h>
 #include <Jolt/Physics/Constraints/DistanceConstraint.h>
+#include <Jolt/Physics/Constraints/PulleyConstraint.h>
 #include <Jolt/Physics/PhysicsSystem.h>
 #include <Jolt/Physics/SoftBody/SoftBodyContactListener.h>
 #include <Jolt/Physics/SoftBody/SoftBodyCreationSettings.h>
@@ -176,12 +177,26 @@ public:
 			if (shell != shells.end())
 				shell->second.touched[i] = 1;
 		}
+		// A rope keeps which way each of its points was pushed off what it touched (zero where it touched nothing),
+		// as the step clears it: tn_rope_wraps reads it.
+		auto rope = ropes.find(id);
+		if (rope != ropes.end())
+		{
+			rope->second.assign(vertices.size(), JPH::Vec3::sZero());
+			for (size_t i = 0; i < vertices.size(); i++)
+			{
+				if (manifold.HasContact(vertices[i]))
+					rope->second[i] = vertices[i].mCollisionPlane.GetNormal();
+			}
+		}
 	}
 
 	std::mutex mutex;
 	std::unordered_map<uint32_t, std::unordered_set<uint32_t>> bodies;
 	std::unordered_map<uint32_t, std::vector<uint32_t>> ignored;
 	std::unordered_map<uint32_t, Shell> shells;
+	// Each rope's points' contact normals in the last step (relative to the body), for tn_rope_wraps.
+	std::unordered_map<uint32_t, std::vector<JPH::Vec3>> ropes;
 	// Each soft body's proxy, while it has one.
 	std::unordered_map<uint32_t, uint32_t> proxies;
 };
@@ -428,9 +443,34 @@ TN_API void tn_soft_set_positions(JPH_PhysicsSystem* world, uint32_t bodyId, con
 	Bodies(world).ActivateBody(JPH::BodyID(bodyId));
 }
 
+namespace
+{
+
+/// The air at a point, with `turbulence` (0 steady, 1 rough) added: gusts that travel downwind across a surface
+/// (about 3 m apart, passing 1 to 3 times a second as the wind gets up) and a sideways flutter, so a flag ripples and
+/// flaps instead of standing out flat.
+JPH::Vec3 TurbulentAir(JPH::Vec3Arg air, JPH::Vec3Arg at, float turbulence, float time)
+{
+	const float speed = air.Length();
+	if (turbulence <= 0 || speed < 1.0e-4f)
+		return air;
+	const JPH::Vec3 along = air / speed;
+	JPH::Vec3 side = along.Cross(JPH::Vec3::sAxisY());
+	side = side.LengthSq() > 1.0e-6f ? side.Normalized() : JPH::Vec3::sAxisX();
+	const JPH::Vec3 up = side.Cross(along);
+	const float wave = along.Dot(at) * 2.0f - time * std::min(speed * 1.6f, 19.0f);
+	const float gust = 1.0f + turbulence * (0.45f * std::sin(wave) + 0.2f * std::sin(wave * 2.3f + 1.7f + 1.5f * up.Dot(at)));
+	const float flutter = turbulence * 0.6f * std::sin(wave * 1.3f + 0.8f * up.Dot(at) + 1.3f * side.Dot(at));
+	return air * gust + side * (speed * flutter);
+}
+
+} // namespace
+
 /// Air moving at `wind` (m/s, in the world) pushes on each face by how squarely it meets it: half the air's density
-/// times drag times area times the speed into the face squared, shared by the face's free vertices, over `step` seconds.
-TN_API void tn_soft_wind(JPH_PhysicsSystem* world, uint32_t bodyId, const float* wind, float drag, float step)
+/// times drag times area times the speed into the face squared, shared by the face's free vertices, over `step`
+/// seconds. Air along a face drags it downwind a little too (what stretches a flag out), and `turbulence` (0-1) makes
+/// the air differ from face to face (TurbulentAir) at `time`.
+TN_API void tn_soft_wind(JPH_PhysicsSystem* world, uint32_t bodyId, const float* wind, float drag, float turbulence, float time, float step)
 {
 	if (drag <= 0 || step <= 0)
 		return;
@@ -444,9 +484,12 @@ TN_API void tn_soft_wind(JPH_PhysicsSystem* world, uint32_t bodyId, const float*
 		auto* soft = Soft(body);
 		if (!soft)
 			return;
-		const JPH::Vec3 localAir = body.GetInverseCenterOfMassTransform().Multiply3x3(air);
+		const JPH::Mat44 toLocal = body.GetInverseCenterOfMassTransform().ToMat44();
+		const JPH::Mat44 toWorld = body.GetCenterOfMassTransform().ToMat44();
 		auto& vertices = soft->GetVertices();
 		const float density = 1.2f;
+		// Skin friction: how much air sliding along a face drags it, against straight into it.
+		const float along = 0.1f;
 		for (const auto& face : soft->GetSettings()->mFaces)
 		{
 			auto& a = vertices[face.mVertex[0]];
@@ -457,12 +500,61 @@ TN_API void tn_soft_wind(JPH_PhysicsSystem* world, uint32_t bodyId, const float*
 			if (twiceArea < 1.0e-9f)
 				continue;
 			normal /= twiceArea;
+			const JPH::Vec3 middle = (a.mPosition + b.mPosition + c.mPosition) / 3.0f;
+			const JPH::Vec3 localAir = toLocal.Multiply3x3(TurbulentAir(air, toWorld * middle, turbulence, time));
 			const JPH::Vec3 relative = localAir - (a.mVelocity + b.mVelocity + c.mVelocity) / 3.0f;
 			const float into = normal.Dot(relative);
-			const JPH::Vec3 impulse = normal * (0.5f * density * drag * 0.5f * twiceArea * into * std::abs(into) * step / 3.0f);
+			const JPH::Vec3 sliding = relative - normal * into;
+			const float share = 0.5f * density * drag * 0.5f * twiceArea * step / 3.0f;
+			const JPH::Vec3 impulse = (normal * (into * std::abs(into)) + sliding * (along * sliding.Length())) * share;
 			for (auto* vertex : { &a, &b, &c })
 				vertex->mVelocity += impulse * vertex->mInvMass;
-			pushed |= std::abs(into) > 0.01f;
+			pushed |= relative.LengthSq() > 1.0e-4f;
+		}
+	}
+	if (pushed)
+		Bodies(world).ActivateBody(JPH::BodyID(bodyId));
+}
+
+/// Wind on a rope (tn_rope_create): each point is pushed by the air crossing it, as a cylinder `radius` thick, with
+/// the same drag, turbulence and time as tn_soft_wind.
+TN_API void tn_rope_wind(JPH_PhysicsSystem* world, uint32_t bodyId, const float* wind, float radius, float drag, float turbulence, float time, float step)
+{
+	if (drag <= 0 || step <= 0)
+		return;
+	const JPH::Vec3 air(wind[0], wind[1], wind[2]);
+	bool pushed = false;
+	{
+		JPH::BodyLockWrite lock(Locks(world), JPH::BodyID(bodyId));
+		if (!lock.Succeeded())
+			return;
+		JPH::Body& body = lock.GetBody();
+		auto* soft = Soft(body);
+		if (!soft)
+			return;
+		const JPH::Mat44 toLocal = body.GetInverseCenterOfMassTransform().ToMat44();
+		const JPH::Mat44 toWorld = body.GetCenterOfMassTransform().ToMat44();
+		auto& vertices = soft->GetVertices();
+		const size_t count = vertices.size();
+		const float density = 1.2f, cylinder = 1.2f;
+		for (size_t i = 0; i < count && count > 1; i++)
+		{
+			auto& vertex = vertices[i];
+			if (vertex.mInvMass <= 0)
+				continue;
+			const JPH::Vec3 before = vertices[i > 0 ? i - 1 : i].mPosition, after = vertices[i + 1 < count ? i + 1 : i].mPosition;
+			JPH::Vec3 tangent = after - before;
+			// The rope this point stands for: half of each length beside it.
+			const float span = tangent.Length() * ((i == 0 || i + 1 == count) ? 1.0f : 0.5f);
+			if (span < 1.0e-6f)
+				continue;
+			tangent = tangent.Normalized();
+			const JPH::Vec3 localAir = toLocal.Multiply3x3(TurbulentAir(air, toWorld * vertex.mPosition, turbulence, time));
+			JPH::Vec3 across = localAir - vertex.mVelocity;
+			across -= tangent * tangent.Dot(across);
+			const JPH::Vec3 impulse = across * (0.5f * density * cylinder * drag * 2.0f * radius * span * across.Length() * step);
+			vertex.mVelocity += impulse * vertex.mInvMass;
+			pushed |= across.LengthSq() > 1.0e-4f;
 		}
 	}
 	if (pushed)
@@ -554,6 +646,7 @@ TN_API void tn_soft_forget(JPH_PhysicsSystem* world, uint32_t bodyId)
 	}
 	touches.ignored.erase(bodyId);
 	touches.shells.erase(bodyId);
+	touches.ropes.erase(bodyId);
 	touches.bodies.erase(bodyId);
 }
 
@@ -949,6 +1042,11 @@ TN_API uint32_t tn_rope_create(JPH_PhysicsSystem* world, const RopeConfig* confi
 	const JPH::BodyID id = Bodies(world).CreateAndAddSoftBody(settings, JPH::EActivation::Activate);
 	if (id.IsInvalid())
 		return 0xFFFFFFFFu;
+	{
+		auto& touches = TouchesOf(world);
+		std::lock_guard<std::mutex> guard(touches.mutex);
+		touches.ropes[id.GetIndexAndSequenceNumber()];
+	}
 	JPH::BodyLockWrite lock(Locks(world), id);
 	if (lock.Succeeded())
 		lock.GetBody().SetCollisionGroup(JPH::CollisionGroup(Groups(), id.GetIndexAndSequenceNumber(), SoftGroups::Open));
@@ -978,7 +1076,89 @@ TN_API void* tn_rope_tie(JPH_PhysicsSystem* world, uint32_t bodyA, const float* 
 	return tie;
 }
 
-/// Lets go of a tie (tn_rope_tie).
+/// The points where a rope (tn_rope_create) bends round something: points touching it on the far side from the
+/// straight line between `start` and `end` (so a rope over a beam, not one lying along the floor). Writes the first
+/// and last of them, in order along the rope, to `first` and `last`, and their places (x, y, z each, in the world)
+/// to `places`; returns false when it bends round nothing.
+TN_API bool tn_rope_wraps(JPH_PhysicsSystem* world, uint32_t bodyId, const float* start, const float* end, float clearance, uint32_t* first, uint32_t* last, float* places)
+{
+	JPH::BodyLockRead lock(Locks(world), JPH::BodyID(bodyId));
+	if (!lock.Succeeded() || !lock.GetBody().IsSoftBody())
+		return false;
+	const JPH::Body& body = lock.GetBody();
+	const auto* soft = static_cast<const JPH::SoftBodyMotionProperties*>(body.GetMotionProperties());
+	const JPH::Mat44 toWorld = body.GetCenterOfMassTransform().ToMat44();
+	const JPH::Vec3 a(start[0], start[1], start[2]), b(end[0], end[1], end[2]);
+	const JPH::Vec3 chord = b - a;
+	const float chordLength = chord.LengthSq();
+	const auto& vertices = soft->GetVertices();
+	// Which way each point was last pushed off something (the step clears Jolt's own record when it ends).
+	auto& touches = TouchesOf(world);
+	std::vector<JPH::Vec3> pushed;
+	{
+		std::lock_guard<std::mutex> guard(touches.mutex);
+		auto found = touches.ropes.find(bodyId);
+		if (found == touches.ropes.end() || found->second.size() != vertices.size())
+			return false;
+		pushed = found->second;
+		std::fill(found->second.begin(), found->second.end(), JPH::Vec3::sZero());
+	}
+	int32_t found[2] = { -1, -1 };
+	for (uint32_t i = 1; i + 1 < (uint32_t)vertices.size(); i++)
+	{
+		const auto& vertex = vertices[i];
+		if (pushed[i].IsNearZero())
+			continue;
+		const JPH::Vec3 at = toWorld * vertex.mPosition;
+		const float t = chordLength > 1.0e-8f ? std::clamp((at - a).Dot(chord) / chordLength, 0.0f, 1.0f) : 0.0f;
+		const JPH::Vec3 off = at - (a + chord * t);
+		const JPH::Vec3 normal = toWorld.Multiply3x3(pushed[i]);
+		if (off.Length() < clearance || normal.Dot(off) <= 0)
+			continue;
+		if (found[0] < 0)
+			found[0] = (int32_t)i;
+		found[1] = (int32_t)i;
+	}
+	if (found[0] < 0)
+		return false;
+	*first = (uint32_t)found[0];
+	*last = (uint32_t)found[1];
+	for (int k = 0; k < 2; k++)
+	{
+		const JPH::Vec3 at = toWorld * vertices[found[k]].mPosition;
+		places[k * 3] = at.GetX();
+		places[k * 3 + 1] = at.GetY();
+		places[k * 3 + 2] = at.GetZ();
+	}
+	return true;
+}
+
+/// Ties two bodies (0xFFFFFFFF for a point fixed in the world) over two fixed points, as a rope over a pulley: the
+/// rope from pointA to fixedA and from fixedB to pointB together get no longer than `length`.
+TN_API void* tn_rope_tie_over(JPH_PhysicsSystem* world, uint32_t bodyA, const float* pointA, const float* fixedA, uint32_t bodyB, const float* pointB, const float* fixedB, float length)
+{
+	auto* system = reinterpret_cast<JoltcSystem*>(world)->physicsSystem;
+	JPH::PulleyConstraintSettings settings;
+	settings.mSpace = JPH::EConstraintSpace::WorldSpace;
+	settings.mBodyPoint1 = JPH::RVec3(pointA[0], pointA[1], pointA[2]);
+	settings.mFixedPoint1 = JPH::RVec3(fixedA[0], fixedA[1], fixedA[2]);
+	settings.mBodyPoint2 = JPH::RVec3(pointB[0], pointB[1], pointB[2]);
+	settings.mFixedPoint2 = JPH::RVec3(fixedB[0], fixedB[1], fixedB[2]);
+	settings.mMinLength = 0;
+	settings.mMaxLength = std::max(length, 0.001f);
+	JPH::BodyID ids[2] = { JPH::BodyID(bodyA), JPH::BodyID(bodyB) };
+	JPH::BodyLockMultiWrite lock(system->GetBodyLockInterface(), ids, 2);
+	JPH::Body* a = bodyA == 0xFFFFFFFFu ? &JPH::Body::sFixedToWorld : lock.GetBody(0);
+	JPH::Body* b = bodyB == 0xFFFFFFFFu ? &JPH::Body::sFixedToWorld : lock.GetBody(1);
+	if (a == nullptr || b == nullptr || a == b)
+		return nullptr;
+	JPH::TwoBodyConstraint* tie = settings.Create(*a, *b);
+	tie->AddRef();
+	system->AddConstraint(tie);
+	return tie;
+}
+
+/// Lets go of a tie (tn_rope_tie, tn_rope_tie_over).
 TN_API void tn_rope_untie(JPH_PhysicsSystem* world, void* tie)
 {
 	if (!tie)
@@ -993,5 +1173,8 @@ TN_API float tn_rope_pull(void* tie, float step)
 {
 	if (!tie || step <= 0)
 		return 0;
+	auto* constraint = static_cast<JPH::TwoBodyConstraint*>(tie);
+	if (constraint->GetSubType() == JPH::EConstraintSubType::Pulley)
+		return std::abs(static_cast<JPH::PulleyConstraint*>(tie)->GetTotalLambdaPosition()) / step;
 	return std::abs(static_cast<JPH::DistanceConstraint*>(tie)->GetTotalLambdaPosition()) / step;
 }

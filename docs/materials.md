@@ -25,9 +25,11 @@ In the Project panel a material is shown as a ball drawn with it, so you can tel
 | Emissive, Emissive Intensity | Light the surface gives off by itself. |
 | Flat Shading | The faceted low-poly look. Off for smooth surfaces and anything with a normal map. |
 | Unlit | Ignore lighting: the colour as it is. |
-| Double Sided | Draw both faces: leaves, cloth, flags. |
+| Double Sided | Draw both faces: leaves, cloth, flags. The back is lit as its own side. |
 | Tiling, Offset | How many times the textures repeat across the mesh, and where they start. |
 | Blend | Opaque; **Cutout** (holes where alpha is below Cutoff: fences, foliage); **Transparent** (blended, casts no shadow). |
+
+Without a material, a Mesh Renderer's own **Back Face Culling** (on by default) does the same: turn it off to see a plane from both sides (a curtain, a flag). A material that is Double Sided draws both sides whatever the renderer says.
 
 The renderer's own **Color** still tints the object on top of its material, so a hundred crates can share one material and differ in tint.
 

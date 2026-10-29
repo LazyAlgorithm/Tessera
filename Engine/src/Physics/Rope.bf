@@ -10,8 +10,9 @@ namespace Tessera;
 ///
 /// Each end is held where it is on its object, and moves with it. An end on a dynamic Rigidbody also pulls on it:
 /// the two ends can get no further apart than the rope is long (it goes slack when they come closer), so a rope
-/// holds up a crate, swings it, and is pulled tight by it. The pull acts along the straight line between the ends;
-/// a rope over a beam still shows on the beam, but holds as though it went straight.
+/// holds up a crate, swings it, and is pulled tight by it. The pull acts along the straight line between the ends,
+/// or, with Wraps Around on, round what the rope lies over (a rope over a beam works as a pulley). With a Break Force
+/// it snaps in two when pulled harder than that.
 ///
 /// The rope draws itself as a tube with the Mesh Renderer on this object (added if there is none).
 [Component]
@@ -37,12 +38,24 @@ class Rope : Component
 	public Transform startAttachedTo;
 	/// With nothing in Start Attached To: whether this object holds the first end. Off: that end hangs free too.
 	public bool holdStart = true;
-	/// Where it is tied on that object, relative to it.
+	/// Where it is tied on that object, relative to it. Zero: on its surface, where it faces along the rope (the top of
+	/// a crate hanging from it).
 	public Vector3 startOffset = .Zero;
 	/// What its other end is tied to. None: it hangs free.
 	public Transform endAttachedTo;
-	/// Where it is tied on that object, relative to it.
+	/// Where it is tied on that object, relative to it. Zero: on its surface, where it faces along the rope.
 	public Vector3 endOffset = .Zero;
+	/// How firmly a body on the end is held turned to the rope, as a knot does: it tips back in line with the rope and
+	/// stops spinning about it. 0: it turns freely about where it is tied.
+	[Range(0, 1)]
+	public float knotStiffness = 0.5f;
+	/// How much Wind Zones push it: 0 not at all.
+	public float windDrag = 1;
+	/// Whether the pull goes round what the rope lies over (a beam, a branch, a post) instead of straight between
+	/// the ends: a rope over a beam is a pulley, and lifting one end lowers the other.
+	public bool wrapsAround = false;
+	/// How hard it can be pulled, in newtons, before it snaps in two (each half staying on its end). 0: never.
+	public float breakForce = 0;
 	/// Solver passes each step: more is firmer and costs more.
 	[Range(1, 32)]
 	public int32 iterations = 8;
@@ -54,6 +67,9 @@ class Rope : Component
 	[CLink] static extern void* tn_rope_tie(void* world, uint32 bodyA, float* pointA, uint32 bodyB, float* pointB, float length);
 	[CLink] static extern void tn_rope_untie(void* world, void* tie);
 	[CLink] static extern float tn_rope_pull(void* tie, float step);
+	[CLink] static extern bool tn_rope_wraps(void* world, uint32 bodyId, float* start, float* end, float clearance, uint32* first, uint32* last, float* places);
+	[CLink] static extern void* tn_rope_tie_over(void* world, uint32 bodyA, float* pointA, float* fixedA, uint32 bodyB, float* pointB, float* fixedB, float length);
+	[CLink] static extern void tn_rope_wind(void* world, uint32 bodyId, float* wind, float radius, float drag, float turbulence, float time, float step);
 	[CLink] static extern uint32 tn_soft_read(void* world, uint32 bodyId, float* positions, float* velocities, uint32 capacity);
 	[CLink] static extern void tn_soft_move_pinned(void* world, uint32 bodyId, uint32* indices, float* targets, uint32 count, float step);
 	[CLink] static extern void tn_soft_ignore(void* world, uint32 bodyId, uint32 ignoredBody);
@@ -79,6 +95,21 @@ class Rope : Component
 	float mPull;
 	float mStep;
 	bool mLetGo;
+	// Pulled past Break Force: it snaps after the step. The half its other end kept, once it has.
+	bool mSnapping;
+	Rope mSnappedOff;
+	// Over what it wraps round: the first and last points touching it, where they were when the tie was made.
+	bool mWrapped;
+	uint32 mWrapFirst, mWrapLast;
+	Vector3 mWrapStart, mWrapEnd;
+	float mUnwrapping;
+	// Where to lay it when it is made (LayAlong, Snap), instead of hanging between its ends.
+	List<Vector3> mSeed = new .() ~ delete _;
+	// Where each end is tied on its object (Start/End Offset, or the surface point found for a zero offset).
+	Vector3 mStartAnchor, mEndAnchor;
+	float mKnotPull;
+	// Seconds of wind it has had, steps added up: what the flutter goes by.
+	float mWindTime;
 	// Whether each end was tied to an object when the rope was made.
 	bool mStartTied, mEndTied;
 	uint32[2] mHeld;
@@ -94,15 +125,19 @@ class Rope : Component
 	public List<Vector3> Points => mPositions;
 	/// How hard it pulled on what it is tied to in the last step, in newtons (0 while slack or not tied to a body).
 	public float Pull => mPull;
-	/// Whether the ends are as far apart as the rope is long.
-	public bool IsTaut => HasBody && endAttachedTo != null && StartHeld && (EndPoint - StartPoint).Length >= length * 0.99f;
+	/// Whether it is pulled tight: the ends as far apart as the rope is long (round what it wraps, with Wraps Around).
+	public bool IsTaut => HasBody && endAttachedTo != null && StartHeld && (mPull > 0.01f || (EndPoint - StartPoint).Length >= length * 0.99f);
+	/// Whether the pull goes round something now (Wraps Around).
+	public bool IsWrapped => mWrapped;
+	/// After it snapped (Break Force, Snap): the half that stayed on its other end.
+	public Rope SnappedOff => mSnappedOff;
 
 	/// Where it starts, in the world.
-	public Vector3 StartPoint => (StartHeld || mPositions.IsEmpty) ? StartObject.TransformPoint(startOffset) : mPositions[0];
+	public Vector3 StartPoint => (StartHeld || mPositions.IsEmpty) ? StartObject.TransformPoint(HasBody ? mStartAnchor : startOffset) : mPositions[0];
 	/// What its first end is on.
 	Transform StartObject => startAttachedTo ?? Transform;
 	/// Where its other end is tied, in the world (where it hangs, if it is free).
-	public Vector3 EndPoint => endAttachedTo != null ? endAttachedTo.TransformPoint(endOffset) : (mPositions.IsEmpty ? StartPoint - Vector3(0, length, 0) : mPositions.Back);
+	public Vector3 EndPoint => endAttachedTo != null ? endAttachedTo.TransformPoint(HasBody ? mEndAnchor : endOffset) : (mPositions.IsEmpty ? StartPoint - Vector3(0, length, 0) : mPositions.Back);
 
 	public override void Start()
 	{
@@ -163,6 +198,92 @@ class Rope : Component
 	/// Lets go of what its other end holds.
 	public void Release() => AttachEnd(null);
 
+	/// Lays the rope along a path (points in the world, from its start to its end), as long as the path is: over a
+	/// beam, round a post, along a wall. The ends stay tied as they are; it is made again there now if it runs.
+	public void LayAlong(Span<Vector3> path)
+	{
+		if (path.Length < 2)
+			return;
+		float total = 0;
+		for (int i = 1; i < path.Length; i++)
+			total += (path[i] - path[i - 1]).Length;
+		if (total < 1.0e-4f)
+			return;
+		length = total;
+		let count = Math.Clamp(segments > 0 ? (int)segments : (int)Math.Round(length / 0.1f), 2, 256) + 1;
+		// The same distance between each point, walking the path.
+		mSeed.Clear();
+		int leg = 1;
+		float legStart = 0;
+		for (int i < count)
+		{
+			let at = total * i / (float)(count - 1);
+			while (leg < path.Length - 1 && legStart + (path[leg] - path[leg - 1]).Length < at)
+			{
+				legStart += (path[leg] - path[leg - 1]).Length;
+				leg++;
+			}
+			let legLength = Math.Max((path[leg] - path[leg - 1]).Length, 1.0e-6f);
+			mSeed.Add(Vector3.Lerp(path[leg - 1], path[leg], Mathf.Clamp01((at - legStart) / legLength)));
+		}
+		if (HasBody)
+			Rebuild();
+	}
+
+	/// Snaps it in two in the middle, as Break Force does: this rope keeps its first end, and a new one (returned,
+	/// and in SnappedOff) keeps the other. Both halves hang from what held them, or fall if nothing did.
+	public Rope Snap()
+	{
+		mSnapping = false;
+		if (!HasBody)
+			return null;
+		let count = mPositions.Count;
+		if (tn_soft_read(mWorld.[Friend]mSystem, mBody, (float*)mPositions.Ptr, null, (uint32)count) != (uint32)count || count < 5)
+			return null;
+		let middle = count / 2;
+		let share = middle / (float)(count - 1);
+
+		let holder = Scene.CreateGameObject("Rope (snapped)");
+		let other = holder.AddComponent<Rope>();
+		other.length = length * (1 - share);
+		other.mass = mass * (1 - share);
+		other.segments = (int32)(count - 1 - middle);
+		other.thickness = thickness;
+		other.bendStiffness = bendStiffness;
+		other.damping = damping;
+		other.friction = friction;
+		other.windDrag = windDrag;
+		other.wrapsAround = wrapsAround;
+		other.breakForce = breakForce;
+		other.iterations = iterations;
+		other.startAttachedTo = endAttachedTo;
+		other.startOffset = endOffset;
+		other.holdStart = endAttachedTo != null;
+		for (int i = count - 1; i >= middle; i--)
+			other.mSeed.Add(mPositions[i]);
+		let renderer = GetComponent<MeshRenderer>();
+		if (renderer != null)
+		{
+			let drawn = holder.AddComponent<MeshRenderer>();
+			drawn.color = renderer.color;
+			drawn.roughness = renderer.roughness;
+			drawn.material.Set(renderer.material);
+			drawn.texture.Set(renderer.texture);
+		}
+
+		length *= share;
+		mass *= share;
+		segments = (int32)middle;
+		endAttachedTo = null;
+		for (int i <= middle)
+			mSeed.Add(mPositions[i]);
+		Rebuild();
+		if (Scene.IsPlaying)
+			other.Start();
+		mSnappedOff = other;
+		return other;
+	}
+
 	/// Whether its first end is held by something.
 	bool StartHeld => startAttachedTo != null || holdStart;
 
@@ -171,6 +292,62 @@ class Rope : Component
 	{
 		DestroyBody();
 		CreateBody();
+	}
+
+	/// The point on an object's surface (its Box Collider, or its mesh's bounds) facing a point in the world, relative to
+	/// the object; zero when it has neither.
+	static Vector3 SurfaceToward(Transform on, Vector3 toward)
+	{
+		var centre = Vector3.Zero;
+		var half = Vector3.Zero;
+		if (let collider = on.GameObject.GetComponent<BoxCollider>())
+		{
+			centre = collider.center;
+			half = collider.size * 0.5f;
+		}
+		else if (let mesh = on.GameObject.GetComponent<MeshRenderer>()?.ActiveMesh)
+		{
+			centre = mesh.Bounds.Center;
+			half = mesh.Bounds.Size * 0.5f;
+		}
+		if (half == .Zero)
+			return .Zero;
+		let direction = on.InverseTransformPoint(toward) - centre;
+		// How far along the direction the box's nearest face is.
+		float reach = float.MaxValue;
+		for (int axis < 3)
+		{
+			let d = Math.Abs(direction[axis]);
+			if (d > 1.0e-6f)
+				reach = Math.Min(reach, half[axis] / d);
+		}
+		return reach == float.MaxValue ? centre : centre + direction * reach;
+	}
+
+	/// The knot at one end, before a step: a dynamic body there is turned towards lying in line with the rope (where
+	/// it is tied, on the far side of its centre from the rope), and its spin about the rope is slowed. Only as much as
+	/// the rope pulls: a slack rope steers nothing.
+	void TurnByKnot(Rigidbody body, Vector3 tied, Vector3 along)
+	{
+		if (body == null || body.isKinematic || knotStiffness <= 0 || along.LengthSquared < 1.0e-8f)
+			return;
+		let taut = Mathf.Clamp01(mKnotPull / Math.Max(body.mass * 9.81f, 0.001f));
+		if (taut <= 0.01f)
+			return;
+		let rope = along.Normalized;
+		let centre = body.Transform.Position;
+		var arm = tied - centre;
+		let reach = Math.Max(arm.Length, 0.1f);
+		let spin = body.AngularVelocity;
+		let weight = body.mass * 9.81f;
+		// Tied off its centre, the rope's pull already turns it; the knot adds stiffness and calms it. Tied at its
+		// centre, the knot is all that keeps it from spinning freely.
+		var torque = -spin * (knotStiffness * body.mass * reach * reach * 4);
+		if (arm.LengthSquared > 1.0e-6f)
+			torque = torque + Vector3.Cross(arm.Normalized, rope) * (knotStiffness * weight * reach * 2);
+		// Spin about the rope itself is held back harder: a knot does not let it twist round and round.
+		torque = torque - rope * (Vector3.Dot(spin, rope) * knotStiffness * body.mass * reach * reach * 8);
+		body.AddTorque(torque * taut);
 	}
 
 	/// A dynamic Rigidbody on an object or above it: what a rope's end pulls on.
@@ -196,11 +373,22 @@ class Rope : Component
 		let system = world.[Friend]mSystem;
 		if (system == null)
 			return;
-		let count = Math.Clamp(segments > 0 ? (int)segments : (int)Math.Round(length / 0.1f), 2, 256) + 1;
 		let tied = endAttachedTo != null;
-		if (StartHeld || !tied)
+		// Each end on its object's surface facing the other (or, with nothing at the other end, facing down the rope
+		// hanging from it; facing up from a rope that hangs from nothing else).
+		let startCentre = StartObject.Position;
+		let endCentre = tied ? endAttachedTo.Position : startCentre - Vector3(0, length, 0);
+		mStartAnchor = (startOffset != .Zero || !StartHeld) ? startOffset : SurfaceToward(StartObject, tied ? endCentre : startCentre - Vector3(0, 1, 0));
+		mEndAnchor = (!tied || endOffset != .Zero) ? endOffset : SurfaceToward(endAttachedTo, StartHeld ? StartObject.TransformPoint(mStartAnchor) : endCentre + Vector3(0, 1, 0));
+		let count = mSeed.Count >= 3 ? mSeed.Count : Math.Clamp(segments > 0 ? (int)segments : (int)Math.Round(length / 0.1f), 2, 256) + 1;
+		if (mSeed.Count >= 3)
 		{
-			let start = StartObject.TransformPoint(startOffset);
+			mPositions.Set(mSeed);
+			mSeed.Clear();
+		}
+		else if (StartHeld || !tied)
+		{
+			let start = StartObject.TransformPoint(mStartAnchor);
 			LayOut(start, tied ? EndPoint : start - Vector3(0, length, 0), length, count, mPositions);
 		}
 		else
@@ -291,6 +479,7 @@ class Rope : Component
 			}
 		}
 		mTie = null;
+		mWrapped = false;
 		mBody = uint32.MaxValue;
 		mWorld = null;
 		mPull = 0;
@@ -371,6 +560,19 @@ class Rope : Component
 		if (mHeldCount > 0)
 			tn_soft_move_pinned(system, mBody, &mHeld, mTargets.Ptr, (uint32)mHeldCount, step);
 		mPull = mTie != null ? tn_rope_pull(mTie, step) : 0;
+		// The pull the knots go by: it drops out for a step whenever the tie is made again, so it is held a moment.
+		mKnotPull = Math.Max(mPull, mKnotPull * Math.Max(1 - step * 8, 0));
+		if (breakForce > 0 && mPull > breakForce)
+			mSnapping = true;
+		if (windDrag > 0)
+		{
+			var wind = Wind.At(Scene, StartPoint) * SoftBody.[Friend]WindSpeed;
+			if (wind.LengthSquared > 0.0001f)
+			{
+				mWindTime += step;
+				tn_rope_wind(system, mBody, (float*)&wind, Math.Max(thickness * 0.5f, 0.001f), windDrag, Wind.Turbulence(Scene), mWindTime + (float)(GameObject.Id % 97), step);
+			}
+		}
 
 		// The pull: needed when both ends are held and either is on a dynamic Rigidbody.
 		if (endAttachedTo == null || !StartHeld)
@@ -384,6 +586,18 @@ class Rope : Component
 		}
 		let startBody = PulledBody(StartObject);
 		let endBody = PulledBody(endAttachedTo);
+		// The knots: each end's body turned by the rope's direction where it leaves it.
+		if (knotStiffness > 0 && mPositions.Count >= 2)
+		{
+			let count = mPositions.Count;
+			uint32 read = tn_soft_read(system, mBody, (float*)mPositions.Ptr, null, (uint32)count);
+			if (read == (uint32)count)
+			{
+				TurnByKnot(startBody, start, mPositions[Math.Min(2, count - 1)] - start);
+				if (endBody != startBody)
+					TurnByKnot(endBody, end, mPositions[Math.Max(count - 3, 0)] - end);
+			}
+		}
 		let startPulls = startBody != null && !startBody.isKinematic;
 		let endPulls = endBody != null && !endBody.isKinematic;
 		if (!startPulls && !endPulls)
@@ -395,15 +609,52 @@ class Rope : Component
 			}
 			return;
 		}
-		// A tie to the world (or to a kinematic body) is made again when that end has moved.
-		let moved = (startBody == null && (start - mTiedStart).LengthSquared > 1.0e-4f) || (endBody == null && (end - mTiedEnd).LengthSquared > 1.0e-4f);
+		// A tie to the world (or to a kinematic body) is made again when that end has moved, and one round what it
+		// wraps when that has changed.
+		var moved = (startBody == null && (start - mTiedStart).LengthSquared > 1.0e-4f) || (endBody == null && (end - mTiedEnd).LengthSquared > 1.0e-4f);
+		var from = start;
+		var to = end;
+		uint32 first = 0, last = 0;
+		Vector3[2] places = default;
+		var wrapped = wrapsAround && tn_rope_wraps(system, mBody, (float*)&from, (float*)&to, Math.Max(thickness, 0.01f) + 0.03f, &first, &last, (float*)&places);
+		// Contacts come and go from step to step as the rope settles: it only comes off what it wraps round after a
+		// moment without touching it.
+		if (wrapped)
+			mUnwrapping = 0;
+		else if (mWrapped && wrapsAround && (mUnwrapping += step) < 0.25f)
+		{
+			wrapped = true;
+			first = mWrapFirst;
+			last = mWrapLast;
+			places[0] = mWrapStart;
+			places[1] = mWrapEnd;
+		}
+		if (wrapped != mWrapped)
+			moved = true;
+		else if (wrapped && (first != mWrapFirst || last != mWrapLast || (places[0] - mWrapStart).LengthSquared > 4.0e-4f || (places[1] - mWrapEnd).LengthSquared > 4.0e-4f))
+			moved = true;
 		if (mTie != null && !moved)
 			return;
 		if (mTie != null)
 			tn_rope_untie(system, mTie);
-		var from = start;
-		var to = end;
-		mTie = tn_rope_tie(system, startBody?.BodyId ?? uint32.MaxValue, (float*)&from, endBody?.BodyId ?? uint32.MaxValue, (float*)&to, length);
+		let startId = startBody?.BodyId ?? uint32.MaxValue;
+		let endId = endBody?.BodyId ?? uint32.MaxValue;
+		if (wrapped)
+		{
+			// The rope between the first and last points it wraps round is fixed; the rest is shared by the two ends.
+			// The tie goes tight a little before the rope itself does (it sags, and bends round corners), so the
+			// ends never pull the rope through what it lies over.
+			let between = length * (last - first) / (float)(mPositions.Count - 1);
+			let slack = length * 0.04f + thickness * 4;
+			mTie = tn_rope_tie_over(system, startId, (float*)&from, (float*)&places[0], endId, (float*)&to, (float*)&places[1], Math.Max(length - between - slack, 0.01f));
+			mWrapFirst = first;
+			mWrapLast = last;
+			mWrapStart = places[0];
+			mWrapEnd = places[1];
+		}
+		else
+			mTie = tn_rope_tie(system, startId, (float*)&from, endId, (float*)&to, length);
+		mWrapped = wrapped;
 		mTiedStart = start;
 		mTiedEnd = end;
 	}
@@ -433,6 +684,8 @@ class Rope : Component
 			mLetGo = false;
 			Rebuild();
 		}
+		if (mSnapping)
+			Snap();
 		ReadBack();
 	}
 

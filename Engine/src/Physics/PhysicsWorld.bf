@@ -1019,6 +1019,17 @@ class PhysicsWorld
 			Jolt.JPH_BodyInterface_AddForce(mBodyInterface, bodyId, &f);
 	}
 
+	/// Turns a body by a torque, in newton metres about each world axis, over the next step.
+	public void AddTorque(uint32 bodyId, Vector3 torque)
+	{
+		var t = torque;
+		if (mBodyInterface != null && bodyId != uint32.MaxValue)
+		{
+			Jolt.JPH_BodyInterface_AddTorque(mBodyInterface, bodyId, &t);
+			Jolt.JPH_BodyInterface_ActivateBody(mBodyInterface, bodyId);
+		}
+	}
+
 	/// Pushes a body by a force at a point in the world, which also turns it.
 	public void AddForceAtPosition(uint32 bodyId, Vector3 force, Vector3 point)
 	{

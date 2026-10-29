@@ -235,6 +235,53 @@ class Program
 			ok &= Check(Math.Abs(still - 1) < 0.15f && blown > still + 0.25f, scope $"a Wind Zone blows hanging cloth the way it faces (middle z {still} still, {blown} in wind)");
 		}
 
+		// ---- a flag: cloth pinned along a pole, in the wind ----
+		{
+			let scene = scope Scene();
+			Scene.Active = scene;
+			scene.StartPlay();
+			let wind = scene.CreateGameObject("Wind").AddComponent<WindZone>();
+			wind.strength = 3;
+			wind.Transform.Rotation = Quaternion.LookRotation(.(1, 0, 0), .Up);
+			let cells = 8;
+			let sheet = scope Mesh();
+			let made = Sheet(cells, 2);
+			sheet.Vertices.AddRange(made.Vertices);
+			sheet.Indices.AddRange(made.Indices);
+			delete made;
+			let flag = scene.CreateGameObject("Flag");
+			flag.Transform.Position = .(0, 5, 0);
+			// Stood up: the sheet's first column (along its z) becomes the pole, upright.
+			flag.Transform.Rotation = Quaternion.AngleAxis(-90, .(1, 0, 0));
+			flag.AddComponent<MeshRenderer>().RuntimeMesh = sheet;
+			let cloth = flag.AddComponent<SoftBody>();
+			let pins = scope String();
+			for (int j <= cells)
+				pins.AppendF("{} ", j * (cells + 1));
+			cloth.pins.Set(pins);
+			Run(scene, 240);
+			float outMost = 0, low = 99, high = -99, swing = 0;
+			for (int tick < 120)
+			{
+				scene.FixedUpdate();
+				cloth.[Friend]ReadBack();
+				float edgeX = 0, edgeZ = 0;
+				for (int j <= cells)
+				{
+					edgeX += cloth.Positions[j * (cells + 1) + cells].x;
+					edgeZ += cloth.Positions[j * (cells + 1) + cells].z;
+				}
+				edgeX /= cells + 1;
+				edgeZ /= cells + 1;
+				outMost = Math.Max(outMost, edgeX);
+				low = Math.Min(low, edgeZ);
+				high = Math.Max(high, edgeZ);
+			}
+			swing = high - low;
+			let pole = cloth.Positions[0].x;
+			ok &= Check(outMost - pole > 1.2f && swing > 0.05f, scope $"a flag streams out in the wind ({outMost - pole} m of 2 out from its pole) and flaps ({swing} m from side to side)");
+		}
+
 		// ---- cloth drapes over things ----
 		{
 			let scene = scope Scene();
@@ -632,7 +679,8 @@ class Program
 			}
 			let towed = trailer.Transform.Position.x + 12;
 			let gap = (truck.Transform.Position - trailer.Transform.Position).Length;
-			ok &= Check(towed > 3.5f && gap < 4.4f, scope $"towing: a truck drags a crate behind it ({towed} m, {gap} m apart on a 4.2 m rope)");
+			// The rope ties onto the crate's face towards the truck, 0.3 m from its middle.
+			ok &= Check(towed > 3.5f && gap < 4.7f, scope $"towing: a truck drags a crate behind it ({towed} m, {gap} m apart middle to middle on a 4.2 m rope)");
 
 			// Lifting: a helicopter (a dynamic Rigidbody flying up) lifts a crate off the floor, and feels its weight.
 			let copter = Crate(scene, .(8, 3, 6), 200);
@@ -684,6 +732,94 @@ class Program
 			Run(scene, 60);
 			scene.Update();
 			ok &= Check(loose.HasBody && loose.endAttachedTo == null && Lowest(loose.Points).y < 2.3f, scope $"when what an end holds is destroyed, it lets go and hangs (lowest {Lowest(loose.Points).y})");
+		}
+
+		// ---- ropes: wind, wrapping round a beam, snapping ----
+		{
+			let scene = scope Scene();
+			Scene.Active = scene;
+			scene.StartPlay();
+			Floor(scene);
+			GameObject Crate(Scene scene, Vector3 at, float mass)
+			{
+				let crate = scene.CreateGameObject("Crate");
+				crate.Transform.Position = at;
+				crate.AddComponent<BoxCollider>().size = .(0.6f, 0.6f, 0.6f);
+				crate.AddComponent<Rigidbody>().mass = mass;
+				return crate;
+			}
+			GameObject Beam(Scene scene, Vector3 at)
+			{
+				let beam = scene.CreateGameObject("Beam");
+				beam.Transform.Position = at;
+				beam.AddComponent<BoxCollider>().size = .(0.3f, 0.3f, 2);
+				return beam;
+			}
+
+			// Over a beam: a 13 kg crate and a 10 kg one. Straight, the pull holds them only to each other and both
+			// fall; wrapped round the beam it is a pulley, and the heavier one lifts the lighter.
+			float Lifted(bool wraps)
+			{
+				let at = wraps ? -4.0f : 4.0f;
+				Beam(scene, .(0, 4, at));
+				let heavy = Crate(scene, .(-0.8f, 1.5f, at), 13);
+				let light = Crate(scene, .(0.8f, 1.5f, at), 10);
+				let rope = Rope.Attach(heavy, light, .(0, 0.3f, 0), .(0, 0.3f, 0));
+				rope.wrapsAround = wraps;
+				Vector3[4] path = .(.(-0.8f, 1.8f, at), .(-0.2f, 4.2f, at), .(0.2f, 4.2f, at), .(0.8f, 1.8f, at));
+				rope.LayAlong(path);
+				Run(scene, 240);
+				return light.Transform.Position.y;
+			}
+			let straight = Lifted(false), over = Lifted(true);
+			ok &= Check(straight < 1 && over > 2.3f, scope $"Wraps Around: over a beam a rope is a pulley, the heavy crate on the floor holding the light one up (light crate at {over} m; {straight} m without)");
+
+			// Snapping: a 10 kg crate on a rope that breaks at 60 N.
+			let hook = scene.CreateGameObject("Hook");
+			hook.Transform.Position = .(6, 5, 0);
+			let load = Crate(scene, .(6, 3.5f, 0), 10);
+			let weak = Rope.Attach(hook, load, .Zero, .(0, 0.3f, 0), 1.2f);
+			weak.breakForce = 60;
+			for (int tick < 90)
+			{
+				scene.FixedUpdate();
+				scene.Update();
+			}
+			weak.[Friend]ReadBack();
+			let piece = weak.SnappedOff;
+			ok &= Check(piece != null && load.Transform.Position.y < 0.5f && (weak.Points[0] - hook.Transform.Position).Length < 0.05f && weak.endAttachedTo == null, scope $"Break Force: pulled harder, it snaps; the crate falls ({load.Transform.Position.y}), half stays on the hook");
+			if (piece != null)
+			{
+				piece.[Friend]ReadBack();
+				ok &= Check(piece.startAttachedTo == load.Transform && (piece.Points[0] - (load.Transform.Position + Vector3(0, 0.3f, 0))).Length < 0.35f, "and the other half stays on the crate");
+			}
+
+			// Tied with no offset, a rope ties onto the top of a crate under it, and the knot holds the crate in line
+			// with the rope: spun and tipped, it settles back hanging upright.
+			let gantry = scene.CreateGameObject("Gantry");
+			gantry.Transform.Position = .(10, 5, 4);
+			let hung = Crate(scene, .(10, 2.7f, 4), 10);
+			let sling = Rope.Attach(gantry, hung, .Zero, .Zero, 2);
+			Run(scene, 60);
+			let knot = sling.EndPoint - hung.Transform.Position;
+			let held = hung.GetComponent<Rigidbody>();
+			held.AngularVelocity = .(4, 6, 0);
+			Run(scene, 180);
+			let spin = held.AngularVelocity.Length;
+			let upright = Vector3.Dot(hung.Transform.Up, Vector3.Up);
+			ok &= Check(knot.Length > 0.25f && knot.y > 0.25f && spin < 0.5f && upright > 0.95f, scope $"the rope ties onto the top of the crate ({knot}), and spun, the crate settles hanging upright (spin {spin}, upright {upright})");
+
+			// Wind blows a hanging rope downwind.
+			let post = scene.CreateGameObject("Post");
+			post.Transform.Position = .(-8, 5, 0);
+			let hanging = post.AddComponent<Rope>();
+			hanging.length = 3;
+			let wind = scene.CreateGameObject("Wind").AddComponent<WindZone>();
+			wind.strength = 6;
+			wind.Transform.Rotation = Quaternion.LookRotation(.(0, 0, 1), .Up);
+			Run(scene, 180);
+			hanging.[Friend]ReadBack();
+			ok &= Check(hanging.Points.Back.z > 0.4f, scope $"a gale blows a hanging rope downwind (its end {hanging.Points.Back.z} m over)");
 		}
 
 		// ---- a free soft body on a networked object goes where the server says ----

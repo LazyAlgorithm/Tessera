@@ -740,6 +740,7 @@ class RenderView
 		let shared = material;
 		key = key * 1099511628211 ^ (uint64)renderer.TextureOverride.idx;
 		key = key * 1099511628211 ^ (uint64)(uint32)(renderer.windSway * 100.0f);
+		key = key * 1099511628211 ^ (renderer.backFaceCulling ? 0 : 1u);
 		if (shared != null)
 		{
 			key = key * 1099511628211 ^ (uint64)(int)Internal.UnsafeCastToPtr(shared);
@@ -922,7 +923,7 @@ class RenderView
 		surface.surface = .(0, Time.RealTime, renderer.emissiveFromColor ? 1 : 0, 0);
 		surface.normalMap = surface.metalRoughMap = surface.occlusionMap = surface.emissiveMap = "";
 		surface.program = RenderResources.MeshProgram;
-		surface.cull = Mirrored(world) ? Gfx.StateCullCw : Gfx.StateCullCcw;
+		surface.cull = !renderer.backFaceCulling ? 0 : Mirrored(world) ? Gfx.StateCullCw : Gfx.StateCullCcw;
 		if (shared == null)
 			surface.texture = renderer.ActiveTexture;
 		else

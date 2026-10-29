@@ -31,6 +31,9 @@ class MeshRenderer : Component
 	public bool unlit = false;
 	/// Whether the mesh casts shadows.
 	public bool castShadows = true;
+	/// Whether the backs of faces are left out (on: the usual, and cheaper). Off: both sides are drawn, for a single
+	/// plane seen from either side (a curtain, a flag, a leaf).
+	public bool backFaceCulling = true;
 	/// Baked diffuse irradiance, sampled using the mesh's second UV set.
 	public String lightmap = new .() ~ delete _;
 	/// The baked lightmap's direction map, if any (set when lighting is baked).

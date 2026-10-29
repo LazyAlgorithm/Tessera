@@ -97,6 +97,13 @@ void main()
 	else
 	{
 		n = normalize(v_normal);
+		// The back of a face drawn from both sides (Back Face Culling off, a double-sided material) is lit as its
+		// own side: its normal turned to the side of the face the camera sees.
+		vec3 face = cross(dFdx(v_wpos), dFdy(v_wpos));
+		if (dot(face, v) * dot(face, n) < 0.0)
+		{
+			n = -n;
+		}
 	}
 
 	bool bent = surfaceNormal.x != 0.0 || surfaceNormal.y != 0.0;

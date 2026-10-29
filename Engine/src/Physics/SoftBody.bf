@@ -22,7 +22,7 @@ enum SoftBodyKind : int32
 ///
 /// Pinned vertices (painted in the editor: select the object and press Paint Pins in its Inspector) are held where
 /// they are on the object, and follow the object as it moves, so a cape on a character's back or a flag on a moving
-/// ship goes with it. Wind Zones blow on cloth. A stiffness map, painted the same way, makes parts of it softer.
+/// ship goes with it. Wind Zones blow on cloth and jelly. A stiffness map, painted the same way, makes parts of it softer.
 ///
 /// The simulation runs on every machine by itself. Pinned cloth follows its object, so it looks the same everywhere
 /// when the object is shared; a free soft body on a networked object is drawn towards where the server has it
@@ -55,7 +55,8 @@ class SoftBody : Component
 	public float gravityScale = 1;
 	/// How far from its surface it keeps other things (its thickness), in metres.
 	public float thickness = 0.02f;
-	/// How much wind pushes it: 0 not at all.
+	/// How much Wind Zones push it (cloth and jelly; a shell rides its object): 0 not at all. A flag is a cloth plane
+	/// pinned along one edge, with a Global Wind Zone in the scene.
 	public float windDrag = 1;
 	/// Solver passes each step: more is stiffer and costs more.
 	[Range(1, 32)]
@@ -68,6 +69,9 @@ class SoftBody : Component
 	public String pins = new .() ~ delete _;
 	/// Where it is softer than Stiffness says, by vertex ("12=0.5 13=0.25"): painted in the editor.
 	public String stiffnessMap = new .() ~ delete _;
+
+	/// Seconds of wind it has had, steps added up: what gusts and flutter go by.
+	float mWindTime;
 
 	/// How long a jelly takes to fill with its air, in seconds.
 	const float AirTime = 0.5f;
@@ -83,7 +87,7 @@ class SoftBody : Component
 	[CLink] static extern uint32 tn_soft_read(void* world, uint32 bodyId, float* positions, float* velocities, uint32 capacity);
 	[CLink] static extern void tn_soft_move_pinned(void* world, uint32 bodyId, uint32* indices, float* targets, uint32 count, float step);
 	[CLink] static extern void tn_soft_set_positions(void* world, uint32 bodyId, float* positions, float* velocities, uint32 count);
-	[CLink] static extern void tn_soft_wind(void* world, uint32 bodyId, float* wind, float drag, float step);
+	[CLink] static extern void tn_soft_wind(void* world, uint32 bodyId, float* wind, float drag, float turbulence, float time, float step);
 	[CLink] static extern uint32 tn_soft_touching(void* world, uint32 bodyId, uint32* output, uint32 capacity);
 	[CLink] static extern void tn_soft_world_destroyed(void* world);
 	[CLink] static extern void tn_soft_shift(void* world, uint32 bodyId, float* offset);
@@ -398,15 +402,17 @@ class SoftBody : Component
 			}
 			tn_soft_move_pinned(system, mBody, mPinned.Ptr, mTargets.Ptr, (uint32)mPinned.Count, step);
 		}
-		if (windDrag > 0 && kind == .Cloth)
+		// A shell rides its object, so the wind does not blow it about.
+		if (windDrag > 0 && kind != .Shell)
 		{
 			var wind = Wind.At(Scene, Transform.Position) * WindSpeed;
 			if (wind.LengthSquared > 0.0001f)
 			{
-				// Gusts come and go, a little differently for each object.
+				// Gusts come and go, a little differently for each object; the air also differs across it.
 				let phase = (float)(GameObject.Id % 97);
-				wind = wind * (1.0f + 0.35f * Math.Sin(Time.Time * 1.7f + phase) + 0.15f * Math.Sin(Time.Time * 4.3f + phase * 0.5f));
-				tn_soft_wind(system, mBody, (float*)&wind, windDrag, step);
+				mWindTime += step;
+				wind = wind * (1.0f + 0.35f * Math.Sin(mWindTime * 1.7f + phase) + 0.15f * Math.Sin(mWindTime * 4.3f + phase * 0.5f));
+				tn_soft_wind(system, mBody, (float*)&wind, windDrag, Wind.Turbulence(Scene), mWindTime + phase, step);
 			}
 		}
 	}
