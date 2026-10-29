@@ -323,7 +323,9 @@ Work agreed and queued, in order (see *How to use this page* above for what "don
   own texture every frame and a grid of every node's view of it (`Compute.RunPreview`). Also fixed: a Split node
   wrote its first graph's local name into the node kind, breaking it in later graphs; compute textures were
   destroyed after shutdown at exit.
-- [ ] Soft bodies (requested 2026-10-27, last): cloth (flags, capes, curtains, sails; pinned to bones or objects,
-  wind, collision with colliders and characters, tearing optional) and deformable bodies (jelly, rubber, soft tyres,
-  dented metal) that push and are pushed by rigidbodies. Simulated on the job threads (Jolt has soft bodies), with
-  an editor for pins and stiffness painted on the mesh, and networking like the predicted physics props.
+- [x] Soft bodies (2026-10-29; docs/soft-bodies.md): the Soft Body component simulates a Mesh Renderer's mesh as
+  cloth or jelly with Jolt soft bodies on the job threads (`native/tessera_softbody.cpp`), seams welded; pins that
+  follow the object, Wind Zones on cloth, a stiffness map; collision with colliders and rigidbodies both ways (a
+  contact listener reports what it touched); characters walk through cloth and push it with their inner body;
+  Paint Pins and Paint Stiffness brushes in the Scene view; free soft bodies on networked objects follow the
+  server and pinned cloth follows its object. Not done: tearing, permanent dents, soft-soft collision.

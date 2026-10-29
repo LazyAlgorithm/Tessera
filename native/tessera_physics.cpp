@@ -197,24 +197,30 @@ static JPH_RVec3 toR(const JPH_Vec3* v) { return JPH_RVec3{v->x, v->y, v->z}; }
 static std::vector<std::pair<const JPH_PhysicsSystem*, uint32_t>> softInnerBodies;
 static const JPH_PhysicsSystem* filterSystem = nullptr;
 
-static bool JPH_API_CALL softFilterCollide(void*, JPH_BodyID body) {
+// The user data of the soft characters' filter (the solid characters' has none).
+static int softCharacterTag;
+
+static bool JPH_API_CALL softFilterCollide(void* userData, JPH_BodyID body) {
+    if (userData != &softCharacterTag) return true;
     for (const auto& entry : softInnerBodies)
         if (entry.second == body && entry.first == filterSystem) return false;
     return true;
 }
-static bool JPH_API_CALL softFilterCollideLocked(void*, const JPH_Body*) { return true; }
+// Soft bodies (cloth, jelly) are not walls: the character's sweep goes through them, and its inner body pushes them.
+static bool JPH_API_CALL softFilterCollideLocked(void*, const JPH_Body* body) { return !JPH_Body_IsSoftBody(body); }
 
-// The filter to sweep with: null (collide with everything) for a solid character.
+// The filter to sweep with: every character skips soft bodies; a soft character also skips soft characters.
 static const JPH_BodyFilter* characterFilter(const JPH_PhysicsSystem* system, bool soft) {
-    if (!soft) return nullptr;
-    static JPH_BodyFilter* filter = nullptr;
-    if (filter == nullptr) {
+    static JPH_BodyFilter* solidFilter = nullptr;
+    static JPH_BodyFilter* softFilter = nullptr;
+    if (solidFilter == nullptr) {
         static const JPH_BodyFilter_Procs procs{softFilterCollide, softFilterCollideLocked};
         JPH_BodyFilter_SetProcs(&procs);
-        filter = JPH_BodyFilter_Create(nullptr);
+        solidFilter = JPH_BodyFilter_Create(nullptr);
+        softFilter = JPH_BodyFilter_Create(&softCharacterTag);
     }
     filterSystem = system;
-    return filter;
+    return soft ? softFilter : solidFilter;
 }
 
 // supportHeight: contacts below this height above the character's position count as the floor.
