@@ -135,6 +135,8 @@ extension EditorApp
 			// The same for the shader a shader graph generates.
 			if (name.EndsWith(".tshader") && File.Exists(scope $"{folder}/{name.Substring(0, name.Length - 8)}.tsgraph"))
 				continue;
+			if (name.EndsWith(".tcompute") && File.Exists(scope $"{folder}/{name.Substring(0, name.Length - 9)}.tsgraph"))
+				continue;
 			if (!recursive || name.Contains(mProjectSearch, true))
 				AddEntry(name, scope $"{folder}/{name}" , false);
 		}
@@ -612,6 +614,8 @@ extension EditorApp
 			BeginNewItem(10, "NewShader");
 		if (ImGui.MenuItem("Compute Shader"))
 			BeginNewItem(11, "NewCompute");
+		if (ImGui.MenuItem("Compute Graph (visual compute shader)"))
+			BeginNewItem(17, "NewComputeGraph");
 		if (ImGui.MenuItem("UI Document"))
 			BeginNewItem(4, "NewUI");
 		if (ImGui.MenuItem("Dialogue"))
@@ -833,6 +837,8 @@ extension EditorApp
 			CreateShaderGraphAsset(mNewItemName);
 		case 16:
 			CreateShaderSubgraphAsset(mNewItemName);
+		case 17:
+			CreateComputeGraphAsset(mNewItemName);
 		case 13:
 			let path = scope $"{mBrowsePath}/{mNewItemName}.tdata";
 			if (File.Exists(path))

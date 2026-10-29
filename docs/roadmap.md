@@ -307,7 +307,7 @@ Work agreed and queued, in order (see *How to use this page* above for what "don
 
 ## Last
 
-- [x] Shader graph: materials' shaders built from nodes, on the existing node editor (2026-10-28, `dev`; docs/materials.md):
+- [x] Shader graph: materials' shaders built from nodes, on the existing node editor (2026-10-28, `dev` 1904c14, `main` 8f44704; docs/materials.md):
   each node worked out once into a local of its own (`ShaderGraphCode`); a live preview on every node and of the
   whole surface (`ShaderGraphPreview`: a preview shader compiled on another thread for the editor's backend only,
   every node's ball drawn in one picture); shader subgraphs (Subgraph Input and Output nodes, written in place);
@@ -316,7 +316,13 @@ Work agreed and queued, in order (see *How to use this page* above for what "don
   direction, rotate and polar UV, triplanar texture, normal map property, normal from height, blend normals);
   `Engine/shaders/include/shadergraph.sh`. Also fixed: property names no longer clash with the engine's own shader
   code, and the editor's 3D views (scene, game, model views, asset pictures) were upside down on OpenGL.
-- [ ] Visual compute shaders: compute shaders built from nodes
+- [x] Visual compute shaders: compute shaders built from nodes (2026-10-29; docs/materials.md "Compute graphs"): a
+  shader graph ending in a Compute Output saves as a `.tcompute`; compute inputs (Previous, Previous At UV,
+  Neighbour, Neighbours Sum and Average, Pixel, Texture Size; `neighbour(dx, dy)` in hand-written compute shaders
+  too); nodes refused in the wrong kind of graph; Project > + > Compute Graph; a preview that runs the graph on its
+  own texture every frame and a grid of every node's view of it (`Compute.RunPreview`). Also fixed: a Split node
+  wrote its first graph's local name into the node kind, breaking it in later graphs; compute textures were
+  destroyed after shutdown at exit.
 - [ ] Soft bodies (requested 2026-10-27, last): cloth (flags, capes, curtains, sails; pinned to bones or objects,
   wind, collision with colliders and characters, tearing optional) and deformable bodies (jelly, rubber, soft tyres,
   dented metal) that push and are pushed by rigidbodies. Simulated on the job threads (Jolt has soft bodies), with

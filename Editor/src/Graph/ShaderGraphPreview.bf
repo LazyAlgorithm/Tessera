@@ -11,7 +11,9 @@ namespace Tessera.Editor;
 /// own, unlit. The graph's preview shader (ShaderGraphCode with previews) is compiled on another thread, for the
 /// backend the editor draws with only, once the graph has stopped changing for a moment. All the balls are drawn in
 /// one picture, a grid of cells, and each node shows its own cell of it. The picture is drawn again a few times a
-/// second, so nodes that use Time move.
+/// second, so nodes that use Time move. A compute graph instead runs for real, a step every frame, on a texture of
+/// its own (the corner's picture), and a second run of it fills the grid: each cell that texture seen through one
+/// node.
 class ShaderGraphPreview
 {
 	/// RenderView.ViewCount views from here: after the reflection captures, before ImGui's (250).
@@ -25,12 +27,19 @@ class ShaderGraphPreview
 	const double RedrawSeconds = 1.0 / 15;
 	/// The preview shader's name: what its materials' Shader names, and what its compiled files are called.
 	const String ShaderName = "tessera_graph_preview";
+	const String ComputeName = "tessera_graph_compute_preview";
+	/// The width and height of the texture a compute graph's preview runs on.
+	const int32 ComputeSize = 256;
 
 	RenderView mView ~ delete _;
 	Scene mScene ~ delete _;
 	Camera mCamera;
 	List<MeshRenderer> mBalls = new .() ~ delete _;
 	int32 mColumns = 1, mRows = 1;
+	// A compute graph's: the shader, the texture it runs on, and the grid of its nodes.
+	ShaderAsset mCompute;
+	ComputeTexture mComputed ~ delete _;
+	ComputeTexture mComputeGrid ~ delete _;
 
 	// The preview shader last written from the graph, and its node slots; what is compiling; what is shown.
 	String mWritten = new .() ~ delete _;
@@ -59,34 +68,64 @@ class ShaderGraphPreview
 		}
 	}
 
-	/// The picture the cells are in (a bgfx texture), when there is one.
-	public bool TryGetPicture(out uint16 texture)
+	/// A node's picture: a bgfx texture and the part of it (texture coordinates for ImGui.DrawPicture); false when
+	/// the node has none.
+	public bool NodePicture(int32 nodeId, out uint16 texture, out ImGui.Vec2 from, out ImGui.Vec2 to)
 	{
 		texture = uint16.MaxValue;
-		if (!mHasPicture || mView == null)
-			return false;
-		texture = mView.OutputTexture;
-		return true;
-	}
-
-	/// Where a node's cell is in the picture (its texture coordinates); false when the node has none.
-	public bool CellOf(int32 nodeId, out ImGui.Vec2 from, out ImGui.Vec2 to)
-	{
 		from = to = default;
+		if (!mHasPicture)
+			return false;
 		if (!mShownSlots.TryGetValue(nodeId, let slot))
 			return false;
-		Cell(slot, out from, out to);
+		if (mCompute != null)
+		{
+			texture = mComputeGrid.Texture.idx;
+			Cell(slot, true, out from, out to);
+			return true;
+		}
+		texture = mView.OutputTexture;
+		Cell(slot, false, out from, out to);
 		return true;
 	}
 
-	/// The cell of the whole surface, lit.
-	public void SurfaceCell(out ImGui.Vec2 from, out ImGui.Vec2 to) => Cell(0, out from, out to);
+	/// The whole shader's picture: the surface lit on a ball, or the texture a compute graph runs on.
+	public bool SurfacePicture(out uint16 texture, out ImGui.Vec2 from, out ImGui.Vec2 to)
+	{
+		texture = uint16.MaxValue;
+		from = to = default;
+		if (!mHasPicture)
+			return false;
+		if (mCompute != null)
+		{
+			texture = mComputed.Texture.idx;
+			from = .(0, 0);
+			to = .(1, 1);
+			Upright(ref from, ref to);
+			return true;
+		}
+		texture = mView.OutputTexture;
+		Cell(0, false, out from, out to);
+		return true;
+	}
 
-	void Cell(int32 slot, out ImGui.Vec2 from, out ImGui.Vec2 to)
+	void Cell(int32 slot, bool computed, out ImGui.Vec2 from, out ImGui.Vec2 to)
 	{
 		let column = slot % mColumns, row = slot / mColumns;
 		from = .((float)column / mColumns, (float)row / mRows);
 		to = .((float)(column + 1) / mColumns, (float)(row + 1) / mRows);
+		if (computed)
+			Upright(ref from, ref to);
+	}
+
+	/// A compute shader writes its texture top row first on every backend, unlike a picture the graphics card
+	/// draws, so its coordinates are turned over here for ImGui.DrawPicture to turn back.
+	static void Upright(ref ImGui.Vec2 from, ref ImGui.Vec2 to)
+	{
+		if (!Gfx.OriginBottomLeft)
+			return;
+		from.y = 1 - from.y;
+		to.y = 1 - to.y;
 	}
 
 	/// Called each frame the graph is on screen: notices changes, compiles once they settle, picks up a finished
@@ -115,7 +154,12 @@ class ShaderGraphPreview
 		Collect();
 		if (mThread == null && !mWritten.IsEmpty && mWritten != mCompiling && now - mWrittenAt >= SettleSeconds)
 			Start();
-		if (mHasPicture && now - mDrawnAt >= RedrawSeconds)
+		if (!mHasPicture)
+			return;
+		// A simulation moves on every frame, as it does in the game; the pictures are only made a few times a second.
+		if (mCompute != null)
+			Compute.RunPreview(mCompute, mComputed, mComputed.Texture, 0);
+		if (now - mDrawnAt >= RedrawSeconds)
 		{
 			mDrawnAt = now;
 			Draw();
@@ -137,9 +181,10 @@ class ShaderGraphPreview
 		mLog.Clear();
 		mFinished = false;
 		let engineRoot = new String(Project.Current.EngineRoot);
+		let name = mCompiling.Contains("\ncompute {") ? ComputeName : ShaderName;
 		mThread = new Thread(new () =>
 			{
-				mSucceeded = ShaderCompiler.CompilePreview(engineRoot, mCompiling, ShaderName, mFolder, mLog);
+				mSucceeded = ShaderCompiler.CompilePreview(engineRoot, mCompiling, name, mFolder, mLog);
 				delete engineRoot;
 				Interlocked.Store(ref mFinished, true);
 			});
@@ -165,9 +210,15 @@ class ShaderGraphPreview
 			return;
 		}
 		problem.Clear();
-		let shader = ShaderAsset.FromCompiled(ShaderName, mCompiling, scope $"{mFolder}/{Gfx.ShaderFolder}");
+		let computed = mCompiling.Contains("\ncompute {");
+		if (computed && !Compute.Supported)
+		{
+			problem.Set("This graphics backend cannot run compute shaders.");
+			return;
+		}
+		let shader = ShaderAsset.FromCompiled(computed ? ComputeName : ShaderName, mCompiling, scope $"{mFolder}/{Gfx.ShaderFolder}");
 		// Loaded now, before another compile can write over the files.
-		if (shader.Program.idx == uint16.MaxValue)
+		if ((computed ? shader.ComputeProgram : shader.Program).idx == uint16.MaxValue)
 		{
 			problem.Set("The preview's compiled shader could not be loaded.");
 			return;
@@ -175,9 +226,34 @@ class ShaderGraphPreview
 		mShownSlots.Clear();
 		for (let (node, slot) in mCompilingSlots)
 			mShownSlots[node] = slot;
-		Layout(Math.Min(mShownSlots.Count + 1, MaxCells));
+		mCompute = computed ? shader : null;
+		let cells = Math.Min(mShownSlots.Count + 1, MaxCells);
+		if (computed)
+			LayoutCompute(cells);
+		else
+			Layout(cells);
 		mHasPicture = true;
 		mDrawnAt = 0;
+	}
+
+	/// A compute graph's textures: the one it runs on (kept when it is compiled again, so a simulation carries on),
+	/// and a grid of cells for so many nodes.
+	void LayoutCompute(int cells)
+	{
+		mColumns = (int32)Math.Max(Math.Ceiling(Math.Sqrt((double)cells)), 1);
+		mRows = (int32)Math.Max((cells + mColumns - 1) / mColumns, 1);
+		let highPrecision = mCompute.highPrecision;
+		if (mComputed == null || mComputed.HighPrecision != highPrecision)
+		{
+			delete mComputed;
+			mComputed = new .(ComputeSize, ComputeSize, highPrecision);
+		}
+		let width = mColumns * ShaderGraphCode.PreviewCell, height = mRows * ShaderGraphCode.PreviewCell;
+		if (mComputeGrid == null || mComputeGrid.Width != width || mComputeGrid.Height != height || mComputeGrid.HighPrecision != highPrecision)
+		{
+			delete mComputeGrid;
+			mComputeGrid = new .(width, height, highPrecision);
+		}
 	}
 
 	/// The scene the balls are in, made the first time.
@@ -248,6 +324,9 @@ class ShaderGraphPreview
 
 	void Draw()
 	{
-		mView.Render(mScene, mCamera.GetCameraData((float)mColumns / mRows));
+		if (mCompute != null)
+			Compute.RunPreview(mCompute, mComputeGrid, mComputed.Texture, mColumns);
+		else
+			mView.Render(mScene, mCamera.GetCameraData((float)mColumns / mRows));
 	}
 }

@@ -161,6 +161,9 @@ compute {
 | `pixel`, `size` | The same in whole pixels, and the texture's size. |
 | `time` | Seconds. |
 | `previous(uv)` | The texture as it was before this step, anywhere in it. This is what makes simulations possible. |
+| `neighbour(dx, dy)` | The texture before this step, so many pixels across and up from this one: `neighbour(1, 0)` is the pixel to the right. |
+
+The shader graph functions (`tsg_noise`, `tsg_cells` and the rest, in `Engine/shaders/include/shadergraph.sh`) work here too.
 
 Write `result`, which starts as this pixel's previous value. Add the line `precision high` to keep values as 16-bit floats instead of 8-bit colours, for simulations that need numbers outside 0 to 1.
 
@@ -185,6 +188,17 @@ renderer.TextureOverride = texture.Texture;
 
 `Compute.Supported` is false on a dedicated server and on graphics cards without compute shaders; `Run` and `Step` then do nothing and return false.
 
+### Compute graphs
+
+**Project > + > Compute Graph** makes a compute shader from nodes: a shader graph that ends in a **Compute Output** node instead of a Surface Output. Saving it writes a `.tcompute` file beside it (hidden in the Project panel, as a shader graph's `.tshader` is), which a Compute Effect or `Compute.Run` uses like a hand-written one. It starts as drifting spots of ink that leave fading, spreading trails.
+
+- **Compute Output** takes one colour: the pixel's new value (`result`). Leave it unconnected and the texture stays as it was.
+- **Compute Input:** Previous (this pixel before the step), Previous At UV, Neighbour (so many pixels across and up), Neighbours Sum (the eight around it: count living cells for a Game of Life) and Neighbours Average (the four beside it: spreading, blurring, ripples), Pixel and Texture Size. UV and Time are under Shader Input.
+- Everything that is only numbers works as it does in a shader graph: math, vectors, UV, noise, cells, gradients, custom code, Number and Color Properties, and subgraphs.
+- Nodes that need a surface being drawn (World Position and Normal, View Direction, Rim, Vertex Color, the material's albedo and texture, texture and normal map properties, Triplanar, Normal From Height) say so if a compute graph uses them, and the compute inputs say so in a surface shader graph.
+
+**Previews.** The canvas's corner runs the graph for real on a 256 by 256 texture, a step every frame, so a simulation can be watched as it is built; each node shows that texture seen through it. Changing the graph keeps the texture, so the simulation carries on with the new rules.
+
 ## Multiplayer
 
 `SetMaterial` and `SetMaterialValue` (with `SetMaterialFloat` and `SetMaterialColor`) are shared like animation: called on the server, or by the player who owns the object, every machine follows, and players who join later get the current state. Editing a shared material from a script, and compute effects, are local to each machine: they are visual, and run from the same inputs everywhere.
@@ -196,6 +210,7 @@ All of it has nodes, generated from the engine source: **Engine > Render > Mesh 
 ## Limits
 
 - **Shader graph previews** show properties at their defaults, and texture properties as plain white.
+- **Compute graphs** write 8-bit colours: for `precision high`, copy the generated `.tcompute` and add the line. They read only their own texture.
 - **No environment maps.** Reflections use the scene's sky and ground colours, not an image of the surroundings, so a mirror-smooth metal shows a gradient, not the world.
 - **Shadows ignore the vertex block and cutouts.** An object moved by its shader's `vertex` code casts the shadow of its unmoved shape, and a Cutout material casts a solid one.
 - **Eight values and two textures** per custom shader, and it cannot replace the lighting itself.
@@ -206,7 +221,7 @@ All of it has nodes, generated from the engine source: **Engine > Render > Mesh 
 
 ## Tests
 
-`BeefBuild -workspace=Tests/Material -config=Debug -run`: a shader graph turned into a shader file and compiled; a node read in several places worked out once; Normal, Occlusion, custom code and split outputs; a subgraph read as a node and written in place twice; every shader graph node in one preview shader, compiled; saving and loading materials and their PBR maps, shared and per-object materials, reading shader files and reporting mistakes by line, the generated shader source, and real compiles of a surface shader for all four backends and a compute shader, including a broken one. The Network fixture checks materials across machines and for a late joiner. Drawing itself was checked by eye in the editor: a PBR material with a normal map, a custom surface shader, a compute effect, and a shader graph's node and surface previews (OpenGL and Vulkan).
+`BeefBuild -workspace=Tests/Material -config=Debug -run`: a shader graph turned into a shader file and compiled; a node read in several places worked out once; Normal, Occlusion, custom code and split outputs; a subgraph read as a node and written in place twice; every shader graph node in one preview shader, compiled; a compute graph written as a `.tcompute` and compiled for every backend, nodes refused in the wrong kind of graph, and every node a compute graph can use in one compute preview, compiled; saving and loading materials and their PBR maps, shared and per-object materials, reading shader files and reporting mistakes by line, the generated shader source, and real compiles of a surface shader for all four backends and a compute shader, including a broken one. The Network fixture checks materials across machines and for a late joiner. Drawing itself was checked by eye in the editor: a PBR material with a normal map, a custom surface shader, a compute effect, a shader graph's node and surface previews, and a compute graph's running preview (OpenGL and Vulkan).
 
 ## Glowing in a model's own colours
 

@@ -135,6 +135,9 @@ static class AssetPreviews
 			root.Transform.Position = .Zero;
 			return true;
 		}
+		// A compute graph makes no surface shader, so it has no picture: its icon stands for it.
+		if (fullPath.EndsWith(".tsgraph") && !File.Exists(scope $"{fullPath.Substring(0, fullPath.Length - 8)}.tshader"))
+			return false;
 		let object = sScene.CreateGameObject("Preview");
 		let renderer = object.AddComponent<MeshRenderer>();
 		renderer.flatShading = false;

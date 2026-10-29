@@ -315,7 +315,10 @@ class ShaderAsset
 			let name = scope String();
 			CompiledName(path, name);
 			let folder = scope String();
-			Assets.ResolvePath(scope $"Shaders/Compiled/{Gfx.ShaderFolder}" , folder);
+			if (mCompiledFolder != null)
+				folder.Set(mCompiledFolder);
+			else
+				Assets.ResolvePath(scope $"Shaders/Compiled/{Gfx.ShaderFolder}" , folder);
 			let cs = Gfx.LoadShaderFile(scope $"{folder}/{name}_cs.bin");
 			if (cs.idx == uint16.MaxValue)
 			{

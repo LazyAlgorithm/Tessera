@@ -726,7 +726,7 @@ class NodeGraph
 		}
 	}
 
-	/// Writes the shader file (.tshader) a shader graph stands for (see ShaderGraphCode). False, with the first
+	/// Writes the shader file (.tshader, or .tcompute) a shader graph stands for (see ShaderGraphCode). False, with the first
 	/// problem, when it cannot.
 	public bool CompileShader(String text, String problem)
 	{
