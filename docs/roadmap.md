@@ -199,6 +199,14 @@ Work agreed and queued, in order (see *How to use this page* above for what "don
    objects stretched unevenly); the editor's Window > Lighting (bakes in the background, settings saved with the
    scene), `--bake-lighting`, `--lighting-window`, `--no-baked-lighting`. `docs/baked-lighting.md`, `Tests/Baking`
    (with `run.py`), Sandbox `Scenes/BakedLighting.tscene` (baked).
+5. [ ] Automatic light and reflection probe placement (asked for 2026-10-29, next): one action (editor and
+   `--place-probes`) that looks at the scene and places probes where they make sense, for the user to keep, move or
+   delete. Reflection Probes per room or open area, boxed to its walls (box projection), with extra ones where the
+   surroundings change sharply (a doorway, under a roof, by a shiny floor) and none where nothing reflective would
+   use them; the light probe grid denser where light changes (near walls, openings, under cover, where baked
+   lights fall off) and sparse in open or empty space, skipping points inside geometry. Placed probes are ordinary
+   scene objects (tagged as placed, so placing again replaces only those), with a preview before committing and an
+   undo step.
 
 ## Editor
 
@@ -340,8 +348,8 @@ Work agreed and queued, in order (see *How to use this page* above for what "don
   Around (a Jolt pulley through the first and last points pressing on something), Break Force and Snap, LayAlong,
   ends tied on the surface facing along the rope when the offset is zero, Knot Stiffness (held in line with the rope,
   no free spin, while taut); wind on cloth (per-face gusts and flutter, drag along faces: flags), jelly and ropes;
-  Mesh Renderer Back Face Culling (off draws both sides, the back lit as its own side). Shells: Dent Speed (default 3 m/s) and Dent
-  Mode From Impacts (default: the object's collider takes the hits, a rigid contact listener records hits at Dent
+  Mesh Renderer Back Face Culling (off draws both sides, the back lit as its own side). Shells: Dent Speed (default
+  3 m/s) and Dent Mode From Impacts (default: the object's collider takes the hits, a rigid contact listener records hits at Dent
   Speed or faster and the shell is pressed in around them by speed and mass; characters and kinematic bodies never
   dent) or From Surface (the earlier behaviour); a Convex Collider is wrapped round the dented shape once denting
   settles; shells add a Convex Collider and Rigidbody when missing; Sandbox Ball Launcher (F).
