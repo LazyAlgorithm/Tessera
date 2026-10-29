@@ -11,9 +11,21 @@ enum SoftBodyKind : int32
 	/// A closed shape that keeps its volume by pushing out: jelly, rubber balls, soft tyres, cushions.
 	Jelly,
 	/// A body that keeps its shape on its object and dents where it is hit, and stays dented: car bodies, crates,
-	/// metal panels. Put it on an object with a Rigidbody (the shell ignores that body), whose collider sits a
-	/// little inside the mesh, so the shell meets things first.
+	/// metal panels. It rides its object's Rigidbody (the shell ignores that body's collider), given one of its Mass
+	/// if it has none. How it dents: Dent Mode.
 	Shell
+}
+
+[Reflect(.All)]
+enum ShellDentMode : int32
+{
+	/// The object's collider takes every hit, so nothing passes into the shell (make the collider the shape of the
+	/// mesh); a hit at Dent Speed or faster presses the shell in around where it landed. The shell itself only
+	/// follows its object.
+	FromImpacts,
+	/// The shell meets things itself and is pushed in where it touches them (it can fold round a post), so the
+	/// collider sits a little inside the mesh (by about Dent Depth). Things can press into the shell that far.
+	FromSurface
 }
 
 /// Makes this object's Mesh Renderer soft: its mesh is simulated as cloth or as a squashy body, which falls, folds,
@@ -61,10 +73,15 @@ class SoftBody : Component
 	/// Solver passes each step: more is stiffer and costs more.
 	[Range(1, 32)]
 	public int32 iterations = 5;
+	/// Shell: what dents it: hits on its object's collider, or things pushing on the shell itself.
+	public ShellDentMode dentMode = .FromImpacts;
 	/// Shell: how far one impact can push the surface in, in metres.
 	public float dentDepth = 0.15f;
 	/// Shell: how far the surface springs back from, in metres. Pushed further than this, it stays dented.
-	public float springBack = 0.01f;
+	public float springBack = 0.03f;
+	/// Shell: how fast something must hit it to dent it, in metres a second (3 is about 11 km/h). Slower knocks,
+	/// leaning on it and loads resting on it spring back however hard they press.
+	public float dentSpeed = 3;
 	/// The vertices held in place, by number ("0-12 40 41"): Paint Pins in the editor writes these.
 	public String pins = new .() ~ delete _;
 	/// Where it is softer than Stiffness says, by vertex ("12=0.5 13=0.25"): painted in the editor.
@@ -99,8 +116,8 @@ class SoftBody : Component
 	[CRepr]
 	struct NativeConfig
 	{
-		public float mass, stretch, shear, bend, pressure, damping, friction, restitution, gravityFactor, vertexRadius, dentDepth, dentYield;
-		public int32 iterations, doubleSided, longRange, dihedral, shell;
+		public float mass, stretch, shear, bend, pressure, damping, friction, restitution, gravityFactor, vertexRadius, dentDepth, dentYield, dentSpeed;
+		public int32 iterations, doubleSided, longRange, dihedral, shell, impacts;
 		public uint32 layer;
 		public uint64 userData;
 	}
@@ -142,7 +159,45 @@ class SoftBody : Component
 	public override void Start()
 	{
 		mReady = true;
+		if (kind == .Shell)
+			GiveShellABody();
 		CreateBody();
+	}
+
+	/// A shell rides its object's Rigidbody (it has no gravity of its own), and a Rigidbody only moves with a collider.
+	/// With no collider on its object, it gets a Box Collider round the mesh; with no Rigidbody on the object or above
+	/// it, one of this soft body's Mass. So it falls, is pushed and hits things like any body.
+	void GiveShellABody()
+	{
+		Rigidbody rigid = null;
+		for (var up = Transform; up != null && rigid == null; up = up.Parent)
+			rigid = up.GameObject.GetComponent<Rigidbody>();
+		// A Rigidbody higher up moves with its own colliders.
+		if (rigid != null && rigid.GameObject != GameObject)
+			return;
+		if (GetComponent<Collider>() == null)
+		{
+			let mesh = GetComponent<MeshRenderer>()?.ActiveMesh;
+			if (mesh == null || mesh.Vertices.IsEmpty)
+				return;
+			var low = mesh.Vertices[0].position, high = low;
+			for (let vertex in mesh.Vertices)
+			{
+				low = Vector3.Min(low, vertex.position);
+				high = Vector3.Max(high, vertex.position);
+			}
+			let collider = GameObject.AddComponent<BoxCollider>();
+			collider.center = (low + high) * 0.5f;
+			collider.size = high - low;
+			// A Rigidbody that started without a collider made no body: it can now.
+			rigid?.RebuildBody();
+		}
+		if (rigid == null)
+		{
+			rigid = GameObject.AddComponent<Rigidbody>();
+			rigid.mass = Math.Max(mass, 0.001f);
+			rigid.EnsureBody();
+		}
 	}
 
 	public override void OnEnable()
@@ -243,7 +298,9 @@ class SoftBody : Component
 		config.vertexRadius = Math.Max(thickness, 0);
 		config.dentDepth = Math.Max(dentDepth, 0.001f);
 		config.dentYield = Math.Max(springBack, 0);
+		config.dentSpeed = Math.Max(dentSpeed, 0);
 		config.shell = shell ? 1 : 0;
+		config.impacts = (shell && dentMode == .FromImpacts) ? 1 : 0;
 		config.iterations = Math.Clamp(iterations, 1, 32);
 		config.doubleSided = (cloth || shell) ? 1 : 0;
 		config.longRange = cloth ? 1 : 0;

@@ -340,5 +340,8 @@ Work agreed and queued, in order (see *How to use this page* above for what "don
   Around (a Jolt pulley through the first and last points pressing on something), Break Force and Snap, LayAlong,
   ends tied on the surface facing along the rope when the offset is zero, Knot Stiffness (held in line with the rope,
   no free spin, while taut); wind on cloth (per-face gusts and flutter, drag along faces: flags), jelly and ropes;
-  Mesh Renderer Back Face Culling (off draws both sides, the back lit as its own side).
+  Mesh Renderer Back Face Culling (off draws both sides, the back lit as its own side). Shells: Dent Speed (default 3 m/s) and Dent
+  Mode From Impacts (default: the object's collider takes the hits, a rigid contact listener records hits at Dent
+  Speed or faster and the shell is pressed in around them by speed and mass; characters and kinematic bodies never
+  dent) or From Surface (the earlier behaviour).
 - [ ] Real-time water simulation (not started: to be described and agreed before work begins).
