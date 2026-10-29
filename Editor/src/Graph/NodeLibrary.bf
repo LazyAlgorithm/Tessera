@@ -232,7 +232,9 @@ static class NodeLibrary
 	{
 		let output = Shader("shader.output", "Shader Output", "Surface Output", "");
 		output.kind = .ShaderOutput;
-		output.In("Albedo", .Vector3).In("Alpha", .Float).In("Metallic", .Float).In("Roughness", .Float).In("Emissive", .Vector3).In("Vertex Offset", .Vector3);
+		// New inputs go on the end: graphs name the pins they link by position.
+		output.In("Albedo", .Vector3).In("Alpha", .Float).In("Metallic", .Float).In("Roughness", .Float).In("Emissive", .Vector3).In("Vertex Offset", .Vector3)
+			.In("Normal", .Vector3).In("Occlusion", .Float);
 
 		Shader("shader.time", "Shader Input", "Time", "time").Out("Seconds", .Float);
 		Shader("shader.uv", "Shader Input", "UV", "uv").Out("", .Vector2);
@@ -303,6 +305,111 @@ static class NodeLibrary
 		Shader("shader.noise", "Shader Effects", "Noise", "fract(sin(dot({0}, vec2(12.9898, 78.233))) * 43758.5453)").In("UV", .Vector2, "", "uv").Out("", .Float);
 		Shader("shader.bands", "Shader Effects", "Bands", "(0.5 + 0.5 * sin({0} * {1} - time * {2}))").In("Along", .Float).In("Count", .Float).In("Speed", .Float).Out("", .Float);
 		Shader("shader.checker", "Shader Effects", "Checker", "mod(floor(({0}).x * {1}) + floor(({0}).y * {1}), 2.0)").In("UV", .Vector2, "", "uv").In("Squares", .Float).Out("", .Float);
+		// Smooth value noise: random heights at the corners of a grid, blended between them.
+		Shader("shader.smoothnoise", "Shader Effects", "Smooth Noise", "tsg_noise(({0}) * {1})").In("UV", .Vector2, "", "uv").In("Scale", .Float).Default("8").Out("", .Float);
+		Shader("shader.voronoi", "Shader Effects", "Cells (Voronoi)", "tsg_cells(({0}) * {1}, {2})").In("UV", .Vector2, "", "uv").In("Scale", .Float).Default("6").In("Speed", .Float)
+			.Out("Distance", .Float, "", "$V.x").Out("Cell", .Float, "", "$V.y");
+		Shader("shader.gradient", "Shader Effects", "Gradient", "mix({0}, {1}, clamp({2}, 0.0, 1.0))").In("From", .Color).Default("0 0 0 1").In("To", .Color).In("Amount", .Float).Default("0.5").Out("", .Color);
+		Shader("shader.posterize", "Shader Effects", "Posterize", "(floor({0} * {1}) / max({1}, 1.0))").In("Value", .Vector3).In("Steps", .Float).Default("4").Out("", .Vector3);
+		Shader("shader.desaturate", "Shader Effects", "Desaturate", "mix({0}, vec3_splat(dot({0}, vec3(0.2126, 0.7152, 0.0722))), {1})").In("Color", .Vector3).In("Amount", .Float).Default("1").Out("", .Vector3);
+
+		Shader("shader.remap", "Shader Math", "Remap", "mix({3}, {4}, ({0} - {1}) / max({2} - {1}, 0.00001))").In("Value", .Float).In("From Min", .Float).In("From Max", .Float).Default("1").In("To Min", .Float).In("To Max", .Float).Default("1").Out("", .Float);
+		Shader("shader.mod", "Shader Math", "Modulo", "mod({0}, max({1}, 0.00001))").In("Value", .Float).In("By", .Float).Default("1").Out("", .Float);
+		Shader("shader.exp", "Shader Math", "Exponent", "exp({0})").In("Value", .Float).Out("", .Float);
+		Shader("shader.round", "Shader Math", "Round", "floor({0} + 0.5)").In("Value", .Float).Out("", .Float);
+		Shader("shader.sign", "Shader Math", "Sign", "sign({0})").In("Value", .Float).Out("", .Float);
+
+		Shader("shader.split", "Shader Vectors", "Split Color", "{0}").In("Color", .Color)
+			.Out("R", .Float, "", "$V.x").Out("G", .Float, "", "$V.y").Out("B", .Float, "", "$V.z").Out("A", .Float, "", "$V.w");
+		Shader("shader.splitvector", "Shader Vectors", "Split Vector", "{0}").In("Vector", .Vector3)
+			.Out("X", .Float, "", "$V.x").Out("Y", .Float, "", "$V.y").Out("Z", .Float, "", "$V.z");
+		Shader("shader.reflect", "Shader Vectors", "Reflect", "reflect({0}, normalize({1}))").In("Direction", .Vector3).In("Normal", .Vector3).Out("", .Vector3);
+		Shader("shader.viewdir", "Shader Input", "View Direction", "normalize(u_camPos.xyz - worldPosition)").Out("", .Vector3);
+
+		Shader("shader.rotateuv", "Shader UV", "Rotate", "tsg_rotate({0}, {1}, {2})").In("UV", .Vector2, "", "uv").In("Center", .Vector2).Default("0.5 0.5").In("Degrees", .Float).Default("45").Out("", .Vector2);
+		Shader("shader.polar", "Shader UV", "Polar", "tsg_polar({0}, {1})").In("UV", .Vector2, "", "uv").In("Center", .Vector2).Default("0.5 0.5").Out("Distance And Angle", .Vector2);
+		Shader("shader.triplanar", "Shader UV", "Triplanar Texture", "tsg_triplanar(mainTexture, worldPosition * {0}, worldNormal, {1})").In("Scale", .Float).Default("1").In("Sharpness", .Float).Default("4")
+			.Out("", .Color);
+
+		// A normal in the surface's own directions, for the output's Normal: x along U, y along V, z out of it.
+		// A texture property read as a normal map.
+		Shader("shader.prop.normal", "Shader Properties", "Normal Map Property", "tsg_unpackNormal(texture2D({0}, {1}).xyz, {2})").In("Name", .String).In("UV", .Vector2, "", "uv")
+			.In("Strength", .Float).Default("1").Out("", .Vector3);
+		Shader("shader.normalheight", "Shader Normals", "Normal From Height", "tsg_heightNormal({0}, uv, {1})").In("Height", .Float).In("Strength", .Float).Default("0.1").Out("", .Vector3);
+		Shader("shader.normalblend", "Shader Normals", "Blend Normals", "normalize(vec3(({0}).xy + ({1}).xy, ({0}).z * ({1}).z))").In("A", .Vector3).Default("0 0 1").In("B", .Vector3).Default("0 0 1").Out("", .Vector3);
+		Shader("shader.normalstrength", "Shader Normals", "Normal Strength", "normalize(vec3(({0}).xy * {1}, ({0}).z))").In("Normal", .Vector3).Default("0 0 1").In("Strength", .Float).Default("1").Out("", .Vector3);
+
+		// Code typed into the node: an expression, or statements that set result. a and b are numbers, v a vector,
+		// c a colour.
+		CustomCode("shader.custom.float", "Custom Code (Number)", .Float, "a * b");
+		CustomCode("shader.custom.vector", "Custom Code (Vector)", .Vector3, "v * a");
+		CustomCode("shader.custom.color", "Custom Code (Color)", .Color, "c * a");
+
+		// A shader subgraph: a .tsgraph with Subgraph Output nodes (and no Surface Output) becomes a node of its own
+		// in other shader graphs, its Subgraph Inputs its input pins.
+		SubgraphPins("float", "Number", .Float);
+		SubgraphPins("vector2", "Vector 2", .Vector2);
+		SubgraphPins("vector", "Vector", .Vector3);
+		SubgraphPins("color", "Color", .Color);
+	}
+
+	static void CustomCode(StringView key, StringView title, PinType type, StringView example)
+	{
+		Shader(key, "Shader Code", title, "").In("Code", .String).Default(example).In("a", .Float).Default("1").In("b", .Float).Default("1").In("v", .Vector3).In("c", .Color).Out("", type);
+	}
+
+	static void SubgraphPins(StringView suffix, StringView title, PinType type)
+	{
+		Shader(scope $"shader.sub.input.{suffix}" , "Shader Subgraph", scope $"Subgraph Input ({title})" , "{1}").In("Name", .String).In("Preview", type).Out("", type);
+		Shader(scope $"shader.sub.output.{suffix}" , "Shader Subgraph", scope $"Subgraph Output ({title})" , "").In("Name", .String).In("Value", type);
+	}
+
+	/// The node a shader subgraph (.tsgraph with Subgraph Output nodes) becomes, read again from the file: its
+	/// Subgraph Inputs, then its Subgraph Outputs, in the order they were placed.
+	static void ScanShaderSubgraph(StringView path, StringView relative, StringView text)
+	{
+		let key = scope $"shsub:{relative}";
+		var def = Find(key);
+		if (def == null)
+		{
+			def = new NodeDef();
+			def.key.Set(key);
+			def.category.Set("Shader Subgraphs");
+			def.kind = .Value;
+			def.isShader = true;
+			sDefs.Add(def);
+		}
+		let baseName = scope String();
+		Path.GetFileNameWithoutExtension(path, baseName);
+		def.title.Set(baseName);
+		NodeDef.ClearPins(def.inputs);
+		NodeDef.ClearPins(def.outputs);
+		List<StringView> tokens = scope .();
+		List<String> storage = scope .();
+		defer
+		{
+			for (let s in storage)
+				delete s;
+		}
+		for (int pass < 2)
+		{
+			for (let line in text.Split('\n'))
+			{
+				tokens.Clear();
+				SceneSerializer.Tokenize(line, tokens, storage);
+				if (tokens.Count < 5 || tokens[0] != "node" || !tokens[2].StartsWith(pass == 0 ? "shader.sub.input." : "shader.sub.output."))
+					continue;
+				let pinDef = Find(tokens[2]);
+				if (pinDef == null)
+					continue;
+				let type = pass == 0 ? pinDef.outputs[0].type : pinDef.inputs[1].type;
+				let name = (tokens.Count > 5 && !tokens[5].IsEmpty) ? tokens[5] : (StringView)"Value";
+				if (pass == 0)
+					def.In(name, type);
+				else
+					def.Out(name, type);
+			}
+		}
 	}
 
 	// ---- nodes read from source ----
@@ -723,6 +830,14 @@ static class NodeLibrary
 		{
 			let fileName = scope String();
 			entry.GetFileName(fileName);
+			if (fileName.EndsWith(".tsgraph"))
+			{
+				let path = scope $"{folder}/{fileName}";
+				let text = scope String();
+				if (File.ReadAllText(path, text) case .Ok && text.Contains("shader.sub.output."))
+					ScanShaderSubgraph(path, path.Substring(assetRoot.Length + 1), text);
+				continue;
+			}
 			if (!fileName.EndsWith(".tgraph"))
 				continue;
 			let path = scope $"{folder}/{fileName}";

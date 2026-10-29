@@ -20,8 +20,14 @@ extension EditorApp
 	const float NodeWidth = 190;
 	const float HeaderHeight = 26;
 	const float RowHeight = 22;
+	/// A shader node's preview picture, under its pins.
+	const float NodePreviewSize = 120;
+	/// The whole shader's preview, in the canvas's bottom right corner.
+	const float SurfacePreviewSize = 200;
 
 	NodeGraph mGraph ~ delete _;
+	ShaderGraphPreview mShaderPreview ~ delete _;
+	static bool sShowNodePreviews = true;
 	String mGraphPath = new .() ~ delete _;
 	String mGraphStatus = new .() ~ delete _;
 	Vector2 mGraphPan = .(60, 60);
@@ -98,6 +104,9 @@ extension EditorApp
 		// A shader graph uses the same canvas with its own nodes, and compiles to a shader, not a script.
 		mGraph.isShader = path.EndsWith(".tsgraph");
 		mGraph.Load(path);
+		DeleteAndNullify!(mShaderPreview);
+		if (mGraph.isShader)
+			mShaderPreview = new .();
 		mGraph.Validate();
 		mGraphSelected = 0;
 		mVariableEditing = -1;
@@ -199,9 +208,19 @@ extension EditorApp
 			mGraphStatus.Set("Could not write the generated script.");
 	}
 
-	/// Saves a shader graph as the .tshader file beside it and compiles that.
+	/// Saves a shader graph as the .tshader file beside it and compiles that. A subgraph has no shader of its own:
+	/// the shader graphs that use it are compiled again instead.
 	void CompileShaderGraph()
 	{
+		if (ShaderGraphCode.IsSubgraph(mGraph))
+		{
+			NodeLibrary.RefreshSubgraphs(Assets.ProjectPath);
+			let relative = scope String();
+			Assets.MakeRelative(mGraphPath, relative);
+			let users = CompileShaderGraphsUsing(relative);
+			mGraphStatus.Set(scope $"Saved. {users} shader graph{(users == 1) ? "" : "s"} using it compiled again.");
+			return;
+		}
 		let text = scope String();
 		let problem = scope String();
 		if (!mGraph.CompileShader(text, problem))
@@ -222,6 +241,97 @@ extension EditorApp
 		mGraphStatus.Set(CompileShader(relative) ? "Saved and compiled. Pick it as a material's Shader." : "Saved, but the shader did not compile: see the Console.");
 		AssetPreviews.Invalidate(mGraphPath);
 		RefreshAssetList();
+	}
+
+	/// Compiles again every shader graph in the project that uses a subgraph (a project path). Returns how many.
+	int CompileShaderGraphsUsing(StringView subgraph)
+	{
+		let graphs = scope List<String>();
+		defer
+		{
+			for (let g in graphs)
+				delete g;
+		}
+		FindFiles(Assets.ProjectPath, ".tsgraph", graphs, 0);
+		let key = scope $"shsub:{subgraph}";
+		int count = 0;
+		for (let path in graphs)
+		{
+			let text = scope String();
+			if (File.ReadAllText(path, text) case .Err || !text.Contains(key) || text.Contains("shader.sub.output."))
+				continue;
+			let user = scope NodeGraph();
+			user.isShader = true;
+			if (!user.Load(path))
+				continue;
+			user.Validate();
+			let shader = scope String(), problem = scope String();
+			if (!user.CompileShader(shader, problem))
+			{
+				Log.Error(scope $"{path}: {problem}");
+				continue;
+			}
+			let target = scope String(path);
+			target.RemoveFromEnd(".tsgraph".Length);
+			target.Append(".tshader");
+			let relative = scope String();
+			Assets.MakeRelative(target, relative);
+			if (File.WriteAllText(target, shader) case .Ok && CompileShader(relative))
+				count++;
+			AssetPreviews.Invalidate(path);
+		}
+		return count;
+	}
+
+	static void FindFiles(StringView folder, StringView suffix, List<String> output, int depth)
+	{
+		if (depth > 12 || !Directory.Exists(folder))
+			return;
+		for (let entry in Directory.EnumerateFiles(folder))
+		{
+			let name = scope String();
+			entry.GetFileName(name);
+			if (name.EndsWith(suffix))
+				output.Add(new String(scope $"{folder}/{name}"));
+		}
+		for (let entry in Directory.EnumerateDirectories(folder))
+		{
+			let name = scope String();
+			entry.GetFileName(name);
+			if (!name.StartsWith('.') && name != "build" && name != "Compiled")
+				FindFiles(scope $"{folder}/{name}" , suffix, output, depth + 1);
+		}
+	}
+
+	/// A reusable piece of shader graph: Subgraph Input nodes become its pins in other shader graphs, Subgraph Output
+	/// nodes its results.
+	void CreateShaderSubgraphAsset(StringView name)
+	{
+		if (!ValidAssetName(name, "Shader subgraph"))
+			return;
+		let path = scope $"{mBrowsePath}/{name}.tsgraph";
+		if (File.Exists(path))
+		{
+			Log.Error(scope $"A shader graph named {name} already exists in this folder.");
+			return;
+		}
+		// Something that works at once: noise at a scale given by the graph that uses it.
+		let graph = scope NodeGraph();
+		graph.isShader = true;
+		graph.name.Set(name);
+		let scale = graph.AddNode(NodeLibrary.Find("shader.sub.input.float"), .(40, 80));
+		let noise = graph.AddNode(NodeLibrary.Find("shader.smoothnoise"), .(300, 60));
+		let result = graph.AddNode(NodeLibrary.Find("shader.sub.output.float"), .(580, 60));
+		graph.Validate();
+		scale.values[0].Set("Scale");
+		scale.values[1].Set("8");
+		result.values[0].Set("Noise");
+		graph.Connect(scale.id, 0, noise.id, 1);
+		graph.Connect(noise.id, 0, result.id, 1);
+		graph.Save(path);
+		NodeLibrary.RefreshSubgraphs(Assets.ProjectPath);
+		RefreshAssetList();
+		OpenGraph(path);
 	}
 
 	void CreateShaderGraphAsset(StringView name)
@@ -278,7 +388,51 @@ extension EditorApp
 
 	static Color CategoryColor(StringView category) => NodeCanvas.CategoryColor(category);
 
-	static float NodeHeight(GraphNode node) => HeaderHeight + Math.Max(node.def.inputs.Count, node.def.outputs.Count) * RowHeight + 8;
+	static float NodeHeight(GraphNode node) => HeaderHeight + Math.Max(node.def.inputs.Count, node.def.outputs.Count) * RowHeight + 8 + (HasNodePreview(node) ? NodePreviewSize + 6 : 0);
+
+	/// Whether a node shows its value in a picture (shader graph nodes with a result, while previews are shown).
+	static bool HasNodePreview(GraphNode node) => sShowNodePreviews && node.def.isShader && !node.def.outputs.IsEmpty && node.def.kind != .ShaderOutput;
+
+	/// Whether a node kind stands for the graph being edited (a subgraph cannot use itself).
+	bool IsThisGraph(NodeDef def)
+	{
+		let colon = def.key.IndexOf(':');
+		if (colon < 0)
+			return false;
+		let relative = scope String();
+		Assets.MakeRelative(mGraphPath, relative);
+		return def.key.Substring(colon + 1) == relative;
+	}
+
+	/// A shader node's picture of its value, under its pins.
+	void DrawNodePreview(CanvasView canvas, GraphNode node, ImGui.Vec2 min, ImGui.Vec2 max)
+	{
+		if (mShaderPreview == null || !HasNodePreview(node))
+			return;
+		if (!mShaderPreview.TryGetPicture(let texture))
+			return;
+		if (!mShaderPreview.CellOf(node.id, let from, let to))
+			return;
+		let size = NodePreviewSize * canvas.zoom;
+		let x = (min.x + max.x - size) * 0.5f;
+		let y = max.y - size - 7 * canvas.zoom;
+		ImGui.DrawPicture(texture, .(x, y), .(x + size, y + size), from, to);
+	}
+
+	/// The whole shader, lit, in the canvas's bottom right corner.
+	void DrawSurfacePreview(CanvasView canvas)
+	{
+		if (mShaderPreview == null)
+			return;
+		if (!mShaderPreview.TryGetPicture(let texture))
+			return;
+		mShaderPreview.SurfaceCell(let from, let to);
+		let max = ImGui.Vec2(canvas.origin.x + canvas.size.x - 10, canvas.origin.y + canvas.size.y - 10);
+		let min = ImGui.Vec2(max.x - SurfacePreviewSize, max.y - SurfacePreviewSize);
+		ImGui.DrawRectFilled(.(min.x - 1, min.y - 19), .(max.x + 1, max.y + 1), EditorTheme.Canvas);
+		ImGui.DrawText(.(min.x + 4, min.y - 17), .(0.85f, 0.85f, 0.85f, 1), "Preview");
+		ImGui.DrawPicture(texture, min, max, from, to);
+	}
 
 	/// Pin centre in graph space.
 	static Vector2 PinPosition(GraphNode node, int32 pin, bool output)
@@ -349,21 +503,28 @@ extension EditorApp
 		ImGui.SameLine();
 		// A shader keeps its values in Property nodes.
 		if (mGraph.isShader)
+		{
 			mGraphShowVariables = false;
+			if (ImGui.SmallButton(sShowNodePreviews ? "Hide Previews" : "Previews"))
+				sShowNodePreviews = !sShowNodePreviews;
+		}
 		else if (ImGui.SmallButton(mGraphShowVariables ? "Hide Variables" : "Variables"))
 			mGraphShowVariables = !mGraphShowVariables;
 		ImGui.SameLine(0, 14);
-		ImGui.TextDisabled(scope String()..AppendF("{}   {:0}%   {}", mGraph.name, mGraphZoom * 100, mGraphStatus).CStr());
+		let previewProblem = (mShaderPreview != null && !mShaderPreview.problem.IsEmpty) ? scope $"   Preview: {mShaderPreview.problem}" : "";
+		ImGui.TextDisabled(scope String()..AppendF("{}   {:0}%   {}{}", mGraph.name, mGraphZoom * 100, mGraphStatus, previewProblem).CStr());
 	}
 
 	void DrawGraphCanvas()
 	{
 		let canvas = CanvasView.Begin("##canvas", ref mGraphPan, ref mGraphZoom);
 
+		mShaderPreview?.Update(mGraph);
 		NodeCanvas.BeginFont(canvas.zoom);
 		DrawGraphLinks(canvas);
 		let hover = DrawGraphNodes(canvas);
 		NodeCanvas.EndFont();
+		DrawSurfacePreview(canvas);
 
 		HandleGraphMouse(canvas, hover);
 		DrawNodeSearch(canvas);
@@ -396,6 +557,7 @@ extension EditorApp
 			let min = canvas.ToScreen(node.position);
 			let max = canvas.ToScreen(.(node.position.x + NodeWidth, node.position.y + NodeHeight(node)));
 			NodeCanvas.DrawNode(min, max, CategoryColor(node.def.category), node.id == mGraphSelected, zoom);
+			DrawNodePreview(canvas, node, min, max);
 			if (zoom > 0.4f)
 				ImGui.DrawText(.(min.x + 9 * zoom, min.y + 5 * zoom), .White, NodeGraph.Title(node, .. scope String()).CStr());
 			if (canvas.hovered && mouse.x >= min.x && mouse.x <= max.x && mouse.y >= min.y && mouse.y <= max.y)
@@ -451,10 +613,10 @@ extension EditorApp
 	{
 		let hovered = canvas.hovered;
 		let graphMouse = canvas.GraphMouse;
-		if (hovered && ImGui.IsMouseDoubleClicked(0) && hover.node != null && hover.pin < 0 && hover.node.def.key.StartsWith("sub:"))
+		if (hovered && ImGui.IsMouseDoubleClicked(0) && hover.node != null && hover.pin < 0 && (hover.node.def.key.StartsWith("sub:") || hover.node.def.key.StartsWith("shsub:")))
 		{
 			// Step into the subgraph behind this node.
-			Assets.ResolvePath(hover.node.def.key.Substring(4), mPendingGraph);
+			Assets.ResolvePath(hover.node.def.key.Substring(hover.node.def.key.IndexOf(':') + 1), mPendingGraph);
 		}
 		if (hovered && ImGui.IsMouseClicked(0))
 		{
@@ -578,7 +740,7 @@ extension EditorApp
 		bool open = false;
 		for (let def in NodeLibrary.Defs)
 		{
-			if (def.fromApi || def.isShader != mGraph.isShader)
+			if (def.fromApi || def.isShader != mGraph.isShader || IsThisGraph(def))
 				continue;
 			if (category == null || category != def.category)
 			{
@@ -665,7 +827,7 @@ extension EditorApp
 		{
 			for (let def in NodeLibrary.Defs)
 			{
-				if (def.isShader != mGraph.isShader || (mSearchForLink && FirstCompatiblePin(def) < 0))
+				if (def.isShader != mGraph.isShader || IsThisGraph(def) || (mSearchForLink && FirstCompatiblePin(def) < 0))
 					continue;
 				let starts = mNodeSearch.IsEmpty || def.title.StartsWith(mNodeSearch, .OrdinalIgnoreCase);
 				let contains = def.title.Contains(mNodeSearch, true) || def.category.Contains(mNodeSearch, true);

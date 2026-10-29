@@ -42,7 +42,7 @@ class NodeGraph
 	}
 
 	/// A number as GLSL wants it: always with a decimal point.
-	static void GlslNumber(float value, String code)
+	public static void GlslNumber(float value, String code)
 	{
 		let text = scope String();
 		text.AppendF("{}", value);
@@ -51,7 +51,7 @@ class NodeGraph
 		code.Append(text);
 	}
 
-	static void ShaderLiteral(PinDef pin, StringView value, String code)
+	public static void ShaderLiteral(PinDef pin, StringView value, String code)
 	{
 		// An input with a stand-in ("uv" for texture coordinates) uses it when nothing is connected.
 		if (pin.code != null)
@@ -106,7 +106,7 @@ class NodeGraph
 
 	/// Wraps a shader expression so that a value of one width fits a pin of another: a number fills every
 	/// component, a wider value is cut down, a narrower one is padded (with 1 for a colour's alpha).
-	static void ShaderConvert(PinType from, PinType to, StringView expression, String code)
+	public static void ShaderConvert(PinType from, PinType to, StringView expression, String code)
 	{
 		let have = Components(from), want = Components(to);
 		if (have == want)
@@ -258,7 +258,7 @@ class NodeGraph
 		node.def = def;
 		node.position = position;
 		for (let pin in def.inputs)
-			node.values.Add(new String(DefaultValue(pin.type)));
+			node.values.Add(new String(pin.initial != null ? (StringView)pin.initial : DefaultValue(pin.type)));
 		nodes.Add(node);
 		return node;
 	}
@@ -519,22 +519,6 @@ class NodeGraph
 	void InputCode(GraphNode node, int32 pin, String code, int depth)
 	{
 		GraphLink link;
-		if (isShader)
-		{
-			if (depth < 48 && FindLinkTo(node.id, pin, out link))
-			{
-				let source = Find(link.fromNode);
-				if (source != null && link.fromPin < source.def.outputs.Count)
-				{
-					let expression = scope String();
-					OutputCode(source, link.fromPin, expression, depth + 1);
-					ShaderConvert(source.def.outputs[link.fromPin].type, node.def.inputs[pin].type, expression, code);
-					return;
-				}
-			}
-			ShaderLiteral(node.def.inputs[pin], node.values[pin], code);
-			return;
-		}
 		if (depth < 48 && FindLinkTo(node.id, pin, out link))
 		{
 			let source = Find(link.fromNode);
@@ -742,100 +726,15 @@ class NodeGraph
 		}
 	}
 
-	/// Writes the shader file (.tshader) a shader graph stands for: a property for each Property node, and the
-	/// surface and vertex code for whatever is connected to the Surface Output node. Inputs of the output node
-	/// left unconnected keep what the material gives.
+	/// Writes the shader file (.tshader) a shader graph stands for (see ShaderGraphCode). False, with the first
+	/// problem, when it cannot.
 	public bool CompileShader(String text, String problem)
 	{
-		GraphNode output = null;
-		for (let node in nodes)
-		{
-			if (node.def.kind == .ShaderOutput)
-			{
-				if (output != null)
-				{
-					problem.Set("A shader graph has one Surface Output node; this one has more.");
-					return false;
-				}
-				output = node;
-			}
-		}
-		if (output == null)
-		{
-			problem.Set("Add a Surface Output node (under Shader Output) and connect something to it.");
-			return false;
-		}
-		text.Append("// Generated from a shader graph by the Tessera editor.\n// Edit the graph and save it again; changes made here are overwritten.\n");
-		List<String> declared = scope .();
-		defer
-		{
-			for (let d in declared)
-				delete d;
-		}
-		for (let node in nodes)
-		{
-			if (!node.def.key.StartsWith("shader.prop."))
-				continue;
-			let name = scope String();
-			NodeLibrary.Identifier(node.values[0].IsEmpty ? (StringView)"value" : node.values[0], name);
-			bool seen = false;
-			for (let d in declared)
-				seen |= d == name;
-			if (seen)
-				continue;
-			declared.Add(new String(name));
-			if (node.def.key == "shader.prop.float")
-			{
-				text.AppendF("property float {} = ", name);
-				GlslNumber(SceneSerializer.ParseFloat(node.values[1]), text);
-				text.Append('\n');
-			}
-			else if (node.def.key == "shader.prop.color")
-				text.AppendF("property color {} = {}\n", name, node.values[1].IsEmpty ? (StringView)"1 1 1 1" : node.values[1]);
-			else
-				text.AppendF("property texture {}\n", name);
-		}
-		// Which output-node input is which, by position: see NodeLibrary's "shader.output".
-		bool Connected(int32 pin) => FindLinkTo(output.id, pin, let ignored);
-		text.Append("\nsurface {\n");
-		if (Connected(0))
-		{
-			text.Append("\talbedo = toLinear3(");
-			InputCode(output, 0, text, 0);
-			text.Append(");\n");
-		}
-		if (Connected(1))
-		{
-			text.Append("\talpha = ");
-			InputCode(output, 1, text, 0);
-			text.Append(";\n");
-		}
-		if (Connected(2))
-		{
-			text.Append("\tmetallic = ");
-			InputCode(output, 2, text, 0);
-			text.Append(";\n");
-		}
-		if (Connected(3))
-		{
-			text.Append("\troughness = ");
-			InputCode(output, 3, text, 0);
-			text.Append(";\n");
-		}
-		if (Connected(4))
-		{
-			text.Append("\temissive += toLinear3(");
-			InputCode(output, 4, text, 0);
-			text.Append(");\n");
-		}
-		text.Append("}\n");
-		if (Connected(5))
-		{
-			text.Append("\nvertex {\n\tposition += ");
-			InputCode(output, 5, text, 0);
-			text.Append(";\n}\n");
-		}
-		return true;
+		let writer = scope ShaderGraphCode();
+		if (writer.Write(this, text, false))
+			return true;
+		problem.Set(writer.problems.Split('\n').GetNext().GetValueOrDefault());
+		return false;
 	}
 
 	/// The code one output of a node stands for. Used to check nodes and to show what a node does.

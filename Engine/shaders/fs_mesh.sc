@@ -28,11 +28,13 @@ uniform vec4 u_pbr;           // x normal map strength (0: none), y 1 with a met
 
 // A custom shader (.tshader) is this file with its properties and its surface code put at the two markers below.
 // The surface code may read uv, worldPosition, worldNormal, vertexColor and time, sample mainTexture, texture1 and
-// texture2, and change albedo (already linear), alpha, metallic, roughness and emissive. Lighting, shadows and fog
-// then apply to the result exactly as they do to the standard material.
+// texture2, and change albedo (already linear), alpha, metallic, roughness, emissive, occlusion and surfaceNormal (a
+// normal in the surface's own directions: x along U, y along V, z out of it). Lighting, shadows and fog then apply
+// to the result exactly as they do to the standard material.
 #define mainTexture s_albedo
 #define texture1 s_texture1
 #define texture2 s_texture2
+#include "shadergraph.sh"
 //@PROPERTIES
 
 void main()
@@ -51,7 +53,10 @@ void main()
 	float specularLevel = 1.0;
 	// With "emissive from colour" the bright parts of a model glow in their own colour and its dark parts do not.
 	vec3 emissive = u_emissive.rgb * mix(vec3_splat(1.0), albedo, u_surface.z);
+	float occlusion = 1.0;
+	vec3 surfaceNormal = vec3(0.0, 0.0, 1.0);
 //@SURFACE
+//@UNDEFINE
 	// The PBR maps, in the glTF layout: roughness in green and metallic in blue of one texture, occlusion in red.
 	if (u_pbr.y > 0.5)
 	{
@@ -59,10 +64,9 @@ void main()
 		roughness *= metalRough.g;
 		metallic *= metalRough.b;
 	}
-	float occlusion = 1.0;
 	if (u_pbr.z > 0.0)
 	{
-		occlusion = mix(1.0, texture2D(s_occlusionMap, uv).r, u_pbr.z);
+		occlusion *= mix(1.0, texture2D(s_occlusionMap, uv).r, u_pbr.z);
 	}
 	if (u_pbr.w > 0.5)
 	{
@@ -95,12 +99,19 @@ void main()
 		n = normalize(v_normal);
 	}
 
-	if (u_pbr.x > 0.0)
+	bool bent = surfaceNormal.x != 0.0 || surfaceNormal.y != 0.0;
+	if (u_pbr.x > 0.0 || bent)
 	{
 		// A normal map without tangents stored in the mesh: the surface's own directions are worked out from how
 		// position and texture coordinates change across the pixel.
-		vec3 mapped = texture2D(s_normalMap, uv).xyz * 2.0 - 1.0;
-		mapped.xy *= u_pbr.x;
+		vec3 mapped = vec3(0.0, 0.0, 1.0);
+		if (u_pbr.x > 0.0)
+		{
+			mapped = texture2D(s_normalMap, uv).xyz * 2.0 - 1.0;
+			mapped.xy *= u_pbr.x;
+		}
+		// A custom shader's own normal goes on top of the map's (their bumps add up).
+		mapped = vec3(mapped.xy + surfaceNormal.xy, mapped.z * max(surfaceNormal.z, 0.0001));
 		vec3 dp1 = dFdx(v_wpos);
 		vec3 dp2 = dFdy(v_wpos);
 		vec2 duv1 = dFdx(uv);

@@ -775,7 +775,7 @@ extension EditorApp
 			ImGui.DrawRectFilled(min, max, chosen ? Color(0.24f, 0.44f, 0.66f, 1) : (hovered ? Color(0.26f, 0.26f, 0.29f, 1) : Color(0.17f, 0.17f, 0.19f, 1)), 4);
 			let full = MapPieces.IsPiece(relative) ? scope String(relative) : scope $"{Assets.ProjectPath}/{relative}";
 			if (AssetPreviews.TryGet(full, let preview))
-				ImGui.DrawImage(preview, .(min.x + 3, min.y + 3), .(max.x - 3, max.y - 3), false);
+				ImGui.DrawPicture(preview, .(min.x + 3, min.y + 3), .(max.x - 3, max.y - 3), .(0, 0), .(1, 1), false);
 			let name = scope String();
 			Path.GetFileNameWithoutExtension(relative, name);
 			while (name.Length > 3 && ImGui.CalcTextSize(name.CStr()).x > tile)

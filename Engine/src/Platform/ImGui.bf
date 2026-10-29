@@ -610,6 +610,35 @@ static class ImGui
 		ImDrawList_AddImage(igGetWindowDrawList(), texture, min, max, .(0, 0), .(1, 1), tint.ToABGR());
 	}
 
+	/// Shows a picture the graphics card drew (a render target, or a copy of one), the right way up: OpenGL keeps
+	/// those bottom row first. uv0 to uv1 picks part of it, counted from its top left.
+	public static void Picture(uint16 textureIndex, Vec2 size, Vec2 uv0 = .(0, 0), Vec2 uv1 = .(1, 1))
+	{
+		var from = uv0, to = uv1;
+		PictureUV(ref from, ref to);
+		Image(textureIndex, size, from, to, true);
+	}
+
+	/// Paints a picture the graphics card drew at a fixed place in the window, the right way up (see Picture).
+	public static void DrawPicture(uint16 textureIndex, Vec2 min, Vec2 max, Vec2 uv0 = .(0, 0), Vec2 uv1 = .(1, 1), bool opaque = true)
+	{
+		var from = uv0, to = uv1;
+		PictureUV(ref from, ref to);
+		TextureRef texture = default;
+		texture.texId = (uint64)textureIndex + 1;
+		if (opaque)
+			texture.texId |= (uint64)1 << 32;
+		ImDrawList_AddImage(igGetWindowDrawList(), texture, min, max, from, to, 0xffffffff);
+	}
+
+	static void PictureUV(ref Vec2 from, ref Vec2 to)
+	{
+		if (!Gfx.OriginBottomLeft)
+			return;
+		from.y = 1 - from.y;
+		to.y = 1 - to.y;
+	}
+
 	/// Rotated textured quad, with angle in radians about its centre.
 	public static void DrawImageRotated(uint16 textureIndex, Vec2 center, Vec2 size, float angle)
 	{

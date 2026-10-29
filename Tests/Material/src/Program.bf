@@ -251,9 +251,10 @@ class Program
 			let text = scope String(), problem = scope String();
 			let made = graph.CompileShader(text, problem);
 			ok &= Check(made && text.Contains("property color tint = 1 0.5 0.25 1") && text.Contains("property float speed = 3.0") && text.Contains("property texture detail")
-				&& text.Contains("albedo = toLinear3((tint).xyz);") && text.Contains("emissive += toLinear3(vec3_splat((0.5 + 0.5 * sin(time * speed))));")
-				&& text.Contains("roughness = (texture2D(detail, (uv + vec2(0.1, 0.0) * time))).x;") && text.Contains("position += (normal * 0.05);") && !text.Contains("metallic ="),
-				"a shader graph becomes a shader file: properties, converted values, and only the outputs that are connected");
+				&& text.Contains("vec4 n2 = tint;") && text.Contains("albedo = toLinear3((n2).xyz);") && text.Contains("float n4 = (0.5 + 0.5 * sin(time * n3));") && text.Contains("emissive += toLinear3(vec3_splat(n4));")
+				&& text.Contains("vec4 n5 = texture2D(detail, n6);") && text.Contains("vec2 n6 = (uv + vec2(0.1, 0.0) * time);") && text.Contains("roughness = (n5).x;")
+				&& text.Contains("vec3 n8 = (n7 * 0.05);") && text.Contains("position += n8;") && !text.Contains("metallic =") && text.IndexOf("vec2 n6") < text.IndexOf("vec4 n5"),
+				"a shader graph becomes a shader file: properties, a local per node before what reads it, converted values, and only the outputs that are connected");
 			File.WriteAllText(scope $"{cFolder}/Shaders/fromgraph.tshader" , text).IgnoreError();
 			log.Clear();
 			ok &= Check(ShaderCompiler.Compile(root, "Shaders/fromgraph.tshader", log), scope $"and that file compiles {log}");
@@ -269,35 +270,124 @@ class Program
 			text2.type = .String;
 			ok &= Check(graph.Links(number, vector) && graph.Links(vector, number) && !graph.Links(flow, number) && !graph.Links(text2, number) && !script.Links(number, vector), "numbers, vectors and colours connect to each other in a shader graph, and only there");
 
-			// Every shader node, compiled: surface nodes in the surface block, the two vertex-only ones in the vertex block.
-			let all = scope String();
-			all.Append("property float pf = 1\nproperty color pc = 1 1 1 1\nproperty texture pt\nsurface {\n\tvec4 total = vec4_splat(0.0);\n");
-			let vertexCode = scope String();
+			// One node read by two others is worked out once; Normal and Occlusion; custom code; several outputs.
+			let shared = scope NodeGraph();
+			shared.isShader = true;
+			let sharedOutput = shared.AddNode(NodeLibrary.Find("shader.output"), .(600, 0));
+			let noise = shared.AddNode(NodeLibrary.Find("shader.smoothnoise"), .(0, 0));
+			let bumps = shared.AddNode(NodeLibrary.Find("shader.normalheight"), .(200, 0));
+			let custom = shared.AddNode(NodeLibrary.Find("shader.custom.float"), .(200, 200));
+			let statements = shared.AddNode(NodeLibrary.Find("shader.custom.color"), .(200, 400));
+			let split = shared.AddNode(NodeLibrary.Find("shader.split"), .(400, 400));
+			shared.Validate();
+			ok &= Check(noise.values[1] == "8" && custom.values[0] == "a * b" && custom.values[1] == "1", "new nodes start with useful values, not zeros");
+			custom.values[0].Set("a * a + b");
+			statements.values[0].Set("result = c; result.g = a * 0.5;");
+			shared.Connect(noise.id, 0, sharedOutput.id, 2);
+			shared.Connect(noise.id, 0, sharedOutput.id, 3);
+			shared.Connect(noise.id, 0, bumps.id, 0);
+			shared.Connect(bumps.id, 0, sharedOutput.id, 6);
+			shared.Connect(noise.id, 0, custom.id, 1);
+			shared.Connect(custom.id, 0, sharedOutput.id, 7);
+			shared.Connect(custom.id, 0, statements.id, 1);
+			shared.Connect(statements.id, 0, split.id, 0);
+			shared.Connect(split.id, 1, sharedOutput.id, 1);
+			let sharedText = scope String();
+			problem.Clear();
+			int Occurrences(StringView text, StringView part)
+			{
+				int found = 0;
+				for (int at = text.IndexOf(part); at >= 0; at = text.IndexOf(part, at + 1))
+					found++;
+				return found;
+			}
+			ok &= Check(shared.CompileShader(sharedText, problem) && Occurrences(sharedText, "tsg_noise(") == 1 && sharedText.Contains("metallic = n2;") && sharedText.Contains("roughness = n2;")
+				&& sharedText.Contains("surfaceNormal = normalize(n3);") && sharedText.Contains("occlusion = n4;") && sharedText.Contains("result = a * a + b;")
+				&& sharedText.Contains("result = c; result.g = a * 0.5;") && sharedText.Contains("alpha = n6.y;"), scope $"a node read in several places is worked out once; Normal, Occlusion, custom code and split outputs are written {problem}");
+			File.WriteAllText(scope $"{cFolder}/Shaders/shared.tshader" , sharedText).IgnoreError();
+			log.Clear();
+			ok &= Check(ShaderCompiler.Compile(root, "Shaders/shared.tshader", log), scope $"and it compiles {log}");
+
+			// A subgraph: a .tsgraph with Subgraph Output nodes becomes a node, written in place each time it is used.
+			let sub = scope NodeGraph();
+			sub.isShader = true;
+			let subScale = sub.AddNode(NodeLibrary.Find("shader.sub.input.float"), .(0, 0));
+			let subTint = sub.AddNode(NodeLibrary.Find("shader.sub.input.color"), .(0, 100));
+			let subNoise = sub.AddNode(NodeLibrary.Find("shader.smoothnoise"), .(200, 0));
+			let subMix = sub.AddNode(NodeLibrary.Find("shader.vscale"), .(200, 100));
+			let subOut = sub.AddNode(NodeLibrary.Find("shader.sub.output.vector"), .(400, 0));
+			let subOutNumber = sub.AddNode(NodeLibrary.Find("shader.sub.output.float"), .(400, 100));
+			sub.Validate();
+			subScale.values[0].Set("Scale");
+			subTint.values[0].Set("Tint");
+			subOut.values[0].Set("Colour");
+			subOutNumber.values[0].Set("Height");
+			sub.Connect(subScale.id, 0, subNoise.id, 1);
+			sub.Connect(subTint.id, 0, subMix.id, 0);
+			sub.Connect(subNoise.id, 0, subMix.id, 1);
+			sub.Connect(subMix.id, 0, subOut.id, 1);
+			sub.Connect(subNoise.id, 0, subOutNumber.id, 1);
+			sub.Save(scope $"{cFolder}/Shaders/noisy.tsgraph");
+			NodeLibrary.RefreshSubgraphs(cFolder);
+			let subDef = NodeLibrary.Find("shsub:Shaders/noisy.tsgraph");
+			ok &= Check(subDef != null && subDef.isShader && subDef.inputs.Count == 2 && subDef.inputs[0].name == "Scale" && subDef.inputs[1].type == .Color && subDef.outputs.Count == 2 && subDef.outputs[0].name == "Colour" && subDef.outputs[1].type == .Float,
+				"a shader subgraph becomes a node: its inputs and outputs, named and typed");
+			problem.Clear();
+			let subText = scope String();
+			ok &= Check(!sub.CompileShader(subText, problem) && problem.Contains("subgraph"), "a subgraph is not a shader of its own");
+			if (subDef != null)
+			{
+				let host = scope NodeGraph();
+				host.isShader = true;
+				let hostOutput = host.AddNode(NodeLibrary.Find("shader.output"), .(600, 0));
+				let first = host.AddNode(subDef, .(0, 0));
+				let second = host.AddNode(subDef, .(0, 200));
+				let hostSpeed = host.AddNode(NodeLibrary.Find("shader.prop.float"), .(-200, 0));
+				host.Validate();
+				hostSpeed.values[0].Set("scale");
+				hostSpeed.values[1].Set("4");
+				second.values[0].Set("20");
+				host.Connect(hostSpeed.id, 0, first.id, 0);
+				host.Connect(first.id, 0, hostOutput.id, 0);
+				host.Connect(second.id, 1, hostOutput.id, 3);
+				let hostText = scope String();
+				problem.Clear();
+				let hostMade = host.CompileShader(hostText, problem);
+				ok &= Check(hostMade && Occurrences(hostText, "tsg_noise(") == 2 && hostText.Contains("float s2_n1 = n4;") && hostText.Contains("float s3_n1 = 20.0;") && hostText.Contains("vec3 n2_0 =") && hostText.Contains("float n3_1 =")
+					&& hostText.Contains("albedo = toLinear3(n2_0);") && hostText.Contains("roughness = n3_1;"), scope $"a subgraph used twice is written in place twice, its inputs what reaches each node {problem}");
+				File.WriteAllText(scope $"{cFolder}/Shaders/hosted.tshader" , hostText).IgnoreError();
+				log.Clear();
+				ok &= Check(ShaderCompiler.Compile(root, "Shaders/hosted.tshader", log), scope $"and it compiles {log}");
+			}
+
+			// Every shader node in one graph, worked out for the previews, and the preview shader compiled: each node
+			// is a local the preview can show, the two vertex-only ones in the vertex block.
+			let all = scope NodeGraph();
+			all.isShader = true;
+			let allOutput = all.AddNode(NodeLibrary.Find("shader.output"), .(0, 0));
 			int count = 0;
+			GraphNode objectNormal = null;
 			for (let def in NodeLibrary.Defs)
 			{
 				if (!def.isShader || def.kind == .ShaderOutput)
 					continue;
-				let single = scope NodeGraph();
-				single.isShader = true;
-				let node = single.AddNode(def, .(0, 0));
-				single.Validate();
+				let node = all.AddNode(def, .(0, 0));
+				all.Validate();
 				if (def.key.StartsWith("shader.prop."))
-					node.values[0].Set(def.key == "shader.prop.float" ? "pf" : (def.key == "shader.prop.color" ? "pc" : "pt"));
-				let expression = scope String();
-				single.ExpressionOf(node, 0, expression);
-				let width = def.outputs[0].type == .Float ? "x" : (def.outputs[0].type == .Vector2 ? "xy" : (def.outputs[0].type == .Vector3 ? "xyz" : "xyzw"));
-				if (def.key == "shader.objectpos" || def.key == "shader.objectnormal")
-					vertexCode.AppendF("\tposition += {} * 0.0;\n", expression);
-				else
-					all.AppendF("\ttotal.{} += {};\n", width, expression);
+					node.values[0].Set(def.key == "shader.prop.float" ? "pf" : (def.key == "shader.prop.color" ? "pc" : (def.key == "shader.prop.normal" ? "pn" : "pt")));
+				if (def.key == "shader.objectnormal")
+					objectNormal = node;
 				count++;
 			}
-			all.AppendF("\temissive += total.rgb * 0.0;\n}}\nvertex {{\n{}}}\n", vertexCode);
-			File.WriteAllText(scope $"{cFolder}/Shaders/allnodes.tshader" , all).IgnoreError();
+			all.Connect(objectNormal.id, 0, allOutput.id, 5);
+			let allText = scope String();
+			let writer = scope ShaderGraphCode();
+			let allMade = writer.Write(all, allText, true);
+			File.WriteAllText(scope $"{cFolder}/Shaders/allnodes.tshader" , allText).IgnoreError();
 			log.Clear();
-			let allFine = ShaderCompiler.Compile(root, "Shaders/allnodes.tshader", log);
-			ok &= Check(allFine && count > 60, scope $"all {count} shader graph nodes compile as shader code {log}");
+			let allFine = allMade && ShaderCompiler.Compile(root, "Shaders/allnodes.tshader", log);
+			let allLabel = scope $"all {count} shader graph nodes compile as shader code, {writer.previewSlots.Count} of them shown by the preview {writer.problems}{log}";
+			ok &= Check(allFine && count > 90 && writer.previewSlots.Count > 80 && !writer.previewSlots.ContainsKey(objectNormal.id) && allText.Contains("if (u_surface.w > 0.5)") && allText.Contains("position += n"), allLabel);
 		}
 
 		// ---- previews ----

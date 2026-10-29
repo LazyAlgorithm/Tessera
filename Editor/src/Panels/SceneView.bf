@@ -32,7 +32,7 @@ extension EditorApp
 				mSceneOrigin = origin;
 				UpdateSceneCamera(size.x / size.y);
 				if (mSceneView.Width > 0)
-					ImGui.Image(mSceneView.OutputTexture, .(mSceneView.Width, mSceneView.Height));
+					ImGui.Picture(mSceneView.OutputTexture, .(mSceneView.Width, mSceneView.Height));
 				mSceneHovered = ImGui.IsItemHovered();
 				if (ImGui.BeginDragDropTarget())
 				{
