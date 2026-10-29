@@ -235,6 +235,126 @@ class Program
 			ok &= Check(Math.Abs(still - 1) < 0.15f && blown > still + 0.25f, scope $"a Wind Zone blows hanging cloth the way it faces (middle z {still} still, {blown} in wind)");
 		}
 
+		// ---- a shell dented by its car's hits: nothing passes into it, slow pushes and light things do not dent ----
+		{
+			let scene = scope Scene();
+			Scene.Active = scene;
+			scene.StartPlay();
+			Floor(scene);
+			let wall = scene.CreateGameObject("Wall");
+			wall.Transform.Position = .(0, 1.5f, 8);
+			wall.AddComponent<BoxCollider>().size = .(6, 3, 1);
+			let car = scene.CreateGameObject("Car");
+			car.Transform.Position = .(0, 0.65f, 0);
+			// The collider the shape of the body.
+			car.AddComponent<BoxCollider>().size = .(1.8f, 1.2f, 4);
+			let body = car.AddComponent<Rigidbody>();
+			body.mass = 1000;
+			let shellMesh = Box(.(0.9f, 0.6f, 2), 8);
+			defer delete shellMesh;
+			car.AddComponent<MeshRenderer>().RuntimeMesh = shellMesh;
+			let shell = car.AddComponent<SoftBody>();
+			shell.kind = .Shell;
+			Run(scene, 60);
+
+			// Something pushed slowly into its side stops at the surface and leaves no dent.
+			let pusher = scene.CreateGameObject("Pusher");
+			pusher.Transform.Position = .(2, 0.65f, 0);
+			pusher.AddComponent<BoxCollider>().size = .(0.6f, 0.6f, 0.6f);
+			let pushed = pusher.AddComponent<Rigidbody>();
+			pushed.mass = 80;
+			float closest = 99;
+			for (int tick < 120)
+			{
+				pushed.Velocity = .(-1.5f, pushed.Velocity.y, 0);
+				scene.FixedUpdate();
+				closest = Math.Min(closest, pusher.Transform.Position.x - 0.3f - (car.Transform.Position.x + 0.9f));
+			}
+			ok &= Check(closest > -0.03f && shell.DeepestDent() < 0.002f, scope $"From Impacts: something pushed into the side stops at the surface ({closest} m from it) and leaves no dent ({shell.DeepestDent()})");
+			scene.DestroyImmediate(pusher);
+			Run(scene, 30);
+
+			// A light ball thrown hard does not dent it; a heavy crate does, on that side only.
+			GameObject Thrown(Scene scene, Vector3 at, float size, float mass, Vector3 velocity)
+			{
+				let thrown = scene.CreateGameObject("Thrown");
+				thrown.Transform.Position = at;
+				thrown.AddComponent<BoxCollider>().size = .(size, size, size);
+				let rigid = thrown.AddComponent<Rigidbody>();
+				rigid.mass = mass;
+				rigid.EnsureBody();
+				rigid.Velocity = velocity;
+				return thrown;
+			}
+			let ball = Thrown(scene, .(car.Transform.Position.x - 2.5f, 0.9f, car.Transform.Position.z), 0.2f, 1, .(15, 0, 0));
+			Run(scene, 40);
+			let byBall = shell.DeepestDent();
+			scene.DestroyImmediate(ball);
+			let crate = Thrown(scene, .(car.Transform.Position.x - 3, 0.9f, car.Transform.Position.z), 0.6f, 200, .(9, 0, 0));
+			Run(scene, 40);
+			scene.DestroyImmediate(crate);
+			shell.[Friend]ReadBack();
+			let dents = scope List<Vector3>();
+			shell.GetDents(dents);
+			float left = 0, right = 0;
+			for (int i < dents.Count)
+			{
+				if (shell.[Friend]mRest[i].x < -0.85f)
+					left = Math.Max(left, dents[i].Length);
+				if (shell.[Friend]mRest[i].x > 0.85f)
+					right = Math.Max(right, dents[i].Length);
+			}
+			ok &= Check(byBall < 0.002f && left > 0.03f && right < 0.002f, scope $"a 1 kg ball at 15 m/s leaves no dent ({byBall}); a 200 kg crate at 9 m/s dents the side it hits ({left} m) and not the other ({right} m)");
+
+			// Driven into a wall, the front dents and stays dented.
+			shell.Repair();
+			for (int tick < 90)
+			{
+				if (car.Transform.Position.z < 5.4f)
+					body.Velocity = .(0, body.Velocity.y, 12);
+				scene.FixedUpdate();
+			}
+			shell.GetDents(dents..Clear());
+			float front = 0, back = 0;
+			for (int i < dents.Count)
+			{
+				if (shell.[Friend]mRest[i].z > 1.9f)
+					front = Math.Max(front, dents[i].Length);
+				if (shell.[Friend]mRest[i].z < -1.9f)
+					back = Math.Max(back, dents[i].Length);
+			}
+			Run(scene, 120);
+			ok &= Check(front > 0.1f && back < 0.002f && Math.Abs(shell.DeepestDent() - front) < 0.01f, scope $"driven into a wall at 12 m/s, its front dents ({front} m), its back does not ({back} m), and the dent stays ({shell.DeepestDent()} m)");
+		}
+
+		// ---- a shell on an object with no Rigidbody gets one, and falls ----
+		{
+			let scene = scope Scene();
+			Scene.Active = scene;
+			scene.StartPlay();
+			Floor(scene);
+			let crate = scene.CreateGameObject("Crate");
+			crate.Transform.Position = .(0, 3, 0);
+			let crateMesh = Box(.(0.5f, 0.5f, 0.5f), 4);
+			defer delete crateMesh;
+			crate.AddComponent<MeshRenderer>().RuntimeMesh = crateMesh;
+			let shell = crate.AddComponent<SoftBody>();
+			shell.kind = .Shell;
+			shell.mass = 20;
+			Run(scene, 120);
+			let rigid = crate.GetComponent<Rigidbody>();
+			ok &= Check(rigid != null && rigid.mass == 20 && crate.GetComponent<BoxCollider>() != null && Math.Abs(crate.Transform.Position.y - 0.5f) < 0.05f, scope $"a shell with no Rigidbody gets one (and a collider) and falls to the floor (at {crate.Transform.Position.y})");
+
+			// Given a Rigidbody but no collider (which alone does not move), it gets the collider, and falls.
+			let other = scene.CreateGameObject("Crate 2");
+			other.Transform.Position = .(3, 3, 0);
+			other.AddComponent<MeshRenderer>().RuntimeMesh = crateMesh;
+			other.AddComponent<Rigidbody>().mass = 20;
+			other.AddComponent<SoftBody>().kind = .Shell;
+			Run(scene, 120);
+			ok &= Check(other.GetComponent<BoxCollider>() != null && Math.Abs(other.Transform.Position.y - 0.5f) < 0.05f, scope $"a shell with a Rigidbody and no collider gets a collider and falls (at {other.Transform.Position.y})");
+		}
+
 		// ---- a flag: cloth pinned along a pole, in the wind ----
 		{
 			let scene = scope Scene();
@@ -556,6 +676,7 @@ class Program
 			car.AddComponent<MeshRenderer>().RuntimeMesh = shellMesh;
 			let shell = car.AddComponent<SoftBody>();
 			shell.kind = .Shell;
+			shell.dentMode = .FromSurface;
 			shell.springBack = 0.03f;
 			Run(scene, 60);
 			let restingAt = car.Transform.Position;
@@ -570,7 +691,27 @@ class Program
 			let carMoved = (car.Transform.Position - restingAt).Length;
 			let resting = shell.HasBody && shell.DeepestDent() < 0.01f && carMoved < 0.01f;
 			ok &= Check(resting, scope $"a shell rests on its car without denting or pushing it ({shell.SimulatedVertexCount} vertices, deepest dent {shell.DeepestDent()}, car moved {carMoved})");
-			for (int tick < 90)
+
+			// Below Dent Speed nothing dents however hard it presses: a heavy crate dropped onto the roof and left
+			// there, and backing gently into a wall.
+			let load = scene.CreateGameObject("Load");
+			load.Transform.Position = .(0, 1.85f, 0);
+			load.AddComponent<BoxCollider>().size = .(0.6f, 0.6f, 0.6f);
+			load.AddComponent<Rigidbody>().mass = 200;
+			Run(scene, 120);
+			let underLoad = shell.DeepestDent();
+			scene.DestroyImmediate(load);
+			let backWall = scene.CreateGameObject("Back Wall");
+			backWall.Transform.Position = .(0, 1.5f, -6);
+			backWall.AddComponent<BoxCollider>().size = .(6, 3, 1);
+			for (int tick < 240)
+			{
+				body.Velocity = .(0, body.Velocity.y, -1.5f);
+				scene.FixedUpdate();
+			}
+			let bumped = shell.DeepestDent();
+			ok &= Check(underLoad < 0.01f && bumped < 0.01f, scope $"slow knocks spring back: a 200 kg crate dropped on the roof ({underLoad} m) and backing into a wall at 1.5 m/s ({bumped} m) leave no dent");
+			for (int tick < 120)
 			{
 				if (car.Transform.Position.z < 5.4f)
 					body.Velocity = .(0, body.Velocity.y, 12);

@@ -20,7 +20,9 @@ Soft bodies fall, fold over and rest on colliders, and they push rigidbodies and
 | Damping | How fast it loses speed, like moving through thick air. |
 | Wobble Damping | Jelly: how fast its wobbling dies away, without slowing it as a whole. 0 wobbles on, 10 settles at once. |
 | Dent Depth | Shell: how far one impact can push the surface in, in metres. |
-| Spring Back | Shell: how far the surface springs back from, in metres. Pushed in further, it stays dented. |
+| Spring Back | Shell, From Surface: how far the surface springs back from, in metres (default 0.03). Pushed in further, it stays dented. |
+| Dent Speed | Shell: how fast something must hit it to dent it, in metres a second (default 3, about 11 km/h). |
+| Dent Mode | Shell: From Impacts (its object's collider takes the hits) or From Surface (the shell is pushed in itself). See Dents. |
 | Friction, Bounciness, Gravity Scale | As on a Rigidbody. |
 | Thickness | How far from its surface it keeps other things, in metres. |
 | Wind Drag | How much Wind Zones push it (0 not at all; cloth and jelly, not shells). Wind blows on each face by how squarely it faces the wind, drags along faces it slides past, and is gusty from place to place across the cloth (more with the Wind Zone's Gusts), so a flag streams out and flaps. |
@@ -34,12 +36,17 @@ A jelly cube with the defaults keeps its shape, squashes a little when it lands,
 
 ## Dents
 
-A **Shell** holds every vertex near its place on its object, so it rides along with the object's Rigidbody (on the same object or a parent) and ignores that body's own collider. Where it is hit hard enough to be pushed in further than Spring Back, the rest of the way stays as a dent; a lighter knock springs back. Only a push into the surface by something it touched dents it: being dragged along the ground or shaken does not.
+A **Shell** holds every vertex on its place on its object, so it rides along with the object's Rigidbody (on the same object or a parent) and ignores that body's own collider. Where it is hit hard enough, it dents and stays dented. **Dent Mode** picks what dents it:
+
+- **From Impacts** (the default): the object's collider takes every hit, so players, props and walls stop at the surface and nothing pushes into the shell. A hit on the collider at **Dent Speed** or faster, by something static or dynamic, presses the shell in around where it landed: deeper the faster it was (the full **Dent Depth** at four times Dent Speed) and the heavier what hit it (fully with a tenth of the car's mass or more, or a wall), spreading wider the faster it was. Characters, moving platforms and light things (a ball) do not dent it. Repeated hits dent further, up to three times Dent Depth.
+- **From Surface**: the shell meets things itself and is pushed in where it touches them, so it can fold round a post. Its collider sits a little inside the mesh (by about Dent Depth), and things can press into the shell that far before the collider stops them. A push at Dent Speed or faster, in further than **Spring Back**, stays as a dent; anything less springs back.
 
 Set it up like this:
 
-1. The car (or crate) has its Rigidbody and a collider a little inside the mesh at the front, back and sides (by about Dent Depth), and below it underneath (wheels hold a car's body up). The shell meets things first and dents before the collider stops the car.
+1. The car (or crate) has its Rigidbody and a collider (a Rigidbody only moves with a collider: a shell adds a Box Collider round the mesh to an object without one, and a Rigidbody of the Soft Body's Mass to one without that, so it falls and hits things): the shape of the mesh for From Impacts; a little inside it at the front, back and sides for From Surface. Wheels or the collider's underside hold a car up.
 2. Add a Soft Body, Kind Shell. The mesh needs enough vertices to dent: a few hundred for a car body.
+
+If it dents too easily, raise **Dent Speed** (6 or so for a sturdy truck: only real crashes dent it); lower **Dent Depth** for shallower dents.
 
 From code:
 

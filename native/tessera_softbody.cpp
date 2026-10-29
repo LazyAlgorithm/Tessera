@@ -10,6 +10,7 @@
 #include <Jolt/Physics/Body/BodyLockInterface.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Body/BodyLockMulti.h>
+#include <Jolt/Physics/Collision/ContactListener.h>
 #include <Jolt/Physics/Collision/GroupFilter.h>
 #include <Jolt/Physics/Collision/Shape/MeshShape.h>
 #include <Jolt/Physics/Constraints/DistanceConstraint.h>
@@ -56,11 +57,13 @@ struct Config
 	float vertexRadius;   // how far from the surface collisions keep other things
 	float dentDepth;      // shell: how far a vertex can be pushed from its place on the object in one impact
 	float dentYield;      // shell: how far it springs back from; pushed further, the rest stays dented
+	float dentSpeed;      // shell: how fast (m/s) a vertex must be pushed in for it to dent
 	int32_t iterations;   // solver passes per step
 	int32_t doubleSided;  // faces collide from both sides (cloth)
 	int32_t longRange;    // keep free vertices within reach of the pins (stops cloth stretching under its weight)
 	int32_t dihedral;     // bend by the angle between faces (cloth) rather than by distance (volumes)
 	int32_t shell;        // every vertex is held near its place on the object (skinned to it), which dents
+	int32_t impacts;      // shell: held exactly in place, dented by its object's collider's hits instead of its own
 	uint32_t layer;
 	uint64_t userData;
 };
@@ -105,7 +108,24 @@ struct Shell
 	std::vector<uint8_t> touched;
 	JPH::Mat44 bindToObject;
 	float dentYield = 0;
+	float dentSpeed = 0;
+	float dentDepth = 0;
 	bool skinned = false;
+	// Dented by its object's hits (Impacts) rather than by being pushed in itself; the object's body, once known.
+	bool fromImpacts = false;
+	uint32_t owner = 0xFFFFFFFFu;
+	// Hits on the object since the last step, at Dent Speed or faster: where (up to four points on its surface, in
+	// the world), which way into it, how fast, and the two bodies' masses as they meet (reduced) and its own.
+	struct Hit
+	{
+		JPH::Vec3 points[4];
+		int count = 0;
+		JPH::Vec3 into;
+		float speed = 0;
+		float reducedMass = 0;
+		float ownMass = 0;
+	};
+	std::vector<Hit> hits;
 	// Where the object was when last skinned to (the end of that step), to leave a shell asleep while it stays.
 	JPH::Mat44 lastObject = JPH::Mat44::sZero();
 };
@@ -148,12 +168,16 @@ std::unordered_set<uint32_t> gProxies;
 
 /// Remembers which bodies each soft body's vertices touched, until asked (soft bodies update on the job threads),
 /// and keeps each soft body off the bodies it should ignore (a shell's own rigidbody).
-class Touches final : public JPH::SoftBodyContactListener
+class Touches final : public JPH::SoftBodyContactListener, public JPH::ContactListener
 {
 public:
 	JPH::SoftBodyValidateResult OnSoftBodyContactValidate(const JPH::Body& soft, const JPH::Body& other, JPH::SoftBodyContactSettings&) override
 	{
 		std::lock_guard<std::mutex> guard(mutex);
+		// A shell dented by its object's hits only follows the object: the object's collider meets everything.
+		auto shell = shells.find(soft.GetID().GetIndexAndSequenceNumber());
+		if (shell != shells.end() && shell->second.fromImpacts)
+			return JPH::SoftBodyValidateResult::RejectContact;
 		auto found = ignored.find(soft.GetID().GetIndexAndSequenceNumber());
 		if (found != ignored.end() && std::find(found->second.begin(), found->second.end(), other.GetID().GetIndexAndSequenceNumber()) != found->second.end())
 			return JPH::SoftBodyValidateResult::RejectContact;
@@ -191,7 +215,47 @@ public:
 		}
 	}
 
+	/// Rigid bodies meeting: a hit on a shell's object, by something static or dynamic (not a character or a moving
+	/// platform), at the shell's Dent Speed or faster, is kept for its next tn_soft_skin.
+	void OnContactAdded(const JPH::Body& one, const JPH::Body& two, const JPH::ContactManifold& manifold, JPH::ContactSettings&) override
+	{
+		std::lock_guard<std::mutex> guard(mutex);
+		for (int side = 0; side < 2; side++)
+		{
+			const JPH::Body& own = side == 0 ? one : two;
+			const JPH::Body& other = side == 0 ? two : one;
+			auto owner = shellOwners.find(own.GetID().GetIndexAndSequenceNumber());
+			if (owner == shellOwners.end() || other.IsSensor() || other.IsKinematic() || other.IsSoftBody())
+				continue;
+			auto shell = shells.find(owner->second);
+			if (shell == shells.end())
+				continue;
+			// The manifold's normal points from the first body to the second.
+			const JPH::Vec3 into = side == 0 ? -manifold.mWorldSpaceNormal : manifold.mWorldSpaceNormal;
+			Shell::Hit hit;
+			hit.count = std::min((int)manifold.mRelativeContactPointsOn1.size(), 4);
+			if (hit.count == 0)
+				continue;
+			for (int i = 0; i < hit.count; i++)
+				hit.points[i] = JPH::Vec3(side == 0 ? manifold.GetWorldSpaceContactPointOn1(i) : manifold.GetWorldSpaceContactPointOn2(i));
+			const JPH::RVec3 at(hit.points[0]);
+			hit.speed = (other.GetPointVelocity(at) - own.GetPointVelocity(at)).Dot(into);
+			if (hit.speed < shell->second.dentSpeed)
+				continue;
+			const float ownInverse = own.IsDynamic() ? own.GetMotionPropertiesUnchecked()->GetInverseMass() : 0.0f;
+			const float otherInverse = other.IsDynamic() ? other.GetMotionPropertiesUnchecked()->GetInverseMass() : 0.0f;
+			if (ownInverse + otherInverse <= 0)
+				continue;
+			hit.reducedMass = 1.0f / (ownInverse + otherInverse);
+			hit.ownMass = ownInverse > 0 ? 1.0f / ownInverse : hit.reducedMass;
+			hit.into = into;
+			shell->second.hits.push_back(hit);
+		}
+	}
+
 	std::mutex mutex;
+	// Shells dented by their object's hits, by their object's body.
+	std::unordered_map<uint32_t, uint32_t> shellOwners;
 	std::unordered_map<uint32_t, std::unordered_set<uint32_t>> bodies;
 	std::unordered_map<uint32_t, std::vector<uint32_t>> ignored;
 	std::unordered_map<uint32_t, Shell> shells;
@@ -211,6 +275,7 @@ Touches& TouchesOf(JPH_PhysicsSystem* world)
 	{
 		touches = new Touches();
 		system->SetSoftBodyContactListener(touches);
+		system->SetContactListener(touches);
 	}
 	return *touches;
 }
@@ -288,7 +353,9 @@ TN_API uint32_t tn_soft_create(JPH_PhysicsSystem* world, const Config* config, c
 		for (uint32_t i = 0; i < vertexCount; i++)
 		{
 			const bool held = pinned && pinned[i] >= 0.5f;
-			JPH::SoftBodySharedSettings::Skinned skinned(i, held ? 0.0f : std::max(config->dentDepth, 0.001f), FLT_MAX, 0.0f);
+			// Dented by its object's hits, it follows the object exactly; otherwise it can be pushed in up to dentDepth.
+			const float give = (held || config->impacts != 0) ? 0.0f : std::max(config->dentDepth, 0.001f);
+			JPH::SoftBodySharedSettings::Skinned skinned(i, give, FLT_MAX, 0.0f);
 			skinned.mWeights[0] = JPH::SoftBodySharedSettings::SkinWeight(0, 1.0f);
 			shared->mSkinnedConstraints.push_back(skinned);
 		}
@@ -327,6 +394,9 @@ TN_API uint32_t tn_soft_create(JPH_PhysicsSystem* world, const Config* config, c
 		auto& kept = touches.shells[id.GetIndexAndSequenceNumber()];
 		kept.bindToObject = shared->mInvBindMatrices[0].mInvBind;
 		kept.dentYield = std::max(config->dentYield, 0.0f);
+		kept.dentSpeed = std::max(config->dentSpeed, 0.0f);
+		kept.dentDepth = std::max(config->dentDepth, 0.001f);
+		kept.fromImpacts = config->impacts != 0;
 		for (const auto& vertex : shared->mVertices)
 			kept.original.push_back(vertex.mPosition);
 		std::vector<JPH::Vec3> outward(shared->mVertices.size(), JPH::Vec3::sZero());
@@ -588,6 +658,7 @@ TN_API void tn_soft_world_destroyed(JPH_PhysicsSystem* world)
 	if (found == gTouches.end())
 		return;
 	system->SetSoftBodyContactListener(nullptr);
+	system->SetContactListener(nullptr);
 	{
 		std::lock_guard<std::mutex> guard(gProxyMutex);
 		for (const auto& [owner, proxy] : found->second->proxies)
@@ -628,7 +699,17 @@ TN_API void tn_soft_ignore(JPH_PhysicsSystem* world, uint32_t bodyId, uint32_t i
 	if (ignoredBody == 0xFFFFFFFFu)
 		touches.ignored.erase(bodyId);
 	else
+	{
 		touches.ignored[bodyId].push_back(ignoredBody);
+		// The first body a shell ignores is its object's: the one whose hits dent it.
+		auto shell = touches.shells.find(bodyId);
+		if (shell != touches.shells.end() && shell->second.owner == 0xFFFFFFFFu)
+		{
+			shell->second.owner = ignoredBody;
+			if (shell->second.fromImpacts)
+				touches.shellOwners[ignoredBody] = bodyId;
+		}
+	}
 }
 
 /// Forgets what was kept about a soft body (when it is removed).
@@ -645,7 +726,12 @@ TN_API void tn_soft_forget(JPH_PhysicsSystem* world, uint32_t bodyId)
 		touches.proxies.erase(proxy);
 	}
 	touches.ignored.erase(bodyId);
-	touches.shells.erase(bodyId);
+	auto shell = touches.shells.find(bodyId);
+	if (shell != touches.shells.end())
+	{
+		touches.shellOwners.erase(shell->second.owner);
+		touches.shells.erase(shell);
+	}
 	touches.ropes.erase(bodyId);
 	touches.bodies.erase(bodyId);
 }
@@ -678,6 +764,76 @@ void RestLengthsFromBind(JPH::SoftBodySharedSettings& settings)
 /// way as their new place), springs the rest back towards their places, and holds every vertex within dentDepth of
 /// where its object will put it by the end of the step. objectMatrix: the object's local-to-world matrix now;
 /// objectNext: where it will be after the step (it moves with its rigidbody during the step).
+namespace
+{
+
+/// Dents a shell (Impacts) from the hits on its object: around each, the surface facing what hit it is pressed in
+/// along the hit, deeper the faster it was past Dent Speed (full Dent Depth at four times it) and the heavier what
+/// hit it (full with a tenth of the object's mass or more, or anything static), fading out over a reach that grows
+/// with the speed. Returns whether anything moved. worldToBind: world positions to the shell's bind space.
+bool DentFromHits(Shell& shell, JPH::SoftBodySharedSettings& settings, const JPH::Mat44& worldToBind)
+{
+	bool dented = false;
+	for (const auto& hit : shell.hits)
+	{
+		const float hard = std::clamp((hit.speed - shell.dentSpeed) / std::max(shell.dentSpeed * 3.0f, 0.5f), 0.0f, 1.0f);
+		const float heavy = std::clamp(hit.reducedMass / std::max(hit.ownMass * 0.1f, 0.001f), 0.0f, 1.0f);
+		const float depth = shell.dentDepth * hard * heavy;
+		if (depth < 0.002f)
+			continue;
+		const float reach = std::clamp(0.25f + 0.04f * hit.speed, 0.25f, 1.0f);
+		const JPH::Vec3 into = worldToBind.Multiply3x3(hit.into).NormalizedOr(JPH::Vec3::sAxisZ());
+		// The patch the hit covered, flat across the hit: its corners' extent along two directions in that plane.
+		const JPH::Vec3 across = into.GetNormalizedPerpendicular();
+		const JPH::Vec3 down = into.Cross(across);
+		JPH::Vec3 first = worldToBind * hit.points[0];
+		float low[2] = { FLT_MAX, FLT_MAX }, high[2] = { -FLT_MAX, -FLT_MAX };
+		for (int i = 0; i < hit.count; i++)
+		{
+			const JPH::Vec3 point = worldToBind * hit.points[i];
+			const float flat[2] = { point.Dot(across), point.Dot(down) };
+			for (int k = 0; k < 2; k++)
+			{
+				low[k] = std::min(low[k], flat[k]);
+				high[k] = std::max(high[k], flat[k]);
+			}
+		}
+		const float surface = first.Dot(into);
+		for (uint32_t i = 0; i < settings.mVertices.size(); i++)
+		{
+			auto& bind = settings.mVertices[i].mPosition;
+			JPH::Vec3 place(bind);
+			// Only the side facing what hit it: not the far side, nor a panel turned away.
+			if (i < shell.outward.size() && JPH::Vec3(shell.outward[i]).Dot(into) > 0.3f)
+				continue;
+			const float behind = place.Dot(into) - surface;
+			const float flat[2] = { place.Dot(across), place.Dot(down) };
+			float off = std::max(behind, 0.0f) * std::max(behind, 0.0f);
+			for (int k = 0; k < 2; k++)
+			{
+				const float outside = std::max({ low[k] - flat[k], flat[k] - high[k], 0.0f });
+				off += outside * outside;
+			}
+			float fade = 1.0f - std::sqrt(off) / reach;
+			if (fade <= 0)
+				continue;
+			fade = fade * fade * (3.0f - 2.0f * fade);
+			place += into * (depth * fade);
+			// Never more than three impacts deep from how it was made.
+			const JPH::Vec3 original(shell.original[i]);
+			const JPH::Vec3 moved = place - original;
+			const float limit = shell.dentDepth * 3.0f;
+			if (moved.LengthSq() > limit * limit)
+				place = original + moved.Normalized() * limit;
+			place.StoreFloat3(&bind);
+			dented = true;
+		}
+	}
+	return dented;
+}
+
+} // namespace
+
 TN_API void tn_soft_skin(JPH_PhysicsSystem* world, uint32_t bodyId, const float* objectMatrix, const float* objectNext, float step)
 {
 	static JPH::TempAllocatorMalloc temp;
@@ -697,7 +853,7 @@ TN_API void tn_soft_skin(JPH_PhysicsSystem* world, uint32_t bodyId, const float*
 			return;
 		// Asleep, with its object where it was: nothing to do, and no reason to wake it.
 		const JPH::Mat44 next = Matrix(objectNext);
-		if (shell.skinned && !body.IsActive() && next == shell.lastObject)
+		if (shell.skinned && !body.IsActive() && next == shell.lastObject && shell.hits.empty())
 			return;
 		shell.lastObject = next;
 		auto& settings = const_cast<JPH::SoftBodySharedSettings&>(*soft->GetSettings());
@@ -706,6 +862,9 @@ TN_API void tn_soft_skin(JPH_PhysicsSystem* world, uint32_t bodyId, const float*
 		const JPH::Mat44 bodyToBind = bindToBody.Inversed();
 		auto& vertices = soft->GetVertices();
 		bool dented = false;
+		if (shell.fromImpacts && !shell.hits.empty())
+			dented = DentFromHits(shell, settings, bodyToBind * body.GetInverseCenterOfMassTransform().ToMat44());
+		shell.hits.clear();
 		if (shell.skinned)
 		{
 			for (uint32_t i = 0; i < vertices.size(); i++)
@@ -721,7 +880,11 @@ TN_API void tn_soft_skin(JPH_PhysicsSystem* world, uint32_t bodyId, const float*
 				const JPH::Vec3 away = vertex.mPosition - place;
 				const float depth = -away.Dot(out);
 				const bool hit = i < shell.touched.size() && shell.touched[i] != 0;
-				if (hit && depth > shell.dentYield)
+				// How fast it is being pushed in, against the object carrying it: a crash, not something resting on it
+				// or leaning on it.
+				const JPH::Vec3 carriedNow = step > 0 ? (bindToBodyNext * JPH::Vec3(bind) - place) / step : JPH::Vec3::sZero();
+				const float inward = -(vertex.mVelocity - carriedNow).Dot(out);
+				if (hit && depth > shell.dentYield && inward >= shell.dentSpeed)
 				{
 					// Pushed in past what springs back: the rest of the way it was pushed is a dent.
 					JPH::Vec3(bodyToBind * (place + away * (1.0f - shell.dentYield / depth))).StoreFloat3(&bind);
