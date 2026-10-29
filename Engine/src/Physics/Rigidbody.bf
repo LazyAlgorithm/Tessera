@@ -130,6 +130,8 @@ class Rigidbody : Component
 
 	/// Pushes the body by a force (in newtons) through its centre, over the next physics step.
 	public void AddForce(Vector3 force) => Scene.Physics.AddForce(mBody, force);
+	/// Turns the body by a torque (newton metres about each world axis), over the next physics step.
+	public void AddTorque(Vector3 torque) => Scene.Physics.AddTorque(mBody, torque);
 	/// Pushes the body by a force at a point in the world, which also turns it.
 	public void AddForceAtPosition(Vector3 force, Vector3 worldPoint) => Scene.Physics.AddForceAtPosition(mBody, force, worldPoint);
 	/// How fast a point of the body is moving, its spin included.

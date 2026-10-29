@@ -79,6 +79,21 @@ static class Wind
 		return wind;
 	}
 
+	/// How gusty the scene's wind is (0 steady, 1 in gusts): the gustiest Global zone's Gusts.
+	public static float Gusts(Scene scene)
+	{
+		float gusts = 0;
+		for (let zone in WindZone.All)
+		{
+			if (zone.GameObject != null && !zone.GameObject.IsDestroyed && zone.Scene == scene && zone.IsActiveAndEnabled && zone.shape == .Global)
+				gusts = Math.Max(gusts, zone.gusts);
+		}
+		return gusts;
+	}
+
+	/// How rough the air is for cloth and ropes (Soft Body, Rope): some flutter always, more with gusts.
+	public static float Turbulence(Scene scene) => 0.35f + 0.65f * Gusts(scene);
+
 	/// What the renderer hands the graphics card: the scene's global wind (w: gustiness) and the four Sphere zones
 	/// nearest a point (xyz centre, w reach; and their wind).
 	public static void Gather(Scene scene, Vector3 near, out Vector4 global, ref Vector4[4] zones, ref Vector4[4] push)

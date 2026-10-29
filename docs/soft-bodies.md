@@ -23,7 +23,7 @@ Soft bodies fall, fold over and rest on colliders, and they push rigidbodies and
 | Spring Back | Shell: how far the surface springs back from, in metres. Pushed in further, it stays dented. |
 | Friction, Bounciness, Gravity Scale | As on a Rigidbody. |
 | Thickness | How far from its surface it keeps other things, in metres. |
-| Wind Drag | How much Wind Zones push it (0 not at all). Wind blows on each face by how squarely it faces the wind. |
+| Wind Drag | How much Wind Zones push it (0 not at all; cloth and jelly, not shells). Wind blows on each face by how squarely it faces the wind, drags along faces it slides past, and is gusty from place to place across the cloth (more with the Wind Zone's Gusts), so a flag streams out and flaps. |
 | Iterations | Solver passes each step: more is stiffer and costs more. |
 | Pins | The vertices held to the object, by number (`0-12 40 41`). Painted in the editor. |
 | Stiffness Map | Where it is softer than Stiffness says, by vertex (`12=0.5 13=0.25`). Painted in the editor. |
@@ -53,6 +53,16 @@ shell.Repair();                  // good as new
 ```
 
 Dents are each machine's own, as soft bodies are. To show the same dents everywhere, send `GetDents` from the server when they change (after a crash) and `SetDents` them on clients.
+
+## Flags
+
+A flag needs no scripting:
+
+1. Make a plane (a builtin plane, or a modelled one with a few rows of faces, 8 × 8 is plenty) on a pole, and give its Mesh Renderer **Back Face Culling** off so both sides show.
+2. Add a **Soft Body** (Cloth), and **Paint Pins** along the side at the pole.
+3. Add a **Wind Zone** (Global) to the scene, turned the way the wind blows. Strength 1 is a breeze, 3 a strong wind; Gusts sets how much it comes and goes.
+
+It streams out from the pole and flaps. **Wind Drag** on the Soft Body sets how much the wind moves it.
 
 ## Pins
 
@@ -98,7 +108,7 @@ Each end is tied on its own:
 
 - **Start Attached To**: what the first end is on. Empty: this object holds it, or nothing does with **Hold Start** off.
 - **End Attached To**: what the other end is on. Empty: it hangs free.
-- **Start Offset** / **End Offset**: where on each object, relative to it.
+- **Start Offset** / **End Offset**: where on each object, relative to it. Left at zero, the rope ties onto the object's surface where it faces along the rope (from its Box Collider, or its mesh): the top of a crate hanging from it, the front of a car being towed.
 
 Any object will do: a player, a vehicle, a bone's child, a crate, an empty. An end follows its object wherever it goes. When either end is on a dynamic Rigidbody, the rope also pulls on it: the ends can get no further apart than **Length** (and it goes slack when they come closer), so it holds a crate up, swings it, and is pulled tight by it. A rope between two objects without Rigidbodies (or kinematic ones) just hangs between them.
 
@@ -110,6 +120,10 @@ Any object will do: a player, a vehicle, a bone's child, a crate, an empty. An e
 | Segments | How many lengths it is made of; 0 is about one per 10 cm. |
 | Bend Stiffness | 0 a limp rope, 1 a stiff cable. |
 | Damping, Friction | As on a Rigidbody. |
+| Knot Stiffness | How firmly a body on an end is held in line with the rope, as a knot does: tipped back and kept from spinning round. 0 lets it turn freely about where it is tied. Only acts while the rope pulls. |
+| Wraps Around | The pull goes round what the rope lies over instead of straight between the ends: a rope over a beam or branch works as a pulley. |
+| Break Force | Pulled harder than this (newtons), it snaps in two, each half staying on its end. 0 never. |
+| Wind Drag | How much Wind Zones push it. |
 | Iterations | Solver passes each step; more is firmer. |
 
 Towing and lifting from code:
@@ -123,6 +137,13 @@ let tow = Rope.Attach(truck, car, .(0, 0.4f, -2.2f), .(0, 0.4f, 2.1f));
 if (sling.IsTaut && sling.Pull > 5000)
 	sling.Release();        // drop it: the far end lets go and hangs free
 
+// A rope laid over a beam (it is as long as the path), pulling round it.
+let hoist = Rope.Attach(counterweight, cargo);
+hoist.wrapsAround = true;
+hoist.LayAlong(scope Vector3[](counterweight.Transform.Position, beamLeft, beamRight, cargo.Transform.Position));
+
+let other = sling.Snap();       // snap it now (Break Force does this by itself); other is the half on the crate
+
 tow.AttachEnd(trailer.Transform, .(0, 0.5f, 2));   // tie the far end to something else
 tow.AttachStart(player.Transform);                  // or the near end
 Scene.Active.Destroy(tow.GameObject);               // or let go of both
@@ -130,7 +151,7 @@ Scene.Active.Destroy(tow.GameObject);               // or let go of both
 
 `Points` has where each point of the rope is now, from start to end. When an object an end is tied to is destroyed, that end lets go.
 
-The pull acts along the straight line between the two ends. A rope thrown over a beam still lies on the beam, but it holds as though it went straight from end to end, not as a pulley. A rope is local to each machine like other soft bodies: in multiplayer, tie it to the same networked objects everywhere (the objects are synced, so the rope looks the same).
+The pull acts along the straight line between the two ends, unless **Wraps Around** is on: then it runs through the first and last places where the rope presses on something (the rope on top of a beam, not one lying along the floor), so lifting one end lowers the other. What it wraps round must hold still (static, or kinematic); a body it lies over is pressed by the rope but not pulled by the pulley. A rope is local to each machine like other soft bodies: in multiplayer, tie it to the same networked objects everywhere (the objects are synced, so the rope looks the same).
 
 ## Networking
 
@@ -138,8 +159,8 @@ Each machine simulates its own soft bodies. Pinned cloth follows its object, so 
 
 ## Limits
 
-- Cloth does not tear, and ropes do not snap by themselves (use `Pull` and `Release` for that).
-- A rope's pull runs straight between its ends: it does not work as a pulley over things it lies on.
+- Cloth does not tear.
+- A wrapped rope's pull is worked out from where it touches each step. Something swung hard into what it wraps round can knock it off, as with a real rope.
 - Pins hold vertices to their object, not to a bone directly. Put the soft body on an object parented to the bone.
 - Soft bodies meet each other through a proxy: a closed body (jelly, shell) near another soft body gets a copy of its surface, rebuilt each step, that other soft bodies collide with (rays, shape queries, rigid bodies and characters ignore it). Of two closed bodies, only one is pushed by the other: the one underneath does not feel the weight of one resting on it. Cloth does not meet cloth.
 - A sphere with poles (many thin faces meeting at a point) shivers at very high pressures (300 and more); more Iterations calm it, or use an evenly meshed sphere.

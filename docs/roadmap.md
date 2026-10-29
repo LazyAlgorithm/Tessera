@@ -336,5 +336,9 @@ Work agreed and queued, in order (see *How to use this page* above for what "don
   bend and twist) with long-range limits from held ends so long ropes do not stretch; each end tied to any object
   on its own (Start/End Attached To, offsets), or free; a distance tie between the ends' bodies carries the pull, so
   ropes hold up, swing, tow and lift Rigidbodies (`Rope.Attach`, AttachStart/AttachEnd/Release, Pull, IsTaut);
-  drawn as a tube; meets colliders, rigidbodies and soft bodies' proxies. `Tests/SoftBodies`.
+  drawn as a tube; meets colliders, rigidbodies and soft bodies' proxies. `Tests/SoftBodies`. Then (2026-10-29): Wraps
+  Around (a Jolt pulley through the first and last points pressing on something), Break Force and Snap, LayAlong,
+  ends tied on the surface facing along the rope when the offset is zero, Knot Stiffness (held in line with the rope,
+  no free spin, while taut); wind on cloth (per-face gusts and flutter, drag along faces: flags), jelly and ropes;
+  Mesh Renderer Back Face Culling (off draws both sides, the back lit as its own side).
 - [ ] Real-time water simulation (not started: to be described and agreed before work begins).
