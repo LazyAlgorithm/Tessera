@@ -263,6 +263,9 @@ class ConvexCollider : Collider
 {
 	/// Wrap the model hierarchy when the body is on a parent rather than the mesh object.
 	public bool includeChildren = false;
+	/// Points to wrap in place of the renderer's mesh (a dented shell's shape: SoftBody sets it). Not kept with the
+	/// scene. Rebuild the Rigidbody's body after changing it.
+	public Mesh HullMesh { get; set; }
 	Mesh mHierarchyMesh ~ delete _;
 	void CollectHull(GameObject object)
 	{
@@ -292,6 +295,11 @@ class ConvexCollider : Collider
 		ShapeDesc desc = default;
 		desc.kind = .ConvexHull;
 		desc.meshScale = WorldScale;
+		if (HullMesh != null)
+		{
+			desc.mesh = HullMesh;
+			return desc;
+		}
 		if (includeChildren)
 		{
 			if (mHierarchyMesh == null)

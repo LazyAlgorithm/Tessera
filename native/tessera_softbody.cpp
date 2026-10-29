@@ -114,6 +114,8 @@ struct Shell
 	// Dented by its object's hits (Impacts) rather than by being pushed in itself; the object's body, once known.
 	bool fromImpacts = false;
 	uint32_t owner = 0xFFFFFFFFu;
+	// Counts up each time it dents (or its dents are set), for tn_soft_dent_revision.
+	uint32_t revision = 0;
 	// Hits on the object since the last step, at Dent Speed or faster: where (up to four points on its surface, in
 	// the world), which way into it, how fast, and the two bodies' masses as they meet (reduced) and its own.
 	struct Hit
@@ -701,10 +703,12 @@ TN_API void tn_soft_ignore(JPH_PhysicsSystem* world, uint32_t bodyId, uint32_t i
 	else
 	{
 		touches.ignored[bodyId].push_back(ignoredBody);
-		// The first body a shell ignores is its object's: the one whose hits dent it.
+		// A shell ignores only its object's body: the one whose hits dent it (the latest, when the body is made again,
+		// as when its collider follows its dents).
 		auto shell = touches.shells.find(bodyId);
-		if (shell != touches.shells.end() && shell->second.owner == 0xFFFFFFFFu)
+		if (shell != touches.shells.end())
 		{
+			touches.shellOwners.erase(shell->second.owner);
 			shell->second.owner = ignoredBody;
 			if (shell->second.fromImpacts)
 				touches.shellOwners[ignoredBody] = bodyId;
@@ -903,7 +907,10 @@ TN_API void tn_soft_skin(JPH_PhysicsSystem* world, uint32_t bodyId, const float*
 		}
 		std::fill(shell.touched.begin(), shell.touched.end(), 0);
 		if (dented)
+		{
 			RestLengthsFromBind(settings);
+			shell.revision++;
+		}
 		const JPH::Mat44 joint = body.GetInverseCenterOfMassTransform().ToMat44() * Matrix(objectNext);
 		soft->SkinVertices(body.GetCenterOfMassTransform(), &joint, 1, !shell.skinned, temp);
 		shell.skinned = true;
@@ -936,6 +943,15 @@ TN_API uint32_t tn_soft_dents(JPH_PhysicsSystem* world, uint32_t bodyId, float* 
 		moved.StoreFloat3(reinterpret_cast<JPH::Float3*>(output + i * 3));
 	}
 	return count;
+}
+
+/// How many times a shell has dented (or had its dents set): its collider follows when this changes.
+TN_API uint32_t tn_soft_dent_revision(JPH_PhysicsSystem* world, uint32_t bodyId)
+{
+	auto& touches = TouchesOf(world);
+	std::lock_guard<std::mutex> guard(touches.mutex);
+	auto found = touches.shells.find(bodyId);
+	return found == touches.shells.end() ? 0 : found->second.revision;
 }
 
 /// Sets a shell's dents (as tn_soft_dents gives them; null repairs it), moving its vertices to match.
@@ -971,6 +987,7 @@ TN_API void tn_soft_set_dents(JPH_PhysicsSystem* world, uint32_t bodyId, const f
 		}
 		RestLengthsFromBind(settings);
 		shell.skinned = false;
+		shell.revision++;
 	}
 	Bodies(world).ActivateBody(JPH::BodyID(bodyId));
 }

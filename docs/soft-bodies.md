@@ -43,8 +43,12 @@ A **Shell** holds every vertex on its place on its object, so it rides along wit
 
 Set it up like this:
 
-1. The car (or crate) has its Rigidbody and a collider (a Rigidbody only moves with a collider: a shell adds a Box Collider round the mesh to an object without one, and a Rigidbody of the Soft Body's Mass to one without that, so it falls and hits things): the shape of the mesh for From Impacts; a little inside it at the front, back and sides for From Surface. Wheels or the collider's underside hold a car up.
+1. The car (or crate) has its Rigidbody and a collider (a Rigidbody only moves with a collider: a shell adds a Convex Collider round the mesh to an object without one, and a Rigidbody of the Soft Body's Mass to one without that, so it falls and hits things): the shape of the mesh for From Impacts; a little inside it at the front, back and sides for From Surface. Wheels or the collider's underside hold a car up.
 2. Add a Soft Body, Kind Shell. The mesh needs enough vertices to dent: a few hundred for a car body.
+
+With a **Convex Collider** on the shell's object (not a Mesh Collider: those only work on things that do not move), the collider follows the dents: a fifth of a second after the denting stops, it is wrapped round the dented shape again, so a crushed front or corner is where things stop. Being convex, it follows dents that change the outline (a flattened front, a crumpled corner); a dent in the middle of a door is still met at the door's original surface. A Box Collider stays as it is.
+
+The Sandbox's player has a **Ball Launcher**: F shoots a 10 kg ball at 30 m/s where the screen's middle points, enough to dent a 100 kg shell cube about 13 cm.
 
 If it dents too easily, raise **Dent Speed** (6 or so for a sturdy truck: only real crashes dent it); lower **Dent Depth** for shallower dents.
 

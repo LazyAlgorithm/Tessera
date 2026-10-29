@@ -37,6 +37,8 @@ static class GameSetup
 		player.AddComponent<CharacterMotor>();
 		player.AddComponent<FollowCamera>();
 		player.AddComponent<CharacterAnimation>();
+		// F shoots heavy balls where the screen's middle points.
+		player.AddComponent<BallLauncher>();
 		return player;
 	}
 }

@@ -343,7 +343,8 @@ class Program
 			shell.mass = 20;
 			Run(scene, 120);
 			let rigid = crate.GetComponent<Rigidbody>();
-			ok &= Check(rigid != null && rigid.mass == 20 && crate.GetComponent<BoxCollider>() != null && Math.Abs(crate.Transform.Position.y - 0.5f) < 0.05f, scope $"a shell with no Rigidbody gets one (and a collider) and falls to the floor (at {crate.Transform.Position.y})");
+			// Dropped from 3 m it lands at about 7 m/s, past Dent Speed: its bottom dents a little, and its collider with it.
+			ok &= Check(rigid != null && rigid.mass == 20 && crate.GetComponent<ConvexCollider>() != null && crate.Transform.Position.y > 0.38f && crate.Transform.Position.y < 0.52f, scope $"a shell with no Rigidbody gets one (and a collider) and falls to the floor (at {crate.Transform.Position.y}, its bottom dented {shell.DeepestDent()} m)");
 
 			// Given a Rigidbody but no collider (which alone does not move), it gets the collider, and falls.
 			let other = scene.CreateGameObject("Crate 2");
@@ -352,7 +353,83 @@ class Program
 			other.AddComponent<Rigidbody>().mass = 20;
 			other.AddComponent<SoftBody>().kind = .Shell;
 			Run(scene, 120);
-			ok &= Check(other.GetComponent<BoxCollider>() != null && Math.Abs(other.Transform.Position.y - 0.5f) < 0.05f, scope $"a shell with a Rigidbody and no collider gets a collider and falls (at {other.Transform.Position.y})");
+			ok &= Check(other.GetComponent<ConvexCollider>() != null && other.Transform.Position.y > 0.38f && other.Transform.Position.y < 0.52f, scope $"a shell with a Rigidbody and no collider gets a collider and falls (at {other.Transform.Position.y})");
+		}
+
+		// ---- a shell's Convex Collider follows its dents ----
+		{
+			let scene = scope Scene();
+			Scene.Active = scene;
+			scene.StartPlay();
+			Floor(scene);
+			let wall = scene.CreateGameObject("Wall");
+			wall.Transform.Position = .(0, 1.5f, 8);
+			wall.AddComponent<BoxCollider>().size = .(6, 3, 1);
+			let car = scene.CreateGameObject("Car");
+			car.Transform.Position = .(0, 0.65f, 0);
+			let shellMesh = Box(.(0.9f, 0.6f, 2), 8);
+			defer delete shellMesh;
+			car.AddComponent<MeshRenderer>().RuntimeMesh = shellMesh;
+			car.AddComponent<ConvexCollider>();
+			let body = car.AddComponent<Rigidbody>();
+			body.mass = 1000;
+			let shell = car.AddComponent<SoftBody>();
+			shell.kind = .Shell;
+			Run(scene, 30);
+			for (int tick < 90)
+			{
+				if (car.Transform.Position.z < 5.4f)
+					body.Velocity = .(0, body.Velocity.y, 12);
+				scene.FixedUpdate();
+			}
+			// Backed off the wall and left to settle: the collider is wrapped round the crumpled front.
+			body.Velocity = .(0, 0, -2);
+			Run(scene, 30);
+			body.Velocity = .Zero;
+			Run(scene, 30);
+			let front = car.Transform.Position.z + 2;
+			RaycastHit hit;
+			// From just in front of the car (the wall is half a metre on).
+			let found = scene.Physics.Raycast(.(car.Transform.Position.x, car.Transform.Position.y, front + 0.3f), .(0, 0, -1), 3, out hit);
+			let inward = found ? (front + 0.3f) - hit.distance - front : 99;
+			ok &= Check(found && shell.DeepestDent() > 0.1f && inward < -0.08f && Math.Abs(inward + shell.DeepestDent()) < 0.05f, scope $"the collider follows the dents: a ray meets the crumpled front {-inward} m in (dent {shell.DeepestDent()} m)");
+			// And it keeps riding the new body: a second hit dents it further.
+			let before = shell.DeepestDent();
+			for (int tick < 60)
+			{
+				if (car.Transform.Position.z < 5.6f)
+					body.Velocity = .(0, body.Velocity.y, 10);
+				scene.FixedUpdate();
+			}
+			ok &= Check(shell.DeepestDent() > before + 0.02f, scope $"and a second crash dents it further ({before} m, then {shell.DeepestDent()} m)");
+		}
+
+		// ---- a 10 kg ball at 30 m/s (the Sandbox's Ball Launcher) dents a 100 kg shell cube ----
+		{
+			let scene = scope Scene();
+			Scene.Active = scene;
+			scene.StartPlay();
+			Floor(scene);
+			let cube = scene.CreateGameObject("Cube");
+			cube.Transform.Position = .(0, 0.5f, 0);
+			let cubeMesh = Box(.(0.5f, 0.5f, 0.5f), 8);
+			defer delete cubeMesh;
+			cube.AddComponent<MeshRenderer>().RuntimeMesh = cubeMesh;
+			let shell = cube.AddComponent<SoftBody>();
+			shell.kind = .Shell;
+			shell.mass = 100;
+			Run(scene, 30);
+			let ball = scene.CreateGameObject("Ball");
+			ball.Transform.Position = .(-4, 0.5f, 0);
+			ball.Transform.LocalScale = .(0.3f, 0.3f, 0.3f);
+			ball.AddComponent<SphereCollider>();
+			let rigid = ball.AddComponent<Rigidbody>();
+			rigid.mass = 10;
+			rigid.continuousCollision = true;
+			rigid.EnsureBody();
+			rigid.Velocity = .(30, 0, 0);
+			Run(scene, 60);
+			ok &= Check(shell.DeepestDent() > 0.05f, scope $"a 10 kg ball at 30 m/s dents a 100 kg shell cube ({shell.DeepestDent()} m)");
 		}
 
 		// ---- a flag: cloth pinned along a pole, in the wind ----
