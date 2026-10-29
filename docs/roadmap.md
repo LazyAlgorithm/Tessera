@@ -328,4 +328,7 @@ Work agreed and queued, in order (see *How to use this page* above for what "don
   follow the object, Wind Zones on cloth, a stiffness map; collision with colliders and rigidbodies both ways (a
   contact listener reports what it touched); characters walk through cloth and push it with their inner body;
   Paint Pins and Paint Stiffness brushes in the Scene view; free soft bodies on networked objects follow the
-  server and pinned cloth follows its object. Not done: tearing, permanent dents, soft-soft collision.
+  server and pinned cloth follows its object. Then (2026-10-29): the Shell kind (dents that stay, for car crashes;
+  GetDents/SetDents/Repair), jelly that sleeps, stays a cube at the new default pressure (10) and settles (wobble
+  damping, dihedral bending, mass by area), and soft bodies meeting each other through kinematic proxies. Not
+  done: tearing.

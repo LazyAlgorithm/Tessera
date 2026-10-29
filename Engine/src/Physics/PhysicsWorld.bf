@@ -874,6 +874,7 @@ class PhysicsWorld
 
 		for (let soft in mSoftBodies.Values)
 			soft.[Friend]BeforeStep(deltaTime);
+		SoftBody.[Friend]UpdateProxies(this, mSoftBodies);
 
 		LastStepError = Jolt.JPH_PhysicsSystem_Update(mSystem, deltaTime, 1, sJobSystem);
 		if (LastStepError != 0 && (mReportedStepErrors & LastStepError) != LastStepError)
@@ -948,7 +949,7 @@ class PhysicsWorld
 	}
 
 	/// Whether a body is resting and not being simulated.
-	public bool IsSleeping(uint32 bodyId) => mByBody.ContainsKey(bodyId) && !Jolt.JPH_BodyInterface_IsActive(mBodyInterface, bodyId);
+	public bool IsSleeping(uint32 bodyId) => (mByBody.ContainsKey(bodyId) || mSoftBodies.ContainsKey(bodyId)) && !Jolt.JPH_BodyInterface_IsActive(mBodyInterface, bodyId);
 
 	/// How fast a body moves, in metres a second.
 	public Vector3 GetLinearVelocity(uint32 bodyId)

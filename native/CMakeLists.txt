@@ -123,6 +123,12 @@ add_library(tessera_softbody OBJECT tessera_softbody.cpp)
 target_compile_features(tessera_softbody PRIVATE cxx_std_17)
 target_include_directories(tessera_softbody PRIVATE ${TP}/joltc/include)
 target_link_libraries(tessera_softbody PRIVATE Jolt)
+# Jolt is built without RTTI; classes derived from its own (GroupFilter) must be too.
+if(MSVC)
+	target_compile_options(tessera_softbody PRIVATE /GR-)
+else()
+	target_compile_options(tessera_softbody PRIVATE -fno-rtti)
+endif()
 
 # ---- Opus (voice chat codec), compiled into the shim so there is no extra archive to link ----
 set(OPUS_BUILD_SHARED_LIBRARY OFF CACHE BOOL "" FORCE)

@@ -9,7 +9,11 @@ enum SoftBodyKind : int32
 	/// A sheet that hangs, folds and blows: flags, capes, curtains, sails. Pin some of it to hold it up.
 	Cloth,
 	/// A closed shape that keeps its volume by pushing out: jelly, rubber balls, soft tyres, cushions.
-	Jelly
+	Jelly,
+	/// A body that keeps its shape on its object and dents where it is hit, and stays dented: car bodies, crates,
+	/// metal panels. Put it on an object with a Rigidbody (the shell ignores that body), whose collider sits a
+	/// little inside the mesh, so the shell meets things first.
+	Shell
 }
 
 /// Makes this object's Mesh Renderer soft: its mesh is simulated as cloth or as a squashy body, which falls, folds,
@@ -35,12 +39,16 @@ class SoftBody : Component
 	/// How hard it resists bending: 0 folds freely (silk), 1 holds its shape (leather, rubber).
 	[Range(0, 1)]
 	public float bendStiffness = 0.2f;
-	/// Jelly: how hard the air inside pushes out (pascals above the air outside), whatever its size. 0 collapses,
-	/// 200 a soft cushion, 600 jelly, 2000 a firm ball.
-	public float pressure = 600;
+	/// Jelly: how hard the air inside pushes out (pascals above the air outside), whatever its size. 0 keeps its
+	/// shape by its edges alone, 10 a jelly cube, 50 a little puffed up, 200 and more blows it up into a ball.
+	public float pressure = 10;
 	/// How fast it loses speed, like moving through thick air.
 	[Range(0, 5)]
 	public float damping = 0.1f;
+	/// Jelly: how fast its wobbling dies away and how little it springs back up when it lands, without slowing it
+	/// as a whole. 0 wobbles on, 10 settles at once.
+	[Range(0, 20)]
+	public float wobbleDamping = 3;
 	public float friction = 0.4f;
 	[Range(0, 1)]
 	public float bounciness = 0;
@@ -52,15 +60,26 @@ class SoftBody : Component
 	/// Solver passes each step: more is stiffer and costs more.
 	[Range(1, 32)]
 	public int32 iterations = 5;
+	/// Shell: how far one impact can push the surface in, in metres.
+	public float dentDepth = 0.15f;
+	/// Shell: how far the surface springs back from, in metres. Pushed further than this, it stays dented.
+	public float springBack = 0.01f;
 	/// The vertices held in place, by number ("0-12 40 41"): Paint Pins in the editor writes these.
 	public String pins = new .() ~ delete _;
 	/// Where it is softer than Stiffness says, by vertex ("12=0.5 13=0.25"): painted in the editor.
 	public String stiffnessMap = new .() ~ delete _;
 
+	/// How long a jelly takes to fill with its air, in seconds.
+	const float AirTime = 0.5f;
 	/// Wind Zones' strength is a feel (1 a breeze, 6 a gale); this is how many metres a second each is.
 	const float WindSpeed = 4;
 
-	[CLink] static extern uint32 tn_soft_create(void* world, NativeConfig* config, float* positions, uint32 vertexCount, uint32* triangles, uint32 triangleCount, float* pinned, float* stiffness, float* center);
+	[CLink] static extern uint32 tn_soft_create(void* world, NativeConfig* config, float* positions, uint32 vertexCount, uint32* triangles, uint32 triangleCount, float* pinned, float* stiffness, float* center, float* objectMatrix);
+	[CLink] static extern void tn_soft_ignore(void* world, uint32 bodyId, uint32 ignoredBody);
+	[CLink] static extern void tn_soft_forget(void* world, uint32 bodyId);
+	[CLink] static extern void tn_soft_skin(void* world, uint32 bodyId, float* objectMatrix, float* objectNext, float step);
+	[CLink] static extern uint32 tn_soft_dents(void* world, uint32 bodyId, float* output, uint32 capacity);
+	[CLink] static extern void tn_soft_set_dents(void* world, uint32 bodyId, float* dents, uint32 count, float* objectMatrix);
 	[CLink] static extern uint32 tn_soft_read(void* world, uint32 bodyId, float* positions, float* velocities, uint32 capacity);
 	[CLink] static extern void tn_soft_move_pinned(void* world, uint32 bodyId, uint32* indices, float* targets, uint32 count, float step);
 	[CLink] static extern void tn_soft_set_positions(void* world, uint32 bodyId, float* positions, float* velocities, uint32 count);
@@ -68,13 +87,16 @@ class SoftBody : Component
 	[CLink] static extern uint32 tn_soft_touching(void* world, uint32 bodyId, uint32* output, uint32 capacity);
 	[CLink] static extern void tn_soft_world_destroyed(void* world);
 	[CLink] static extern void tn_soft_shift(void* world, uint32 bodyId, float* offset);
+	[CLink] static extern void tn_soft_set_pressure(void* world, uint32 bodyId, float pressure);
+	[CLink] static extern void tn_soft_damp_wobble(void* world, uint32 bodyId, float rate, float step);
+	[CLink] static extern void tn_soft_proxies(void* world, uint32* bodies, int32* closed, float* reach, uint32 count);
 
 	/// native/tessera_softbody.cpp's Config, in the same order.
 	[CRepr]
 	struct NativeConfig
 	{
-		public float mass, stretch, shear, bend, pressure, damping, friction, restitution, gravityFactor, vertexRadius;
-		public int32 iterations, doubleSided, longRange, dihedral;
+		public float mass, stretch, shear, bend, pressure, damping, friction, restitution, gravityFactor, vertexRadius, dentDepth, dentYield;
+		public int32 iterations, doubleSided, longRange, dihedral, shell;
 		public uint32 layer;
 		public uint64 userData;
 	}
@@ -96,10 +118,18 @@ class SoftBody : Component
 	List<Vector3> mNormals = new .() ~ delete _;
 	// A free body's middle, from its object's position (where the middle was when it was made).
 	Vector3 mCarried;
+	// A jelly's air (Jolt's pressure: pressure times volume), let in over its first moments: all at once, it
+	// tangles the small faces round a sphere's poles.
+	float mAir;
+	float mAge;
+	// A shell's own Rigidbody, which its vertices do not collide with (uint32.MaxValue until it is found).
+	uint32 mIgnored = uint32.MaxValue;
 
 	/// The body's id in the physics world, or uint32.MaxValue before it is made.
 	public uint32 BodyId => mBody;
 	public bool HasBody => mBody != uint32.MaxValue;
+	/// Whether it has come to rest and stopped being simulated (until something touches it or its object moves).
+	public bool IsSleeping => mWorld != null && mWorld.IsSleeping(mBody);
 	/// How many vertices the simulation has (the mesh's, with its seams joined).
 	public int SimulatedVertexCount => mRest.Count;
 	/// Where each simulated vertex is now, in the world (updated every frame while it runs).
@@ -132,7 +162,11 @@ class SoftBody : Component
 	void DestroyBody()
 	{
 		if (mBody != uint32.MaxValue && mWorld != null)
+		{
+			tn_soft_forget(mWorld.[Friend]mSystem, mBody);
 			mWorld.[Friend]RemoveSoftBody(mBody);
+		}
+		mIgnored = uint32.MaxValue;
 		mBody = uint32.MaxValue;
 		mWorld = null;
 		let renderer = GetComponent<MeshRenderer>();
@@ -186,25 +220,35 @@ class SoftBody : Component
 
 		NativeConfig config = default;
 		let cloth = kind == .Cloth;
+		let shell = kind == .Shell;
 		config.mass = Math.Max(mass, 0.001f);
 		// Compliance (how far a constraint gives under force) from 1e-2 (stiffness 0) to 1e-6 (stiffness 1).
 		config.stretch = Compliance(stiffness);
 		config.shear = Compliance(stiffness * 0.9f);
-		config.bend = bendStiffness <= 0 ? -1 : Compliance(bendStiffness) * 100;
+		// A shell's shape comes from its object; bending would only fight its dents.
+		config.bend = (bendStiffness <= 0 || shell) ? -1 : Compliance(bendStiffness) * 100;
 		// Jolt's pressure is the amount of gas (pressure times volume), so the same setting holds any size alike.
-		config.pressure = cloth ? 0 : Math.Max(pressure, 0) * Volume(positions, mTriangles);
+		mAir = kind != .Jelly ? 0 : Math.Max(pressure, 0) * Volume(positions, mTriangles);
+		mAge = 0;
+		config.pressure = 0;
 		config.damping = damping;
 		config.friction = friction;
 		config.restitution = bounciness;
-		config.gravityFactor = gravityScale;
+		// A shell is carried by its object, which has the weight.
+		config.gravityFactor = shell ? 0 : gravityScale;
 		config.vertexRadius = Math.Max(thickness, 0);
+		config.dentDepth = Math.Max(dentDepth, 0.001f);
+		config.dentYield = Math.Max(springBack, 0);
+		config.shell = shell ? 1 : 0;
 		config.iterations = Math.Clamp(iterations, 1, 32);
-		config.doubleSided = cloth ? 1 : 0;
+		config.doubleSided = (cloth || shell) ? 1 : 0;
 		config.longRange = cloth ? 1 : 0;
-		config.dihedral = cloth ? 1 : 0;
+		// By the angle between faces: by distance, many thin faces meeting at a point (a sphere's poles) shiver.
+		config.dihedral = 1;
 		config.layer = PhysicsWorld.[Friend]ObjectLayer(PhysicsWorld.[Friend]LayerMoving, Transform);
 		config.userData = (uint64)GameObject.Id;
-		mBody = tn_soft_create(system, &config, positions.Ptr, (uint32)mRest.Count, mTriangles.Ptr, (uint32)(mTriangles.Count / 3), pinned.Ptr, stiffnesses.Ptr, (float*)&center);
+		var objectMatrix = toWorld;
+		mBody = tn_soft_create(system, &config, positions.Ptr, (uint32)mRest.Count, mTriangles.Ptr, (uint32)(mTriangles.Count / 3), pinned.Ptr, stiffnesses.Ptr, (float*)&center, &objectMatrix.m[0]);
 		if (mBody == uint32.MaxValue)
 		{
 			Log.Warning(scope $"Soft Body on '{GameObject.Name}': its mesh has no faces the simulation can use.");
@@ -274,7 +318,10 @@ class SoftBody : Component
 	}
 
 	/// Whether the server says where this body is: a free soft body on a networked object, on a client.
-	bool FollowsServer => mPinned.IsEmpty && Scene.Network != null && !Scene.Network.IsServer && GetComponent<NetworkIdentity>() != null;
+	bool FollowsServer => Free && Scene.Network != null && !Scene.Network.IsServer && GetComponent<NetworkIdentity>() != null;
+
+	/// A body with nothing holding it to its object, which carries its object instead.
+	bool Free => mPinned.IsEmpty && kind != .Shell;
 
 	/// The middle of the simulated vertices, as last read.
 	Vector3 Middle()
@@ -290,7 +337,7 @@ class SoftBody : Component
 	/// on a client eased towards it unless far off.
 	void FollowMovedObject()
 	{
-		if (!mPinned.IsEmpty || mPositions.Count != mRest.Count || mBody == uint32.MaxValue || mWorld == null)
+		if (!Free || mPositions.Count != mRest.Count || mBody == uint32.MaxValue || mWorld == null)
 			return;
 		let gap = Transform.Position - (Middle() - mCarried);
 		if (gap.LengthSquared < 1.0e-8f)
@@ -308,7 +355,37 @@ class SoftBody : Component
 			return;
 		let system = mWorld.[Friend]mSystem;
 		FollowMovedObject();
-		if (!mPinned.IsEmpty)
+		if (kind == .Jelly)
+			tn_soft_damp_wobble(system, mBody, wobbleDamping, step);
+		if (mAir > 0 && mAge < AirTime)
+		{
+			mAge += step;
+			tn_soft_set_pressure(system, mBody, mAir * Math.Min(mAge / AirTime, 1));
+		}
+		if (kind == .Shell)
+		{
+			var own = GetComponent<Rigidbody>();
+			for (var up = Transform.Parent; own == null && up != null; up = up.Parent)
+				own = up.GameObject.GetComponent<Rigidbody>();
+			if (mIgnored == uint32.MaxValue && own != null && own.BodyId != uint32.MaxValue)
+			{
+				mIgnored = own.BodyId;
+				tn_soft_ignore(system, mBody, mIgnored);
+			}
+			// The shell is held where its object will be once this step has moved its rigidbody.
+			var objectMatrix = Transform.LocalToWorld;
+			var objectNext = objectMatrix;
+			if (own != null && own.BodyId != uint32.MaxValue && !own.isKinematic)
+			{
+				let pivot = own.Transform.Position;
+				let spin = own.AngularVelocity;
+				let angle = spin.Length * step;
+				let turn = angle > 1.0e-6f ? Quaternion.AngleAxis(angle * Mathf.Rad2Deg, spin / spin.Length) : Quaternion.Identity;
+				objectNext = Matrix4.Translate(pivot + own.Velocity * step) * Matrix4.Rotation(turn) * Matrix4.Translate(-pivot) * objectMatrix;
+			}
+			tn_soft_skin(system, mBody, &objectMatrix.m[0], &objectNext.m[0], step);
+		}
+		else if (!mPinned.IsEmpty)
 		{
 			let toWorld = Transform.LocalToWorld;
 			mTargets.Clear();
@@ -332,6 +409,24 @@ class SoftBody : Component
 				tn_soft_wind(system, mBody, (float*)&wind, windDrag, step);
 			}
 		}
+	}
+
+	/// Before each physics step: closed soft bodies near other soft bodies get proxies, surfaces the others can meet
+	/// (the physics engine only has soft bodies meet rigid bodies).
+	static void UpdateProxies(PhysicsWorld world, Dictionary<uint32, SoftBody> bodies)
+	{
+		if (bodies.Count < 2)
+			return;
+		let ids = scope List<uint32>(bodies.Count);
+		let closed = scope List<int32>(bodies.Count);
+		let reach = scope List<float>(bodies.Count);
+		for (let (id, soft) in bodies)
+		{
+			ids.Add(id);
+			closed.Add(soft.kind == .Cloth ? 0 : 1);
+			reach.Add(Math.Max(soft.thickness, 0.005f) * 2 + 0.05f);
+		}
+		tn_soft_proxies(world.[Friend]mSystem, ids.Ptr, closed.Ptr, reach.Ptr, (uint32)ids.Count);
 	}
 
 	public override void LateUpdate()
@@ -362,7 +457,7 @@ class SoftBody : Component
 			mNormals[c] = mNormals[c] + normal;
 		}
 		// A free body carries its object (where the server says it is, on a client).
-		if (mPinned.IsEmpty && !FollowsServer)
+		if (Free && !FollowsServer)
 			Transform.Position = Middle() - mCarried;
 		let toLocal = Transform.WorldToLocal;
 		for (int v < mMesh.Vertices.Count)
@@ -388,6 +483,49 @@ class SoftBody : Component
 		let count = tn_soft_touching(mWorld.[Friend]mSystem, mBody, &found, 64);
 		for (int i < count)
 			output.Add(found[i]);
+	}
+
+	/// A shell's dents: for each simulated vertex, how far it has been pushed from where it was made, in the object's
+	/// own space. Empty for other kinds. Save these, or send them, and give them back with SetDents.
+	public void GetDents(List<Vector3> output)
+	{
+		output.Clear();
+		if (kind != .Shell || mBody == uint32.MaxValue || mWorld == null)
+			return;
+		output.Resize(mRest.Count);
+		let count = tn_soft_dents(mWorld.[Friend]mSystem, mBody, (float*)output.Ptr, (uint32)output.Count);
+		output.Resize(count);
+	}
+
+	/// Dents a shell as GetDents gave them (one for each simulated vertex).
+	public void SetDents(Span<Vector3> dents)
+	{
+		if (kind != .Shell || mBody == uint32.MaxValue || mWorld == null)
+			return;
+		var objectMatrix = Transform.LocalToWorld;
+		tn_soft_set_dents(mWorld.[Friend]mSystem, mBody, (float*)dents.Ptr, (uint32)dents.Length, &objectMatrix.m[0]);
+		ReadBack();
+	}
+
+	/// Takes every dent out of a shell.
+	public void Repair()
+	{
+		if (kind != .Shell || mBody == uint32.MaxValue || mWorld == null)
+			return;
+		var objectMatrix = Transform.LocalToWorld;
+		tn_soft_set_dents(mWorld.[Friend]mSystem, mBody, null, 0, &objectMatrix.m[0]);
+		ReadBack();
+	}
+
+	/// How deep its deepest dent is, in metres (0 for other kinds).
+	public float DeepestDent()
+	{
+		let dents = scope List<Vector3>();
+		GetDents(dents);
+		float deepest = 0;
+		for (let dent in dents)
+			deepest = Math.Max(deepest, dent.Length);
+		return deepest;
 	}
 
 	/// Puts the simulated vertices at places in the world, still (a network correction, or a reset).
