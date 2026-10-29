@@ -15,6 +15,7 @@ libraries = [
     ('bimg', 'Image library used by bgfx', tp / 'bgfx.cmake/bimg/LICENSE'),
     ('SDL 3', 'Windows, input and gamepads', tp / 'SDL/LICENSE.txt'),
     ('Jolt Physics', 'Physics', root / 'build/native/_deps/joltphysics-src/LICENSE'),
+    ('Recast Navigation', 'Polygon navigation baking and Detour path queries', tp / 'recastnavigation/License.txt'),
     ('JoltC', 'C interface to Jolt Physics', tp / 'joltc/LICENSE'),
     ('ENet', 'Network transport', tp / 'enet/LICENSE'),
     ('miniaudio', 'Audio', tp / 'miniaudio/LICENSE'),
@@ -24,6 +25,7 @@ libraries = [
     ('ImGuizmo', 'Editor gizmos', tp / 'ImGuizmo/LICENSE'),
     ('ImGuiColorTextEdit', 'Editor code view', tp / 'TextEdit/LICENSE'),
     ('cgltf', 'glTF model loading', tp / 'cgltf/LICENSE'),
+    ('Assimp', 'Editor model converter (FBX, OBJ, DAE, STL, PLY, 3DS)', tp / 'assimp/LICENSE'),
     ('stb', 'Image and font loading', tp / 'stb/LICENSE'),
 ]
 out = ['Third-party software in Tessera', '=' * 31, '',

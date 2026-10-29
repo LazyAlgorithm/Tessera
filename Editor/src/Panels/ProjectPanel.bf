@@ -35,12 +35,21 @@ extension EditorApp
 	ProjectFolderMonitor mFolderMonitor = new .() ~ delete _;
 	ScriptComponentCatalog mScriptCatalog = new .() ~ delete _;
 	Stopwatch mFolderScanClock = new .(true) ~ delete _;
+	bool mModelsScanned;
 
 	void PollProjectFolders()
 	{
+		ModelImport.Update();
 		if (mFolderScanClock.ElapsedMilliseconds < 1000) return;
 		mFolderScanClock.Restart();
+		// FBX, OBJ, ... converted to glTF when first seen and whenever they change (docs/model-import.md).
+		if (!mModelsScanned)
+		{
+			mModelsScanned = true;
+			ModelImport.Scan();
+		}
 		if (!mFolderMonitor.Poll(Assets.ProjectPath)) return;
+		ModelImport.Scan();
 		mScriptCatalog.Refresh(Assets.ProjectPath, Project.Current.Name);
 		if (!Directory.Exists(mBrowsePath))
 			mBrowsePath.Set(Assets.ProjectPath);
@@ -65,13 +74,14 @@ extension EditorApp
 		return false;
 	}
 
-	static bool IsModelFile(StringView path) => HasExtension(path, ".glb", ".gltf", ".tmesh");
+	static bool IsModelFile(StringView path) => Assets.IsModelPath(path);
 	static bool IsImageFile(StringView path) => HasExtension(path, ".png", ".jpg", ".jpeg", ".tga", ".bmp");
 	static bool IsAudioFile(StringView path) => HasExtension(path, ".wav", ".ogg", ".mp3", ".flac");
 
 	/// Program.bf is generated start-up plumbing, not something to edit from the editor.
 	/// Not shown: dot files, the project's plumbing, and "Compiled" folders, which hold built shaders.
-	static bool IsHidden(StringView name) => name.StartsWith('.') || name == "Program.bf" || name == "Compiled";
+	// A converted model's import settings (docs/model-import.md) are shown in its Inspector, not as a file of their own.
+	static bool IsHidden(StringView name) => name.StartsWith('.') || name == "Program.bf" || name == "Compiled" || (name.EndsWith(".import") && Assets.IsConvertedModel(name.Substring(0, name.Length - 7)));
 
 	void ToRelative(StringView full, String outRelative)
 	{

@@ -131,6 +131,26 @@ static void hrtf_process(ma_node* pNode, const float** ppFramesIn, ma_uint32* pF
     const int moved = target != node->current || delayLeft != node->currentDelayLeft || delayRight != node->currentDelayRight;
     const float panLeft = node->panLeft, panRight = node->panRight;
     (void)pFrameCountIn;
+    if (strength <= 0.0f) {
+        // Plain panning (HRTF off): the history is still kept, so turning it on mid-sound has something to hear.
+        const float startLeft = node->currentPanLeft, startRight = node->currentPanRight;
+        const float stepLeft = (panLeft - startLeft) / (float)count, stepRight = (panRight - startRight) / (float)count;
+        int head = node->head;
+        for (ma_uint32 i = 0; i < count; ++i) {
+            const float sample = input != NULL ? input[i] : 0.0f;
+            node->history[head] = sample;
+            head = (head + 1) & (TN_HRTF_RING - 1);
+            output[i * 2] = sample * (startLeft + stepLeft * (float)(i + 1));
+            output[i * 2 + 1] = sample * (startRight + stepRight * (float)(i + 1));
+        }
+        node->head = head;
+        node->current = target;
+        node->currentDelayLeft = delayLeft;
+        node->currentDelayRight = delayRight;
+        node->currentPanLeft = panLeft;
+        node->currentPanRight = panRight;
+        return;
+    }
     for (ma_uint32 i = 0; i < count; ++i) {
         const float sample = input != NULL ? input[i] : 0.0f;
         const float t = (float)(i + 1) / (float)count;
@@ -213,6 +233,9 @@ typedef struct TnAudioSource {
     ma_lpf_node lowpass;
     ma_splitter_node split;
     float cutoff;
+    int group;
+    // Whether the low-pass filter and the reverb splitter are in the signal path (see source_wire).
+    int filtering, sending;
     struct TnVoiceStream* voice;   // set when the sound is fed samples as they arrive instead of read from a file
 } TnAudioSource;
 
@@ -416,10 +439,36 @@ void tn_audio_hrtf(int enabled, float strength, float headSize, float trebleDb) 
     hrtfTrebleGain = powf(10.0f, trebleDb / 20.0f) - 1.0f;
 }
 
-// Signal path of a source: sound -> [HRTF or pan] -> low-pass -> splitter -> its mixer group
-//                                                                         \-> reverb bus (by the send amount)
+// Signal path of a source: sound -> [HRTF or pan] -> [low-pass] -> [splitter] -> its mixer group
+//                                                                             \-> reverb bus (by the send amount)
+// The low-pass is in the path only while it cuts something (below 20 kHz), and the splitter only while some of the
+// source goes to the reverb: every node in the path is worked through for every block, wanted or not.
 // A positioned sound leaves miniaudio's spatializer in mono with distance, cone and Doppler applied; the HRTF node
 // then decides what each ear hears. A sound that is not positioned skips that step and stays plain stereo.
+// Puts the low-pass and the reverb splitter in the source's path or takes them out of it.
+static void source_wire(TnAudioSource* source, int filtering, int sending) {
+    sending = sending && hasReverb;
+    if (filtering == source->filtering && sending == source->sending) return;
+    source->filtering = filtering;
+    source->sending = sending;
+    ma_node* head = source->positioned ? (ma_node*)&source->hrtf : (ma_node*)&source->sound;
+    ma_node* tail = head;
+    if (filtering) {
+        ma_node_attach_output_bus(head, 0, &source->lowpass, 0);
+        tail = &source->lowpass;
+    } else
+        ma_node_detach_output_bus(&source->lowpass, 0);
+    if (sending) {
+        ma_node_attach_output_bus(tail, 0, &source->split, 0);
+        ma_node_attach_output_bus(&source->split, 0, &groups[source->group], 0);
+        ma_node_attach_output_bus(&source->split, 1, &reverb, 0);
+    } else {
+        ma_node_detach_output_bus(&source->split, 0);
+        ma_node_detach_output_bus(&source->split, 1);
+        ma_node_attach_output_bus(tail, 0, &groups[source->group], 0);
+    }
+}
+
 static TnAudioSource* source_create(const char* path, ma_data_source* data, int group, int stream, int positioned) {
     if (!ready) return NULL;
     TnAudioSource* source = (TnAudioSource*)ma_malloc(sizeof(TnAudioSource), NULL);
@@ -476,15 +525,11 @@ static TnAudioSource* source_create(const char* path, ma_data_source* data, int 
         return NULL;
     }
     if (group < 0 || group >= TN_GROUP_COUNT) group = 0;
-    if (positioned) {
-        ma_node_attach_output_bus(&source->sound, 0, &source->hrtf, 0);
-        ma_node_attach_output_bus(&source->hrtf, 0, &source->lowpass, 0);
-    } else
-        ma_node_attach_output_bus(&source->sound, 0, &source->lowpass, 0);
-    ma_node_attach_output_bus(&source->lowpass, 0, &source->split, 0);
-    ma_node_attach_output_bus(&source->split, 0, &groups[group], 0);
-    if (hasReverb) ma_node_attach_output_bus(&source->split, 1, &reverb, 0);
+    source->group = group;
+    if (positioned) ma_node_attach_output_bus(&source->sound, 0, &source->hrtf, 0);
     ma_node_set_output_bus_volume(&source->split, 1, 0.0f);
+    source->filtering = source->sending = -1;
+    source_wire(source, 0, 0);
     return source;
 }
 
@@ -690,6 +735,16 @@ void tn_audio_source_set(TnAudioSource* source, const TnAudioParams* p) {
     ma_sound_set_direction(sound, p->direction[0], p->direction[1], -p->direction[2]);
     ma_sound_set_volume(sound, p->volume);
     ma_sound_set_pitch(sound, p->pitch);
+    // At pitch 1 with no Doppler, a sound recorded at the mixer's rate needs no resampling: miniaudio would run its
+    // resampler anyway (a third of a source's mixing), so it is switched off until the pitch moves.
+    ma_uint32 rate = 0;
+    ma_sound_get_data_format(sound, NULL, NULL, &rate, NULL, 0);
+    const int bypass = p->pitch == 1.0f && (p->doppler == 0.0f || !source->positioned) && rate == ma_engine_get_sample_rate(&engine);
+    ma_engine_node* node = &sound->engineNode;
+    if (bypass != (int)ma_atomic_load_32(&node->isPitchDisabled)) {
+        if (!bypass) ma_linear_resampler_reset(&node->resampler);
+        ma_atomic_exchange_32(&node->isPitchDisabled, bypass ? MA_TRUE : MA_FALSE);
+    }
     ma_sound_set_min_distance(sound, p->minDistance);
     ma_sound_set_max_distance(sound, p->maxDistance);
     ma_sound_set_rolloff(sound, p->rolloff);
@@ -706,6 +761,7 @@ void tn_audio_source_set(TnAudioSource* source, const TnAudioParams* p) {
         ma_lpf_node_reinit(&config, &source->lowpass);
         source->cutoff = cutoff;
     }
+    source_wire(source, source->cutoff < 20000.0f, p->reverbSend > 0.0001f);
 }
 
 // Where the source is as the listener hears it, in radians: azimuth to the right of ahead, elevation upward.

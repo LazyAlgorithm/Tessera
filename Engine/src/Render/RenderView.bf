@@ -124,6 +124,12 @@ class RenderView
 	public uint32 onlyObject;
 	/// Draws the EditorOnlyObjects too (the editor's Scene and model views).
 	public bool drawEditorOnly;
+	/// Objects (by id) this view alone leaves out, or null (borrowed): what the editor's Hierarchy eyes hide from the
+	/// Scene view, while the Game view still draws them.
+	public HashSet<uint32> hiddenHere;
+
+	/// Whether this view leaves the object out by hiddenHere.
+	public bool HidesHere(GameObject gameObject) => hiddenHere != null && hiddenHere.Count > 0 && hiddenHere.Contains(gameObject.Id);
 	// The scene's baked light probes, if any.
 	LightProbeGrid mProbeGrid;
 	List<Mesh> mLightmapMeshes = new .() ~ delete _;
@@ -142,6 +148,17 @@ class RenderView
 	float mCubeAmbient;
 
 	// Statistics from the last Render call.
+	/// Every view's draws, instances, triangles and visible renderers this frame, for the Profiler (ProfilerModules
+	/// reads and clears them).
+	public static int32 FrameDrawCalls, FrameInstances, FrameTriangles, FrameVisible, FrameViews, FrameShadowTiles;
+	static ProfilerMarker sRenderMarker = .("RenderView.Render", .Rendering);
+	static ProfilerMarker sCullMarker = .("Culling", .Rendering);
+	static ProfilerMarker sSortMarker = .("Sorting", .Rendering);
+	static ProfilerMarker sShadowMarker = .("Shadows", .Rendering);
+	static ProfilerMarker sOpaqueMarker = .("Opaque", .Rendering);
+	static ProfilerMarker sDecalMarker = .("Decals", .Rendering);
+	static ProfilerMarker sTransparentMarker = .("Transparent", .Rendering);
+	static ProfilerMarker sEffectsMarker = .("Screen Effects", .Rendering);
 	public int32 DrawCalls;
 	public int32 Instances;
 	public int32 Triangles;
@@ -320,6 +337,16 @@ class RenderView
 		if (!mSceneFb.Valid)
 			return;
 		RenderResources.EnsureCreated();
+		sRenderMarker.Begin();
+		defer
+		{
+			Profiler.End();
+			FrameDrawCalls += DrawCalls;
+			FrameInstances += Instances;
+			FrameTriangles += Triangles;
+			FrameVisible += VisibleRenderers;
+			FrameViews++;
+		}
 		DrawCalls = 0;
 		Instances = 0;
 		Triangles = 0;
@@ -343,6 +370,7 @@ class RenderView
 		for (let tile in mLights.Tiles)
 			shadowRange = Math.Max(shadowRange, (tile.light.Transform.Position - camera.position).Length + tile.light.range);
 		mOcclusionOn = camera.occlusionCulling && !camera.orthographic;
+		sCullMarker.Begin();
 		if (mOcclusionOn)
 		{
 			if (mOcclusion == null)
@@ -358,8 +386,11 @@ class RenderView
 		Wind.Gather(scene, camera.position, out mWind, ref mWindZone, ref mWindPush);
 		FoliageBender.Gather(scene, camera.position, ref mBender, ref mBenderPush);
 		VisibleRenderers = (int32)(mItems.Count + mViewmodelItems.Count);
-		SortItems();
+		Profiler.End();
+		using (sSortMarker.Sample())
+			SortItems();
 
+		sShadowMarker.Begin();
 		if (castShadows)
 			DrawShadowCascades(camera, lightDirection, env.shadowDistance * ShadowDistanceScale);
 		else
@@ -369,13 +400,20 @@ class RenderView
 		}
 		if (mHasLocalShadows)
 			DrawLocalShadows();
-		DrawScene(scene, camera, frustum, env);
+		Profiler.End();
+		FrameShadowTiles += (int32)mLights.Tiles.Count;
+		using (sOpaqueMarker.Sample())
+			DrawScene(scene, camera, frustum, env);
 		mDepthDrawn = false;
-		DrawDecals(scene, camera, frustum);
-		DrawTransparent(camera);
+		using (sDecalMarker.Sample())
+			DrawDecals(scene, camera, frustum);
+		using (sTransparentMarker.Sample())
+			DrawTransparent(camera);
 		if (Capture)
 			return;
 		DrawViewmodel(camera);
+		sEffectsMarker.Begin();
+		defer Profiler.End();
 		let picture = DrawScreenEffects(camera, env);
 		let bloom = Math.Max(env.bloom, 0);
 		let drawsBloom = bloom > MinimumEffect;
@@ -474,12 +512,12 @@ class RenderView
 			// Outside the scene's world state: not drawn and casts no shadow.
 			if (!renderer.IsActiveAndEnabled || !renderer.GameObject.InActiveWorld)
 				continue;
-			if (hideRenderers || (HiddenObjects.Count > 0 && HiddenObjects.Contains(renderer.GameObject.Id)) || (onlyObject != 0 && renderer.GameObject.Id != onlyObject && !EditorOnlyObjects.Contains(renderer.GameObject.Id)))
+			if (hideRenderers || HidesHere(renderer.GameObject) || (HiddenObjects.Count > 0 && HiddenObjects.Contains(renderer.GameObject.Id)) || (onlyObject != 0 && renderer.GameObject.Id != onlyObject && !EditorOnlyObjects.Contains(renderer.GameObject.Id)))
 				continue;
 			if (!drawEditorOnly && EditorOnlyObjects.Count > 0 && EditorOnlyObjects.Contains(renderer.GameObject.Id))
 				continue;
 			// A renderer with parts draws each with its own material; otherwise its one mesh (a "part" of its own).
-			let parts = renderer.RuntimeParts;
+			let parts = renderer.DrawnParts;
 			let hasParts = parts != null && parts.Count > 0;
 			let partCount = hasParts ? parts.Count : 1;
 			// Baked lighting: the meshes with lightmap coordinates, made the first time (LightmapUV).
@@ -511,26 +549,26 @@ class RenderView
 				let bounds = mesh.Bounds.Transformed(item.world);
 				item.center = bounds.Center;
 				item.radius = bounds.Extents.Length;
-				item.probe = Reflections.Pick(item.center, item.radius);
-				item.key = ProbeKey(MakeKey(renderer, mesh, item.material), item.probe) * 2 + (Mirrored(item.world) ? 1u : 0u);
 				let transparent = IsTransparent(renderer, item.material);
 				// The viewmodel: drawn in a pass of its own after the world (no culling: it is a few things at the eye).
 				let viewmodel = DrawsAsViewmodel(camera, renderer.GameObject);
-				if (viewmodel)
+				let drawn = !shadowOnly && (viewmodel || (frustum.Intersects(bounds) && (!mOcclusionOn || mOcclusion.IsVisible(bounds))));
+				let shadowAllowed = !viewmodel || camera.viewmodelCastsShadows;
+				let shadow = !transparent && castShadows && renderer.castShadows && shadowAllowed && (item.center - camera.position).Length - item.radius < shadowRange;
+				// Out of view and casting no shadow here: nothing more to work out.
+				if (!drawn && !shadow)
+					continue;
+				item.probe = Reflections.Pick(item.center, item.radius);
+				item.key = ProbeKey(MakeKey(renderer, mesh, item.material), item.probe) * 2 + (Mirrored(item.world) ? 1u : 0u);
+				if (drawn)
 				{
-					if (!shadowOnly)
-					{
+					if (viewmodel)
 						(transparent ? mViewmodelTransparent : mViewmodelItems).Add(item);
-						renderer.LastDrawnFrame = Time.FrameCount;
-					}
-				}
-				else if (!shadowOnly && frustum.Intersects(bounds) && (!mOcclusionOn || mOcclusion.IsVisible(bounds)))
-				{
-					(transparent ? mTransparentItems : mItems).Add(item);
+					else
+						(transparent ? mTransparentItems : mItems).Add(item);
 					renderer.LastDrawnFrame = Time.FrameCount;
 				}
-				let shadowAllowed = !viewmodel || camera.viewmodelCastsShadows;
-				if (!transparent && castShadows && renderer.castShadows && shadowAllowed && InShadowRange(item, camera, shadowRange))
+				if (shadow)
 				{
 					mShadowItems.Add(item);
 					renderer.LastDrawnFrame = Time.FrameCount;
@@ -560,7 +598,7 @@ class RenderView
 		{
 			if (foliage.GameObject == null || foliage.GameObject.IsDestroyed || foliage.Scene != scene)
 				continue;
-			if (!foliage.IsActiveAndEnabled || !foliage.GameObject.InActiveWorld)
+			if (!foliage.IsActiveAndEnabled || !foliage.GameObject.InActiveWorld || HidesHere(foliage.GameObject))
 				continue;
 			let mesh = foliage.Mesh;
 			if (mesh == null || !mesh.HasGpuData)
@@ -667,8 +705,17 @@ class RenderView
 	void SubmitBackToFront(uint16 view, List<RenderItem> items, Vector3 eye)
 	{
 		items.Sort(scope (a, b) => (b.center - eye).LengthSquared <=> (a.center - eye).LengthSquared);
-		for (int i < items.Count)
-			SubmitBatch(view, items, i, 1, false, true);
+		// Neighbours in that order that could share a batch are one instanced draw: instances blend in order, so the
+		// order holds.
+		int start = 0;
+		while (start < items.Count)
+		{
+			int end = start + 1;
+			while (end < items.Count && items[end].key == items[start].key)
+				end++;
+			SubmitBatch(view, items, start, end - start, false, true);
+			start = end;
+		}
 	}
 
 	/// Whether an object is drawn in the viewmodel pass for this camera (Camera.viewmodelLayer) rather than with the world.
@@ -699,8 +746,7 @@ class RenderView
 			key = key * 1099511628211 ^ (uint64)shared.Revision;
 			return key;
 		}
-		key = key * 1099511628211 ^ (uint64)(uint32)(renderer.metallic * 255.0f);
-		key = key * 1099511628211 ^ (uint64)(uint32)(renderer.roughness * 255.0f);
+		// Metallic and roughness travel with each instance (FillInstances), so they do not split batches.
 		key = key * 1099511628211 ^ (uint64)((renderer.flatShading ? 1 : 0) | (renderer.unlit ? 2 : 0));
 		key = key * 1099511628211 ^ (uint64)renderer.ActiveTexture.idx;
 		if (renderer.emissiveIntensity > 0)
@@ -752,7 +798,9 @@ class RenderView
 		bgfx.InstanceDataBuffer buffer = default;
 		bgfx.alloc_instance_data_buffer(&buffer, (uint32)drawCount, stride);
 		FillInstances((InstanceData*)buffer.data, items, start, drawCount);
-		let wire = !shadowPass && shading == .Wireframe;
+		// The editor's own objects (reference images) keep their look in every shading.
+		let shaded = shading != .Rendered && !EditorOnlyObjects.Contains(items[start].renderer.GameObject.Id);
+		let wire = !shadowPass && shaded && shading == .Wireframe;
 		if (wire)
 		{
 			// Black lines, coloured by their glow alone (see ApplyShading).
@@ -791,7 +839,8 @@ class RenderView
 		SetFrameUniforms();
 		Reflections.Bind(first.probe, mReflectionIntensity, mCubeAmbient);
 		var surface = ResolveSurface(renderer, first.material, first.world);
-		ApplyShading(ref surface);
+		if (shaded)
+			ApplyShading(ref surface);
 		SetLightmapUniforms(renderer, first.mesh);
 		SetSurfaceUniforms(renderer, ref surface);
 		if (lines)
@@ -838,6 +887,8 @@ class RenderView
 	}
 
 	/// Each instance's world matrix and colour: the renderer's colour, times the item's tint and the material's colour.
+	/// Without a material, the renderer's metallic and roughness go in the matrix's bottom row, which is always
+	/// (0, 0, 0, 1) and which the shaders rebuild (vs_mesh.sc): with 1 in the third place to say they are there.
 	static void FillInstances(InstanceData* data, List<RenderItem> items, int start, int count)
 	{
 		for (int i < count)
@@ -845,6 +896,12 @@ class RenderView
 			let item = items[start + i];
 			let color = item.renderer.color;
 			data[i].world = item.world;
+			if (item.material == null)
+			{
+				data[i].world.m[3] = item.renderer.metallic;
+				data[i].world.m[7] = item.renderer.roughness;
+				data[i].world.m[11] = 1;
+			}
 			data[i].color = .(color.r * item.tint.r, color.g * item.tint.g, color.b * item.tint.b, color.a * item.tint.a);
 			let material = item.material;
 			if (material != null)
@@ -935,7 +992,7 @@ class RenderView
 		let stride = (uint16)sizeof(InstanceData);
 		for (let system in scene.Particles)
 		{
-			if (!system.IsActiveAndEnabled || system.AliveCount == 0 || !system.GameObject.InActiveWorld)
+			if (!system.IsActiveAndEnabled || system.AliveCount == 0 || !system.GameObject.InActiveWorld || HidesHere(system.GameObject))
 				continue;
 			let mesh = Assets.GetMesh(system.mesh);
 			if (mesh == null || !mesh.HasGpuData || !frustum.Intersects(system.WorldBounds))

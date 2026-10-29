@@ -693,8 +693,28 @@ tn_gltf_scene* tn_gltf_load(const char* path)
 				dst->doubleSided = material->double_sided ? 1 : 0;
 			}
 
-			// A skinned mesh is placed by its bones; the node's own transform does not apply.
-			if (dst->joints != NULL) tn_identity(dst->world);
+			// A skinned mesh is placed by its bones; the node's own transform does not apply. Read as a plain mesh, it
+			// stands where the bones put it at rest: the first joint's world transform times its inverse bind matrix
+			// (an FBX whose skeleton is scaled from centimetres to metres comes in at its real size).
+			if (dst->joints != NULL)
+			{
+				tn_identity(dst->world);
+				const cgltf_skin* skin = node->skin;
+				if (skin != NULL && skin->joints_count > 0)
+				{
+					float jointWorld[16], inverseBind[16];
+					cgltf_node_transform_world(skin->joints[0], jointWorld);
+					tn_identity(inverseBind);
+					if (skin->inverse_bind_matrices != NULL) cgltf_accessor_read_float(skin->inverse_bind_matrices, 0, inverseBind, 16);
+					for (int column = 0; column < 4; column++)
+						for (int row = 0; row < 4; row++)
+						{
+							float sum = 0;
+							for (int k = 0; k < 4; k++) sum += jointWorld[k * 4 + row] * inverseBind[column * 4 + k];
+							dst->world[column * 4 + row] = sum;
+						}
+				}
+			}
 			else cgltf_node_transform_world(node, dst->world);
 			const char* name = node->name != NULL ? node->name : (node->mesh->name != NULL ? node->mesh->name : "Mesh");
 			strncpy(dst->name, name, sizeof(dst->name) - 1);

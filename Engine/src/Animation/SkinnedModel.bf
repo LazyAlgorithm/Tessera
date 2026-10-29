@@ -777,7 +777,7 @@ class SkinnedModel
 
 	/// The file's images become textures named after it: "Models/hero.glb#image2". With `images` given they are
 	/// copied out for the main thread to make into textures; otherwise they are made into textures now.
-	static void ReadImages(void* scene, StringView path, List<PendingImage> images, List<String> names)
+	public static void ReadImages(void* scene, StringView path, List<PendingImage> images, List<String> names)
 	{
 		for (int32 i < Native.tn_gltf_image_count(scene))
 		{
@@ -811,18 +811,27 @@ class SkinnedModel
 			if (existing.fileMaterial == prim.material)
 				return existing;
 		}
+		let part = new Part();
+		part.fileMaterial = prim.material;
+		part.name.Append(&prim.materialName);
+		if (part.name.IsEmpty)
+			part.name.AppendF("Part {}", Parts.Count + 1);
+		part.material = MaterialFrom(prim, imageNames, ref anyTexture);
+		Parts.Add(part);
+		return part;
+	}
+
+	/// A glTF primitive's material as an engine one: its colours, maps (the file's images, named by imageNames) and
+	/// blending. anyTexture becomes true when it has a map. Also used by Mesh Renderers (Assets.GetModelParts).
+	public static Material MaterialFrom(Native.GltfPrim* prim, List<String> imageNames, ref bool anyTexture)
+	{
 		void Image(String into, int32 index)
 		{
 			into.Clear();
 			if (index >= 0 && index < imageNames.Count)
 				into.Set(imageNames[index]);
 		}
-		let part = new Part();
-		part.fileMaterial = prim.material;
-		part.name.Append(&prim.materialName);
-		if (part.name.IsEmpty)
-			part.name.AppendF("Part {}", Parts.Count + 1);
-		let material = part.material = new Material();
+		let material = new Material();
 		material.flatShading = false;
 		material.metallic = prim.metallic;
 		material.roughness = prim.roughness;
@@ -841,8 +850,7 @@ class SkinnedModel
 		material.cutoff = prim.alphaCutoff;
 		material.doubleSided = prim.doubleSided != 0;
 		anyTexture |= !material.texture.IsEmpty || !material.normalMap.IsEmpty || !material.metallicRoughnessMap.IsEmpty || !material.occlusionMap.IsEmpty || !material.emissiveMap.IsEmpty;
-		Parts.Add(part);
-		return part;
+		return material;
 	}
 
 	/// A primitive's vertices (with up to four joints each, their weights adding to one) and triangles.

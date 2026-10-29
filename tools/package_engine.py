@@ -39,14 +39,18 @@ def main():
     shaderc = Path(f'build/{native}/bgfx/cmake/bgfx/shaderc' + ('.exe' if windows else ''))
     # texturec compresses a game's pictures when File > Build makes it.
     texturec = Path(f'build/{native}/bgfx/cmake/bimg/texturec' + ('.exe' if windows else ''))
-    for relative in [*archives, shaderc, texturec]:
+    # tessera_modelsettings applies the import settings of converted models (docs/model-import.md) in a build.
+    modelsettings = Path(f'build/{native}/tessera_modelsettings' + ('.exe' if windows else ''))
+    # tessera_modelconv converts FBX, OBJ, DAE, STL, PLY and 3DS files for the editor and builds (Assimp).
+    modelconv = Path(f'build/{native}/tessera_modelconv' + ('.exe' if windows else ''))
+    for relative in [*archives, shaderc, texturec, modelsettings, modelconv]:
         if not (root / relative).is_file():
             parser.error(f'Missing {relative}; build native dependencies first.')
     if not args.skip_build:
         # Source checkouts rebuild native changes; distributed packages already
         # contain the archives and do not need CMake or third-party source.
         if (root / 'build' / native / 'CMakeCache.txt').is_file():
-            subprocess.run(['cmake', '--build', str(root / 'build' / native), '--target', 'tessera_native', 'shaderc', 'texturec', '-j', '4'], check=True)
+            subprocess.run(['cmake', '--build', str(root / 'build' / native), '--target', 'tessera_native', 'shaderc', 'texturec', 'tessera_modelsettings', 'tessera_modelconv', '-j', '4'], check=True)
         if windows and os.name != 'nt':
             toolchain = Path(os.environ.get('TESSERA_WIN', Path.home() / '.local/share/tessera-win'))
             command = ['wine', str(toolchain / 'beef/bin/BeefBuild.exe'), '-workspace=.', f'-config={args.config}', '-platform=Win64', '-verbosity=minimal']
@@ -83,9 +87,9 @@ def main():
         for name in ('BeefSpace.toml', 'icon.png', 'THIRD_PARTY_LICENSES.txt'):
             shutil.copy2(root / name, stage / name)
         (stage / 'tools').mkdir()
-        for name in ('build_player.py', 'pack_assets.py', 'compress_textures.py', 'macos_link.py', 'reload_scripts.py', 'package_engine.py', 'toolchain.txt'):
+        for name in ('build_player.py', 'pack_assets.py', 'compress_textures.py', 'convert_models.py', 'macos_link.py', 'reload_scripts.py', 'package_engine.py', 'toolchain.txt'):
             shutil.copy2(root / 'tools' / name, stage / 'tools' / name)
-        for relative in [*archives, shaderc, texturec]:
+        for relative in [*archives, shaderc, texturec, modelsettings, modelconv]:
             destination = stage / relative
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(root / relative, destination)

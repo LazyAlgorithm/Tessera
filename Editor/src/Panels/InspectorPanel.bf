@@ -74,6 +74,8 @@ extension EditorApp
 			}
 			else if (mInspectAsset && mSelectedAsset.EndsWith(".tdata"))
 				DrawDataAssetInspector(mSelectedAsset);
+			else if (mInspectAsset && Assets.IsConvertedModel(mSelectedAsset))
+				DrawModelImportInspector(mSelectedAsset);
 			else if (selected == null)
 				DrawSceneSettings();
 			else
@@ -142,6 +144,7 @@ extension EditorApp
 			ImGui.EndTable();
 		}
 		changed |= DrawScreenEffectsSettings(env);
+		changed |= DrawStreamingSettings(env);
 		if (changed)
 			MarkDirty();
 		ImGui.Spacing();
@@ -211,6 +214,7 @@ extension EditorApp
 		ImGui.SetNextItemWidth(-1);
 		if (ImGui.InputText("##name", gameObject.Name))
 			MarkDirty();
+		DrawStreamingObject(gameObject);
 		ImGui.Spacing();
 	}
 

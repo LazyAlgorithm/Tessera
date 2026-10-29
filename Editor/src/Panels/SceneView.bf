@@ -12,6 +12,8 @@ extension EditorApp
 	void DrawSceneView()
 	{
 		ImGui.PushStyleVar(ImGui.StyleVar.WindowPadding, ImGui.Vec2(0, 0));
+		// Keeps the view's hidden objects those of the scene open now, even with the Hierarchy closed.
+		mSceneView.hiddenHere = Visibility.hidden;
 		let open = ImGui.Begin("Scene", null, ImGui.WindowFlags.NoScrollbar | ImGui.WindowFlags.NoScrollWithMouse);
 		ImGui.PopStyleVar();
 		mSceneVisible = false;
@@ -245,6 +247,8 @@ extension EditorApp
 				continue;
 			if (mSceneView.onlyObject != 0 && renderer.GameObject.Id != mSceneView.onlyObject)
 				continue;
+			if (!PickableInScene(renderer.GameObject))
+				continue;
 			let mesh = renderer.ActiveMesh;
 			if (mesh == null)
 				continue;
@@ -275,7 +279,7 @@ extension EditorApp
 		for (let component in mScene.ComponentsOfType(typeof(Decal)))
 		{
 			let decal = (Decal)component;
-			if (!decal.IsActiveAndEnabled || !decal.GameObject.InActiveWorld)
+			if (!decal.IsActiveAndEnabled || !decal.GameObject.InActiveWorld || !PickableInScene(decal.GameObject))
 				continue;
 			let volume = decal.BoxMatrix;
 			let toLocal = volume.Inverse;
@@ -310,7 +314,8 @@ extension EditorApp
 		let only = IsolatedObject;
 		for (let component in mScene.Components)
 		{
-			if (component.IsActiveAndEnabled && (only == 0 || component.GameObject.Id == only))
+			// What a Hierarchy eye hides has no gizmos either.
+			if (component.IsActiveAndEnabled && (only == 0 || component.GameObject.Id == only) && !SceneHidden(component.GameObject))
 				component.OnDrawGizmos(component.GameObject == selected);
 		}
 		// A model in edit mode shows its own edges instead of the object's box.

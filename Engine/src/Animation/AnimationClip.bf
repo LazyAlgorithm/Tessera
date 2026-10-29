@@ -31,25 +31,44 @@ class AnimationClip
 		/// Position, rotation and scale at a time. Scale multiplies the object's own; (1, 1, 1) leaves it alone.
 		public void Sample(float time, out Vector3 position, out Quaternion rotation, out Vector3 scale)
 		{
-			Sample(time, out position, out rotation);
+			position = .Zero;
+			rotation = .Identity;
 			scale = .(1, 1, 1);
 			if (keys.Count == 0)
 				return;
-			if (time <= keys[0].time || keys.Count == 1)
+			let i = After(time);
+			if (i == 0 || i == keys.Count)
 			{
-				scale = keys[0].scale;
+				let key = keys[i == 0 ? 0 : keys.Count - 1];
+				position = key.position;
+				rotation = key.rotation;
+				scale = key.scale;
 				return;
 			}
-			for (int i = 1; i < keys.Count; i++)
+			let a = keys[i - 1];
+			let b = keys[i];
+			let t = (time - a.time) / Math.Max(b.time - a.time, 1.0e-5f);
+			position = Vector3.Lerp(a.position, b.position, t);
+			rotation = Quaternion.Slerp(a.rotation, b.rotation, t);
+			scale = Vector3.Lerp(a.scale, b.scale, t);
+		}
+
+		/// The first key at or after a time (0 when the time is at or before the first key, Count when it is past the
+		/// last), found by halving.
+		int After(float time)
+		{
+			if (time <= keys[0].time || keys.Count == 1)
+				return 0;
+			int low = 1, high = keys.Count;
+			while (low < high)
 			{
-				if (time <= keys[i].time)
-				{
-					let t = (time - keys[i - 1].time) / Math.Max(keys[i].time - keys[i - 1].time, 1.0e-5f);
-					scale = Vector3.Lerp(keys[i - 1].scale, keys[i].scale, t);
-					return;
-				}
+				let middle = (low + high) >> 1;
+				if (time <= keys[middle].time)
+					high = middle;
+				else
+					low = middle + 1;
 			}
-			scale = keys.Back.scale;
+			return low;
 		}
 
 		/// Sets the key at a time, or adds one there, keeping keys in time order. Returns its index.
@@ -80,30 +99,7 @@ class AnimationClip
 
 		public void Sample(float time, out Vector3 position, out Quaternion rotation)
 		{
-			position = .Zero;
-			rotation = .Identity;
-			if (keys.Count == 0)
-				return;
-			if (time <= keys[0].time || keys.Count == 1)
-			{
-				position = keys[0].position;
-				rotation = keys[0].rotation;
-				return;
-			}
-			for (int i = 1; i < keys.Count; i++)
-			{
-				if (time <= keys[i].time)
-				{
-					let a = keys[i - 1];
-					let b = keys[i];
-					let t = (time - a.time) / Math.Max(b.time - a.time, 1.0e-5f);
-					position = Vector3.Lerp(a.position, b.position, t);
-					rotation = Quaternion.Slerp(a.rotation, b.rotation, t);
-					return;
-				}
-			}
-			position = keys.Back.position;
-			rotation = keys.Back.rotation;
+			Sample(time, out position, out rotation, let scale);
 		}
 	}
 
@@ -113,6 +109,14 @@ class AnimationClip
 	/// Frames per second the clip is edited at: the Animation window places keys on these frames.
 	public float frameRate = 60;
 	public List<Track> tracks = new .() ~ DeleteContainerAndItems!(_);
+	/// Goes up whenever a track is added or removed (code that removes one calls TracksChanged), so lookups kept by
+	/// track (the Animator's) know to look again.
+	public int32 TrackRevision { get; private set; }
+
+	public void TracksChanged()
+	{
+		TrackRevision++;
+	}
 
 	static Dictionary<String, AnimationClip> sCache = new .() ~ DeleteDictionaryAndKeysAndValues!(_);
 
@@ -134,6 +138,7 @@ class AnimationClip
 		let track = new Track();
 		track.bone.Set(bone);
 		tracks.Add(track);
+		TrackRevision++;
 		return track;
 	}
 

@@ -114,6 +114,8 @@ A sound with a subtitle file beside it (`Voice/intro.ogg` and `Voice/intro.srt`)
 
 ## How good is it
 
+Each source's mixing only does what is in use. The low-pass filter is in its path only while it cuts something (below 20 kHz), and the reverb send only while it is above 0. A sound at pitch 1 with no Doppler, recorded at the mixer's rate, skips resampling. HRTF off means plain panning. 100 looping positioned sources: 1.4 ms to 0.45 ms of mixing per 1,024 frames. HRTF costs about 0.11 ms per source per 1,024 frames.
+
 What you get from a plain build: stereo panning, optional HRTF for headphones, distance attenuation with three rolloff curves, Doppler, directional cones, per-source low-pass used for occlusion and air absorption, a stereo reverb, six mixer groups, streaming, and any number of overlapping one-off sounds.
 
 What it is not:

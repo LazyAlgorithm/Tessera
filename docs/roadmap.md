@@ -253,26 +253,43 @@ Work agreed and queued, in order (see *How to use this page* above for what "don
 - [x] Modelling views (2026-10-27, local): only the edited model's gizmos with Show Only, reference images (front,
   back, sides, top, bottom; editor views only), the Scene view's view selector (axes, perspective/orthographic), and
   Window > Model Views: four views (Top, Front, Left, Perspective) to model in, as 3ds Max has.
-- [ ] Hierarchy visibility and locks (requested 2026-10-27): an eye beside each object in the Hierarchy hides it in
+- [x] Navigation nodes (requested 2026-10-27 as a quadtree; done locally 2026-10-27, not pushed): pathfinding over
+  nodes of the navigation grid, rectangles (boxes for flying grids) of open, even floor grown as far as they go: a
+  quadtree's squares broke into steps of single cells along every wall, rectangles do not. A search crosses 23 nodes
+  on the benchmark maze instead of about 1,500 cells; the cheapest way into each neighbour is found by halving the
+  run of cells along the side. Walking paths are pulled straight through the nodes' shared edges (a funnel over the
+  unbroken run of linked steps, between the rows of cell centres either side, so no path cuts past a ledge, a wall's
+  end or a blocked cell). Blocked cells, cost areas and links split the nodes they touch, and only changed chunks are
+  rebuilt. Many agents' path requests run together on the job threads. `Engine/src/AI/NavigationNodes.bf`,
+  `NavigationData.useNodes` (on; off gives the old point-per-cell search), `Tests/Navigation` (82 checks). The
+  benchmark's 100 paths with smoothing: 21.5 ms before this work, 1.22 ms now (0.58 ms without smoothing; Unity
+  0.11 ms).
+- [x] Hierarchy visibility and locks (requested 2026-10-27; done locally 2026-10-28, not pushed; docs/scene-visibility.md): an eye beside each object in the Hierarchy hides it in
   the Scene view only (not disabled, still in the game and the Game view), as Unity's; holding the button down and
   dragging over others hides (or shows) each one passed over; on a parent it takes the children too. A lock beside it
   makes an object unpickable in the Scene view (still selectable in the Hierarchy), with the same drag. Both are kept
   per user, not in the scene.
-- [ ] Model format conversion (requested 2026-10-27): FBX, OBJ, DAE, STL, PLY, 3DS... and `.blend` files used
+  `Editor/src/Tools/SceneVisibility.bf` (a column at the left of the Hierarchy; hidden objects lose their renderers,
+  shadows, decals, foliage, particles and gizmos in the Scene and Model views only, through the new
+  `RenderView.hiddenHere`), kept in `scene_visibility_<project>.txt` per scene. Switches `--visibility-test` (logs
+  VISIBILITY-TEST PASS), `--scene-hide <name>`, `--scene-lock <name>`.
+- [x] Model format conversion (requested 2026-10-27; done locally 2026-10-28, not pushed; docs/model-import.md;
+  Assimp 6.0.2 bundled in third_party/assimp for tessera_modelconv): FBX, OBJ, DAE, STL, PLY, 3DS... and `.blend` files used
   directly in the project, as Unity does. Each is converted behind the scenes to a cached `.glb` on import and again
   when the source changes (ufbx or assimp in the editor; Blender run in the background for `.blend`, so it must be
   installed). Everything that reads models (skinning, materials, retargeting, LODs, rigging) keeps one path, and
   builds ship the converted models. Rigged models' bones, clips and materials carry over; an Inspector page shows the
   import settings (scale, axes, which clips, materials). Mesh Renderers also use a glTF's own textures (only Skinned
   Mesh Renderers do now).
-- [ ] World streaming (asked about 2026-10-27): one large open world built in the editor as one scene, split
+- [x] World streaming (asked about 2026-10-27; done locally 2026-10-28, not pushed; docs/world-streaming.md; navigation,
+  foliage and lightmaps stream with the objects that own them, light probes stay loaded): one large open world built in the editor as one scene, split
   automatically into grid cells that load and unload around the player (and every player, on a server) with no code,
   in the style of Unreal's World Partition. Cells load in the background and are added over several frames so there
   is no hitch; far cells show merged low-detail stand-ins; a floating origin keeps precision far from the centre;
   terrain, foliage, navigation and baked lighting stream per cell; objects can opt out (always loaded) and Streaming
   Sources can be added (a camera, a vehicle). The editor loads only the cells round the view, with a map to pick
   others. Builds on what exists: background loading, additive scenes, and voxel terrain's chunk streaming.
-- [ ] Profiler (requested 2026-10-27): like Unity's Profiler window, with more profilers, covering every part of the
+- [x] Profiler (requested 2026-10-27; done locally 2026-10-27, not pushed; docs/profiler.md; no allocation counts or garbage module, as Beef has neither): like Unity's Profiler window, with more profilers, covering every part of the
   engine. A timeline of frames (CPU, GPU, frame time) to scrub and pause on, a hierarchy and flame chart of the picked
   frame (every system and every script method, with calls, self and total time, allocations), and modules for
   rendering (draws, instances, triangles, passes, shadow tiles, GPU time per pass), memory (by kind and by asset,

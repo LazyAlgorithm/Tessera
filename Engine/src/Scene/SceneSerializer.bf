@@ -74,6 +74,11 @@ static class SceneSerializer
 		Number(text, "bakeProbes", env.bakeProbes ? 1 : 0, defaults.bakeProbes ? 1 : 0);
 		Number(text, "bakeProbeSpacing", env.bakeProbeSpacing, defaults.bakeProbeSpacing);
 		Number(text, "colorLookupStrength", env.colorLookupStrength, defaults.colorLookupStrength);
+		Number(text, "streaming", env.streaming ? 1 : 0, 0);
+		Number(text, "streamCellSize", env.streamCellSize, defaults.streamCellSize);
+		Number(text, "streamLoadRadius", env.streamLoadRadius, defaults.streamLoadRadius);
+		Number(text, "streamStandInRadius", env.streamStandInRadius, defaults.streamStandInRadius);
+		Number(text, "floatingOrigin", env.floatingOrigin, defaults.floatingOrigin);
 	}
 
 	/// Writes an environment number only when it differs from a new scene's.
@@ -91,9 +96,9 @@ static class SceneSerializer
 	/// Writes one object and its children; the text can be loaded with Instantiate or LoadObjects.
 	public static void SaveObjectTree(GameObject gameObject, String text) => SaveObject(gameObject, text);
 
-	static void SaveObject(GameObject gameObject, String text, bool asRoot = false)
+	static void SaveObject(GameObject gameObject, String text, bool asRoot = false, HashSet<GameObject> skip = null)
 	{
-		if (gameObject.Transient)
+		if (gameObject.Transient || (skip != null && skip.Contains(gameObject)))
 			return;
 		let transform = gameObject.Transform;
 		let parentId = (transform.Parent != null && !asRoot) ? transform.Parent.GameObject.Id : 0;
@@ -119,6 +124,8 @@ static class SceneSerializer
 		}
 		if (gameObject.WorldStates != uint32.MaxValue)
 			text.AppendF("worlds {:X8}\n", gameObject.WorldStates);
+		if (gameObject.AlwaysLoaded)
+			text.Append("alwaysloaded\n");
 
 		List<FieldRef> fields = scope .();
 		for (let component in gameObject.Components)
@@ -137,7 +144,7 @@ static class SceneSerializer
 			}
 		}
 		for (let child in transform.Children)
-			SaveObject(child.GameObject, text);
+			SaveObject(child.GameObject, text, false, skip);
 	}
 
 	public static void WriteValue(FieldRef field, String text)
@@ -255,7 +262,11 @@ static class SceneSerializer
 		for (let component in scene.Components)
 			component.OnBeforeSave();
 		let text = scope String();
-		Save(scene, text);
+		// A streamed world: the scene file holds what is always loaded, and each cell goes in a file of its own.
+		if (scene.Environment.streaming)
+			WorldStreaming.Of(scene).SaveWorld(scene, path, text);
+		else
+			Save(scene, text);
 		if (File.WriteAllText(path, text) case .Err)
 		{
 			Log.Error(scope $"Could not write scene {path}");
@@ -263,6 +274,22 @@ static class SceneSerializer
 		}
 		scene.Path.Set(path);
 		return true;
+	}
+
+	/// Writes the scene's settings and its objects but those in skip (and their children): the always-loaded part of
+	/// a streamed world.
+	public static void SaveExcept(Scene scene, HashSet<GameObject> skip, String text)
+	{
+		SaveSettings(scene, scene.Name, text);
+		for (let root in scene.Roots)
+			SaveObject(root, text, false, skip);
+	}
+
+	/// Writes objects (each with its children) keeping their parents: a streamed world's cell.
+	public static void SaveObjects(List<GameObject> objects, String text)
+	{
+		for (let object in objects)
+			SaveObject(object, text);
 	}
 
 	public static bool LoadFromFile(Scene scene, StringView path)
@@ -275,6 +302,11 @@ static class SceneSerializer
 		}
 		Load(scene, text);
 		scene.Path.Set(path);
+		// A streamed world: which cells there are, read from the scene file; the cells near the view load next.
+		if (scene.Environment.streaming)
+			WorldStreaming.Of(scene).Open(scene, path, text);
+		else if (scene.Streamer != null)
+			DeleteAndNullify!(scene.Streamer);
 		return true;
 	}
 
@@ -283,6 +315,9 @@ static class SceneSerializer
 
 	/// Adds the objects in the text to the scene, keeping their saved ids (the editor's undo uses this).
 	public static void LoadObjects(Scene scene, StringView text) => LoadInternal(scene, text, false, false);
+
+	/// LoadObjects, listing every object it made.
+	public static void LoadObjects(Scene scene, StringView text, List<GameObject> created) => LoadInternal(scene, text, false, false, created);
 
 	/// Adds a copy of saved objects with fresh ids and returns the first (root) object.
 	public static GameObject Instantiate(Scene scene, StringView text) => LoadInternal(scene, text, false, true);
@@ -308,7 +343,7 @@ static class SceneSerializer
 		}
 	}
 
-	static GameObject LoadInternal(Scene scene, StringView text, bool clear, bool remap)
+	static GameObject LoadInternal(Scene scene, StringView text, bool clear, bool remap, List<GameObject> made = null)
 	{
 		if (clear)
 		{
@@ -352,6 +387,7 @@ static class SceneSerializer
 				let id = (uint32)ParseInt(tokens[1]);
 				current = scene.CreateGameObjectWithId(tokens[7], remap ? 0 : id);
 				created[id] = current;
+				made?.Add(current);
 				if (first == null)
 					first = current;
 				current.SetActive(tokens[5] == "1");
@@ -362,6 +398,8 @@ static class SceneSerializer
 			{
 				current.IsFolder = true;
 			}
+			else if (key == "alwaysloaded" && current != null)
+				current.AlwaysLoaded = true;
 			else if (key == "layer" && current != null && tokens.Count >= 2)
 				current.Layer = ParseInt(tokens[1]);
 			else if (key == "tags" && current != null)
@@ -508,6 +546,11 @@ static class SceneSerializer
 		case "bakeProbes": env.bakeProbes = value != 0;
 		case "bakeProbeSpacing": env.bakeProbeSpacing = value;
 		case "colorLookupStrength": env.colorLookupStrength = value;
+		case "streaming": env.streaming = value != 0;
+		case "streamCellSize": env.streamCellSize = Math.Max(value, 1);
+		case "streamLoadRadius": env.streamLoadRadius = value;
+		case "streamStandInRadius": env.streamStandInRadius = value;
+		case "floatingOrigin": env.floatingOrigin = value;
 		}
 	}
 

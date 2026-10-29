@@ -91,6 +91,19 @@ class SceneEnvironment
 	/// How much of the lookup table is used: 0 none, 1 all of it.
 	public float colorLookupStrength = 1;
 
+	/// World streaming (docs/world-streaming.md): the scene is saved as a grid of cells, each in a file of its own,
+	/// and only the cells near a Streaming Source (or a camera) are loaded.
+	public bool streaming;
+	/// A cell's width and depth in metres.
+	public float streamCellSize = 64;
+	/// Cells this close to a source are loaded (and unloaded half a cell further out).
+	public float streamLoadRadius = 160;
+	/// Cells this close that are not loaded show their merged, simpler stand-in.
+	public float streamStandInRadius = 800;
+	/// Floating origin: when the first source is this far from the centre, the world is moved back round it, keeping
+	/// precision far out. 0: never. Not used in a network session.
+	public float floatingOrigin = 0;
+
 	/// The radius of the depth of field's largest blur as a share of the screen's height, at Depth Of Field 1.
 	public const float DepthOfFieldReach = 0.015f;
 
@@ -151,6 +164,11 @@ class SceneEnvironment
 		bakeProbes = other.bakeProbes;
 		bakeProbeSpacing = other.bakeProbeSpacing;
 		colorLookupStrength = other.colorLookupStrength;
+		streaming = other.streaming;
+		streamCellSize = other.streamCellSize;
+		streamLoadRadius = other.streamLoadRadius;
+		streamStandInRadius = other.streamStandInRadius;
+		floatingOrigin = other.floatingOrigin;
 	}
 }
 
@@ -171,8 +189,31 @@ class Scene
 	List<Component> mPendingStart = new .() ~ delete _;
 	List<GameObject> mDestroyQueue = new .() ~ delete _;
 	uint32 mNextId = 1;
+	/// The id the next new object gets. A streamed world keeps it in its file, so objects made while some cells are
+	/// not loaded never take the ids of objects in them.
+	public uint32 NextId
+	{
+		get => mNextId;
+		set
+		{
+			mNextId = Math.Max(mNextId, value);
+		}
+	}
+
 	bool mPlaying;
 	bool mClearing;
+	NavigationCrowdIndex mNavigationCrowd ~ delete _;
+
+	/// Where the scene's Navigation Agents stand, for steering round each other (made when the first one joins).
+	public NavigationCrowdIndex NavigationCrowd
+	{
+		get
+		{
+			if (mNavigationCrowd == null)
+				mNavigationCrowd = new .(this);
+			return mNavigationCrowd;
+		}
+	}
 
 	// Non-owning lists maintained by the components themselves in OnRegister / OnUnregister.
 	/// Every Mesh Renderer in the scene (each adds itself when it joins).
@@ -181,6 +222,10 @@ class Scene
 	public List<Light> Lights = new .() ~ delete _;
 	/// Every Camera in the scene.
 	public List<Camera> Cameras = new .() ~ delete _;
+	/// What the world streams around (docs/world-streaming.md).
+	public List<StreamingSource> StreamingSources = new .() ~ delete _;
+	/// The scene's world streaming, once it has used it (WorldStreaming.Of).
+	public WorldStreamer Streamer ~ delete _;
 	/// When set (and active), the camera the game is seen through instead of the first one: a cutscene's.
 	public Camera CameraOverride;
 	/// The camera the game is seen through: CameraOverride when it is active, otherwise the first active camera.
@@ -746,6 +791,41 @@ class Scene
 	List<Component> mDeferredStart = new .() ~ delete _;
 	bool mRunningStarts;
 
+	static ProfilerMarker sStartMarker = .("Start", .Scripts);
+	static ProfilerMarker sPreTickMarker = .("Network Pre-Tick", .Networking);
+	static ProfilerMarker sPostTickMarker = .("Network Post-Tick", .Networking);
+	static ProfilerMarker sPhysicsMarker = .("Physics.Step", .Physics);
+	static ProfilerMarker sFrameComponentsMarker = .("OnFrame (every component)", .Scripts);
+	static ProfilerMarker sUpdateMarker = .("Update (every component)", .Scripts);
+	static ProfilerMarker sLateMarker = .("LateUpdate (every component)", .Scripts);
+	static ProfilerMarker sFixedMarker = .("FixedUpdate (every component)", .Scripts);
+	static ProfilerMarker sVoiceMarker = .("VoiceChat.Update", .Audio);
+	static ProfilerMarker sAudioMarker = .("Audio.Update", .Audio);
+	static ProfilerMarker sPathsMarker = .("Navigation Paths", .AI);
+	static ProfilerMarker sIKMarker = .("IK", .Animation);
+	static ProfilerMarker sSkinMarker = .("Skinning", .Animation);
+	static ProfilerMarker sDestroyMarker = .("Destroy", .Scripts);
+
+	/// Calls one component method, timed under its type's marker when the Profiler times components.
+	[Inline]
+	void Run(Component component, ProfilerComponents.Method method)
+	{
+		Watchdog.Running = component;
+		let timed = ProfilerComponents.Timing;
+		if (timed)
+			Profiler.Begin(ProfilerComponents.MarkerFor(component, method));
+		switch (method)
+		{
+		case .FixedUpdate: component.FixedUpdate();
+		case .Update: component.Update();
+		case .LateUpdate: component.LateUpdate();
+		case .OnFrame: component.OnFrame();
+		}
+		if (timed)
+			Profiler.End();
+		Watchdog.Running = null;
+	}
+
 	/// One fixed simulation tick: gameplay FixedUpdate, then physics.
 	public void FixedUpdate()
 	{
@@ -753,20 +833,22 @@ class Scene
 			return;
 		Active = this;
 		SpawnPhaseTime += Time.FixedDeltaTime;
-		RunPendingStarts();
-		Network?.PreTick();
+		using (sStartMarker.Sample())
+			RunPendingStarts();
+		using (sPreTickMarker.Sample())
+			Network?.PreTick();
+		sFixedMarker.Begin();
 		for (int i = 0; i < mComponents.Count; i++)
 		{
 			let component = mComponents[i];
 			if (component.[Friend]mStarted && component.IsActiveAndEnabled)
-			{
-				Watchdog.Running = component;
-				component.FixedUpdate();
-				Watchdog.Running = null;
-			}
+				Run(component, .FixedUpdate);
 		}
-		Physics.Step(Time.FixedDeltaTime);
-		Network?.PostTick();
+		Profiler.End();
+		using (sPhysicsMarker.Sample())
+			Physics.Step(Time.FixedDeltaTime);
+		using (sPostTickMarker.Sample())
+			Network?.PostTick();
 		Time.Tick++;
 	}
 
@@ -775,6 +857,14 @@ class Scene
 	/// Waiting for a save before play starts (SaveSystem.LoadAtStart with a storage that answers later).
 	public bool StartHeld => mStartHeld;
 
+	/// True while Update runs the components: work they ask for that can be done together (models bent on the CPU,
+	/// navigation paths) waits for the rest and is done on the job threads before Update returns. Outside it, the same
+	/// calls do their work at once.
+	public bool Updating { get; private set; }
+
+	/// How many times Update has run.
+	public int64 UpdateCount { get; private set; }
+
 	/// Runs one frame: OnFrame on every component (in the editor too), then while playing the pending Starts, Update,
 	/// LateUpdate and the end-of-frame work (destroys, IK, skinning).
 	public void Update()
@@ -782,50 +872,62 @@ class Scene
 		Active = this;
 		if (mStartHeld)
 			StartPlay();
+		UpdateCount++;
+		Updating = true;
+		defer
+		{
+			Updating = false;
+		}
+		sFrameComponentsMarker.Begin();
 		for (int i = 0; i < mComponents.Count; i++)
 		{
 			let component = mComponents[i];
 			if (component.IsActiveAndEnabled)
-			{
-				Watchdog.Running = component;
-				component.OnFrame();
-				Watchdog.Running = null;
-			}
+				Run(component, .OnFrame);
 		}
-		VoiceChat.Update(this);
-		Audio.Update(this);
+		Profiler.End();
+		using (sVoiceMarker.Sample())
+			VoiceChat.Update(this);
+		using (sAudioMarker.Sample())
+			Audio.Update(this);
 		if (mPlaying)
 		{
-			RunPendingStarts();
+			using (sStartMarker.Sample())
+				RunPendingStarts();
+			sUpdateMarker.Begin();
 			for (int i = 0; i < mComponents.Count; i++)
 			{
 				let component = mComponents[i];
 				if (component.[Friend]mStarted && component.IsActiveAndEnabled)
-				{
-					Watchdog.Running = component;
-					component.Update();
-					Watchdog.Running = null;
-				}
+					Run(component, .Update);
 			}
+			Profiler.End();
+			// Paths the agents asked for in Update, found together on the job threads.
+			using (sPathsMarker.Sample())
+				NavigationAgent.FindQueuedPaths();
+			sLateMarker.Begin();
 			for (int i = 0; i < mComponents.Count; i++)
 			{
 				let component = mComponents[i];
 				if (component.[Friend]mStarted && component.IsActiveAndEnabled)
-				{
-					Watchdog.Running = component;
-					component.LateUpdate();
-					Watchdog.Running = null;
-				}
+					Run(component, .LateUpdate);
 			}
+			Profiler.End();
 		}
 		// Inverse kinematics goes on top of whatever clips and scripts made of the pose this frame, and rigged models
 		// whose bones are objects are skinned from the result.
-		IKSystem.Solve(this);
+		using (sIKMarker.Sample())
+			IKSystem.Solve(this);
+		sSkinMarker.Begin();
 		SkinnedMeshRenderer.SkinFromBones(this);
+		SkinnedMeshRenderer.FinishCpuSkinning();
+		Profiler.End();
+		sDestroyMarker.Begin();
 		while (mDestroyQueue.Count > 0)
 		{
 			let gameObject = mDestroyQueue.PopBack();
 			DestroyImmediate(gameObject);
 		}
+		Profiler.End();
 	}
 }

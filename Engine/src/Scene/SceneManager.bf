@@ -169,6 +169,8 @@ static class SceneManager
 			changed |= load.[Friend]Step(scene);
 		}
 		changed |= ApplyPending(scene);
+		// A streamed world's cells round the players (docs/world-streaming.md).
+		WorldStreaming.Update(scene);
 		return changed;
 	}
 
@@ -186,6 +188,11 @@ static class SceneManager
 		}
 		let opened = scope String(scene.Path);
 		SceneSerializer.Load(scene, text);
+		// A streamed world: its list of cells (docs/world-streaming.md), which load round the players from here.
+		if (scene.Environment.streaming)
+			WorldStreaming.Of(scene).Open(scene, Assets.ResolvePath(path, .. scope .()), text);
+		else if (scene.Streamer != null)
+			DeleteAndNullify!(scene.Streamer);
 		scene.Path.Set(opened);
 		sCurrent.Set(path);
 		if (wasPlaying)

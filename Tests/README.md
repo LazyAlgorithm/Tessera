@@ -2,7 +2,7 @@
 
 Build native dependencies first using the engine's normal build setup. These fixtures use BeefBuild and the local native archives, without a display or GPU.
 
-For Layers, AnimationLayers, AsyncLoading, IK, Foliage, VoxelObject, Viewmodel, PostProcessing, SkinnedMaterials, Http, Saving, Navigation, CharacterController, BehaviorTree, Network, Audio, Voice, Animator, Material, Terrain, SpawnPoints, Achievements, References, InspectorTypes, ScriptCatalog, CodeEditor, GraphApi, GraphVariables, ShapeQueries, Scenes, Joints, UIDocuments, InputActions, Retargeting, PhysicsPrediction, Decals, Dialogue, Sequencer, Culling, Quality, Modeling, GpuSkinning, Textures, Reflections, Lighting, Themes, Baking and Rigging (Textures, Reflections, Lighting, Baking and GpuSkinning also `python3 run.py` there, with a graphics card):
+For Layers, AnimationLayers, AsyncLoading, IK, Foliage, VoxelObject, Viewmodel, PostProcessing, SkinnedMaterials, Http, Saving, Navigation, NavigationMesh, CharacterController, BehaviorTree, Network, Audio, Voice, Animator, Material, Terrain, SpawnPoints, Achievements, References, InspectorTypes, ScriptCatalog, CodeEditor, GraphApi, GraphVariables, ShapeQueries, Scenes, Joints, UIDocuments, InputActions, Retargeting, PhysicsPrediction, Decals, Dialogue, Sequencer, Culling, Quality, Modeling, GpuSkinning, Textures, Reflections, Lighting, Themes, Baking, Rigging and Profiler (Textures, Reflections, Lighting, Baking and GpuSkinning also `python3 run.py` there, with a graphics card):
 
 `python3 tools/run_tests.py` builds and runs all of them (or the ones named) and reports each; `--platform macos` on a Mac.
 
@@ -11,6 +11,12 @@ BeefBuild -workspace=Tests/Navigation -config=Debug -run
 ```
 
 Use the desired fixture folder.
+
+The navigation mesh's native code also runs on its own under AddressSanitizer and UndefinedBehaviorSanitizer (needs `clang++`):
+
+```sh
+python3 Tests/NavigationMesh/sanitize.py
+```
 
 The asset pack test builds packs with `tools/pack_assets.py` and has the engine read text, bytes, an image, a model and sounds back out of them, and refuse a pack that was changed:
 

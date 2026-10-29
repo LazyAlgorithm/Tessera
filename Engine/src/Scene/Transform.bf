@@ -212,6 +212,22 @@ class Transform
 			mGameObject.Scene?.Physics.ApplyWorldState(mGameObject);
 	}
 
+	/// Sets the local pose without telling the children yet. For code that poses many transforms of one hierarchy at
+	/// once (the Animator): it then calls PoseChanged on the topmost transform it posed in each branch, so every child
+	/// below is told once instead of once for each posed transform above it. Nothing may read a world pose in between.
+	public void SetLocalPoseDeferred(Vector3 position, Quaternion rotation, Vector3 scale)
+	{
+		mLocalPosition = position;
+		mLocalRotation = rotation;
+		mLocalScale = scale;
+	}
+
+	/// Tells this transform and everything below it that the pose changed (after SetLocalPoseDeferred).
+	public void PoseChanged()
+	{
+		MarkDirty();
+	}
+
 	void MarkDirty()
 	{
 		Version++;

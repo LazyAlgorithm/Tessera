@@ -54,6 +54,12 @@ normal packages build a fresh Release launcher and stop if the compiler fails.
 
 Edit > Preferences picks the editor's theme (Tessera Blue by default, Dark, Light, High Contrast, Forest, Ember, Plum or your own), with a live picker for every colour and `.ttheme` import and export; see `docs/themes.md`.
 
+In the Hierarchy, the eye beside an object hides it from the Scene view alone, and the lock keeps clicks in the Scene view from selecting it (drag down the column to set many at once); see `docs/scene-visibility.md`.
+
+FBX, OBJ, DAE, STL, PLY, 3DS and `.blend` files work like `.glb` models: the editor converts them to glTF behind the scenes, with import settings in the Inspector, and builds ship the converted copies; see `docs/model-import.md`.
+
+Large open worlds stream: tick Stream This Scene and the scene is saved as a grid of cells that load round the players in the background, with merged stand-ins in the distance, a floating origin and a World Map in the editor; see `docs/world-streaming.md`.
+
 Play, Pause and Step are in the toolbar. Play mode never changes the saved scene. Ctrl+Z / Ctrl+Y undo and redo scene edits.
 Script edits reload automatically while the editor runs (see the script reload page). `File > Reload Scripts` (Ctrl+R) forces a reload, `File > Full Rebuild & Restart` is needed after engine or project-settings changes, and `File > Build Game (Release)` makes a release executable.
 
@@ -95,7 +101,7 @@ Code style: see `docs/coding-style.md`; `python3 tools/format/format_code.py` fo
 - **Downloads and zips**: HTTPS downloads with progress using the system's own libraries (WinHTTP, libcurl), and a zip reader. See `docs/http.md`.
 - **Voxels**: `VoxelTerrain` is a grid of hand-placed tiles (or endless, streamed around the camera and each player) of 32-cell chunks with level of detail, generated and meshed on worker threads with dual contouring (or marching cubes, or blocky cubes), smooth or flat shaded, editable at runtime with `Brush` / `ModifySphere`. `VoxelObject` is a destructible object: a built-in shape or any closed model (Shape Mesh), drawn with the Mesh Renderer's material outside and, where carving exposes it, with an Interior Material or an inside made from the outside's material. `Carve` it and disconnected pieces break off as physics bodies. See `docs/voxel-objects.md`.
 - **Physics** (Jolt, deterministic build): `Rigidbody`, box/sphere/capsule/convex/mesh colliders, raycasts and shape casts, and a `CharacterController` (capsule or rounded box) that walks up steps and slopes; see `docs/character-controller.md`.
-- **AI**: baked navigation for walking and flying agents, with straight any-angle paths, jump and ladder links, moving obstacles that carve the grid, costly or forbidden areas and agents steering round each other (`docs/navigation.md`), and behaviour trees with patrol, chase, sight, hearing, events, subtrees and blackboard nodes (`docs/behavior-trees.md`).
+- **AI**: polygon NavMesh walking with tiled updates, volume-grid flight, straight any-angle paths, jump and ladder links, moving obstacles with carving, costly or forbidden areas and agents steering round each other (`docs/navigation.md`), and behaviour trees with patrol, chase, sight, hearing, events, subtrees and blackboard nodes (`docs/behavior-trees.md`).
 - **Scenes at run time**: `SceneManager.LoadAdditive` adds another scene file to the one that is playing (levels kept in their own scenes, each editable by itself), `Unload` takes it out, and `SceneManager.Load` changes scene. See `docs/scenes.md`.
 - **Maps**: a game's own map editor saves a level (with its terrain sculpting and any models the player brought in) as one `.tmap` file with `MapFiles.Export`; a game finds map files in its `Maps` folder with `MapFiles.Find`, which checks each one (whole, made for this game, nothing it uses missing, and what the game's `MapRules.txt` asks for, such as 4 spawn points or at most 500 physics items), and plays one with `MapFiles.Mount` and `SceneManager.LoadAdditive`. `MapSharing` sends the host's map to players who lack it or have another version (checked by hash). Saving a scene in the editor that breaks the rules opens a warning. See `docs/maps.md`.
 - **Joints and debris**: the **Joint** component holds two rigid bodies together at a point, freely or with a swing limit (chains, doors, ragdolls); `Joint.Connect` does it from code. A Rigidbody with **Debris** on rests on scenery but is ignored by everything that moves and by rays and shape queries (corpses, dropped items). See `docs/joints.md`.
@@ -111,6 +117,7 @@ Code style: see `docs/coding-style.md`; `python3 tools/format/format_code.py` fo
 - **Reflections**: the sky and reflection probes mirrored by shiny surfaces, and image-based ambient light. See `docs/reflections.md`.
 - **Textures**: mip levels and anisotropic filtering for every texture, and compressed (BC1 / BC3) copies in built games. See `docs/textures.md`.
 - **macOS**: Apple silicon Macs build and run the engine, editor and games with Metal, checked on every push by a macOS CI job. See `docs/macos.md`.
+- **Profiler**: Window > Profiler shows where each frame's time goes (every system and script, job threads, GPU passes) with counters for rendering, memory, physics, networking and more; it attaches to a running build or server, saves captures, compares memory snapshots and exports text reports for debugging. See `docs/profiler.md`.
 - **Quality presets**: Low, Medium, High and Ultra set every graphics setting at once, remembered for the player, with a suggestion for the machine. See `docs/quality.md`.
 - **Mouse lock**: `Input.LockCursor = true` keeps the mouse inside the window and hides the pointer while the mouse steers the view; `Input.MouseDelta` goes on reporting movement. Set it false while a menu is open. While it is locked, menus and editor panels are not sent the mouse or the keyboard, so nothing under the hidden pointer is hovered or clicked. It is released when play stops, and `Input.CursorLocked` says whether it has really taken hold.
 - **Game UI**: override `OnGUI` and use `GUI.Label`, `GUI.Button`, `GUI.Bar`, `GUI.Box`, `GUI.Toggle`, `GUI.Slider`.
@@ -236,7 +243,7 @@ Engine/      runtime library and shaders
 Editor/      editor, project system, project templates
 Launcher/    project hub executable
 native/      CMake build of third-party code plus the small C/C++ shim
-third_party/ bgfx, SDL3, Jolt (JoltC), ENet, Dear ImGui (cimgui), ImGuizmo, cgltf, stb, miniaudio, KEMAR HRTF data, Opus
+third_party/ bgfx, SDL3, Jolt (JoltC), Recast/Detour, ENet, Dear ImGui (cimgui), ImGuizmo, cgltf, stb, miniaudio, KEMAR HRTF data, Opus
 Samples/     example projects
 Tests/       CPU regression fixtures
 website/     project website for XAMPP (PHP + MariaDB): docs, tutorials, screenshots

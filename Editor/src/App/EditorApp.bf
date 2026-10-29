@@ -51,7 +51,6 @@ class EditorApp : Application
 	bool mOpenNewScript;
 	bool mOpenSaveAs;
 	bool mFocusGame;
-	bool mShowDemo;
 	bool mFocusScene = true;
 	int32 mFocusInspector;
 	/// Bring the Scene view to the front now, whatever else is open (set when a prefab is opened).
@@ -132,9 +131,11 @@ class EditorApp : Application
 		GetArg("--scene", sceneArg);
 		EditorMain.LoadStartScene(mScene, sceneArg);
 		Log.Info(scope $"Opened project {project.Name} ({project.Path})");
-		ResetUndo();
 		LoadMapBuilderSettings();
 		AlignSceneCameraToGameCamera();
+		// A streamed world: only the cells round the view (docs/world-streaming.md).
+		LoadStreamedCellsAroundView();
+		ResetUndo();
 		// Shaders edited outside the editor, or never compiled on this machine, are built before anything draws.
 		CompileStaleShaders();
 		ApplyStartupSwitches();
@@ -228,6 +229,7 @@ class EditorApp : Application
 			mShowQuality = true;
 		if (HasArg("--preferences"))
 			mShowPreferences = true;
+		ApplyProfilerSwitches();
 		// --model-views: Window > Model Views open; --scene-view "front|top|...|ortho": the Scene view's view selector.
 		if (HasArg("--model-views"))
 			mShowModelViews = true;
@@ -262,6 +264,18 @@ class EditorApp : Application
 		ApplyRiggerSwitches();
 		if (HasArg("--theme-test"))
 			RunThemeTest();
+		if (HasArg("--visibility-test"))
+			RunVisibilityTest();
+		if (HasArg("--model-import-test"))
+			RunModelImportTest();
+		if (HasArg("--world-streaming-test"))
+			RunWorldStreamingTest();
+		// --scene-hide <name> / --scene-lock <name>: as pressing that object's eye or lock in the Hierarchy.
+		let visibilityName = scope String();
+		if (GetArg("--scene-hide", visibilityName) && mScene.Find(visibilityName) != null)
+			SetSceneHidden(mScene.Find(visibilityName), true);
+		if (GetArg("--scene-lock", visibilityName..Clear()) && mScene.Find(visibilityName) != null)
+			SetPickLocked(mScene.Find(visibilityName), true);
 		// Bakes every Navigation Surface in the scene (not saved), to see the grid without pressing Bake.
 		if (HasArg("--bake-navigation"))
 		{

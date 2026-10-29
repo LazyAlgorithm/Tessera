@@ -3,12 +3,12 @@ using System.Collections;
 
 namespace Tessera;
 
-/// The ground (or, with Flying, the open air) that Navigation Agents find their way across: a grid of cells baked
-/// from the static geometry inside a box. The object's position is the box's minimum corner. See docs/navigation.md.
+/// Baked walking navigation (grid or polygon mesh), or a free-space volume grid for Flying agents.
+/// Uses static geometry inside a box. The object's position is the box's minimum corner. See docs/navigation.md.
 [Component]
 class NavigationSurface : Component
 {
-	/// The baked grid: a .tnav asset in the project, loaded in Awake.
+	/// The baked navigation data: a .tnav asset in the project, loaded in Awake.
 	public String bakedData = new .() ~ delete _;
 	/// The bake volume's extent from the object's position.
 	public Vector3 size = .(32, 10, 32);
@@ -26,6 +26,9 @@ class NavigationSurface : Component
 	public int32 chunkSize = 16;
 	/// A 3D grid of free space for flying agents, rather than one floor height per cell.
 	public bool flying;
+	/// What walking agents walk over: a polygon mesh (NavMesh) or a grid of cells. Flying always uses a grid. Bake
+	/// again after changing it.
+	public NavigationBackend backend = .NavMesh;
 	/// Bake render meshes (static Mesh Renderers) as well as colliders.
 	public bool includeRenderMeshes = true;
 	/// Bake again when the game starts: for generated worlds.
@@ -38,7 +41,7 @@ class NavigationSurface : Component
 	int64 mOverlayHash;
 	NavigationData mOverlayData;
 
-	/// The baked grid, or null before a bake or load.
+	/// The baked navigation data, or null before a bake or load.
 	public NavigationData Data => mData;
 
 	public override void Awake()
@@ -137,7 +140,7 @@ class NavigationSurface : Component
 			if (!area.IsActiveAndEnabled || !area.GameObject.InActiveWorld)
 				continue;
 			if (area.blocked)
-				data.Block(area.Transform.Position, area.Transform.Rotation, area.size * 0.5f, false);
+				data.Block(area.Transform.Position, area.Transform.Rotation, area.size * 0.5f, false, false);
 			else
 				data.SetCost(area.Transform.Position, area.Transform.Rotation, area.size * 0.5f, area.cost);
 		}
@@ -157,6 +160,12 @@ class NavigationSurface : Component
 			let link = (NavigationLink)component;
 			if (!link.IsActiveAndEnabled || !link.GameObject.InActiveWorld)
 				continue;
+			if (data.Mesh != null)
+			{
+				data.Mesh.AddLink(link.StartPoint, link.EndPoint, Math.Max(link.snapDistance, 0.05f), Math.Max(link.costMultiplier, 0.1f), link.bidirectional, (int32)mLinks.Count);
+				mLinks.Add(link);
+				continue;
+			}
 			let snap = Math.Max(link.snapDistance, data.cellSize);
 			let from = data.Nearest(link.StartPoint, snap);
 			let to = data.Nearest(link.EndPoint, snap);
@@ -174,10 +183,14 @@ class NavigationSurface : Component
 			mLinks.Add(link);
 			found.Add(entry);
 		}
-		data.SetLinks(found);
-		data.Touch();
+		// The hash is kept on failure, so a change that cannot be built is reported once, not every frame.
+		if (data.Mesh == null)
+			data.SetLinks(found);
+		else if (!data.CommitNavMesh())
+			Log.Error(scope $"Navigation Surface '{GameObject.Name}': the obstacles, areas and links could not be put on its mesh (too many different area costs?). It keeps the last mesh.");
 	}
 
+	/// Reads the data from its Baked Data asset.
 	public bool LoadData()
 	{
 		let path = scope String();
@@ -209,10 +222,50 @@ class NavigationSurface : Component
 		}
 	}
 
+	/// The NavMesh bake settings from the fields: voxels a third of a cell across (NavigationMesh.VoxelsPerCell), and
+	/// half that high, at most 10 cm.
+	NavigationMesh.Config MeshSettings
+	{
+		get
+		{
+			let voxel = Math.Max(cellSize / NavigationMesh.VoxelsPerCell, 0.01f);
+			return .()
+				{
+					min = Transform.Position, max = Transform.Position + size, cellSize = voxel, cellHeight = Math.Clamp(voxel * 0.5f, 0.005f, 0.1f),
+					radius = agentRadius, height = agentHeight, climb = maxStep, slope = maxSlope
+				};
+		}
+	}
+
+	/// Bakes the surface from the scene's static geometry, replacing its data. False (with a warning) when it fails.
 	public bool Bake()
 	{
 		let candidate = new NavigationData();
 		let error = scope String();
+		if (backend == .NavMesh && !flying)
+		{
+			if (!cellSize.IsFinite || cellSize < 0.05f || !size.x.IsFinite || !size.y.IsFinite || !size.z.IsFinite || size.x <= 0 || size.y <= 0 || size.z <= 0)
+			{
+				delete candidate;
+				Log.Warning(scope $"Navigation Surface '{GameObject.Name}': its size and Cell Size must be positive (Cell Size at least 0.05).");
+				return false;
+			}
+			let world = scope PhysicsWorld();
+			NavigationBaker.BuildGeometry(Scene, world, includeRenderMeshes, BakeWorlds);
+			let mesh = NavigationMesh.Bake(world, MeshSettings);
+			if (mesh == null)
+			{
+				delete candidate;
+				Log.Warning(scope $"Navigation Surface '{GameObject.Name}': the NavMesh bake failed. Its size over its Cell Size may be too many voxels (4096 a side), or the agent too large for them.");
+				return false;
+			}
+			candidate.SetMesh(mesh);
+			delete mData;
+			mData = candidate;
+			mOverlayData = null;
+			RefreshOverlay();
+			return true;
+		}
 		if (!candidate.Configure(Transform.Position, size, cellSize, flying, chunkSize, error))
 		{
 			delete candidate;
@@ -234,6 +287,7 @@ class NavigationSurface : Component
 		return true;
 	}
 
+	/// Writes the data to its Baked Data asset.
 	public bool SaveData()
 	{
 		if (mData == null || bakedData.IsEmpty) return false;
@@ -248,6 +302,8 @@ class NavigationSurface : Component
 		return true;
 	}
 
+	/// Bakes again only round a box whose geometry changed (a door opened, a wall built): the grid's chunks or the
+	/// mesh's tiles there.
 	public bool Rebuild(Bounds changed)
 	{
 		if (mData == null) return Bake();
@@ -257,6 +313,17 @@ class NavigationSurface : Component
 		{
 			Log.Warning("Invalid navigation rebuild bounds.");
 			return false;
+		}
+		if (mData.IsNavMesh)
+		{
+			NavigationBaker.BuildGeometry(Scene, world, includeRenderMeshes, BakeWorlds);
+			if (!mData.Mesh.Rebuild(world, changed))
+			{
+				Log.Warning(scope $"Navigation Surface '{GameObject.Name}': rebuilding its NavMesh tiles failed; it keeps the last mesh.");
+				return false;
+			}
+			mData.Touch();
+			return true;
 		}
 		NavigationBaker.BuildGeometry(Scene, world, includeRenderMeshes, true, NavigationBaker.QueryBounds(mData, size.y, changed), BakeWorlds);
 		let ok = NavigationBaker.Rebuild(mData, world, size.y, changed, error);
@@ -280,6 +347,11 @@ class NavigationSurface : Component
 			Gizmos.Lines.Box(baked, .(0.2f, 0.8f, 1, 0.35f));
 		if (!drawNavigation) return;
 		RefreshOverlay();
+		if (data.IsNavMesh)
+		{
+			data.Mesh.DrawGizmos();
+			return;
+		}
 		const int MaxGizmoQuads = 20000;
 		// Cells an obstacle or a blocked area cuts out, red; costly areas, purple.
 		{

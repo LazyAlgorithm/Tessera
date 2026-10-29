@@ -79,6 +79,45 @@ if(EMSCRIPTEN)
 endif()
 add_subdirectory(${TP}/joltc joltc)
 
+# Focused diagnostic instrumentation: only the convex dispatch translation unit is rebuilt with Jolt's
+# external profiler. Production builds leave it off. Callbacks are thread-local and set only during queries.
+option(TESSERA_PROFILE_CONVEX_QUERIES "Expose Jolt convex and EPA scopes to the engine profiler" OFF)
+if(TESSERA_PROFILE_CONVEX_QUERIES)
+	get_target_property(_tessera_jolt_sources Jolt SOURCES)
+	foreach(_tessera_jolt_source IN LISTS _tessera_jolt_sources)
+		if(_tessera_jolt_source MATCHES "/ConvexShape\\.cpp$")
+			set_source_files_properties(${_tessera_jolt_source}
+				TARGET_DIRECTORY Jolt PROPERTIES COMPILE_DEFINITIONS JPH_EXTERNAL_PROFILE SKIP_PRECOMPILE_HEADERS ON)
+		endif()
+	endforeach()
+endif()
+# Preserve Jolt's registered fallback when installing query-only shape specializations. The upstream header
+# exposes registration but no lookup; add a read-only inline accessor to the fetched dependency.
+get_target_property(_tessera_jolt_sources Jolt SOURCES)
+foreach(_tessera_jolt_source IN LISTS _tessera_jolt_sources)
+	if(_tessera_jolt_source MATCHES "/CollisionDispatch\\.cpp$")
+		get_filename_component(_tessera_collision_dir ${_tessera_jolt_source} DIRECTORY)
+		set(_tessera_dispatch_header "${_tessera_collision_dir}/CollisionDispatch.h")
+		file(READ ${_tessera_dispatch_header} _tessera_dispatch_text)
+		if(NOT _tessera_dispatch_text MATCHES "sGetCollideShape")
+			string(REPLACE "\nprivate:" "\n\t// Tessera: preserve the original dispatcher for query-only specializations.\n\tstatic CollideShape sGetCollideShape(EShapeSubType a, EShapeSubType b) { return sCollideShape[(int)a][(int)b]; }\nprivate:" _tessera_dispatch_text "${_tessera_dispatch_text}")
+			file(WRITE ${_tessera_dispatch_header} "${_tessera_dispatch_text}")
+		endif()
+	endif()
+endforeach()
+
+# Recast/Detour v1.6.0, vendored at 6dc1667f580357e8a2154c28b7867bea7e8ad3a7.
+# Include the objects in our existing archive so all desktop/web consumers keep the same link interface.
+file(GLOB TESSERA_RECAST_SOURCES CONFIGURE_DEPENDS ${TP}/recastnavigation/Recast/Source/*.cpp ${TP}/recastnavigation/Detour/Source/*.cpp)
+add_library(tessera_navigation OBJECT tessera_navigation.cpp ${TESSERA_RECAST_SOURCES})
+target_compile_features(tessera_navigation PRIVATE cxx_std_17)
+target_include_directories(tessera_navigation PRIVATE ${TP}/recastnavigation/Recast/Include ${TP}/recastnavigation/Detour/Include ${TP}/joltc/include)
+target_link_libraries(tessera_navigation PRIVATE Jolt)
+
+add_library(tessera_collision_support OBJECT tessera_collision_profile.cpp tessera_overlap_contacts.cpp)
+target_compile_features(tessera_collision_support PRIVATE cxx_std_17)
+target_link_libraries(tessera_collision_support PRIVATE Jolt)
+
 # ---- Opus (voice chat codec), compiled into the shim so there is no extra archive to link ----
 set(OPUS_BUILD_SHARED_LIBRARY OFF CACHE BOOL "" FORCE)
 set(OPUS_BUILD_TESTING OFF CACHE BOOL "" FORCE)
@@ -111,15 +150,19 @@ add_library(tessera_native STATIC
 	tessera_bake.cpp
 	tessera_rig.cpp
 	tessera_assets.c
+	tessera_modelimport.c
 	tessera_pack.c
 	tessera_guard.c
 	tessera_physics.cpp
+	$<TARGET_OBJECTS:tessera_navigation>
+	$<TARGET_OBJECTS:tessera_collision_support>
 	tessera_audio.c
 	tessera_web.c
 	tessera_http.c
 	tessera_network.c
 	$<TARGET_OBJECTS:opus>
 )
+add_dependencies(tessera_native Jolt)
 target_compile_features(tessera_native PRIVATE cxx_std_20)
 target_include_directories(tessera_native PRIVATE
 	${TP}/enet/include
@@ -140,3 +183,41 @@ target_compile_definitions(tessera_native PRIVATE
 	"IMGUI_IMPL_API=extern \"C\""
 )
 target_link_libraries(tessera_native PRIVATE bgfx bx SDL3::SDL3-static)
+
+
+# ---- Model import settings step (docs/model-import.md), for tools/build_player.py ----
+if(NOT EMSCRIPTEN)
+	add_executable(tessera_modelsettings tessera_modelsettings.c tessera_modelimport.c)
+	target_include_directories(tessera_modelsettings PRIVATE ${TP}/cgltf)
+	if(NOT MSVC)
+		target_link_libraries(tessera_modelsettings PRIVATE m)
+	endif()
+endif()
+
+# ---- Model converter (editor tool): FBX, OBJ, DAE, STL, PLY and 3DS to .glb, through Assimp ----
+# The editor and tools/convert_models.py run tessera_modelconv as a program of its own (docs/model-import.md); games
+# never link Assimp.
+if(NOT EMSCRIPTEN)
+	set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+	set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+	set(ASSIMP_BUILD_ASSIMP_TOOLS OFF CACHE BOOL "" FORCE)
+	set(ASSIMP_BUILD_SAMPLES OFF CACHE BOOL "" FORCE)
+	set(ASSIMP_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+	set(ASSIMP_INSTALL OFF CACHE BOOL "" FORCE)
+	set(ASSIMP_WARNINGS_AS_ERRORS OFF CACHE BOOL "" FORCE)
+	set(ASSIMP_BUILD_USE_CCACHE OFF CACHE BOOL "" FORCE)
+	set(ASSIMP_INJECT_DEBUG_POSTFIX OFF CACHE BOOL "" FORCE)
+	# Its own zlib, so the tool needs nothing installed on the machine it runs on.
+	set(ASSIMP_BUILD_ZLIB ON CACHE BOOL "" FORCE)
+	set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF CACHE BOOL "" FORCE)
+	set(ASSIMP_BUILD_ALL_EXPORTERS_BY_DEFAULT OFF CACHE BOOL "" FORCE)
+	# The glTF exporter shares code with the glTF importer, so that is built too.
+	foreach(format FBX OBJ COLLADA STL PLY 3DS GLTF)
+		set(ASSIMP_BUILD_${format}_IMPORTER ON CACHE BOOL "" FORCE)
+	endforeach()
+	set(ASSIMP_BUILD_GLTF_EXPORTER ON CACHE BOOL "" FORCE)
+	add_subdirectory(${TP}/assimp assimp EXCLUDE_FROM_ALL)
+	add_executable(tessera_modelconv tessera_modelconv.cpp)
+	target_compile_features(tessera_modelconv PRIVATE cxx_std_17)
+	target_link_libraries(tessera_modelconv PRIVATE assimp)
+endif()

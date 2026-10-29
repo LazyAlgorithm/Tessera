@@ -4,6 +4,7 @@ using System.Collections;
 namespace Tessera;
 
 /// How an agent crosses a Navigation Link.
+[Reflect(.All)]
 enum NavigationLinkKind
 {
 	/// Jumps across in an arc (a gap, a ledge up or down).
@@ -98,7 +99,13 @@ class NavigationLink : Component
 [Component]
 class NavigationObstacle : Component
 {
-	public enum Shape { Box, Cylinder }
+	[Reflect(.All)]
+	public enum Shape
+	{
+		Box,
+		Cylinder
+	}
+
 	public Shape shape = .Box;
 	/// Box: its size in metres (whatever the object's scale). Cylinder: x is its diameter, y its height.
 	public Vector3 size = .(1, 1, 1);

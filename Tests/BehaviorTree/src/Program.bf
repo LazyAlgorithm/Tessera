@@ -27,6 +27,40 @@ class CountAtLeast : BTNode
 	}
 }
 
+[Component]
+class PendingMovement : AIMovementDriver
+{
+	public bool pending, statusRead;
+	public override bool PathPending => pending;
+	public override bool PathFailed
+	{
+		get
+		{
+			statusRead = true;
+			return false;
+		}
+	}
+
+	public override bool HasArrived
+	{
+		get
+		{
+			statusRead = true;
+			return !pending;
+		}
+	}
+
+	public override void SetDestination(Vector3 point, float speed, float stoppingDistance)
+	{
+		pending = true;
+	}
+
+	public override void StopMovement()
+	{
+		pending = false;
+	}
+}
+
 class Program
 {
 	const float Dt = 1 / 60f;
@@ -383,6 +417,20 @@ class Program
 			counter.count = 2;
 			let after = runner.Tick(Dt);
 			ok &= Check(before == .Failure && after == .Success && runner.StatusOf(check) == .Success && BehaviorLibrary.Find("test.count").parameters.Count == 1, "a node kind registered by the game loads from a file and runs");
+		}
+		{
+			let b = scope TreeBuilder();
+			let move = b.Node("nav.position", b.root, 0, "0 0 0", "4", "0.3");
+			let go = scene.CreateGameObject("Deferred mover");
+			let driver = go.AddComponent<PendingMovement>();
+			let runner = b.Run(scene, go);
+			runner.restartWhenDone = false;
+			runner.Tick(Dt);
+			ok &= Check(runner.StatusOf(move) == .Running && driver.pending && !driver.statusRead, "movement tasks leave pending requests queued instead of forcing status resolution");
+			driver.pending = false;
+			runner.Tick(Dt);
+			ok &= Check(runner.StatusOf(move) == .Success && driver.statusRead, "movement tasks consume the result after queued work finishes");
+			runner.Enabled = false;
 		}
 
 		// ---- a level: floor, a wall, baked navigation ----

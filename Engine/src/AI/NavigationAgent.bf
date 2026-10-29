@@ -9,6 +9,24 @@ namespace Tessera;
 [Component]
 class NavigationAgent : AIMovementDriver
 {
+	static ProfilerMarker sAvoidProfile = .("Navigation.Avoid", .AI);
+	static ProfilerMarker sNeighborsProfile = .("Navigation.Avoid.Neighbors", .AI);
+	static ProfilerMarker sSteerProfile = .("Navigation.Avoid.Candidates", .AI);
+
+	/// Steering round others looks only at the agents near this one (Scene.NavigationCrowd); off, at every agent in the
+	/// scene, for comparing.
+	public static bool UseSpatialAvoidance = true;
+	/// The turns Avoid tries each side of the wanted direction, in degrees.
+	const int AvoidTurns = 11;
+	static float[AvoidTurns] sAvoidAngles = .(0, 15, -15, 30, -30, 50, -50, 75, -75, 105, -105);
+	static Quaternion[AvoidTurns] sAvoidRotations;
+
+	static this()
+	{
+		for (int i < AvoidTurns)
+			sAvoidRotations[i] = Quaternion.AngleAxis(sAvoidAngles[i], Vector3.Up);
+	}
+
 	/// The surface to find paths on. Empty: the one in the scene's active world state.
 	public NavigationSurface surface;
 	bool mFoundSurface;
@@ -50,11 +68,48 @@ class NavigationAgent : AIMovementDriver
 	float mSpeed, mStop, mTimer, mRetry, mDeviation;
 	int32 mWaypoint, mRevision = -1;
 	bool mRequested, mFailed, mDirty, mDriving;
-	public override bool PathFailed => mFailed;
-	public override bool HasArrived => mRequested && !mFailed && mPath.Count > 0 && mWaypoint >= mPath.Count;
-	public List<Vector3> Path => mPath;
+	/// Waiting in sQueue for its path to be found with the others this frame.
+	bool mQueued;
+	/// Agents whose paths are found together after the frame's Update, on the job threads (FindQueuedPaths).
+	static List<NavigationAgent> sQueue = new .() ~ delete _;
+	public override bool PathPending => mQueued;
+	public override bool PathFailed
+	{
+		get
+		{
+			FindQueuedPath();
+			return mFailed;
+		}
+	}
+
+	public override bool HasArrived
+	{
+		get
+		{
+			FindQueuedPath();
+			return mRequested && !mFailed && mPath.Count > 0 && mWaypoint >= mPath.Count;
+		}
+	}
+
+	public List<Vector3> Path
+	{
+		get
+		{
+			FindQueuedPath();
+			return mPath;
+		}
+	}
+
 	/// Which leg of Path crosses a link: the link's id on its surface for the leg from point i to i + 1, or -1.
-	public List<int32> PathLinks => mLegLinks;
+	public List<int32> PathLinks
+	{
+		get
+		{
+			FindQueuedPath();
+			return mLegLinks;
+		}
+	}
+
 	/// While crossing a link, that link.
 	public NavigationLink CurrentLink => mLink;
 	public bool IsCrossingLink => mLink != null;
@@ -65,6 +120,7 @@ class NavigationAgent : AIMovementDriver
 	{
 		get
 		{
+			FindQueuedPath();
 			if (!mRequested || mFailed || mWaypoint >= mPath.Count)
 				return 0;
 			var total = Distance(Feet, mPath[mWaypoint]);
@@ -130,33 +186,106 @@ class NavigationAgent : AIMovementDriver
 			Repath();
 	}
 
+	/// Asks for a new path: found with the other agents' after this frame's Update (FindQueuedPaths), or at once if
+	/// something wants it sooner. The agent keeps to its old path until then.
 	void Repath()
 	{
 		mTimer = Math.Max(repathInterval, 0.01f);
-		mWaypoint = 0;
 		mDirty = false;
 		mRetry = Math.Max(repathInterval, 1);
-		let data = surface?.Data;
-		// Links are offered to the search only when the agent may use them.
-		let savedLinks = useLinks || data == null ? null : scope List<NavigationData.Link>();
-		if (savedLinks != null && !data.links.IsEmpty)
+		if (surface?.Data == null)
 		{
-			savedLinks.AddRange(data.links);
-			data.SetLinks(Span<NavigationData.Link>());
+			mQueued = false;
+			sQueue.Remove(this);
+			mFailed = true;
+			mPath.Clear();
+			mLegLinks.Clear();
+			mWaypoint = 0;
+			return;
 		}
-		mFailed = data == null || !data.FindPath(Feet, mDestination + baseOffset, mPath, mLegLinks, snapDistance);
-		if (savedLinks != null && !savedLinks.IsEmpty)
-			data.SetLinks(savedLinks);
-		if (data != null)
-			mRevision = data.Revision;
+		if (!mQueued)
+		{
+			mQueued = true;
+			sQueue.Add(this);
+		}
+		// Outside Scene.Update nothing finds the queue: found now.
+		if (Scene == null || !Scene.Updating || !Scene.IsPlaying)
+			FindQueuedPath();
+	}
+
+	/// Finds this agent's queued path now, on its own.
+	void FindQueuedPath()
+	{
+		if (!mQueued)
+			return;
+		mQueued = false;
+		sQueue.Remove(this);
+		let data = surface?.Data;
+		if (data == null)
+			return;
+		let found = data.FindPath(Feet, mDestination + baseOffset, mPath, mLegLinks, snapDistance, useLinks, smoothPath);
+		UsePath(data, found);
+	}
+
+	/// Finds every queued agent's path, the agents on each surface together on the job threads. Scene.Update calls it
+	/// after the components' Update.
+	public static void FindQueuedPaths()
+	{
+		while (!sQueue.IsEmpty)
+		{
+			let data = sQueue[0].surface?.Data;
+			let agents = scope List<NavigationAgent>();
+			for (int i = sQueue.Count - 1; i >= 0; i--)
+			{
+				let agent = sQueue[i];
+				if (agent.surface?.Data == data)
+				{
+					agents.Add(agent);
+					sQueue.RemoveAt(i);
+					agent.mQueued = false;
+				}
+			}
+			// Their surface lost its data since they asked: no path, as Repath gives.
+			if (data == null)
+			{
+				for (let agent in agents)
+				{
+					agent.mFailed = true;
+					agent.mPath.Clear();
+					agent.mLegLinks.Clear();
+					agent.mWaypoint = 0;
+				}
+				continue;
+			}
+			// Everything the searches need from the agents is read here, on this thread.
+			let requests = scope NavigationData.PathRequest[agents.Count];
+			for (int i < agents.Count)
+			{
+				let agent = agents[i];
+				requests[i] = .()
+					{
+						from = agent.Feet, to = agent.mDestination + agent.baseOffset, path = agent.mPath, legLinks = agent.mLegLinks,
+						snapDistance = agent.snapDistance, withLinks = agent.useLinks, smooth = agent.smoothPath
+					};
+			}
+			data.FindPaths(requests);
+			for (int i < agents.Count)
+				agents[i].UsePath(data, requests[i].found);
+		}
+	}
+
+	/// Takes a path just found (or its failure).
+	void UsePath(NavigationData data, bool found)
+	{
+		mRevision = data.Revision;
+		mWaypoint = 0;
+		mFailed = !found;
 		if (mFailed)
 		{
 			mPath.Clear();
 			mLegLinks.Clear();
 			return;
 		}
-		if (smoothPath)
-			data.Smooth(mPath, mLegLinks);
 		// Cells in a straight line become one leg, so the agent does not slow for a waypoint in every cell.
 		int kept = 1;
 		for (int i = 1; i < mPath.Count; i++)
@@ -185,6 +314,11 @@ class NavigationAgent : AIMovementDriver
 
 	public override void StopMovement()
 	{
+		if (mQueued)
+		{
+			mQueued = false;
+			sQueue.Remove(this);
+		}
 		mRequested = false;
 		mDirty = false;
 		mPath.Clear();
@@ -271,103 +405,122 @@ class NavigationAgent : AIMovementDriver
 	/// obstacles), weighted by priority.
 	Vector3 Avoid(Vector3 wanted, Vector3 position)
 	{
-		let data = surface.Data;
-		let horizon = 1.5f;
-		let lookAround = radius + mSpeed * horizon + 1;
-		// Who is near.
-		let others = scope List<(Vector3 position, Vector3 velocity, float radius, float share)>();
-		for (let component in Scene.ComponentsOfType(typeof(NavigationAgent)))
+		using (sAvoidProfile.Sample())
 		{
-			let other = (NavigationAgent)component;
-			if (other == this || !other.IsActiveAndEnabled || other.surface != surface)
-				continue;
-			let at = other.Feet;
-			if (Distance(at, position) > lookAround + other.radius)
-				continue;
-			// Equal priority: each turns half. Against a more important agent this one does it all, against a less
-			// important one a quarter.
-			let share = other.avoidancePriority > avoidancePriority ? 0.25f : (other.avoidancePriority < avoidancePriority ? 1.0f : 0.5f);
-			others.Add((at, other.mVelocity, other.radius, share));
-		}
-		for (let component in Scene.ComponentsOfType(typeof(NavigationObstacle)))
-		{
-			let obstacle = (NavigationObstacle)component;
-			// A carved obstacle is in the grid already; a moving (or uncarved) one is steered round.
-			if (!obstacle.IsActiveAndEnabled || obstacle.Carving)
-				continue;
-			let at = obstacle.Transform.Position + obstacle.Transform.Rotation * obstacle.center;
-			if (Distance(at, position) > lookAround + obstacle.Radius)
-				continue;
-			others.Add((at, obstacle.Velocity, obstacle.Radius, 1.0f));
-		}
-		if (others.IsEmpty)
-			return wanted;
-		let speed = wanted.Length;
-		// Time until this velocity first touches each of the others (a large number when never).
-		float TimeToHit(Vector3 velocity)
-		{
-			var soonest = float.MaxValue;
-			for (let other in others)
+			let data = surface.Data;
+			let horizon = 1.5f;
+			let lookAround = radius + mSpeed * horizon + 1;
+			// Who is near.
+			let others = scope List<(Vector3 position, Vector3 velocity, float radius, float share)>();
+			using (sNeighborsProfile.Sample())
 			{
-				// Reciprocal: this agent makes its share of the change and counts on the other making the rest, so the
-				// velocity they would close at is its own plus what the other does.
-				var relative = mVelocity - other.velocity + (velocity - mVelocity) / other.share;
-				var offset = other.position - position;
-				if (!Flying)
+				void AddAgent(NavigationAgent other)
 				{
-					relative.y = 0;
-					offset.y = 0;
+					if (other == this || !other.IsActiveAndEnabled || other.surface != surface)
+						return;
+					let at = other.Feet;
+					if (Distance(at, position) > lookAround + other.radius)
+						return;
+					// Equal priority: each turns half. Against a more important agent this one does it all, against a less
+					// important one a quarter.
+					let share = other.avoidancePriority > avoidancePriority ? 0.25f : (other.avoidancePriority < avoidancePriority ? 1.0f : 0.5f);
+					others.Add((at, other.mVelocity, other.radius, share));
 				}
-				let reach = radius + other.radius;
-				let distanceSquared = offset.LengthSquared;
-				if (distanceSquared < reach * reach)
+				if (UseSpatialAvoidance)
 				{
-					// Already touching: any velocity that does not move apart counts as an immediate hit.
-					if (Vector3.Dot(relative, offset) > 0)
-						soonest = 0;
-					continue;
+					for (let other in Scene.NavigationCrowd.Query(position, lookAround))
+						AddAgent(other);
 				}
-				let a = relative.LengthSquared;
-				if (a < 0.000001f)
-					continue;
-				let b = Vector3.Dot(offset, relative);
-				let c = distanceSquared - reach * reach;
-				let discriminant = b * b - a * c;
-				if (b <= 0 || discriminant < 0)
-					continue;
-				let t = (b - Math.Sqrt(discriminant)) / a;
-				if (t >= 0 && t < soonest)
-					soonest = t;
+				else
+				{
+					for (let component in Scene.ComponentsOfType(typeof(NavigationAgent)))
+						AddAgent((NavigationAgent)component);
+				}
+				for (let component in Scene.ComponentsOfType(typeof(NavigationObstacle)))
+				{
+					let obstacle = (NavigationObstacle)component;
+					// A carved obstacle is in the grid already; a moving (or uncarved) one is steered round.
+					if (!obstacle.IsActiveAndEnabled || obstacle.Carving)
+						continue;
+					let at = obstacle.Transform.Position + obstacle.Transform.Rotation * obstacle.center;
+					if (Distance(at, position) > lookAround + obstacle.Radius)
+						continue;
+					others.Add((at, obstacle.Velocity, obstacle.Radius, 1.0f));
+				}
 			}
-			return soonest;
-		}
-		var best = wanted;
-		var bestScore = float.MaxValue;
-		let up = Vector3.Up;
-		for (int s < 3)
-		{
-			let scale = s == 0 ? 1.0f : (s == 1 ? 0.6f : 0.3f);
-			for (int a < 11)
+			if (others.IsEmpty)
+				return wanted;
+			using (sSteerProfile.Sample())
 			{
-				// 0, then turning further each side: 15, 30, 50, 75 and 105 degrees.
-				let angles = scope float[](0, 15, -15, 30, -30, 50, -50, 75, -75, 105, -105);
-				let candidate = Quaternion.AngleAxis(angles[a], up) * wanted * scale;
-				let hit = TimeToHit(candidate);
-				// Being near what is wanted, and not running into anything soon.
-				var score = (candidate - wanted).Length + (hit < horizon ? speed * 2 * (horizon - hit) / horizon + 0.5f : 0);
-				if (score >= bestScore)
-					continue;
-				// It must stay on the surface for the next moment.
-				if (a != 0 && !data.LineClear(position, position + candidate * 0.4f, ?))
-					continue;
-				best = candidate;
-				bestScore = score;
+				let speed = wanted.Length;
+				// Time until this velocity first touches each of the others (a large number when never).
+				float TimeToHit(Vector3 velocity)
+				{
+					var soonest = float.MaxValue;
+					for (let other in others)
+					{
+						// Reciprocal: this agent makes its share of the change and counts on the other making the rest, so the
+						// velocity they would close at is its own plus what the other does.
+						var relative = mVelocity - other.velocity + (velocity - mVelocity) / other.share;
+						var offset = other.position - position;
+						if (!Flying)
+						{
+							relative.y = 0;
+							offset.y = 0;
+						}
+						let reach = radius + other.radius;
+						let distanceSquared = offset.LengthSquared;
+						if (distanceSquared < reach * reach)
+						{
+							// Already touching: any velocity that does not move apart counts as an immediate hit.
+							if (Vector3.Dot(relative, offset) > 0)
+								soonest = 0;
+							continue;
+						}
+						let a = relative.LengthSquared;
+						if (a < 0.000001f)
+							continue;
+						let b = Vector3.Dot(offset, relative);
+						let c = distanceSquared - reach * reach;
+						let discriminant = b * b - a * c;
+						if (b <= 0 || discriminant < 0)
+							continue;
+						let t = (b - Math.Sqrt(discriminant)) / a;
+						if (t >= 0 && t < soonest)
+							soonest = t;
+					}
+					return soonest;
+				}
+				// A collision-free wanted velocity has score zero, the global minimum of the existing objective.
+				// Returning it is equivalent to testing all remaining candidates and rejecting their nonnegative scores.
+				if (TimeToHit(wanted) >= horizon) return wanted;
+				var best = wanted;
+				var bestScore = float.MaxValue;
+				for (int s < 3)
+				{
+					let scale = s == 0 ? 1.0f : (s == 1 ? 0.6f : 0.3f);
+					for (int a < AvoidTurns)
+					{
+						// 0, then turning further each side.
+						let candidate = sAvoidRotations[a] * wanted * scale;
+						let hit = TimeToHit(candidate);
+						// Being near what is wanted, and not running into anything soon.
+						var score = (candidate - wanted).Length + (hit < horizon ? speed * 2 * (horizon - hit) / horizon + 0.5f : 0);
+						if (score >= bestScore)
+							continue;
+						// It must stay on the surface for the next moment.
+						if (a != 0 && !data.LineClear(position, position + candidate * 0.4f, ?))
+							continue;
+						best = candidate;
+						bestScore = score;
+					}
+				}
+				// Standing still is the last resort.
+				if (TimeToHit(.Zero) >= horizon && speed * 2.5f < bestScore)
+					best = .Zero;
+				return best;
 			}
 		}
-		// Standing still is the last resort.
-		if (TimeToHit(.Zero) >= horizon && speed * 2.5f < bestScore)
-			best = .Zero;
-		return best;
 	}
 
 	void StartLink(NavigationLink link, Vector3 from, Vector3 to)
@@ -495,9 +648,26 @@ class NavigationAgent : AIMovementDriver
 		body.Velocity = velocity;
 	}
 
+	public override void OnRegister()
+	{
+		base.OnRegister();
+		Scene.NavigationCrowd.Register(this);
+	}
+
 	public override void OnDisable()
 	{
 		StopMovement();
+	}
+
+	public override void OnUnregister()
+	{
+		Scene.NavigationCrowd.Unregister(this);
+		if (mQueued)
+		{
+			mQueued = false;
+			sQueue.Remove(this);
+		}
+		base.OnUnregister();
 	}
 
 	/// While selected: its path, with link legs dashed orange.

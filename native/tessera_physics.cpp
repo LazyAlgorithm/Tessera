@@ -86,6 +86,15 @@ extern "C" bool tn_physics_cast_shape(const JPH_NarrowPhaseQuery* query,
     return hit->bodyId != UINT32_MAX;
 }
 
+extern "C" bool tn_physics_overlap_contacts(bool enabled);
+extern "C" const void* tn_physics_query_reach(const void* shape, const float* origin, const float* rotation, uint32_t ignoreBody);
+
+static const JPH_BodyFilter* queryReach(const JPH_Shape* shape, const JPH_RVec3* origin, const JPH_Quat* rotation, uint32_t ignoreBody) {
+    const float at[3] = {static_cast<float>(origin->x), static_cast<float>(origin->y), static_cast<float>(origin->z)};
+    const float turn[4] = {rotation->x, rotation->y, rotation->z, rotation->w};
+    return static_cast<const JPH_BodyFilter*>(tn_physics_query_reach(shape, at, turn, ignoreBody));
+}
+
 struct OverlapContext {
     uint32_t ignoreBody;
     TnShapeHit* hits;
@@ -93,19 +102,21 @@ struct OverlapContext {
     int count;
 };
 
-static void collectOverlap(void* user, const JPH_CollideShapeResult* result) {
+static float collectOverlap(void* user, const JPH_CollideShapeResult* result) {
     auto& context = *static_cast<OverlapContext*>(user);
-    if (result->bodyID2 == context.ignoreBody || gDebris.count(result->bodyID2)) return;
+    if (result->bodyID2 == context.ignoreBody || gDebris.count(result->bodyID2)) return std::numeric_limits<float>::max();
     if (context.count < context.capacity) {
         context.hits[context.count] = {result->bodyID2, 0, result->contactPointOn2,
             outwardNormal(result->penetrationAxis), result->penetrationDepth};
     }
     ++context.count;
+    // Keep every contact, without a temporary all-hit array in JoltC.
+    return std::numeric_limits<float>::max();
 }
 
 extern "C" int tn_physics_overlap_shape(const JPH_NarrowPhaseQuery* query,
     const JPH_Shape* shape, const JPH_RVec3* origin, const JPH_Quat* rotation,
-    uint32_t ignoreBody, TnShapeHit* hits, int capacity, uint32_t layerMask) {
+    uint32_t ignoreBody, TnShapeHit* hits, int capacity, uint32_t layerMask, bool analyticContacts) {
     JPH_RMat4 transform;
     #ifdef JPH_DOUBLE_PRECISION
     JPH_RMat4_RotationTranslation(&transform, rotation, origin);
@@ -114,13 +125,55 @@ extern "C" int tn_physics_overlap_shape(const JPH_NarrowPhaseQuery* query,
 #endif
     JPH_CollideShapeSettings settings;
     JPH_CollideShapeSettings_Init(&settings);
+    // How deep each contact goes is worked out to within about half a percent rather than Jolt's default hundredth of
+    // that: a query shape's middle inside a body (the usual overlap) otherwise takes many penetration steps, most of
+    // all for round shapes.
+    settings.base.penetrationTolerance = 1.0e-2f;
     JPH_Vec3 scale{1, 1, 1};
     JPH_RVec3 baseOffset{0, 0, 0};
     OverlapContext context{ignoreBody, hits, capacity, 0};
-    JPH_NarrowPhaseQuery_CollideShape2(query, shape, &scale, &transform, &settings,
-        &baseOffset, JPH_CollisionCollectorType_AllHit, collectOverlap, &context,
-        nullptr, tn_physics_layer_filter(layerMask), nullptr, nullptr);
+    const bool previousMode = tn_physics_overlap_contacts(analyticContacts);
+    JPH_NarrowPhaseQuery_CollideShape(query, shape, &scale, &transform, &settings,
+        &baseOffset, collectOverlap, &context,
+        nullptr, tn_physics_layer_filter(layerMask), queryReach(shape, origin, rotation, ignoreBody), nullptr);
+    tn_physics_overlap_contacts(previousMode);
     return context.count;
+}
+
+struct CheckContext {
+    uint32_t ignoreBody;
+    bool found;
+};
+
+static void collectCheck(void* user, const JPH_CollideShapeResult* result) {
+    auto& context = *static_cast<CheckContext*>(user);
+    if (result->bodyID2 == context.ignoreBody || gDebris.count(result->bodyID2)) return;
+    context.found = true;
+}
+
+// Whether anything touches the shape, without working out the contacts. Jolt stops at the first body it touches,
+// unless there is debris to skip.
+extern "C" bool tn_physics_check_shape(const JPH_NarrowPhaseQuery* query,
+    const JPH_Shape* shape, const JPH_RVec3* origin, const JPH_Quat* rotation,
+    uint32_t ignoreBody, uint32_t layerMask) {
+    JPH_RMat4 transform;
+    #ifdef JPH_DOUBLE_PRECISION
+    JPH_RMat4_RotationTranslation(&transform, rotation, origin);
+#else
+    JPH_Mat4_RotationTranslation(&transform, rotation, origin);
+#endif
+    JPH_CollideShapeSettings settings;
+    JPH_CollideShapeSettings_Init(&settings);
+    settings.base.penetrationTolerance = 1.0e-2f;
+    JPH_Vec3 scale{1, 1, 1};
+    JPH_RVec3 baseOffset{0, 0, 0};
+    CheckContext context{ignoreBody, false};
+    // The ignored body is skipped by the filter, so only debris needs every contact looked at.
+    const bool anyHit = gDebris.empty();
+    JPH_NarrowPhaseQuery_CollideShape2(query, shape, &scale, &transform, &settings,
+        &baseOffset, anyHit ? JPH_CollisionCollectorType_AnyHit : JPH_CollisionCollectorType_AllHit, collectCheck, &context,
+        nullptr, tn_physics_layer_filter(layerMask), queryReach(shape, origin, rotation, ignoreBody), nullptr);
+    return context.found;
 }
 
 // ---- virtual character ----

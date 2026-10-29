@@ -20,6 +20,7 @@ import tempfile
 import tomllib
 
 import compress_textures
+import convert_models
 import macos_link
 import pack_assets
 
@@ -230,9 +231,23 @@ def main():
             for file in (project / 'src').rglob('*'):
                 if not file.is_file() or file.suffix in ('.bf', '.tgraph', '.py', '.sh') or any(part.startswith('.') for part in file.relative_to(project / 'src').parts):
                     continue
+                # FBX, OBJ, ... and their import settings: the game gets the converted .glb instead (below).
+                if convert_models.is_converted(file.name) or (file.name.endswith('.import') and convert_models.is_converted(file.name[:-7])):
+                    continue
                 target = staging / 'Assets' / file.relative_to(project / 'src')
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(file, target)
+            # Converted models (docs/model-import.md), as <file>.glb: the name the engine looks for when a scene names
+            # the file itself.
+            converted, conversion_errors = convert_models.convert_project(project, engine)
+            if conversion_errors:
+                sys.exit('Some models could not be converted:\n  ' + '\n  '.join(conversion_errors))
+            for relative, path in converted:
+                target = staging / 'Assets' / (relative + '.glb')
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(path, target)
+            if converted:
+                print(f'Models: {len(converted)} converted to glTF')
             # Pictures compressed for the graphics card (docs/textures.md): a .ktx beside each, which the engine uses in its
             # place. Not for the web, whose browsers do not all read the same compressed formats.
             if not web and not args.no_texture_compression and settings.get('compressTextures', '1') != '0':

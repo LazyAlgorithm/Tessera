@@ -21,6 +21,9 @@ class GameObject
 	public bool IsFolder;
 	/// Generated at runtime (voxel chunks, pooled effects): not saved with the scene and hidden in the Hierarchy.
 	public bool Transient;
+	/// In a streamed world (docs/world-streaming.md): kept loaded wherever the players are, instead of coming and going
+	/// with its cell.
+	public bool AlwaysLoaded;
 	/// What this object was made from while the game ran: a prefab file, or the name of a registered network prefab.
 	/// Empty for objects that came with the scene. SaveSystem uses it to make the object again on loading.
 	public String SpawnedFrom ~ delete _;

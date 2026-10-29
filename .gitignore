@@ -8,3 +8,6 @@ recovery/
 imgui.ini
 .tessera-reload/
 website/
+
+# Kate editor swap files
+*.kate-swp

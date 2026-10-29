@@ -21,6 +21,8 @@ class Animator : Component
 	struct Bone
 	{
 		public Transform transform;
+		/// The bone above it in mBones (-1 for a child of the Animator's own object). Bones come after their parents.
+		public int32 parent;
 		public Vector3 restPosition;
 		public Quaternion restRotation;
 		public Vector3 restScale;
@@ -283,16 +285,15 @@ class Animator : Component
 
 	/// One bone's pose in a clip at a time (seconds), as the bone's own local pose. False when the clip does not move
 	/// that bone.
-	bool SampleMotion(StringView clipName, float time, bool loop, int boneIndex, out Vector3 position, out Quaternion rotation, out Vector3 scale)
+	bool SampleMotion(StringView clipName, AnimationClip clip, float time, bool loop, int boneIndex, out Vector3 position, out Quaternion rotation, out Vector3 scale)
 	{
 		let bone = mBones[boneIndex];
 		position = bone.restPosition;
 		rotation = bone.restRotation;
 		scale = bone.restScale;
-		let clip = FindClip(clipName);
 		if (clip != null)
 		{
-			let track = clip.FindTrack(bone.transform.GameObject.Name);
+			let track = TrackOf(clip, boneIndex);
 			if (track == null)
 				return false;
 			let t = loop ? (clip.duration > 0 ? time % clip.duration : 0) : Math.Min(time, clip.duration);
@@ -350,11 +351,12 @@ class Animator : Component
 				continue;
 			let clipName = state.blend != null ? (StringView)state.blend.motions[m].clip : (StringView)state.clip;
 			let clipTime = phase * MotionLength(clipName);
+			let clip = FindClip(clipName);
 			for (int b < mBones.Count)
 			{
 				Vector3 p, k;
 				Quaternion q;
-				if (!SampleMotion(clipName, clipTime, false, b, out p, out q, out k))
+				if (!SampleMotion(clipName, clip, clipTime, false, b, out p, out q, out k))
 					continue;
 				positions[b] = positions[b] + p * weight;
 				scales[b] = scales[b] + k * weight;
@@ -619,10 +621,9 @@ class Animator : Component
 			let bone = mBones[b];
 			if (bone.transform.GameObject.IsDestroyed)
 				continue;
-			bone.transform.LocalPosition = mPosePosition[b];
-			bone.transform.LocalRotation = mPoseRotation[b];
-			bone.transform.LocalScale = mPoseScale[b];
+			Pose(b, mPosePosition[b], mPoseRotation[b], mPoseScale[b]);
 		}
+		PosedChanged();
 	}
 
 	bool Holds(AnimatorController.Condition condition)
@@ -719,6 +720,87 @@ class Animator : Component
 
 	List<AnimationClip> mClips = new .() ~ delete _;
 	List<Bone> mBones = new .() ~ delete _;
+
+	/// Which track of a clip moves each bone, so a frame does not look every bone's name up among the clip's tracks.
+	class TrackMap
+	{
+		public AnimationClip clip;
+		public int32 revision;
+		public AnimationClip.Track[] tracks ~ delete _;
+	}
+
+	List<TrackMap> mTrackMaps = new .() ~ DeleteContainerAndItems!(_);
+	/// Bones posed this frame, and bones whose branch has been told (PosedChanged).
+	bool[] mPosed ~ delete _;
+	bool[] mTold ~ delete _;
+
+	/// The track of a clip that moves a bone, or null.
+	AnimationClip.Track TrackOf(AnimationClip clip, int b)
+	{
+		TrackMap map = null;
+		for (let candidate in mTrackMaps)
+		{
+			if (candidate.clip == clip)
+			{
+				map = candidate;
+				break;
+			}
+		}
+		if (map == null)
+		{
+			map = new TrackMap();
+			map.clip = clip;
+			map.revision = -1;
+			mTrackMaps.Add(map);
+		}
+		let name = mBones[b].transform.GameObject.Name;
+		if (map.revision != clip.TrackRevision || map.tracks == null || map.tracks.Count != mBones.Count)
+		{
+			// The clip gained or lost tracks, or the bones changed: looked up again.
+			delete map.tracks;
+			map.tracks = new .[mBones.Count];
+			map.revision = clip.TrackRevision;
+			for (int i < mBones.Count)
+				map.tracks[i] = clip.FindTrack(mBones[i].transform.GameObject.Name);
+		}
+		let track = map.tracks[b];
+		// A bone renamed since: looked up by its new name.
+		if (track != null && track.bone != name)
+			map.tracks[b] = clip.FindTrack(name);
+		return map.tracks[b];
+	}
+
+	/// Sets a bone's local pose; PosedChanged then tells the transforms below.
+	void Pose(int b, Vector3 position, Quaternion rotation, Vector3 scale)
+	{
+		if (mPosed == null || mPosed.Count != mBones.Count)
+		{
+			delete mPosed;
+			delete mTold;
+			mPosed = new .[mBones.Count];
+			mTold = new .[mBones.Count];
+		}
+		mBones[b].transform.SetLocalPoseDeferred(position, rotation, scale);
+		mPosed[b] = true;
+	}
+
+	/// After Pose: the topmost posed bone of each branch tells everything below it once.
+	void PosedChanged()
+	{
+		if (mPosed == null || mPosed.Count != mBones.Count)
+			return;
+		for (int b < mBones.Count)
+		{
+			let bone = mBones[b];
+			// Told already when its parent bone's branch was told, and it is still that bone's child.
+			let told = bone.parent >= 0 && mTold[bone.parent] && bone.transform.Parent == mBones[bone.parent].transform;
+			if (mPosed[b] && !told)
+				bone.transform.PoseChanged();
+			mTold[b] = told || mPosed[b];
+			mPosed[b] = false;
+		}
+	}
+
 	AnimationClip mCurrent;
 	AnimationClip mPrevious;
 	float mTime;
@@ -751,6 +833,7 @@ class Animator : Component
 				mClips.Add(clip);
 		}
 		mBones.Clear();
+		ClearAndDeleteItems!(mTrackMaps);
 		Collect(Transform);
 		mSkinned = GetComponent<SkinnedMeshRenderer>();
 		if (mSkinned == null)
@@ -769,17 +852,18 @@ class Animator : Component
 		SyncController();
 	}
 
-	void Collect(Transform parent)
+	void Collect(Transform parent, int32 parentIndex = -1)
 	{
 		for (let child in parent.Children)
 		{
 			Bone bone;
 			bone.transform = child;
+			bone.parent = parentIndex;
 			bone.restPosition = child.LocalPosition;
 			bone.restRotation = child.LocalRotation;
 			bone.restScale = child.LocalScale;
 			mBones.Add(bone);
-			Collect(child);
+			Collect(child, (int32)mBones.Count - 1);
 		}
 	}
 
@@ -836,19 +920,19 @@ class Animator : Component
 	{
 		if (mBones.Count == 0)
 			Collect(Transform);
-		for (let bone in mBones)
+		for (int b < mBones.Count)
 		{
+			let bone = mBones[b];
 			if (bone.transform.GameObject.IsDestroyed)
 				continue;
-			let track = clip.FindTrack(bone.transform.GameObject.Name);
+			let track = TrackOf(clip, b);
 			Vector3 position = .Zero, scale = .(1, 1, 1);
 			Quaternion rotation = .Identity;
 			if (track != null)
 				track.Sample(time, out position, out rotation, out scale);
-			bone.transform.LocalPosition = bone.restPosition + position;
-			bone.transform.LocalRotation = (bone.restRotation * rotation).Normalized;
-			bone.transform.LocalScale = .(bone.restScale.x * scale.x, bone.restScale.y * scale.y, bone.restScale.z * scale.z);
+			Pose(b, bone.restPosition + position, (bone.restRotation * rotation).Normalized, .(bone.restScale.x * scale.x, bone.restScale.y * scale.y, bone.restScale.z * scale.z));
 		}
+		PosedChanged();
 	}
 
 	/// The pose a child had before any animation moved it, which keys are measured from.
@@ -901,21 +985,21 @@ class Animator : Component
 		let time = Wrap(mCurrent, mTime);
 		let previousTime = blending ? Wrap(mPrevious, mPreviousTime) : 0;
 
-		for (let bone in mBones)
+		for (int b < mBones.Count)
 		{
+			let bone = mBones[b];
 			if (bone.transform.GameObject.IsDestroyed)
 				continue;
-			let name = bone.transform.GameObject.Name;
 			Vector3 position = .Zero, scale = .(1, 1, 1);
 			Quaternion rotation = .Identity;
-			let track = mCurrent.FindTrack(name);
+			let track = TrackOf(mCurrent, b);
 			if (track != null)
 				track.Sample(time, out position, out rotation, out scale);
 			if (blending)
 			{
 				Vector3 fromPosition = .Zero, fromScale = .(1, 1, 1);
 				Quaternion fromRotation = .Identity;
-				let fromTrack = mPrevious.FindTrack(name);
+				let fromTrack = TrackOf(mPrevious, b);
 				if (fromTrack != null)
 					fromTrack.Sample(previousTime, out fromPosition, out fromRotation, out fromScale);
 				scale = Vector3.Lerp(fromScale, scale, weight);
@@ -928,10 +1012,8 @@ class Animator : Component
 				if (bone.transform.LocalRotation.x == bone.restRotation.x && bone.transform.LocalRotation.w == bone.restRotation.w && bone.transform.LocalPosition == bone.restPosition)
 					continue;
 			}
-			bone.transform.LocalPosition = bone.restPosition + position;
-			bone.transform.LocalRotation = (bone.restRotation * rotation).Normalized;
-			if (track != null)
-				bone.transform.LocalScale = .(bone.restScale.x * scale.x, bone.restScale.y * scale.y, bone.restScale.z * scale.z);
+			Pose(b, bone.restPosition + position, (bone.restRotation * rotation).Normalized, track != null ? Vector3(bone.restScale.x * scale.x, bone.restScale.y * scale.y, bone.restScale.z * scale.z) : bone.transform.LocalScale);
 		}
+		PosedChanged();
 	}
 }
