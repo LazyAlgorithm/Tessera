@@ -208,7 +208,7 @@ extension EditorApp
 			mGraphStatus.Set("Could not write the generated script.");
 	}
 
-	/// Saves a shader graph as the .tshader file beside it and compiles that. A subgraph has no shader of its own:
+	/// Saves a shader graph as the .tshader (or .tcompute) file beside it and compiles that. A subgraph has no shader of its own:
 	/// the shader graphs that use it are compiled again instead.
 	void CompileShaderGraph()
 	{
@@ -230,7 +230,7 @@ extension EditorApp
 		}
 		let target = scope String(mGraphPath);
 		target.RemoveFromEnd(".tsgraph".Length);
-		target.Append(".tshader");
+		target.Append(ShaderGraphCode.FileExtension(mGraph));
 		if (File.WriteAllText(target, text) case .Err)
 		{
 			mGraphStatus.Set("Could not write the generated shader.");
@@ -238,7 +238,8 @@ extension EditorApp
 		}
 		let relative = scope String();
 		Assets.MakeRelative(target, relative);
-		mGraphStatus.Set(CompileShader(relative) ? "Saved and compiled. Pick it as a material's Shader." : "Saved, but the shader did not compile: see the Console.");
+		let use = target.EndsWith(".tcompute") ? "Pick it in a Compute Effect component." : "Pick it as a material's Shader.";
+		mGraphStatus.Set(CompileShader(relative) ? scope $"Saved and compiled. {use}" : "Saved, but the shader did not compile: see the Console.");
 		AssetPreviews.Invalidate(mGraphPath);
 		RefreshAssetList();
 	}
@@ -273,7 +274,7 @@ extension EditorApp
 			}
 			let target = scope String(path);
 			target.RemoveFromEnd(".tsgraph".Length);
-			target.Append(".tshader");
+			target.Append(ShaderGraphCode.FileExtension(user));
 			let relative = scope String();
 			Assets.MakeRelative(target, relative);
 			if (File.WriteAllText(target, shader) case .Ok && CompileShader(relative))
@@ -368,6 +369,56 @@ extension EditorApp
 		CompileGraph();
 	}
 
+	/// A shader graph ending in a Compute Output: a .tcompute file, run for every pixel of a texture by a Compute
+	/// Effect component.
+	void CreateComputeGraphAsset(StringView name)
+	{
+		if (!ValidAssetName(name, "Compute graph"))
+			return;
+		let path = scope $"{mBrowsePath}/{name}.tsgraph";
+		if (File.Exists(path) || File.Exists(scope $"{mBrowsePath}/{name}.tcompute"))
+		{
+			Log.Error(scope $"A shader named {name} already exists in this folder.");
+			return;
+		}
+		// Something that visibly runs: drifting spots of ink that leave fading, spreading trails.
+		let graph = scope NodeGraph();
+		graph.isShader = true;
+		graph.name.Set(name);
+		let output = graph.AddNode(NodeLibrary.Find("shader.compute.output"), .(1160, 160));
+		let spread = graph.AddNode(NodeLibrary.Find("shader.compute.blur"), .(60, 40));
+		let spreadRgb = graph.AddNode(NodeLibrary.Find("shader.rgb"), .(320, 40));
+		let fade = graph.AddNode(NodeLibrary.Find("shader.vscale"), .(580, 40));
+		let cells = graph.AddNode(NodeLibrary.Find("shader.voronoi"), .(60, 260));
+		let spots = graph.AddNode(NodeLibrary.Find("shader.smoothstep"), .(320, 260));
+		let ink = graph.AddNode(NodeLibrary.Find("shader.prop.color"), .(320, 480));
+		let inkRgb = graph.AddNode(NodeLibrary.Find("shader.rgb"), .(580, 480));
+		let drawn = graph.AddNode(NodeLibrary.Find("shader.vscale"), .(580, 260));
+		let sum = graph.AddNode(NodeLibrary.Find("shader.vadd"), .(840, 140));
+		let colour = graph.AddNode(NodeLibrary.Find("shader.makecolor"), .(900, 300));
+		graph.Validate();
+		fade.values[1].Set("0.985");
+		spots.values[0].Set("0.08");
+		spots.values[1].Set("0");
+		ink.values[0].Set("ink");
+		ink.values[1].Set("0.2 0.6 1 1");
+		colour.values[1].Set("1");
+		graph.Connect(spread.id, 0, spreadRgb.id, 0);
+		graph.Connect(spreadRgb.id, 0, fade.id, 0);
+		graph.Connect(cells.id, 0, spots.id, 2);
+		graph.Connect(ink.id, 0, inkRgb.id, 0);
+		graph.Connect(inkRgb.id, 0, drawn.id, 0);
+		graph.Connect(spots.id, 0, drawn.id, 1);
+		graph.Connect(fade.id, 0, sum.id, 0);
+		graph.Connect(drawn.id, 0, sum.id, 1);
+		graph.Connect(sum.id, 0, colour.id, 0);
+		graph.Connect(colour.id, 0, output.id, 0);
+		graph.Save(path);
+		RefreshAssetList();
+		OpenGraph(path);
+		CompileGraph();
+	}
+
 	static Color PinColor(PinType type)
 	{
 		switch (type)
@@ -409,9 +460,7 @@ extension EditorApp
 	{
 		if (mShaderPreview == null || !HasNodePreview(node))
 			return;
-		if (!mShaderPreview.TryGetPicture(let texture))
-			return;
-		if (!mShaderPreview.CellOf(node.id, let from, let to))
+		if (!mShaderPreview.NodePicture(node.id, let texture, let from, let to))
 			return;
 		let size = NodePreviewSize * canvas.zoom;
 		let x = (min.x + max.x - size) * 0.5f;
@@ -419,14 +468,13 @@ extension EditorApp
 		ImGui.DrawPicture(texture, .(x, y), .(x + size, y + size), from, to);
 	}
 
-	/// The whole shader, lit, in the canvas's bottom right corner.
+	/// The whole shader, lit (or a compute graph's texture, running), in the canvas's bottom right corner.
 	void DrawSurfacePreview(CanvasView canvas)
 	{
 		if (mShaderPreview == null)
 			return;
-		if (!mShaderPreview.TryGetPicture(let texture))
+		if (!mShaderPreview.SurfacePicture(let texture, let from, let to))
 			return;
-		mShaderPreview.SurfaceCell(let from, let to);
 		let max = ImGui.Vec2(canvas.origin.x + canvas.size.x - 10, canvas.origin.y + canvas.size.y - 10);
 		let min = ImGui.Vec2(max.x - SurfacePreviewSize, max.y - SurfacePreviewSize);
 		ImGui.DrawRectFilled(.(min.x - 1, min.y - 19), .(max.x + 1, max.y + 1), EditorTheme.Canvas);

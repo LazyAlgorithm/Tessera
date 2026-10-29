@@ -237,15 +237,16 @@ static class ShaderCompiler
 		return usable;
 	}
 
-	/// Compiles shader source (a .tshader's text) for the backend the editor draws with only, into
-	/// <outputRoot>/<backend>/<name>_vs.bin and _fs.bin: the shader graph's live previews, which load it with
-	/// ShaderAsset.FromCompiled. Uses its own work folder, so it can run on another thread. Messages go to log.
+	/// Compiles shader source (a .tshader's or .tcompute's text) for the backend the editor draws with only, into
+	/// <outputRoot>/<backend>/<name>_vs.bin and _fs.bin, or _cs.bin: the shader graph's live previews, which load
+	/// it with ShaderAsset.FromCompiled. Uses its own work folder, so it can run on another thread. Messages go to
+	/// log.
 	public static bool CompilePreview(StringView engineRoot, StringView text, StringView name, StringView outputRoot, String log)
 	{
 		let shader = scope ShaderAsset();
 		shader.path.Set(name);
 		shader.Parse(text);
-		if (!shader.problems.IsEmpty || shader.IsCompute)
+		if (!shader.problems.IsEmpty)
 		{
 			log.Append(shader.problems);
 			return false;
@@ -268,6 +269,8 @@ static class ShaderCompiler
 		stage.name = name;
 		stage.outputRoot = outputRoot;
 		stage.log = log;
+		if (shader.IsCompute)
+			return CompileStage(stage, compute, "cs", "compute", true);
 		return CompileStage(stage, vertex, "vs", "vertex", true) && CompileStage(stage, fragment, "fs", "fragment", true);
 	}
 
@@ -296,7 +299,7 @@ static class ShaderCompiler
 	static DateTime NewestTemplate(StringView engineRoot)
 	{
 		var newest = DateTime.MinValue;
-		for (let name in StringView[?]("fs_mesh.sc", "vs_mesh.sc", "cs_template.sc", "include/lighting.sh", "include/wind.sh", "include/bgfx_shader.sh"))
+		for (let name in StringView[?]("fs_mesh.sc", "vs_mesh.sc", "cs_template.sc", "include/lighting.sh", "include/wind.sh", "include/shadergraph.sh", "include/bgfx_shader.sh"))
 		{
 			if (File.GetLastWriteTimeUtc(scope $"{engineRoot}/Engine/shaders/{name}") case .Ok(let time) && time > newest)
 				newest = time;

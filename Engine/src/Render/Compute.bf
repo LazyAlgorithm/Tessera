@@ -26,6 +26,9 @@ class ComputeTexture
 
 	public ~this()
 	{
+		// After shutdown the graphics card's textures are already gone.
+		if (!Gfx.Initialized)
+			return;
 		for (int i < 2)
 		{
 			if (mTextures[i].Valid)
@@ -57,6 +60,18 @@ static class Compute
 	/// is not compiled or compute is not supported.
 	public static bool Run(ShaderAsset shader, ComputeTexture target, Span<Vector4> values = default)
 	{
+		return target != null && Dispatch(shader, target, values, target.Texture, 0);
+	}
+
+	/// The editor's shader graph previews: a step over `target` that reads `previous` (another texture) as the
+	/// texture before it, with u_surface.x set to `preview` (see ShaderGraphCode).
+	public static bool RunPreview(ShaderAsset shader, ComputeTexture target, bgfx.TextureHandle previous, float preview)
+	{
+		return target != null && Dispatch(shader, target, default, previous, preview);
+	}
+
+	static bool Dispatch(ShaderAsset shader, ComputeTexture target, Span<Vector4> values, bgfx.TextureHandle previous, float preview)
+	{
 		if (shader == null || target == null || !shader.IsCompute || !Supported)
 			return false;
 		let program = shader.ComputeProgram;
@@ -71,11 +86,11 @@ static class Compute
 			if (property.type != .Texture)
 				slots[property.slot] = property.slot < values.Length ? values[property.slot] : property.defaultValue;
 		}
-		Vector4 surface = .(0, Time.RealTime, target.Width, target.Height);
+		Vector4 surface = .(preview, Time.RealTime, target.Width, target.Height);
 		bgfx.set_uniform(RenderResources.uSurface, &surface, 1);
 		bgfx.set_uniform(RenderResources.uParams, &slots, ShaderAsset.MaxValues);
 		bgfx.set_image(0, target.Next, 0, .Write, target.Format);
-		bgfx.set_texture(1, sPrevious, target.Texture, uint32.MaxValue);
+		bgfx.set_texture(1, sPrevious, previous, uint32.MaxValue);
 		bgfx.dispatch(View, program, (uint32)((target.Width + 7) / 8), (uint32)((target.Height + 7) / 8), 1, 0xff);
 		target.Swap();
 		return true;

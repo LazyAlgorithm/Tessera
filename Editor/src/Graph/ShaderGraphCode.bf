@@ -5,10 +5,12 @@ using Tessera;
 
 namespace Tessera.Editor;
 
-/// Writes the .tshader file a shader graph stands for. Each node is worked out once, into a local of its own
-/// ("vec3 n12 = ...;"), before the nodes that read it, so a node feeding several others costs once. A subgraph's
-/// nodes are written in place inside the graph that uses it, their locals named after the node standing for it.
-/// For the editor's previews it can also work out every node and show the one u_surface.w picks, unlit.
+/// Writes the .tshader file a shader graph stands for, or the .tcompute file of a compute graph (one ending in a
+/// Compute Output node). Each node is worked out once, into a local of its own ("vec3 n12 = ...;"), before the nodes
+/// that read it, so a node feeding several others costs once. A subgraph's nodes are written in place inside the
+/// graph that uses it, their locals named after the node standing for it. For the editor's previews it can also work
+/// out every node and show the one u_surface.w picks, unlit; a compute graph's preview instead fills a grid of
+/// PreviewCell-pixel cells, one node in each, when u_surface.x (its columns) is above 0.
 class ShaderGraphCode
 {
 	/// A graph being written: the graph, the start of its locals' names, and for a subgraph the node using it.
@@ -23,8 +25,13 @@ class ShaderGraphCode
 	/// The deepest subgraphs go inside one another.
 	const int MaxSubgraphDepth = 12;
 
-	/// The value of u_surface.w that shows each node in a preview, by node id (from 1; 0 is the surface itself).
+	/// The value of u_surface.w that shows each node in a preview, by node id (from 1; 0 is the surface itself). For a
+	/// compute graph, the cell of the preview's grid, counted across from the top left.
 	public Dictionary<int32, int32> previewSlots = new .() ~ delete _;
+	/// Whether the graph written was a compute graph (a .tcompute file).
+	public bool isCompute;
+	/// The width and height in pixels of one cell of a compute graph's preview grid.
+	public const int32 PreviewCell = 128;
 	/// Mistakes found while writing, one message per line.
 	public String problems = new .() ~ delete _;
 
@@ -38,6 +45,43 @@ class ShaderGraphCode
 	public static StringView GlslType(PinType type) => type == .Float ? "float" : (type == .Vector2 ? "vec2" : (type == .Vector3 ? "vec3" : "vec4"));
 
 	static StringView Zero(PinType type) => type == .Float ? "0.0" : (type == .Vector2 ? "vec2_splat(0.0)" : (type == .Vector3 ? "vec3_splat(0.0)" : "vec4_splat(0.0)"));
+
+	/// Whether a node needs a surface being drawn (its position, normal, material or camera), which a compute graph
+	/// does not have.
+	public static bool SurfaceOnly(StringView key)
+	{
+		for (let surfaceOnly in sSurfaceOnly)
+		{
+			if (key == surfaceOnly)
+				return true;
+		}
+		return false;
+	}
+
+	static StringView[?] sSurfaceOnly = .("shader.worldpos", "shader.worldnormal", "shader.vertexcolor", "shader.basealbedo", "shader.basealpha", "shader.prop.texture",
+		"shader.maintexture", "shader.fresnel", "shader.viewdir", "shader.triplanar", "shader.prop.normal", "shader.normalheight", "shader.objectpos", "shader.objectnormal");
+
+	/// Whether a graph is a compute graph: it ends in a Compute Output node, or (a subgraph) uses compute inputs.
+	public static bool IsComputeGraph(NodeGraph graph)
+	{
+		for (let node in graph.nodes)
+		{
+			if (node.def.key.StartsWith("shader.compute."))
+				return true;
+		}
+		return false;
+	}
+
+	/// The file a shader graph saves as, beside it: ".tcompute" for a compute graph, ".tshader" for the rest.
+	public static StringView FileExtension(NodeGraph graph)
+	{
+		for (let node in graph.nodes)
+		{
+			if (node.def.key == "shader.compute.output")
+				return ".tcompute";
+		}
+		return ".tshader";
+	}
 
 	/// Whether a node is a shader subgraph's output (it has an input for each of the subgraph's results).
 	public static bool IsSubgraphOutput(GraphNode node) => node.def.key.StartsWith("shader.sub.output.");
@@ -75,7 +119,7 @@ class ShaderGraphCode
 			{
 				if (output != null)
 				{
-					Problem("A shader graph has one Surface Output node; this one has more.");
+					Problem("A shader graph has one output node (Surface Output or Compute Output); this one has more.");
 					return false;
 				}
 				output = node;
@@ -85,11 +129,17 @@ class ShaderGraphCode
 		}
 		if (output == null && (firstResult == null || !preview))
 		{
-			Problem(firstResult != null ? "A subgraph is used inside other shader graphs, not as a shader of its own." : "Add a Surface Output node (under Shader Output) and connect something to it.");
+			Problem(firstResult != null ? "A subgraph is used inside other shader graphs, not as a shader of its own." : "Add a Surface Output node (or Compute Output, for a compute shader) and connect something to it.");
 			return false;
 		}
+		isCompute = (output != null) ? (output.def.key == "shader.compute.output") : IsComputeGraph(graph);
 		text.Append("// Generated from a shader graph by the Tessera editor.\n// Edit the graph and save it again; changes made here are overwritten.\n");
 		WriteProperties(graph, text);
+		if (isCompute)
+		{
+			WriteCompute(top, output ?? firstResult, output == null, preview, text);
+			return problems.IsEmpty;
+		}
 
 		// Which output-node input is which, by position: see NodeLibrary's "shader.output".
 		bool Connected(int32 pin) => output != null && graph.[Friend]FindLinkTo(output.id, pin, let ignored);
@@ -119,6 +169,27 @@ class ShaderGraphCode
 			text.AppendF("\nvertex {{\n{}}}\n", mCode);
 		}
 		return problems.IsEmpty;
+	}
+
+	/// A compute graph's compute block: the Compute Output's colour (or a subgraph's first output) as the result.
+	void WriteCompute(Frame top, GraphNode output, bool subgraph, bool preview, String text)
+	{
+		if (preview)
+		{
+			// The editor's preview grid: each cell stands for the whole texture (the one bound as previous), seen
+			// through one node.
+			mCode.AppendF("\tivec2 tsgCell = pixel / {};\n\tif (u_surface.x > 0.5)\n\t{{\n", PreviewCell);
+			mCode.Append("\t\tsize = ivec2(textureSize(s_previous, 0));\n");
+			mCode.AppendF("\t\tuv = (vec2(pixel - tsgCell * {0}) + vec2_splat(0.5)) / {0}.0;\n", PreviewCell);
+			mCode.Append("\t\tpixel = ivec2(uv * vec2(size));\n\t\tresult = previous(uv);\n\t}\n");
+		}
+		if (subgraph)
+			Assign(top, output, 1, "\tresult = {};\n", true, .Color);
+		else
+			Assign(top, output, 0, "\tresult = {};\n", top.graph.[Friend]FindLinkTo(output.id, 0, let ignored));
+		if (preview)
+			WritePreviews(top);
+		text.AppendF("\ncompute {{\n{}}}\n", mCode);
 	}
 
 	/// One line setting a surface value from what reaches an input of the output node.
@@ -174,6 +245,8 @@ class ShaderGraphCode
 				}
 				else if (node.def.key == "shader.prop.color")
 					text.AppendF("property color {} = {}\n", name, node.values[1].IsEmpty ? (StringView)"1 1 1 1" : node.values[1]);
+				else if (isCompute)
+					Problem("A compute graph cannot have texture properties: it reads only its own texture (Previous).");
 				else
 					text.AppendF("property texture {}\n", name);
 			}
@@ -189,12 +262,24 @@ class ShaderGraphCode
 		{
 			if (node.def.outputs.IsEmpty || node.def.kind == .ShaderOutput || VertexOnly(top.graph, node, 0))
 				continue;
+			// Nodes that cannot work in this kind of graph say so when they are used; unused, they show nothing.
+			if (isCompute ? SurfaceOnly(node.def.key) : node.def.key.StartsWith("shader.compute."))
+				continue;
 			let value = scope String();
 			Output(top, node, 0, value);
 			let shown = scope String();
 			NodeGraph.ShaderConvert(node.def.outputs[0].type, .Color, value, shown);
-			choose.AppendF("\t\t{}if (u_surface.w < {}.5)\n\t\t\tshown = {};\n", slot > 1 ? "else " : "", slot, shown);
+			if (isCompute)
+				choose.AppendF("\t\t{}if (tsgSlot == {})\n\t\t\tshown = {};\n", slot > 1 ? "else " : "", slot, shown);
+			else
+				choose.AppendF("\t\t{}if (u_surface.w < {}.5)\n\t\t\tshown = {};\n", slot > 1 ? "else " : "", slot, shown);
 			previewSlots[node.id] = slot++;
+		}
+		if (isCompute)
+		{
+			mCode.Append("\tif (u_surface.x > 0.5)\n\t{\n\t\tint tsgSlot = tsgCell.y * int(u_surface.x) + tsgCell.x;\n\t\tvec4 shown = result;\n");
+			mCode.AppendF("{}\t\tresult = vec4(shown.rgb, 1.0);\n\t}}\n", choose);
+			return;
 		}
 		if (choose.IsEmpty)
 			return;
@@ -276,7 +361,7 @@ class ShaderGraphCode
 		if (node.def.key.StartsWith("shsub:"))
 			code.AppendF("{}_{}", local, pin);
 		else if (output.code != null)
-			code.Append(output.code..Replace("$V", local));
+			code.Append(scope String(output.code)..Replace("$V", local));
 		else
 			code.Append(local);
 	}
@@ -304,7 +389,11 @@ class ShaderGraphCode
 			return;
 		}
 		let key = node.def.key;
-		if (!mVertex && (key == "shader.objectpos" || key == "shader.objectnormal"))
+		if (isCompute && SurfaceOnly(key))
+			Problem(scope $"{node.def.title} needs a surface being drawn, which a compute graph does not have.");
+		else if (!isCompute && key.StartsWith("shader.compute."))
+			Problem(scope $"{node.def.title} is for compute graphs (ending in a Compute Output node).");
+		else if (!mVertex && (key == "shader.objectpos" || key == "shader.objectnormal"))
 			Problem("Object Position and Object Normal are for the Vertex Offset input only.");
 		mBusy.Add(new String(local));
 		let statement = scope String();

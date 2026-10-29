@@ -388,6 +388,87 @@ class Program
 			let allFine = allMade && ShaderCompiler.Compile(root, "Shaders/allnodes.tshader", log);
 			let allLabel = scope $"all {count} shader graph nodes compile as shader code, {writer.previewSlots.Count} of them shown by the preview {writer.problems}{log}";
 			ok &= Check(allFine && count > 90 && writer.previewSlots.Count > 80 && !writer.previewSlots.ContainsKey(objectNormal.id) && allText.Contains("if (u_surface.w > 0.5)") && allText.Contains("position += n"), allLabel);
+
+			// A compute graph: what spreads from the neighbours, faded, plus a colour property where a number property
+			// says; it becomes a .tcompute file.
+			let flow = scope NodeGraph();
+			flow.isShader = true;
+			let flowOutput = flow.AddNode(NodeLibrary.Find("shader.compute.output"), .(800, 0));
+			let spread = flow.AddNode(NodeLibrary.Find("shader.compute.blur"), .(0, 0));
+			let fade = flow.AddNode(NodeLibrary.Find("shader.lerp"), .(200, 0));
+			let amount = flow.AddNode(NodeLibrary.Find("shader.prop.float"), .(0, 200));
+			let ink = flow.AddNode(NodeLibrary.Find("shader.prop.color"), .(0, 400));
+			let paint = flow.AddNode(NodeLibrary.Find("shader.compute.neighbour"), .(200, 200));
+			let mixed = flow.AddNode(NodeLibrary.Find("shader.vlerp"), .(400, 0));
+			let spreadRgb = flow.AddNode(NodeLibrary.Find("shader.rgb"), .(200, 400));
+			let inkRgb = flow.AddNode(NodeLibrary.Find("shader.rgb"), .(400, 400));
+			let colour = flow.AddNode(NodeLibrary.Find("shader.makecolor"), .(600, 0));
+			flow.Validate();
+			amount.values[0].Set("amount");
+			amount.values[1].Set("0.1");
+			ink.values[0].Set("ink");
+			paint.values[0].Set("1");
+			flow.Connect(spread.id, 0, spreadRgb.id, 0);
+			flow.Connect(ink.id, 0, inkRgb.id, 0);
+			flow.Connect(spreadRgb.id, 0, mixed.id, 0);
+			flow.Connect(inkRgb.id, 0, mixed.id, 1);
+			flow.Connect(amount.id, 0, fade.id, 0);
+			flow.Connect(paint.id, 0, fade.id, 1);
+			flow.Connect(fade.id, 0, mixed.id, 2);
+			flow.Connect(mixed.id, 0, colour.id, 0);
+			flow.Connect(colour.id, 0, flowOutput.id, 0);
+			let flowText = scope String();
+			problem.Clear();
+			let flowMade = flow.CompileShader(flowText, problem);
+			let flowLabel = scope $"a graph ending in a Compute Output is written as a compute shader {problem}\n{flowText}";
+			ok &= Check(flowMade && ShaderGraphCode.FileExtension(flow) == ".tcompute" && ShaderGraphCode.FileExtension(all) == ".tshader" && flowText.Contains("\ncompute {") && !flowText.Contains("surface {")
+				&& flowText.Contains("property float amount = 0.1") && flowText.Contains("property color ink") && flowText.Contains("neighbour(1.0, 0.0)") && flowText.Contains("result = n"), flowLabel);
+			File.WriteAllText(scope $"{cFolder}/Shaders/flow.tcompute" , flowText).IgnoreError();
+			log.Clear();
+			ok &= Check(ShaderCompiler.Compile(root, "Shaders/flow.tcompute", log), scope $"and it compiles for every backend {log}");
+
+			// Nodes in the wrong kind of graph say so.
+			let wrongCompute = flow.AddNode(NodeLibrary.Find("shader.worldpos"), .(0, 600));
+			flow.Validate();
+			flow.Connect(wrongCompute.id, 0, colour.id, 0);
+			problem.Clear();
+			ok &= Check(!flow.CompileShader(scope .(), problem) && problem.Contains("needs a surface"), scope $"a compute graph cannot read a surface's world position ({problem})");
+			let wrongSurface = scope NodeGraph();
+			wrongSurface.isShader = true;
+			let surfaceOutput = wrongSurface.AddNode(NodeLibrary.Find("shader.output"), .(400, 0));
+			let previous = wrongSurface.AddNode(NodeLibrary.Find("shader.compute.previous"), .(0, 0));
+			let previousRgb = wrongSurface.AddNode(NodeLibrary.Find("shader.rgb"), .(200, 0));
+			wrongSurface.Validate();
+			wrongSurface.Connect(previous.id, 0, previousRgb.id, 0);
+			wrongSurface.Connect(previousRgb.id, 0, surfaceOutput.id, 0);
+			problem.Clear();
+			ok &= Check(!wrongSurface.CompileShader(scope .(), problem) && problem.Contains("is for compute graphs"), scope $"a surface shader cannot read a compute shader's previous texture ({problem})");
+
+			// Every node a compute graph can use, in one compute preview: a grid cell for each, compiled.
+			let computeAll = scope NodeGraph();
+			computeAll.isShader = true;
+			computeAll.AddNode(NodeLibrary.Find("shader.compute.output"), .(0, 0));
+			int computeCount = 0;
+			for (let def in NodeLibrary.Defs)
+			{
+				if (!def.isShader || def.kind == .ShaderOutput || ShaderGraphCode.SurfaceOnly(def.key))
+					continue;
+				let node = computeAll.AddNode(def, .(0, 0));
+				computeAll.Validate();
+				if (def.key.StartsWith("shader.prop."))
+					node.values[0].Set(def.key == "shader.prop.float" ? "pf" : "pc");
+				// Subgraph Outputs have no value of their own to show.
+				if (!def.outputs.IsEmpty)
+					computeCount++;
+			}
+			let computeText = scope String();
+			let computeWriter = scope ShaderGraphCode();
+			let computeMade = computeWriter.Write(computeAll, computeText, true);
+			File.WriteAllText(scope $"{cFolder}/Shaders/allcompute.tcompute" , computeText).IgnoreError();
+			log.Clear();
+			let computeFine = computeMade && ShaderCompiler.Compile(root, "Shaders/allcompute.tcompute", log);
+			let computeLabel = scope $"all {computeCount} nodes with a value a compute graph can use compile in its preview, {computeWriter.previewSlots.Count} cells {computeWriter.problems}{log}";
+			ok &= Check(computeFine && computeWriter.isCompute && computeCount > 70 && computeWriter.previewSlots.Count == computeCount && computeText.Contains("int tsgSlot"), computeLabel);
 		}
 
 		// ---- previews ----

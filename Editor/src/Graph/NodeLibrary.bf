@@ -236,6 +236,19 @@ static class NodeLibrary
 		output.In("Albedo", .Vector3).In("Alpha", .Float).In("Metallic", .Float).In("Roughness", .Float).In("Emissive", .Vector3).In("Vertex Offset", .Vector3)
 			.In("Normal", .Vector3).In("Occlusion", .Float);
 
+		// A compute graph ends here instead: it compiles to a .tcompute file, run for every pixel of a texture.
+		let compute = Shader("shader.compute.output", "Shader Output", "Compute Output", "");
+		compute.kind = .ShaderOutput;
+		compute.In("Result", .Color);
+		Shader("shader.compute.pixel", "Compute Input", "Pixel", "vec2(pixel)").Out("", .Vector2);
+		Shader("shader.compute.size", "Compute Input", "Texture Size", "vec2(size)").Out("", .Vector2);
+		Shader("shader.compute.previous", "Compute Input", "Previous", "previous(uv)").Out("", .Color);
+		Shader("shader.compute.previousat", "Compute Input", "Previous At UV", "previous({0})").In("UV", .Vector2, "", "uv").Out("", .Color);
+		Shader("shader.compute.neighbour", "Compute Input", "Neighbour", "neighbour({0}, {1})").In("Across", .Float).In("Up", .Float).Out("", .Color);
+		Shader("shader.compute.neighbours", "Compute Input", "Neighbours Sum", "(neighbour(-1.0, -1.0) + neighbour(0.0, -1.0) + neighbour(1.0, -1.0) + neighbour(-1.0, 0.0) + neighbour(1.0, 0.0) + neighbour(-1.0, 1.0) + neighbour(0.0, 1.0) + neighbour(1.0, 1.0))")
+			.Out("", .Color);
+		Shader("shader.compute.blur", "Compute Input", "Neighbours Average", "((neighbour(0.0, -1.0) + neighbour(-1.0, 0.0) + neighbour(1.0, 0.0) + neighbour(0.0, 1.0)) * 0.25)").Out("", .Color);
+
 		Shader("shader.time", "Shader Input", "Time", "time").Out("Seconds", .Float);
 		Shader("shader.uv", "Shader Input", "UV", "uv").Out("", .Vector2);
 		Shader("shader.worldpos", "Shader Input", "World Position", "worldPosition").Out("", .Vector3);
