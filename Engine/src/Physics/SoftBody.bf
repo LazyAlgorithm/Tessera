@@ -100,6 +100,7 @@ class SoftBody : Component
 	[CLink] static extern void tn_soft_forget(void* world, uint32 bodyId);
 	[CLink] static extern void tn_soft_skin(void* world, uint32 bodyId, float* objectMatrix, float* objectNext, float step);
 	[CLink] static extern uint32 tn_soft_dents(void* world, uint32 bodyId, float* output, uint32 capacity);
+	[CLink] static extern uint32 tn_soft_dent_revision(void* world, uint32 bodyId);
 	[CLink] static extern void tn_soft_set_dents(void* world, uint32 bodyId, float* dents, uint32 count, float* objectMatrix);
 	[CLink] static extern uint32 tn_soft_read(void* world, uint32 bodyId, float* positions, float* velocities, uint32 capacity);
 	[CLink] static extern void tn_soft_move_pinned(void* world, uint32 bodyId, uint32* indices, float* targets, uint32 count, float step);
@@ -145,6 +146,11 @@ class SoftBody : Component
 	float mAge;
 	// A shell's own Rigidbody, which its vertices do not collide with (uint32.MaxValue until it is found).
 	uint32 mIgnored = uint32.MaxValue;
+	// A shell's Convex Collider follows its dents: the dents it was last wrapped to, steps left until the next wrap
+	// (once a crash has settled), and the shape it wraps.
+	uint32 mHullRevision;
+	int mHullWait;
+	Mesh mHull ~ delete _;
 
 	/// The body's id in the physics world, or uint32.MaxValue before it is made.
 	public uint32 BodyId => mBody;
@@ -165,7 +171,7 @@ class SoftBody : Component
 	}
 
 	/// A shell rides its object's Rigidbody (it has no gravity of its own), and a Rigidbody only moves with a collider.
-	/// With no collider on its object, it gets a Box Collider round the mesh; with no Rigidbody on the object or above
+	/// With no collider on its object, it gets a Convex Collider round the mesh (which follows its dents); with no Rigidbody on the object or above
 	/// it, one of this soft body's Mass. So it falls, is pushed and hits things like any body.
 	void GiveShellABody()
 	{
@@ -178,17 +184,10 @@ class SoftBody : Component
 		if (GetComponent<Collider>() == null)
 		{
 			let mesh = GetComponent<MeshRenderer>()?.ActiveMesh;
-			if (mesh == null || mesh.Vertices.IsEmpty)
+			if (mesh == null || mesh.Vertices.Count < 4)
 				return;
-			var low = mesh.Vertices[0].position, high = low;
-			for (let vertex in mesh.Vertices)
-			{
-				low = Vector3.Min(low, vertex.position);
-				high = Vector3.Max(high, vertex.position);
-			}
-			let collider = GameObject.AddComponent<BoxCollider>();
-			collider.center = (low + high) * 0.5f;
-			collider.size = high - low;
+			// A convex wrap of the mesh, which follows its dents.
+			GameObject.AddComponent<ConvexCollider>();
 			// A Rigidbody that started without a collider made no body: it can now.
 			rigid?.RebuildBody();
 		}
@@ -497,6 +496,49 @@ class SoftBody : Component
 			reach.Add(Math.Max(rope.thickness, 0.005f) + 0.05f);
 		}
 		tn_soft_proxies(world.[Friend]mSystem, ids.Ptr, closed.Ptr, reach.Ptr, (uint32)ids.Count);
+	}
+
+	public override void FixedUpdate()
+	{
+		FollowDents();
+	}
+
+	/// A shell's Convex Collider (on its object, with its Rigidbody) is wrapped again round the dented shape once
+	/// the denting has stopped for a fifth of a second, so things stop at the dent rather than where the surface was.
+	void FollowDents()
+	{
+		if (kind != .Shell || mBody == uint32.MaxValue || mWorld == null)
+			return;
+		let revision = tn_soft_dent_revision(mWorld.[Friend]mSystem, mBody);
+		if (revision != mHullRevision)
+		{
+			mHullRevision = revision;
+			mHullWait = Math.Max((int)Math.Round(0.2f / Math.Max(Time.FixedDeltaTime, 0.001f)), 1);
+			return;
+		}
+		if (mHullWait == 0 || --mHullWait > 0)
+			return;
+		let convex = GetComponent<ConvexCollider>();
+		let rigid = GetComponent<Rigidbody>();
+		if (convex == null || rigid == null || mRest.Count < 4)
+			return;
+		let dents = scope List<Vector3>();
+		GetDents(dents);
+		if (dents.Count != mRest.Count)
+			return;
+		if (mHull == null)
+			mHull = new Mesh();
+		mHull.Vertices.Clear();
+		for (int i < mRest.Count)
+		{
+			MeshVertex vertex = default;
+			vertex.position = mRest[i] + dents[i];
+			mHull.Vertices.Add(vertex);
+		}
+		convex.HullMesh = mHull;
+		rigid.RebuildBody();
+		// The body is a new one: the shell rides it from now on.
+		mIgnored = uint32.MaxValue;
 	}
 
 	public override void LateUpdate()

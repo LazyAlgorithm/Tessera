@@ -343,5 +343,6 @@ Work agreed and queued, in order (see *How to use this page* above for what "don
   Mesh Renderer Back Face Culling (off draws both sides, the back lit as its own side). Shells: Dent Speed (default 3 m/s) and Dent
   Mode From Impacts (default: the object's collider takes the hits, a rigid contact listener records hits at Dent
   Speed or faster and the shell is pressed in around them by speed and mass; characters and kinematic bodies never
-  dent) or From Surface (the earlier behaviour).
+  dent) or From Surface (the earlier behaviour); a Convex Collider is wrapped round the dented shape once denting
+  settles; shells add a Convex Collider and Rigidbody when missing; Sandbox Ball Launcher (F).
 - [ ] Real-time water simulation (not started: to be described and agreed before work begins).

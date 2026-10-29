@@ -1042,6 +1042,7 @@ field gravityScale 1
 field thickness 0.02
 field windDrag 1
 field iterations 5
+field dentMode FromImpacts
 field dentDepth 0.15
 field springBack 0.01
 field dentSpeed 3
@@ -1139,7 +1140,7 @@ field wrapsAround 0
 field breakForce 0
 field iterations 8
 object 2184 parent 0 active 1 name "Cube"
-transform -8.430651 41.44819 -5.348306 0 0 0 1 1 1 1
+transform -8.430651 41.031002 -5.348306 0 0 0 1 1 1 1
 component Tessera.MeshRenderer enabled 1
 field mesh ""
 field color 1 1 1 1
@@ -1169,8 +1170,8 @@ field data "tmesh 1\nv -0.5 -0.5 -0.5\nv -0.5 0.5 -0.5\nv 0.5 0.5 -0.5\nv 0.5 -0
 field materials ""
 field worldScaleUVs 1
 component Tessera.SoftBody enabled 1
-field kind Jelly
-field mass 1
+field kind Shell
+field mass 100
 field stiffness 0.9
 field bendStiffness 0.2
 field pressure 10
@@ -1182,8 +1183,9 @@ field gravityScale 1
 field thickness 0.02
 field windDrag 1
 field iterations 5
+field dentMode FromImpacts
 field dentDepth 0.15
 field springBack 0.01
 field dentSpeed 3
-field pins ""
+field pins "20-21 23 151-152 159-160 218-219 316-317 334 346 382"
 field stiffnessMap ""
