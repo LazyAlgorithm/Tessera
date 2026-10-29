@@ -51,6 +51,16 @@ class Application
 	int32 mRendererOverride = -1;
 	int64 mFrameLimit = -1;
 	String mScreenshotPath = new .() ~ delete _;
+	/// --profile-save: where the profiler's recording is written when the program ends.
+	String mProfileSavePath = new .() ~ delete _;
+	/// --profile-report: where a text report of the recording is written when the program ends.
+	String mProfileReportPath = new .() ~ delete _;
+	static ProfilerMarker sEventsMarker = .("Events and Input", .Other);
+	static ProfilerMarker sFixedMarker = .("Fixed Update", .Scripts);
+	static ProfilerMarker sUpdateMarker = .("Update", .Scripts);
+	static ProfilerMarker sRenderMarker = .("Render", .Rendering);
+	static ProfilerMarker sPresentMarker = .("Present (waiting for the GPU)", .Waiting);
+	static ProfilerMarker sSleepMarker = .("Sleep (no vsync)", .Waiting);
 	String mEngineRootHint = new .() ~ delete _;
 	double mAccumulator;
 	uint64 mLastTicks;
@@ -166,6 +176,8 @@ class Application
 	/// Opens the window and runs frames until Running is false; returns the program's exit code.
 	public int Run(String[] args)
 	{
+		// The main thread is the profiler's first, whatever else starts threads early.
+		Profiler.NameThread("Main Thread");
 		for (let arg in args)
 			Args.Add(new String(arg));
 		ParseCommonArgs();
@@ -233,6 +245,22 @@ class Application
 		// To compare: lightmaps and baked light probes off (docs/baked-lighting.md).
 		if (HasArg("--no-baked-lighting"))
 			RenderView.UseBakedLighting = false;
+		// The profiler (docs/profiler.md): --profile records from the start, --profile-listen [port] lets an editor
+		// connect to watch this run (a dedicated server too), --profile-save <file> writes the recording at the end
+		// and --profile-report <file> a text report of it (both record from the start).
+		ProfilerModules.Install();
+		GetArg("--profile-save", mProfileSavePath);
+		GetArg("--profile-report", mProfileReportPath);
+		if (HasArg("--profile") || !mProfileSavePath.IsEmpty || !mProfileReportPath.IsEmpty)
+			Profiler.Enabled = true;
+		if (HasArg("--profile-listen"))
+		{
+			var port = ProfilerServer.DefaultPort;
+			let text = scope String();
+			if (GetArg("--profile-listen", text) && int32.Parse(text) case .Ok(let number))
+				port = (uint16)Math.Clamp(number, 1, 65535);
+			ProfilerServer.Listen(port);
+		}
 
 		mLastTicks = SDL.SDL_GetTicksNS();
 #if BF_PLATFORM_WASM
@@ -251,6 +279,10 @@ class Application
 	/// One pass of the main loop: events and input, fixed ticks, the frame update and drawing.
 	public void Frame()
 	{
+		// An editor watching this run may have asked to start or stop recording.
+		ProfilerServer.Update();
+		Profiler.BeginFrame();
+		sEventsMarker.Begin();
 		Watchdog.Beat();
 		// Steam delivers its events here; this does nothing unless the game has started Steam.
 		Steam.Update();
@@ -293,6 +325,7 @@ class Application
 				InterfaceHeight = Height;
 			}
 		}
+		Profiler.End();
 
 		let now = SDL.SDL_GetTicksNS();
 		var delta = (double)(now - mLastTicks) / 1.0e9;
@@ -312,7 +345,8 @@ class Application
 		var tickLength = (double)Time.FixedDeltaTime / Math.Clamp(Time.TickScale, 0.5f, 2.0f);
 		while (mAccumulator >= tickLength && steps < 8)
 		{
-			OnFixedUpdate();
+			using (sFixedMarker.Sample())
+				OnFixedUpdate();
 			mAccumulator -= tickLength;
 			steps++;
 			tickLength = (double)Time.FixedDeltaTime / Math.Clamp(Time.TickScale, 0.5f, 2.0f);
@@ -322,17 +356,21 @@ class Application
 		Time.InterpolationAlpha = (float)Math.Min(mAccumulator / tickLength, 1.0);
 		Watchdog.Stage = "running the frame update (scripts, UI, audio)";
 
-		OnUpdate();
+		using (sUpdateMarker.Sample())
+			OnUpdate();
 
 		if (!Headless)
 		{
 			bgfx.set_view_rect(0, 0, 0, (uint16)Width, (uint16)Height, 0, 1);
 			Watchdog.Stage = "drawing the scene";
-			OnRender();
+			using (sRenderMarker.Sample())
+				OnRender();
 			Watchdog.Stage = "presenting the frame (graphics driver)";
 			if (mFrameLimit > 0 && Time.FrameCount == mFrameLimit - 2 && !mScreenshotPath.IsEmpty)
 				Native.tn_gfx_screenshot(mScreenshotPath.CStr());
+			sPresentMarker.Begin();
 			bgfx.frame(0);
+			Profiler.End();
 			DebugDraw.Lines.Clear();
 			Gizmos.Lines.Clear();
 			Gizmos.Triangles.Clear();
@@ -342,8 +380,12 @@ class Application
 		else
 		{
 			// Dedicated servers have no vsync to pace them.
+			sSleepMarker.Begin();
 			SDL.SDL_DelayNS(1000000);
+			Profiler.End();
 		}
+		// The GPU's times (bgfx's latest finished frame) and every module's counters go in with the frame.
+		Profiler.EndFrame(Headless ? 0 : ProfilerModules.ReadGpu());
 
 		if (mFrameLimit > 0 && Time.FrameCount >= mFrameLimit)
 			Close();
@@ -352,9 +394,15 @@ class Application
 	/// Frees everything the application started (audio, loaders, graphics, the window).
 	public void Shutdown()
 	{
+		if (!mProfileSavePath.IsEmpty && !Profiler.Local.Save(mProfileSavePath))
+			Log.Error(scope $"Could not write the profile {mProfileSavePath}");
+		if (!mProfileReportPath.IsEmpty && !Profiler.Local.SaveReport(mProfileReportPath))
+			Log.Error(scope $"Could not write the profile report {mProfileReportPath}");
+		ProfilerServer.Stop();
 		AntiCheat.Release();
 		OnShutdown();
 		AssetLoader.Shutdown();
+		Jobs.Shutdown();
 		VoiceChat.Shutdown();
 		Audio.Shutdown();
 		Steam.Shutdown();

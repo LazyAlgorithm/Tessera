@@ -228,7 +228,7 @@ class LightBaker
 		let objectIndex = (int32)Objects.Count;
 		let world = renderer.RenderMatrix;
 		let mirrored = RenderView.Mirrored(world);
-		let parts = renderer.RuntimeParts;
+		let parts = renderer.DrawnParts;
 		let partCount = (parts != null && parts.Count > 0) ? parts.Count : 1;
 		var worldArea = 0.0f, uvArea = 0.0f;
 		let first = mTris.Count;

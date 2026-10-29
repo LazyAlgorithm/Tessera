@@ -1132,6 +1132,7 @@ extension EditorApp
 		{
 			delete clip.tracks[removeTrack];
 			clip.tracks.RemoveAt(removeTrack);
+			clip.TracksChanged();
 			mClipKeyTrack = mClipKeyIndex = -1;
 			mClipPosedTime = -1;
 			mClipDirty = true;

@@ -56,6 +56,9 @@ class MeshRenderer : Component
 	/// A material (.tmat) made in the editor. With one set, it decides how the surface looks and the fields above
 	/// are ignored, except Color, which tints this object on top of the material, and Cast Shadows.
 	public String material = new .() ~ delete _;
+	/// A model with materials of its own (a glTF, or an FBX, OBJ, ... converted to one) is drawn with them, its
+	/// textures included, when no Material or Texture is set here. Off: the whole model takes the fields above.
+	public bool useModelMaterials = true;
 
 	Tessera.Material mSharedMaterial;
 	Tessera.Material mMaterialInstance ~ delete _;
@@ -175,6 +178,7 @@ class MeshRenderer : Component
 	Mesh mRuntimeMesh;
 	String mResolvedPath = new .() ~ delete _;
 	bool mResolved;
+	int32 mMeshVersion;
 	bgfx.TextureHandle mTexture = .() { idx = uint16.MaxValue };
 	String mResolvedTexture = new .() ~ delete _;
 	int32 mTextureVersion = -1;
@@ -235,6 +239,30 @@ class MeshRenderer : Component
 	/// renderer draws its one mesh as usual.
 	public List<Part> RuntimeParts;
 
+	List<Part> mModelParts;
+	String mModelPartsPath = new .() ~ delete _;
+	int32 mModelPartsVersion = -1;
+
+	/// The parts drawn: RuntimeParts when set, else the model's own materials (useModelMaterials), else null (the
+	/// renderer draws ActiveMesh with its own material).
+	public List<Part> DrawnParts
+	{
+		get
+		{
+			if (RuntimeParts != null && RuntimeParts.Count > 0)
+				return RuntimeParts;
+			if (!useModelMaterials || mRuntimeMesh != null || !material.IsEmpty || !texture.IsEmpty || mesh.StartsWith("builtin:"))
+				return null;
+			if (mModelPartsVersion != Assets.MeshVersion || mModelPartsPath != mesh)
+			{
+				mModelPartsPath.Set(mesh);
+				mModelParts = Assets.GetModelParts(mesh);
+				mModelPartsVersion = Assets.MeshVersion;
+			}
+			return mModelParts;
+		}
+	}
+
 	/// The mesh drawn: RuntimeMesh if one is set, else the one named by the mesh field.
 	public Mesh ActiveMesh
 	{
@@ -242,11 +270,12 @@ class MeshRenderer : Component
 		{
 			if (mRuntimeMesh != null)
 				return mRuntimeMesh;
-			if (!mResolved || mResolvedPath != mesh)
+			if (!mResolved || mResolvedPath != mesh || mMeshVersion != Assets.MeshVersion)
 			{
 				mResolvedPath.Set(mesh);
 				mResolvedMesh = Assets.GetMesh(mesh);
 				mResolved = true;
+				mMeshVersion = Assets.MeshVersion;
 			}
 			return mResolvedMesh;
 		}

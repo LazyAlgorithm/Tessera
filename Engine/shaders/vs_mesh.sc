@@ -1,8 +1,10 @@
 $input a_position, a_normal, a_color0, a_texcoord0, a_texcoord1, i_data0, i_data1, i_data2, i_data3, i_data4
-$output v_wpos, v_normal, v_color0, v_texcoord0, v_depth, v_texcoord1
+$output v_wpos, v_normal, v_color0, v_texcoord0, v_depth, v_texcoord1, v_surface
 
 // Lit mesh vertex shader. Every draw is instanced: i_data0..3 is the model matrix,
-// i_data4 a per-instance tint, so identical meshes batch into one call.
+// i_data4 a per-instance tint, so identical meshes batch into one call. The matrix's bottom
+// row is always (0, 0, 0, 1), so its first three numbers carry the instance's own metallic and
+// roughness instead, and 1 when it has them (renderers without a material: see RenderView.FillInstances).
 #include <bgfx_shader.sh>
 
 uniform vec4 u_surface;       // y: time in seconds
@@ -12,7 +14,8 @@ uniform vec4 u_params[8];     // a custom shader's own properties
 
 void main()
 {
-	mat4 model = mtxFromCols(i_data0, i_data1, i_data2, i_data3);
+	mat4 model = mtxFromCols(vec4(i_data0.xyz, 0.0), vec4(i_data1.xyz, 0.0), vec4(i_data2.xyz, 0.0), i_data3);
+	v_surface = vec3(i_data0.w, i_data1.w, i_data2.w);
 	// A custom shader's vertex code may move position (in the mesh's own space) and read normal, uv and time.
 	vec3 position = a_position;
 	vec3 normal = a_normal;

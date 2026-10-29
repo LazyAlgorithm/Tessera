@@ -272,6 +272,11 @@ class SkinnedMeshRenderer : Component
 	public override void OnUnregister()
 	{
 		sAll.Remove(this);
+		if (mCpuQueued)
+		{
+			sCpuQueue.Remove(this);
+			mCpuQueued = false;
+		}
 		let renderer = GetComponent<MeshRenderer>();
 		if (renderer != null && renderer.RuntimeMesh == mMesh)
 			renderer.RuntimeMesh = null;
@@ -746,13 +751,61 @@ class SkinnedMeshRenderer : Component
 		SkinVertices();
 	}
 
-	// This vertex loop also needs optimization in editor Debug builds.
-	[Optimize]
+	/// Models waiting to be bent on the CPU this frame: Scene.Update bends them together, spread over the job threads
+	/// (FinishCpuSkinning).
+	static List<SkinnedMeshRenderer> sCpuQueue = new .() ~ delete _;
+	bool mCpuQueued;
+	Bounds mCpuBounds;
+
 	void SkinVertices()
 	{
-		// On the graphics card when it can (docs/gpu-skinning.md); the CPU loop below otherwise.
+		// On the graphics card when it can (docs/gpu-skinning.md); on the CPU, with the other models, at the end of the
+		// frame otherwise.
 		if (SkinOnGpu())
 			return;
+		if (Scene == null || !Scene.Updating)
+		{
+			SkinOnCpu();
+			UseCpuSkin();
+			return;
+		}
+		if (!mCpuQueued)
+		{
+			mCpuQueued = true;
+			sCpuQueue.Add(this);
+		}
+	}
+
+	/// Bends every model queued this frame (SkinVertices) on the CPU, several at once on the job threads, then hands
+	/// the vertices to the graphics card. Scene.Update calls it once animation, scripts and IK are done.
+	public static void FinishCpuSkinning()
+	{
+		if (sCpuQueue.IsEmpty)
+			return;
+		Jobs.For(sCpuQueue.Count, scope (index) => sCpuQueue[index].SkinOnCpu());
+		for (let renderer in sCpuQueue)
+		{
+			renderer.mCpuQueued = false;
+			renderer.UseCpuSkin();
+		}
+		sCpuQueue.Clear();
+	}
+
+	/// Hands the vertices SkinOnCpu made to the graphics card, with their bounds.
+	void UseCpuSkin()
+	{
+		mMesh.Bounds = mCpuBounds;
+		mMesh.UpdateDynamic();
+		mSkinnedOnce = true;
+		for (let part in mParts)
+			part.mesh.Bounds = mCpuBounds;
+	}
+
+	// This vertex loop also needs optimization in editor Debug builds. It runs on a job thread: it only reads the model
+	// and the pose, and writes this renderer's own vertices and bounds.
+	[Optimize]
+	void SkinOnCpu()
+	{
 		let positions = mModel.Positions.Ptr;
 		let normals = mModel.Normals.Ptr;
 		let joints = mModel.JointIndices.Ptr;
@@ -795,10 +848,6 @@ class SkinnedMeshRenderer : Component
 			if (-pz > bounds.max.z)
 				bounds.max.z = -pz;
 		}
-		mMesh.Bounds = bounds;
-		mMesh.UpdateDynamic();
-		mSkinnedOnce = true;
-		for (let part in mParts)
-			part.mesh.Bounds = bounds;
+		mCpuBounds = bounds;
 	}
 }

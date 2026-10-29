@@ -121,7 +121,6 @@ static class NavigationBaker
 			return false;
 		}
 		Range(data, dirty, let x0, let x1, let y0, let y1, let z0, let z1);
-		List<ShapeCastHit> overlaps = scope .();
 		ShapeCastHit hit;
 		// A flying agent is an upright capsule of the agent height around the cell center (a sphere when height is 2 x radius).
 		let half = Math.Max(data.agentHeight * 0.5f - data.agentRadius, 0);
@@ -134,7 +133,7 @@ static class NavigationBaker
 					NavigationData.Cell cell = default;
 					cell.position = data.Center(x, y, z);
 					if (data.flying)
-						cell.walkable = world.OverlapCapsule(cell.position - .(0, half, 0), cell.position + .(0, half, 0), data.agentRadius, overlaps) == 0;
+						cell.walkable = !world.CheckCapsule(cell.position - .(0, half, 0), cell.position + .(0, half, 0), data.agentRadius);
 					else
 					{
 						let top = Vector3(cell.position.x, data.origin.y + verticalSize, cell.position.z);
@@ -145,7 +144,7 @@ static class NavigationBaker
 							// cell beside it, or the cells at the foot of every stair would be missing and no path could cross.
 							let high = cell.position + .(0, data.agentHeight - data.agentRadius, 0);
 							let low = cell.position + .(0, Math.Min(Math.Max(data.maxStep, 0) + data.agentRadius + 0.03f, data.agentHeight - data.agentRadius), 0);
-							cell.walkable = world.OverlapCapsule(low, high, data.agentRadius, overlaps) == 0;
+							cell.walkable = !world.CheckCapsule(low, high, data.agentRadius);
 						}
 					}
 					data.cells[data.Index(x, y, z)] = cell;

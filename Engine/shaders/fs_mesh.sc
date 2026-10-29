@@ -1,4 +1,4 @@
-$input v_wpos, v_normal, v_color0, v_texcoord0, v_depth, v_texcoord1
+$input v_wpos, v_normal, v_color0, v_texcoord0, v_depth, v_texcoord1, v_surface
 
 // Forward lit surface: a material's colour, maps and lightmap, lit by include/lighting.sh (metallic/roughness BRDF,
 // the sun with four shadow cascades, up to 16 point/spot lights with spotlight shadows, hemisphere ambient and
@@ -45,8 +45,9 @@ void main()
 	vec4 tex = texture2D(s_albedo, uv);
 	vec3 albedo = toLinear3(v_color0.rgb * tex.rgb);
 	float alpha = v_color0.a * tex.a;
-	float metallic = u_material.x;
-	float roughness = u_material.y;
+	// An instance's own metallic and roughness, when it carries them, so renderers that differ only in these draw together.
+	float metallic = v_surface.z > 0.5 ? v_surface.x : u_material.x;
+	float roughness = v_surface.z > 0.5 ? v_surface.y : u_material.y;
 	float specularLevel = 1.0;
 	// With "emissive from colour" the bright parts of a model glow in their own colour and its dark parts do not.
 	vec3 emissive = u_emissive.rgb * mix(vec3_splat(1.0), albedo, u_surface.z);

@@ -526,6 +526,10 @@ abstract class BTMove : BTNode
 			mover.SetDestination(point, Speed, StopDistance);
 			mAsked = true;
 		}
+		// Status getters may synchronously resolve a queued path. Let the scene batch pending requests
+		// after Update instead of forcing a separate search for each behaviour tree.
+		if (mover.PathPending)
+			return .Running;
 		if (mover.PathFailed)
 			return .Failure;
 		return mover.HasArrived ? .Success : .Running;

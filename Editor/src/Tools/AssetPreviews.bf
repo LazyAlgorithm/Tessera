@@ -32,7 +32,7 @@ static class AssetPreviews
 	static int32 sRevision;
 
 	/// True for files that get a rendered preview.
-	public static bool Wants(StringView name) => name.EndsWith(".tmat") || name.EndsWith(".tshader") || name.EndsWith(".tsgraph") || name.EndsWith(".tprefab") || name.EndsWith(".glb") || name.EndsWith(".gltf");
+	public static bool Wants(StringView name) => name.EndsWith(".tmat") || name.EndsWith(".tshader") || name.EndsWith(".tsgraph") || name.EndsWith(".tprefab") || Assets.IsModelPath(name);
 
 	static DateTime Stamp(StringView fullPath)
 	{

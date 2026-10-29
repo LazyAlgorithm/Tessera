@@ -68,6 +68,8 @@ abstract class Component
 	bool mAwake;
 	bool mStarted;
 	bool mRegistered;
+	/// The Profiler's marker slot for its type (ProfilerComponents), -1 until it is first timed.
+	int32 mProfileSlot = -1;
 
 	/// The object this component is on.
 	public GameObject GameObject => mGameObject;

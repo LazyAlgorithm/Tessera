@@ -110,6 +110,49 @@ struct ShapeDesc
 /// state gives the same result, which is what client-side prediction relies on.
 class PhysicsWorld
 {
+	/// Overlap queries work out the contacts of a sphere or capsule with a box directly where they can (the shape's
+	/// middle inside the box), and with Jolt's general solver otherwise. Off, always the general solver, for comparing.
+	public bool useAnalyticOverlapContacts = true;
+
+	int32 mBodyCapacity = 16384, mBodyPairCapacity = 65536, mContactCapacity = 16384;
+	// The step errors already logged, so each kind is logged once.
+	int32 mReportedStepErrors;
+
+	/// How many bodies the world holds at most, how many pairs of them can touch at once, and how many contacts the
+	/// solver handles in a step (ConfigureCapacity).
+	public int32 BodyCapacity => mBodyCapacity;
+	public int32 BodyPairCapacity => mBodyPairCapacity;
+	public int32 ContactCapacity => mContactCapacity;
+	/// What ran out in the last Step, as Jolt's bits (0 when nothing did): 1 the contact cache, 2 the body pairs, 4 the
+	/// contacts. Contacts are missing from that step.
+	public int32 LastStepError { get; private set; }
+
+	/// Sets the capacities, before the world's first body (or query) creates it. False when it already exists or a
+	/// number is not positive.
+	public bool ConfigureCapacity(int32 bodies, int32 bodyPairs, int32 contacts)
+	{
+		if (mSystem != null || bodies <= 0 || bodyPairs <= 0 || contacts <= 0) return false;
+		mBodyCapacity = bodies;
+		mBodyPairCapacity = bodyPairs;
+		mContactCapacity = contacts;
+		return true;
+	}
+
+	static ProfilerMarker sOverlapProfile = .("Physics.Overlap", .Physics);
+	static ProfilerMarker sOverlapNativeProfile = .("Physics.Overlap.NativeContacts", .Physics);
+	// Shown only with native built with TESSERA_PROFILE_CONVEX_QUERIES (docs/profiler.md).
+	static ProfilerMarker sConvexProfile = .("Physics.Overlap.ConvexPair", .Physics);
+	static ProfilerMarker sEPAProfile = .("Physics.Overlap.EPA", .Physics);
+
+	/// Where native opens a convex pair's marker (marker 1: the EPA part of it).
+	static void BeginConvexProfile(int32 marker)
+	{
+		if (marker == 1)
+			sEPAProfile.Begin();
+		else
+			sConvexProfile.Begin();
+	}
+
 	/// Smallest collision half extent, in world units; lower for miniature scenes.
 	public float MinimumShapeExtent = 0.01f;
 	float mLengthScale = 1;
@@ -213,6 +256,7 @@ class PhysicsWorld
 		if (!sJoltInitialized)
 		{
 			Jolt.JPH_Init();
+			Jolt.tn_physics_install_query_dispatch();
 			Jolt.JobConfig config;
 			config.maxJobs = 2048;
 			config.maxBarriers = 8;
@@ -251,10 +295,10 @@ class PhysicsWorld
 		let objectVsBroadPhase = Jolt.JPH_ObjectVsBroadPhaseLayerFilterTable_Create(broadPhase, 2, pairFilter, layerCount);
 
 		Jolt.PhysicsSystemSettings settings = default;
-		settings.maxBodies = 16384;
+		settings.maxBodies = (uint32)mBodyCapacity;
 		settings.numBodyMutexes = 0;
-		settings.maxBodyPairs = 65536;
-		settings.maxContactConstraints = 16384;
+		settings.maxBodyPairs = (uint32)mBodyPairCapacity;
+		settings.maxContactConstraints = (uint32)mContactCapacity;
 		settings.broadPhaseLayerInterface = broadPhase;
 		settings.objectLayerPairFilter = pairFilter;
 		settings.objectVsBroadPhaseLayerFilter = objectVsBroadPhase;
@@ -430,6 +474,12 @@ class PhysicsWorld
 		}
 		let bodyId = Jolt.JPH_BodyInterface_CreateAndAddBody(mBodyInterface, settings, Jolt.Activate);
 		Jolt.JPH_BodyCreationSettings_Destroy(settings);
+		if (bodyId == uint32.MaxValue)
+		{
+			// A full native body pool must not leave an invalid ID in the world's tracking maps.
+			Jolt.JPH_Shape_Destroy(shape);
+			return bodyId;
+		}
 		if (motion == Jolt.MotionDynamic && massScale > 1 && bodyId != uint32.MaxValue)
 			Jolt.tn_physics_rescale_body_mass(mSystem, bodyId, Math.Max(rigidbody.mass, 0.001f));
 
@@ -783,6 +833,7 @@ class PhysicsWorld
 	/// Advances the simulation by one fixed tick and writes the results to the transforms.
 	public void Step(float deltaTime)
 	{
+		LastStepError = 0;
 		if (mSystem == null || mEntries.Count == 0)
 			return;
 		PrepareQuery();
@@ -802,7 +853,12 @@ class PhysicsWorld
 				Jolt.JPH_BodyInterface_SetPositionAndRotation(mBodyInterface, entry.bodyId, &position, &rotation, Jolt.Activate);
 		}
 
-		Jolt.JPH_PhysicsSystem_Update(mSystem, deltaTime, 1, sJobSystem);
+		LastStepError = Jolt.JPH_PhysicsSystem_Update(mSystem, deltaTime, 1, sJobSystem);
+		if (LastStepError != 0 && (mReportedStepErrors & LastStepError) != LastStepError)
+		{
+			Log.Error(scope $"[Physics] Solver capacity exceeded (error mask {LastStepError}); contacts may be missing. ConfigureCapacity before creating the world. Current bodies/pairs/contacts: {mBodyCapacity}/{mBodyPairCapacity}/{mContactCapacity}.");
+			mReportedStepErrors |= LastStepError;
+		}
 
 		for (let entry in mEntries)
 		{
@@ -1050,7 +1106,7 @@ class PhysicsWorld
 		let length = axis.Length;
 		if (!length.IsFinite) return false;
 		// Local capsule Y is aligned with the endpoint axis.
-		let rotation = length < 1.0e-6f ? Quaternion.Identity : Quaternion.LookRotation(Math.Abs(axis.Normalized.z) < 0.9f ? .Forward : .Right, axis.Normalized);
+		let rotation = length < 1.0e-6f ? Quaternion.Identity : CapsuleRotation(axis);
 		return CastQuery(CapsuleQueryShape(length * 0.5f, radius), (point1 + point2) * 0.5f, rotation, direction, maxDistance, out hit, ignoreBody, layerMask);
 	}
 
@@ -1060,26 +1116,80 @@ class PhysicsWorld
 
 	int OverlapQuery(void* shape, Vector3 origin, Quaternion orientation, List<ShapeCastHit> hits, uint32 ignoreBody, uint32 layerMask)
 	{
-		hits.Clear();
-		if (shape == null || !Finite(origin) || !ValidRotation(orientation)) return 0;
-		let query = PrepareQuery();
-		if (query == null) return 0;
-		if (mOverlapHits.Count < 64)
-			mOverlapHits.Resize(64);
-		var from = origin;
-		var rotation = orientation.Normalized;
-		var count = Jolt.tn_physics_overlap_shape(query, shape, &from, &rotation, ignoreBody, mOverlapHits.Ptr, (int32)mOverlapHits.Count, layerMask);
-		if (count > mOverlapHits.Count)
+		using (sOverlapProfile.Sample())
 		{
-			mOverlapHits.Resize(count);
-			count = Jolt.tn_physics_overlap_shape(query, shape, &from, &rotation, ignoreBody, mOverlapHits.Ptr, (int32)mOverlapHits.Count, layerMask);
+			hits.Clear();
+			if (shape == null || !Finite(origin) || !ValidRotation(orientation)) return 0;
+			let query = PrepareQuery();
+			if (query == null) return 0;
+			if (mOverlapHits.Count < 64)
+				mOverlapHits.Resize(64);
+			var from = origin;
+			var rotation = orientation.Normalized;
+			int32 count;
+			using (sOverlapNativeProfile.Sample())
+			{
+				if (Profiler.Enabled)
+					Jolt.tn_physics_profile_convex( => BeginConvexProfile, => Profiler.End);
+				defer
+				{
+					if (Profiler.Enabled)
+						Jolt.tn_physics_profile_convex(null, null);
+				}
+				count = Jolt.tn_physics_overlap_shape(query, shape, &from, &rotation, ignoreBody, mOverlapHits.Ptr, (int32)mOverlapHits.Count, layerMask, useAnalyticOverlapContacts);
+				if (count > mOverlapHits.Count)
+				{
+					mOverlapHits.Resize(count);
+					count = Jolt.tn_physics_overlap_shape(query, shape, &from, &rotation, ignoreBody, mOverlapHits.Ptr, (int32)mOverlapHits.Count, layerMask, useAnalyticOverlapContacts);
+				}
+			}
+			for (int i < count)
+				hits.Add(MakeShapeHit(mOverlapHits[i], 0));
+			return (int)hits.Count;
 		}
-		for (int i < count)
-			hits.Add(MakeShapeHit(mOverlapHits[i], 0));
-		return (int)hits.Count;
 	}
 
-	/// Returns contacts, including separate subshapes of compound/mesh bodies. Clears hits first.
+	/// The rotation that turns a capsule's axis (its Y) onto a direction. LookRotation keeps the forward it is given and
+	/// only leans up towards the one given, so forward is chosen at right angles to the axis.
+	static Quaternion CapsuleRotation(Vector3 axis)
+	{
+		let up = axis.Normalized;
+		let side = Math.Abs(up.x) < 0.9f ? Vector3.Right : Vector3.Forward;
+		return Quaternion.LookRotation(Vector3.Cross(side, up), up);
+	}
+
+	bool CheckQuery(void* shape, Vector3 origin, Quaternion orientation, uint32 ignoreBody, uint32 layerMask)
+	{
+		if (shape == null || !Finite(origin) || !ValidRotation(orientation)) return false;
+		let query = PrepareQuery();
+		if (query == null) return false;
+		var from = origin;
+		var rotation = orientation.Normalized;
+		return Jolt.tn_physics_check_shape(query, shape, &from, &rotation, ignoreBody, layerMask);
+	}
+
+	/// Whether anything touches a sphere: as OverlapSphere, without the contacts, so several times quicker (it stops at
+	/// the first thing it finds). As Unity's Physics.CheckSphere.
+	public bool CheckSphere(Vector3 origin, float radius, uint32 ignoreBody = uint32.MaxValue, uint32 layerMask = uint32.MaxValue)
+		=> CheckQuery(SphereQueryShape(radius), origin, .Identity, ignoreBody, layerMask);
+
+	/// Whether anything touches a box (of a full size, turned by orientation), without the contacts.
+	public bool CheckBox(Vector3 origin, Vector3 size, Quaternion orientation, uint32 ignoreBody = uint32.MaxValue, uint32 layerMask = uint32.MaxValue)
+		=> CheckQuery(BoxQueryShape(size), origin, orientation, ignoreBody, layerMask);
+
+	/// Whether anything touches a capsule from point1 to point2, without the contacts.
+	public bool CheckCapsule(Vector3 point1, Vector3 point2, float radius, uint32 ignoreBody = uint32.MaxValue, uint32 layerMask = uint32.MaxValue)
+	{
+		if (!Finite(point1) || !Finite(point2)) return false;
+		let axis = point2 - point1;
+		let length = axis.Length;
+		if (!length.IsFinite) return false;
+		let rotation = length < 1.0e-6f ? Quaternion.Identity : CapsuleRotation(axis);
+		return CheckQuery(CapsuleQueryShape(length * 0.5f, radius), (point1 + point2) * 0.5f, rotation, ignoreBody, layerMask);
+	}
+
+	/// Returns contacts, including separate subshapes of compound/mesh bodies. Clears hits first. CheckSphere is quicker
+	/// when only whether something is there matters.
 	public int OverlapSphere(Vector3 origin, float radius, List<ShapeCastHit> hits, uint32 ignoreBody = uint32.MaxValue, uint32 layerMask = uint32.MaxValue)
 		=> OverlapQuery(SphereQueryShape(radius), origin, .Identity, hits, ignoreBody, layerMask);
 	/// Everything touching a box (of a full size, turned by orientation) round a point. Clears hits first; returns how
@@ -1094,7 +1204,7 @@ class PhysicsWorld
 		let axis = point2 - point1;
 		let length = axis.Length;
 		if (!length.IsFinite) return 0;
-		let rotation = length < 1.0e-6f ? Quaternion.Identity : Quaternion.LookRotation(Math.Abs(axis.Normalized.z) < 0.9f ? .Forward : .Right, axis.Normalized);
+		let rotation = length < 1.0e-6f ? Quaternion.Identity : CapsuleRotation(axis);
 		return OverlapQuery(CapsuleQueryShape(length * 0.5f, radius), (point1 + point2) * 0.5f, rotation, hits, ignoreBody, layerMask);
 	}
 

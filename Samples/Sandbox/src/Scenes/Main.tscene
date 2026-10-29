@@ -8,6 +8,8 @@ env fogColor 0.62 0.76 0.9 1
 env ambientIntensity 0.55
 env fogDensity 0.0035
 env exposure 1
+env bloom 0
+env bloomThreshold 1
 env shadowDistance 160
 object 1 parent 0 active 1 name "Main Camera"
 transform 0 50 -14 0.17364818 0 0 0.9848077 1 1 1
@@ -17,6 +19,11 @@ field nearClip 0.1
 field farClip 1000
 field orthographic 0
 field orthographicSize 5
+field viewmodelLayer -1
+field viewmodelFieldOfView 55
+field viewmodelNearClip 0.01
+field viewmodelCastsShadows 0
+field occlusionCulling 0
 component Sandbox.Digger enabled 1
 field radius 3
 field strength 1.5
@@ -28,18 +35,30 @@ field type Directional
 field color 1 0.96 0.88 1
 field intensity 1.5
 field range 10
+field inverseSquare 0
+field bakedOnly 0
+field shadowMaskChannel -1
+field innerSpotAngle -1
 field spotAngle 45
 field castShadows 1
 field shadowStrength 1
 object 3 parent 0 active 1 name "Terrain"
 transform 0 0 0 0 0 0 1 1 1 1
 component Tessera.VoxelTerrain enabled 1
+field mode Endless
+field tileSize 8
+field flatHeight 0
+field streamTiles 0
+field generator ""
 field style Smooth
-field seed 1337
+field contourSharpness 0.35
+field flatShading 0
 field voxelSize 1
 field viewDistance 6
 field minChunkY -1
 field maxChunkY 2
+field lodDistance 4
+field seed 1337
 field terrainHeight 28
 field terrainScale 0.012
 field caveAmount 0.35
@@ -51,6 +70,11 @@ field snowColor 0.9254902 0.9411765 0.9607843 1
 field dirtColor 0.4862745 0.36078432 0.24313726 1
 field generateColliders 1
 field uploadsPerFrame 4
+field tiles ""
+field nextTileId 1
+field sizeX 8
+field sizeZ 8
+field editsFolder ""
 field editsFile ""
 object 4 parent 0 active 1 name "Spawn Platform"
 transform 0 40 0 0 0 0 1 16 1 16
@@ -61,10 +85,21 @@ field metallic 0
 field roughness 0.85
 field emissive 0 0 0 1
 field emissiveIntensity 0
+field emissiveFromColor 0
 field flatShading 1
 field unlit 0
 field castShadows 1
+field lightmap ""
+field lightmapDirection ""
+field lightmapShadowmask ""
+field lightmapScaleOffset 1 1 0 0
+field lightmapDecode 1 0 0 0
+field windSway 0
+field shadowOnly 0
+field bakedLighting 0
 field texture ""
+field material ""
+field occluder 0
 component Tessera.BoxCollider enabled 1
 field center 0 0 0
 field size 1 1 1
@@ -82,16 +117,28 @@ field metallic 0
 field roughness 0.85
 field emissive 0 0 0 1
 field emissiveIntensity 0
+field emissiveFromColor 0
 field flatShading 1
 field unlit 0
 field castShadows 1
+field lightmap ""
+field lightmapDirection ""
+field lightmapShadowmask ""
+field lightmapScaleOffset 1 1 0 0
+field lightmapDecode 1 0 0 0
+field windSway 0
+field shadowOnly 0
+field bakedLighting 0
 field texture ""
+field material ""
+field occluder 0
 component Tessera.BoxCollider enabled 1
 field center 0 0 0
 field size 1 1 1
 component Tessera.Rigidbody enabled 1
 field mass 1
 field useGravity 1
+field gravityScale 1
 field isKinematic 0
 field friction 0.5
 field bounciness 0
@@ -100,7 +147,15 @@ field angularDamping 0.05
 field freezeRotation 0
 field continuousCollision 0
 field allowSleeping 1
+field debris 0
 component Tessera.NetworkIdentity enabled 1
+field fullPrecision 0
+field remoteFormat Legacy
+field remoteIntervalTicks 0
+field dormantWhenSleeping 0
+field distanceFiltered 0
+field snapshotPriority 0
+field physicsPrediction Auto
 field ownerId 0
 field team 0
 field correctionSmoothing 12
@@ -113,16 +168,28 @@ field metallic 0
 field roughness 0.85
 field emissive 0 0 0 1
 field emissiveIntensity 0
+field emissiveFromColor 0
 field flatShading 1
 field unlit 0
 field castShadows 1
+field lightmap ""
+field lightmapDirection ""
+field lightmapShadowmask ""
+field lightmapScaleOffset 1 1 0 0
+field lightmapDecode 1 0 0 0
+field windSway 0
+field shadowOnly 0
+field bakedLighting 0
 field texture ""
+field material ""
+field occluder 0
 component Tessera.BoxCollider enabled 1
 field center 0 0 0
 field size 1 1 1
 component Tessera.Rigidbody enabled 1
 field mass 1
 field useGravity 1
+field gravityScale 1
 field isKinematic 0
 field friction 0.5
 field bounciness 0
@@ -131,7 +198,15 @@ field angularDamping 0.05
 field freezeRotation 0
 field continuousCollision 0
 field allowSleeping 1
+field debris 0
 component Tessera.NetworkIdentity enabled 1
+field fullPrecision 0
+field remoteFormat Legacy
+field remoteIntervalTicks 0
+field dormantWhenSleeping 0
+field distanceFiltered 0
+field snapshotPriority 0
+field physicsPrediction Auto
 field ownerId 0
 field team 0
 field correctionSmoothing 12
@@ -144,16 +219,28 @@ field metallic 0
 field roughness 0.85
 field emissive 0 0 0 1
 field emissiveIntensity 0
+field emissiveFromColor 0
 field flatShading 1
 field unlit 0
 field castShadows 1
+field lightmap ""
+field lightmapDirection ""
+field lightmapShadowmask ""
+field lightmapScaleOffset 1 1 0 0
+field lightmapDecode 1 0 0 0
+field windSway 0
+field shadowOnly 0
+field bakedLighting 0
 field texture ""
+field material ""
+field occluder 0
 component Tessera.BoxCollider enabled 1
 field center 0 0 0
 field size 1 1 1
 component Tessera.Rigidbody enabled 1
 field mass 1
 field useGravity 1
+field gravityScale 1
 field isKinematic 0
 field friction 0.5
 field bounciness 0
@@ -162,7 +249,15 @@ field angularDamping 0.05
 field freezeRotation 0
 field continuousCollision 0
 field allowSleeping 1
+field debris 0
 component Tessera.NetworkIdentity enabled 1
+field fullPrecision 0
+field remoteFormat Legacy
+field remoteIntervalTicks 0
+field dormantWhenSleeping 0
+field distanceFiltered 0
+field snapshotPriority 0
+field physicsPrediction Auto
 field ownerId 0
 field team 0
 field correctionSmoothing 12
@@ -175,16 +270,28 @@ field metallic 0
 field roughness 0.85
 field emissive 0 0 0 1
 field emissiveIntensity 0
+field emissiveFromColor 0
 field flatShading 1
 field unlit 0
 field castShadows 1
+field lightmap ""
+field lightmapDirection ""
+field lightmapShadowmask ""
+field lightmapScaleOffset 1 1 0 0
+field lightmapDecode 1 0 0 0
+field windSway 0
+field shadowOnly 0
+field bakedLighting 0
 field texture ""
+field material ""
+field occluder 0
 component Tessera.BoxCollider enabled 1
 field center 0 0 0
 field size 1 1 1
 component Tessera.Rigidbody enabled 1
 field mass 1
 field useGravity 1
+field gravityScale 1
 field isKinematic 0
 field friction 0.5
 field bounciness 0
@@ -193,7 +300,15 @@ field angularDamping 0.05
 field freezeRotation 0
 field continuousCollision 0
 field allowSleeping 1
+field debris 0
 component Tessera.NetworkIdentity enabled 1
+field fullPrecision 0
+field remoteFormat Legacy
+field remoteIntervalTicks 0
+field dormantWhenSleeping 0
+field distanceFiltered 0
+field snapshotPriority 0
+field physicsPrediction Auto
 field ownerId 0
 field team 0
 field correctionSmoothing 12
@@ -206,16 +321,28 @@ field metallic 0
 field roughness 0.85
 field emissive 0 0 0 1
 field emissiveIntensity 0
+field emissiveFromColor 0
 field flatShading 1
 field unlit 0
 field castShadows 1
+field lightmap ""
+field lightmapDirection ""
+field lightmapShadowmask ""
+field lightmapScaleOffset 1 1 0 0
+field lightmapDecode 1 0 0 0
+field windSway 0
+field shadowOnly 0
+field bakedLighting 0
 field texture ""
+field material ""
+field occluder 0
 component Tessera.BoxCollider enabled 1
 field center 0 0 0
 field size 1 1 1
 component Tessera.Rigidbody enabled 1
 field mass 1
 field useGravity 1
+field gravityScale 1
 field isKinematic 0
 field friction 0.5
 field bounciness 0
@@ -224,7 +351,15 @@ field angularDamping 0.05
 field freezeRotation 0
 field continuousCollision 0
 field allowSleeping 1
+field debris 0
 component Tessera.NetworkIdentity enabled 1
+field fullPrecision 0
+field remoteFormat Legacy
+field remoteIntervalTicks 0
+field dormantWhenSleeping 0
+field distanceFiltered 0
+field snapshotPriority 0
+field physicsPrediction Auto
 field ownerId 0
 field team 0
 field correctionSmoothing 12
@@ -237,16 +372,28 @@ field metallic 0
 field roughness 0.85
 field emissive 0 0 0 1
 field emissiveIntensity 0
+field emissiveFromColor 0
 field flatShading 1
 field unlit 0
 field castShadows 1
+field lightmap ""
+field lightmapDirection ""
+field lightmapShadowmask ""
+field lightmapScaleOffset 1 1 0 0
+field lightmapDecode 1 0 0 0
+field windSway 0
+field shadowOnly 0
+field bakedLighting 0
 field texture ""
+field material ""
+field occluder 0
 component Tessera.BoxCollider enabled 1
 field center 0 0 0
 field size 1 1 1
 component Tessera.Rigidbody enabled 1
 field mass 1
 field useGravity 1
+field gravityScale 1
 field isKinematic 0
 field friction 0.5
 field bounciness 0
@@ -255,7 +402,15 @@ field angularDamping 0.05
 field freezeRotation 0
 field continuousCollision 0
 field allowSleeping 1
+field debris 0
 component Tessera.NetworkIdentity enabled 1
+field fullPrecision 0
+field remoteFormat Legacy
+field remoteIntervalTicks 0
+field dormantWhenSleeping 0
+field distanceFiltered 0
+field snapshotPriority 0
+field physicsPrediction Auto
 field ownerId 0
 field team 0
 field correctionSmoothing 12
@@ -264,8 +419,15 @@ transform -5 40.5 4 0 0 0 1 1 1 1
 component Tessera.SkinnedMeshRenderer enabled 1
 field model "Models/rigged_sample.glb"
 field clip "Wave"
+field clipLibrary ""
 field speed 1
 field loop 1
+field exposeBones 0
+field gpuSkinning 1
+field materials ""
+field hiddenParts ""
+field shadowOnlyParts ""
+field partColors ""
 component Tessera.MeshRenderer enabled 1
 field mesh "builtin:cube"
 field color 1 1 1 1
@@ -273,18 +435,32 @@ field metallic 0
 field roughness 0.85
 field emissive 0 0 0 1
 field emissiveIntensity 0
+field emissiveFromColor 0
 field flatShading 1
 field unlit 0
 field castShadows 1
+field lightmap ""
+field lightmapDirection ""
+field lightmapShadowmask ""
+field lightmapScaleOffset 1 1 0 0
+field lightmapDecode 1 0 0 0
+field windSway 0
+field shadowOnly 0
+field bakedLighting 0
 field texture ""
+field material ""
+field occluder 0
 object 14 parent 0 active 1 name "Boulder"
 transform 4.5 42.4 1 0 0 0 1 1 1 1
 component Tessera.VoxelObject enabled 1
 field shape Sphere
+field mesh ""
 field resolution 24
 field size 4
 field color 0.5882353 0.57254905 0.54901963 1
 field interiorColor 0.3764706 0.32156864 0.27450982 1
+field interiorMaterial ""
+field interiorTiling 1
 field breakOffPieces 1
 field minimumPieceSize 6
 field anchored 0
@@ -297,13 +473,25 @@ field metallic 0
 field roughness 0.9
 field emissive 0 0 0 1
 field emissiveIntensity 0
+field emissiveFromColor 0
 field flatShading 1
 field unlit 0
 field castShadows 1
+field lightmap ""
+field lightmapDirection ""
+field lightmapShadowmask ""
+field lightmapScaleOffset 1 1 0 0
+field lightmapDecode 1 0 0 0
+field windSway 0
+field shadowOnly 0
+field bakedLighting 0
 field texture ""
+field material ""
+field occluder 0
 component Tessera.AudioSource enabled 1
 field audioClip ""
 field group Effects
+field localOnly 0
 field volume 1
 field pitch 1
 field loop 0
@@ -319,6 +507,7 @@ field airAbsorption 1
 field reverbSend 0
 field coneAngle 360
 field coneOuterVolume 0.3
+field subtitles 1
 object 15 parent 0 active 1 name "Campfire"
 transform 5 40.6 -4 0 0 0 1 1 1 1
 component Tessera.ParticleSystem enabled 1
@@ -347,6 +536,10 @@ field type Point
 field color 1 0.55 0.25 1
 field intensity 8
 field range 14
+field inverseSquare 0
+field bakedOnly 0
+field shadowMaskChannel -1
+field innerSpotAngle -1
 field spotAngle 45
 field castShadows 1
 field shadowStrength 1
@@ -360,12 +553,20 @@ field address "127.0.0.1"
 field port 7777
 field playerPrefab "Player"
 field snapshotInterval 3
+field optimizeSnapshots 0
+field snapshotPacketBytes 1100
+field snapshotBytesPerSecond 0
+field snapshotRelevanceRadius 0
+field losslessCompression 0
+field messageCompression 0
 field teamCount 0
 field autoReplicate 1
 object 900 parent 0 active 0 name "Sample Menu"
 transform 0 0 0 0 0 0 1 1 1 1
 component Tessera.UIDocument enabled 1
 field document "UI/sample_menu.tui"
+field referenceHeight 0
+field referenceWidth 0
 component Sandbox.SampleMenu enabled 1
 field playerName "Player"
 field volume 0.6
@@ -380,35 +581,81 @@ field particalSystem 15 0
 object 1100 parent 0 active 1 name "Decals"
 folder
 transform 0 0 0 0 0 0 1 1 1 1
-object 1101 parent 1100 active 1 name "Landing Target"
-transform 0 40.5 2.5 0.70710677 0 0 0.70710677 1 1 1
-component Tessera.Decal enabled 1
-field texture "Textures/decal_target.png"
-field size 3 3 1
-field roughness 0.6
 object 1102 parent 1100 active 1 name "Scorch Mark"
-transform -3.5 40.5 1.5 0.70710677 0 0 0.70710677 1 1 1
+transform -3.8060055 40.746067 1.5 0.70710665 0 0 0.7071069 1 0.9999679 0.9999679
 component Tessera.Decal enabled 1
 field texture "Textures/decal_scorch.png"
+field color 1 1 1 1
 field size 4 4 2
 field opacity 0.9
+field metallic 0
+field roughness 0.8
+field angleLimit 70
+field unlit 0
+field order 0
 object 1103 parent 1100 active 1 name "Crate Sign"
 transform -2.8 41.1 4.5 0 0 0 1 1 1 1
 component Tessera.Decal enabled 1
 field texture "Textures/decal_sign.png"
+field color 1 1 1 1
 field size 0.9 0.9 0.3
+field opacity 1
+field metallic 0
 field roughness 0.5
+field angleLimit 70
+field unlit 0
+field order 0
+object 1101 parent 1100 active 1 name "Landing Target"
+transform 0 40.5 2.5 0.70710677 0 0 0.70710677 1 1 1
+component Tessera.Decal enabled 1
+field texture "Textures/decal_target.png"
+field color 1 1 1 1
+field size 3 3 1
+field opacity 1
+field metallic 0
+field roughness 0.6
+field angleLimit 70
+field unlit 0
+field order 0
 object 1110 parent 0 active 1 name "Guide"
 transform 0 40.5 6 0 0 0 1 1 1 1
 component Tessera.DialogueRunner enabled 1
 field dialogue "Dialogue/welcome.tdialogue"
 field startNode "start"
 field playOnStart 1
+field autoAdvance 0
+field readingSpeed 15
+field acceptInput 1
+field showChoices 1
+field showLines 1
+field shared 0
+field onlyOwnerChooses 0
+field syncSerial 0
+field syncNode -1
+field syncStep 0
+field syncView 0
+field syncChoices ""
+field savedVariables ""
+field savedNode -1
+field savedStep 0
 object 1120 parent 0 active 1 name "Intro Cutscene"
 transform 0 0 0 0 0 0 1 1 1 1
 component Tessera.SequencePlayer enabled 1
 field sequence "Sequences/intro.tsequence"
 field playOnStart 0
+field loop 0
+field speed 1
+field skippable 1
+field restoreWhenDone 0
+field useCameraShots 1
+field shared 0
+field onlyOwnerControls 0
+field syncSerial 0
+field syncState 0
+field syncTime 0
+field syncTick 0
+field savedState 0
+field savedTime 0
 object 1121 parent 1120 active 1 name "Shot Wide"
 transform 0 0 0 0 0 0 1 1 1 1
 object 1122 parent 1120 active 1 name "Shot Boulder"
@@ -422,10 +669,198 @@ field metallic 0
 field roughness 0.85
 field emissive 0 0 0 1
 field emissiveIntensity 0
+field emissiveFromColor 0
 field flatShading 0
 field unlit 0
 field castShadows 1
+field lightmap ""
+field lightmapDirection ""
+field lightmapShadowmask ""
+field lightmapScaleOffset 1 1 0 0
+field lightmapDecode 1 0 0 0
+field windSway 0
+field shadowOnly 0
+field bakedLighting 0
 field texture ""
+field material ""
+field occluder 0
+component Tessera.SkinnedMeshRenderer enabled 1
+field model "Models/Rigging/Person_Rigged.glb"
+field clip ""
+field clipLibrary ""
+field speed 1
+field loop 1
+field exposeBones 1
+field gpuSkinning 1
+field materials ""
+field hiddenParts ""
+field shadowOnlyParts ""
+field partColors ""
+component Tessera.Animator enabled 1
+field clips "Person_Rigged_1.tanim"
+field defaultClip "Idle"
+field speed 1
+field controller ""
+object 1336 parent 1123 active 1 name "Hips"
+transform -0.00588274 0.97493505 0.005883217 0 0 0 1 1 1 1
+object 1337 parent 1336 active 1 name "Spine"
+transform 0.0007356405 0.12044096 0.0013852245 0 0 0 1 1 1 1
+object 1338 parent 1337 active 1 name "Spine1"
+transform 0.0007356405 0.12044096 0.0013852245 0 0 0 1 1 1 1
+object 1339 parent 1338 active 1 name "Spine2"
+transform 0.0007356405 0.12044084 0.001385224 0 0 0 1 1 1 1
+object 1340 parent 1339 active 1 name "Neck"
+transform 0.0007356405 0.12044096 0.001385225 0 0 0 1 1 1 1
+object 1341 parent 1340 active 1 name "Head"
+transform 0 0.14400005 0.0090000015 0 0 0 1 1 1 1
+object 1342 parent 1341 active 1 name "HeadTop_End"
+transform 0 0.19930124 0 0 0 0 1 1 1 1
+object 1343 parent 1339 active 1 name "LeftShoulder"
+transform 0.038174607 0.10067177 0.0055674706 0 0 0 1 1 1 1
+object 1344 parent 1343 active 1 name "LeftArm"
+transform 0.14975587 0.010923266 0.01672898 0 0 0 1 1 1 1
+object 1345 parent 1344 active 1 name "LeftForeArm"
+transform 0.2600932 -0.012290716 0.029054582 0 0 0 1 1 1 1
+object 1346 parent 1345 active 1 name "LeftHand"
+transform 0.26113462 0.0099310875 -0.018809795 0 0 0 1 1 1 1
+component Tessera.HandPose enabled 1
+field hand 1346 -1
+field shape Open
+field thumb 0
+field index 0
+field middle 0
+field ring 0
+field pinky 0
+field spread 0.3
+field trigger 0
+field weight 1
+field blendTime 0.12
+field flipCurl 0
+field flipThumb 0
+field restPose "0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1"
+object 1347 parent 1346 active 1 name "LeftHandThumb1"
+transform 0.021817148 -0.015152216 -0.016104864 0 0 0 1 1 1 1
+object 1348 parent 1347 active 1 name "LeftHandThumb2"
+transform 0.02908951 -0.020202875 -0.021473153 0 0 0 1 1 1 1
+object 1349 parent 1348 active 1 name "LeftHandThumb3"
+transform 0.02908945 -0.020202875 -0.021473153 0 0 0 1 1 1 1
+object 1350 parent 1349 active 1 name "LeftHandThumb4"
+transform 0.02908951 -0.020202875 -0.021473149 0 0 0 1 1 1 1
+object 1351 parent 1346 active 1 name "LeftHandIndex1"
+transform 0.090295255 -0.0033496618 -0.016125059 0 0 0 1 1 1 1
+object 1352 parent 1351 active 1 name "LeftHandIndex2"
+transform 0.036786973 -0.001364708 -0.0065694693 0 0 0 1 1 1 1
+object 1353 parent 1352 active 1 name "LeftHandIndex3"
+transform 0.036786914 -0.001364708 -0.0065694684 0 0 0 1 1 1 1
+object 1354 parent 1353 active 1 name "LeftHandIndex4"
+transform 0.036786973 -0.001364708 -0.0065694684 0 0 0 1 1 1 1
+object 1355 parent 1346 active 1 name "LeftHandMiddle1"
+transform 0.09425044 -0.0006451607 -0.004444536 0 0 0 1 1 1 1
+object 1356 parent 1355 active 1 name "LeftHandMiddle2"
+transform 0.038398325 -0.00026285648 -0.001810737 0 0 0 1 1 1 1
+object 1357 parent 1356 active 1 name "LeftHandMiddle3"
+transform 0.038398266 -0.00026285648 -0.001810737 0 0 0 1 1 1 1
+object 1358 parent 1357 active 1 name "LeftHandMiddle4"
+transform 0.038398325 -0.00026285648 -0.001810737 0 0 0 1 1 1 1
+object 1359 parent 1346 active 1 name "LeftHandRing1"
+transform 0.08987105 -0.0008300543 0.0069381036 0 0 0 1 1 1 1
+object 1360 parent 1359 active 1 name "LeftHandRing2"
+transform 0.03661412 -0.00033819675 0.0028266348 0 0 0 1 1 1 1
+object 1361 parent 1360 active 1 name "LeftHandRing3"
+transform 0.03661412 -0.00033819675 0.0028266385 0 0 0 1 1 1 1
+object 1362 parent 1361 active 1 name "LeftHandRing4"
+transform 0.03661412 -0.00033819675 0.0028266348 0 0 0 1 1 1 1
+object 1363 parent 1346 active 1 name "LeftHandPinky1"
+transform 0.07714629 -0.0020036697 0.017686732 0 0 0 1 1 1 1
+object 1364 parent 1363 active 1 name "LeftHandPinky2"
+transform 0.031430006 -0.0008163452 0.00720571 0 0 0 1 1 1 1
+object 1365 parent 1364 active 1 name "LeftHandPinky3"
+transform 0.031429946 -0.0008163452 0.0072057024 0 0 0 1 1 1 1
+object 1366 parent 1365 active 1 name "LeftHandPinky4"
+transform 0.031430006 -0.0008163452 0.00720571 0 0 0 1 1 1 1
+object 1367 parent 1339 active 1 name "RightShoulder"
+transform -0.034956183 0.100743175 0.0053986814 0 0 0 1 1 1 1
+object 1368 parent 1367 active 1 name "RightArm"
+transform -0.14276728 0.011208892 0.016053827 0 0 0 1 1 1 1
+object 1369 parent 1368 active 1 name "RightForeArm"
+transform -0.26588875 -0.012647748 0.029898524 0 0 0 1 1 1 1
+object 1370 parent 1369 active 1 name "RightHand"
+transform -0.26701736 0.0099310875 -0.018809795 0 0 0 1 1 1 1
+component Tessera.HandPose enabled 1
+field hand 1370 -1
+field shape Custom
+field thumb 0
+field index 0
+field middle 0
+field ring 0
+field pinky 0
+field spread 0
+field trigger 0
+field weight 0
+field blendTime 0.12
+field flipCurl 0
+field flipThumb 0
+field restPose "0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1"
+object 1371 parent 1370 active 1 name "RightHandThumb1"
+transform -0.020052075 -0.0151546 -0.016125744 0 0 0 1 1 1 1
+object 1372 parent 1371 active 1 name "RightHandThumb2"
+transform -0.02673608 -0.020206213 -0.021500994 0 0 0 1 1 1 1
+object 1373 parent 1372 active 1 name "RightHandThumb3"
+transform -0.026736021 -0.020206094 -0.021500994 0 0 0 1 1 1 1
+object 1374 parent 1373 active 1 name "RightHandThumb4"
+transform -0.02673608 -0.020206213 -0.021500992 0 0 0 1 1 1 1
+object 1375 parent 1370 active 1 name "RightHandIndex1"
+transform -0.08632505 -0.0033496618 -0.016125035 0 0 0 1 1 1 1
+object 1376 parent 1375 active 1 name "RightHandIndex2"
+transform -0.035169482 -0.001364708 -0.00656946 0 0 0 1 1 1 1
+object 1377 parent 1376 active 1 name "RightHandIndex3"
+transform -0.035169482 -0.001364708 -0.006569459 0 0 0 1 1 1 1
+object 1378 parent 1377 active 1 name "RightHandIndex4"
+transform -0.035169482 -0.001364708 -0.0065694586 0 0 0 1 1 1 1
+object 1379 parent 1370 active 1 name "RightHandMiddle1"
+transform -0.090280116 -0.0006451607 -0.004444506 0 0 0 1 1 1 1
+object 1380 parent 1379 active 1 name "RightHandMiddle2"
+transform -0.036780775 -0.00026285648 -0.0018107258 0 0 0 1 1 1 1
+object 1381 parent 1380 active 1 name "RightHandMiddle3"
+transform -0.036780775 -0.00026273727 -0.0018107258 0 0 0 1 1 1 1
+object 1382 parent 1381 active 1 name "RightHandMiddle4"
+transform -0.036780775 -0.00026285648 -0.0018107258 0 0 0 1 1 1 1
+object 1383 parent 1370 active 1 name "RightHandRing1"
+transform -0.085900724 -0.0008300543 0.006938122 0 0 0 1 1 1 1
+object 1384 parent 1383 active 1 name "RightHandRing2"
+transform -0.03499657 -0.00033819675 0.0028266422 0 0 0 1 1 1 1
+object 1385 parent 1384 active 1 name "RightHandRing3"
+transform -0.03499663 -0.00033807755 0.0028266385 0 0 0 1 1 1 1
+object 1386 parent 1385 active 1 name "RightHandRing4"
+transform -0.03499657 -0.00033819675 0.0028266422 0 0 0 1 1 1 1
+object 1387 parent 1370 active 1 name "RightHandPinky1"
+transform -0.073176086 -0.0020036697 0.01768677 0 0 0 1 1 1 1
+object 1388 parent 1387 active 1 name "RightHandPinky2"
+transform -0.029812515 -0.0008163452 0.0072057173 0 0 0 1 1 1 1
+object 1389 parent 1388 active 1 name "RightHandPinky3"
+transform -0.029812455 -0.0008163452 0.0072057247 0 0 0 1 1 1 1
+object 1390 parent 1389 active 1 name "RightHandPinky4"
+transform -0.029812515 -0.0008163452 0.0072057173 0 0 0 1 1 1 1
+object 1391 parent 1336 active 1 name "LeftUpLeg"
+transform 0.13168031 -0.09000003 0 0 0 0 1 1 1 1
+object 1392 parent 1391 active 1 name "LeftLeg"
+transform 0 -0.380935 0.03328657 0 0 0 1 1 1 1
+object 1393 parent 1392 active 1 name "LeftFoot"
+transform 0 -0.423 0.018 0 0 0 1 1 1 1
+object 1394 parent 1393 active 1 name "LeftToeBase"
+transform 0 -0.059400007 -0.16200002 0 0 0 1 1 1 1
+object 1395 parent 1394 active 1 name "LeftToe_End"
+transform 0 -0.0035999995 -0.10799999 0 0 0 1 1 1 1
+object 1396 parent 1336 active 1 name "RightUpLeg"
+transform -0.11991492 -0.09000003 0 0 0 0 1 1 1 1
+object 1397 parent 1396 active 1 name "RightLeg"
+transform 0 -0.380935 0.03328705 0 0 0 1 1 1 1
+object 1398 parent 1397 active 1 name "RightFoot"
+transform 0 -0.423 0.018 0 0 0 1 1 1 1
+object 1399 parent 1398 active 1 name "RightToeBase"
+transform 0 -0.059400007 -0.16200002 0 0 0 1 1 1 1
+object 1400 parent 1399 active 1 name "RightToe_End"
+transform 0 -0.0035999995 -0.10799999 0 0 0 1 1 1 1
 object 1124 parent 0 active 1 name "Rig Test Dog"
 transform -3 40.5 -5 0 0 0 1 1 1 1
 component Tessera.MeshRenderer enabled 1
@@ -435,10 +870,21 @@ field metallic 0
 field roughness 0.85
 field emissive 0 0 0 1
 field emissiveIntensity 0
+field emissiveFromColor 0
 field flatShading 0
 field unlit 0
 field castShadows 1
+field lightmap ""
+field lightmapDirection ""
+field lightmapShadowmask ""
+field lightmapScaleOffset 1 1 0 0
+field lightmapDecode 1 0 0 0
+field windSway 0
+field shadowOnly 0
+field bakedLighting 0
 field texture ""
+field material ""
+field occluder 0
 object 1125 parent 0 active 1 name "Rig Test Pug"
 transform -1.5 40.5 -5 0 0 0 1 1 1 1
 component Tessera.MeshRenderer enabled 1
@@ -448,7 +894,49 @@ field metallic 0
 field roughness 0.85
 field emissive 0 0 0 1
 field emissiveIntensity 0
+field emissiveFromColor 0
 field flatShading 0
 field unlit 0
 field castShadows 1
+field lightmap ""
+field lightmapDirection ""
+field lightmapShadowmask ""
+field lightmapScaleOffset 1 1 0 0
+field lightmapDecode 1 0 0 0
+field windSway 0
+field shadowOnly 0
+field bakedLighting 0
 field texture ""
+field material ""
+field occluder 0
+object 1335 parent 0 active 1 name "Box"
+transform 1.9941347 40.5 -5.5611563 0 0 0 1 1 1 1
+component Tessera.MeshRenderer enabled 1
+field mesh ""
+field color 1 1 1 1
+field metallic 0
+field roughness 0.9
+field emissive 0 0 0 1
+field emissiveIntensity 0
+field emissiveFromColor 0
+field flatShading 0
+field unlit 0
+field castShadows 1
+field lightmap ""
+field lightmapDirection ""
+field lightmapShadowmask ""
+field lightmapScaleOffset 1 1 0 0
+field lightmapDecode 1 0 0 0
+field windSway 0
+field shadowOnly 0
+field bakedLighting 0
+field texture "Textures/Box_paint.png"
+field material ""
+field occluder 0
+component Tessera.ModelMesh enabled 1
+field data "tmesh 1\nv -1.999784 0 -0.967533\nv 1.999784 0 -0.967533\nv -1.999784 2.344227 -0.967533\nv 1.999784 2.344227 -0.967533\nv -1.999784 0 0.967533\nv 1.999784 0 0.967533\nv -1.999784 2.344227 0.967533\nv 1.999784 2.344227 0.967533\nv -1.618266 2.344227 -0.586015\nv -1.618266 2.344227 0.586015\nv 1.618266 2.344227 0.586015\nv 1.618266 2.344227 -0.586015\nv -1.618266 3.810509 -0.586015\nv -1.618266 3.810509 0.586015\nv 1.618266 3.810509 0.586015\nv 1.618266 3.810509 -0.586015\nf 0 0 1 1 1 0 0 0 | 0 0.008349 0.259888 FFFFFFFF 2 0.008349 0.008349 FFFFFFFF 3 0.437508 0.008349 FFFFFFFF 1 0.437508 0.259888 FFFFFFFF\nf 0 0 1 1 1 0 0 0 | 4 0.875017 0.259888 FFFFFFFF 5 0.445858 0.259888 FFFFFFFF 7 0.445858 0.008349 FFFFFFFF 6 0.875017 0.008349 FFFFFFFF\nf 0 0 1 1 1 0 0 0 | 0 0.697397 0.268238 FFFFFFFF 4 0.697397 0.475873 FFFFFFFF 6 0.445858 0.475873 FFFFFFFF 2 0.445858 0.268238 FFFFFFFF\nf 0 0 1 1 1 0 0 0 | 1 0.259888 0.691857 FFFFFFFF 3 0.008349 0.691857 FFFFFFFF 7 0.008349 0.484222 FFFFFFFF 5 0.259888 0.484222 FFFFFFFF\nf 0 0 1 1 1 0 0 0 | 12 0.355634 0.86589 FFFFFFFF 13 0.355634 0.991651 FFFFFFFF 14 0.008349 0.991651 FFFFFFFF 15 0.008349 0.86589 FFFFFFFF\nf 0 0 1 1 1 0 0 0 | 0 0.437508 0.475873 FFFFFFFF 1 0.008349 0.475873 FFFFFFFF 5 0.008349 0.268238 FFFFFFFF 4 0.437508 0.268238 FFFFFFFF\nf 0 0 1 1 1 0 0 0 | 2 0.697397 0.484222 FFFFFFFF 6 0.697397 0.691857 FFFFFFFF 9 0.656459 0.65092 FFFFFFFF 8 0.656459 0.52516 FFFFFFFF\nf 0 0 1 1 1 0 0 0 | 6 0.697397 0.691857 FFFFFFFF 7 0.268238 0.691857 FFFFFFFF 10 0.309175 0.65092 FFFFFFFF 9 0.656459 0.65092 FFFFFFFF\nf 0 0 1 1 1 0 0 0 | 7 0.268238 0.691857 FFFFFFFF 3 0.268238 0.484222 FFFFFFFF 11 0.309175 0.52516 FFFFFFFF 10 0.309175 0.65092 FFFFFFFF\nf 0 0 1 1 1 0 0 0 | 3 0.268238 0.484222 FFFFFFFF 2 0.697397 0.484222 FFFFFFFF 8 0.656459 0.52516 FFFFFFFF 11 0.309175 0.52516 FFFFFFFF\nf 0 0 1 1 1 0 0 0 | 8 0.521317 0.86589 FFFFFFFF 9 0.521317 0.991651 FFFFFFFF 13 0.363983 0.991651 FFFFFFFF 12 0.363983 0.86589 FFFFFFFF\nf 0 0 1 1 1 0 0 0 | 9 0.355634 0.857541 FFFFFFFF 10 0.008349 0.857541 FFFFFFFF 14 0.008349 0.700207 FFFFFFFF 13 0.355634 0.700207 FFFFFFFF\nf 0 0 1 1 1 0 0 0 | 10 0.687001 0.86589 FFFFFFFF 11 0.687001 0.991651 FFFFFFFF 15 0.529667 0.991651 FFFFFFFF 14 0.529667 0.86589 FFFFFFFF\nf 0 0 1 1 1 0 0 0 | 11 0.711267 0.857541 FFFFFFFF 8 0.363983 0.857541 FFFFFFFF 12 0.363983 0.700207 FFFFFFFF 15 0.711267 0.700207 FFFFFFFF\n"
+field materials ""
+field worldScaleUVs 1
+component Tessera.ConvexCollider enabled 1
+field center 0 0 0
+field includeChildren 0

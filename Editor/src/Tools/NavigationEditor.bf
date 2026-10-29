@@ -9,7 +9,9 @@ extension EditorApp
 	Vector3 mNavigationDirtyCenter, mNavigationDirtySize = .(16, 10, 16);
 	void DrawNavigationTools(NavigationSurface surface)
 	{
-		ImGui.TextWrapped("Position is the minimum corner of the bake bounds. Walking samples the highest floor; Flying samples free space in 3D. Cell size trades detail for memory and bake time.");
+		ImGui.TextWrapped("Position is the minimum corner of the bake bounds. Backend: NavMesh is the one for walking agents (fast with many agents, floors above each other work); Grid walks the highest floor only. Flying always uses a 3D grid of free space. Cell size trades detail for memory and bake time.");
+		if (surface.flying)
+			ImGui.TextDisabled("Flying: baked as a 3D grid, whatever the Backend.");
 		if (ImGui.Button("Bake & Save Navigation"))
 		{
 			if (surface.bakedData.IsEmpty)
@@ -30,12 +32,20 @@ extension EditorApp
 		if (ImGui.Button("Load Baked Data"))
 			surface.LoadData();
 		if (surface.Data != null)
-			ImGui.Text(scope $"{surface.Data.cells.Count} cells; revision {surface.Data.Revision}; chunk size {surface.Data.chunkSize}");
-		if (ImGui.CollapsingHeader("Rebuild Changed Chunks"))
+		{
+			let mesh = surface.Data.Mesh;
+			if (mesh != null)
+				ImGui.Text(scope $"{mesh.PolygonCount} polygons; {mesh.TileCount} tiles ({mesh.LastRebuiltTiles} rebuilt last time)");
+			else
+				ImGui.Text(scope $"{surface.Data.cells.Count} cells; revision {surface.Data.Revision}; chunk size {surface.Data.chunkSize}");
+		}
+		if (surface.Data != null && !surface.Data.flying && surface.Data.IsNavMesh != (surface.backend == .NavMesh))
+			ImGui.TextWrapped("The baked data is for the other walking backend: Bake & Save Navigation to use this one.");
+		if (ImGui.CollapsingHeader("Rebuild Changed Bounds"))
 		{
 			ImGui.DragFloat3("Changed bounds center", ref mNavigationDirtyCenter);
 			ImGui.DragFloat3("Changed bounds size", ref mNavigationDirtySize, 0.1f, 0.1f, 100000);
-			if (ImGui.Button("Rebuild Chunks"))
+			if (ImGui.Button("Rebuild Bounds"))
 			{
 				let half = Vector3.Abs(mNavigationDirtySize) * 0.5f;
 				if (surface.Rebuild(.(mNavigationDirtyCenter - half, mNavigationDirtyCenter + half)))

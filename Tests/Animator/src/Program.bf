@@ -185,6 +185,35 @@ class Program
 			simple.SampleClip(wave, 0.5f);
 			ok &= Check(Math.Abs(limb.Transform.LocalPosition.y - 1) < 0.001f && Math.Abs(limb.Transform.LocalScale.x - 1.5f) < 0.001f, "a clip can be sampled at any time for previewing");
 		}
+		{
+			// A chain of bones, each turned 90 degrees about Y by its clip, with an unanimated hand at the end: the bones
+			// are posed together and each branch told once, so the hand must still follow and see its version change.
+			let turn = AnimationClip.Create("turn.tanim", "Turn");
+			turn.duration = 1;
+			let root = sScene.CreateGameObject("Chain");
+			var parent = root.Transform;
+			for (int b < 4)
+			{
+				let joint = sScene.CreateGameObject(scope $"Link{b}");
+				joint.Transform.SetParent(parent, false);
+				joint.Transform.LocalPosition = .(0, 0, 1);
+				turn.AddTrack(scope $"Link{b}").SetKey(0, .Zero, .(0, 90, 0), .(1, 1, 1));
+				parent = joint.Transform;
+			}
+			let hand = sScene.CreateGameObject("Hand");
+			hand.Transform.SetParent(parent, false);
+			hand.Transform.LocalPosition = .(0, 0, 1);
+			let before = hand.Transform.Position;
+			let version = hand.Transform.Version;
+			let chain = root.AddComponent<Animator>();
+			chain.clips.Set("turn.tanim");
+			chain.defaultClip.Set("Turn");
+			Step(0.05f);
+			// Link0 at (0,0,1) facing +X, so Link1 at (1,0,1) facing -Z, Link2 at (1,0,0) facing -X, Link3 at (0,0,0) facing +Z: hand at (0,0,1).
+			let after = hand.Transform.Position;
+			ok &= Check(Math.Abs(before.z - 5) < 0.001f && (after - Vector3(0, 0, 1)).Length < 0.01f, scope $"an unanimated child below a posed chain follows it ({after.x:0.00}, {after.y:0.00}, {after.z:0.00})");
+			ok &= Check(hand.Transform.Version != version, "and its version changes, as physics expects");
+		}
 		for (let name in StringView[?]("saved.tanim", "old.tanim", "hero.tcontroller"))
 			File.Delete(scope $"{cFolder}/{name}").IgnoreError();
 		Directory.Delete(cFolder).IgnoreError();

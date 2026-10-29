@@ -9,8 +9,13 @@ namespace Tessera.Editor;
 /// Per-frame editor UI: dock layout, menu bar and toolbar.
 extension EditorApp
 {
+	static ProfilerMarker sUIMarker = .("Editor.DrawUI", .Editor);
+
 	void DrawUI()
 	{
+		UpdateProfiler();
+		sUIMarker.Begin();
+		defer Profiler.End();
 		// Outside play mode the Scene view's camera is the listener, so sounds can be auditioned where you look from.
 		Audio.EditorListening = mPlay == .Edit;
 		if (Audio.EditorListening)
@@ -66,6 +71,8 @@ extension EditorApp
 		DrawMapBuilder();
 		DrawModelWindow();
 		DrawQualityWindow();
+		DrawProfilerWindow();
+		DrawWorldMapWindow();
 		DrawPreferencesWindow();
 		DrawLightingWindow();
 		DrawRigWindow();
@@ -97,8 +104,6 @@ extension EditorApp
 			ImGui.SetWindowFocus("Game");
 			mFocusGame = false;
 		}
-		if (mShowDemo)
-			ImGui.ShowDemoWindow(&mShowDemo);
 		HandleShortcuts();
 	}
 
@@ -111,7 +116,7 @@ extension EditorApp
 
 	/// The windows that can be closed, as they are named in the open-windows file. The layout file keeps where they
 	/// are docked, but not whether they are open, so that is kept beside it (windows5_<project>.txt).
-	static StringView[?] sOpenWindowNames = .("Model", "Rigging", "Animation", "Animator", "Dialogue", "Sequencer", "Map Builder", "UV Editor", "Graphics Quality", "Lighting", "Model Views", "Scripts");
+	static StringView[?] sOpenWindowNames = .("Model", "Rigging", "Animation", "Animator", "Dialogue", "Sequencer", "Map Builder", "UV Editor", "Graphics Quality", "Lighting", "Model Views", "Scripts", "Profiler", "World Map");
 	int32 mOpenWindowsSaved = -1;
 
 	bool* OpenWindowFlag(int index)
@@ -129,6 +134,8 @@ extension EditorApp
 		case 8: return &mShowQuality;
 		case 9: return &mShowLighting;
 		case 10: return &mShowModelViews;
+		case 12: return &mShowProfiler;
+		case 13: return &mShowWorldMap;
 		default: return &mShowScripts;
 		}
 	}
@@ -327,6 +334,10 @@ extension EditorApp
 				mShowUVEditor = !mShowUVEditor;
 			if (ImGui.MenuItem("Graphics Quality", null, mShowQuality))
 				mShowQuality = !mShowQuality;
+			if (ImGui.MenuItem("Profiler", null, mShowProfiler))
+				mShowProfiler = !mShowProfiler;
+			if (ImGui.MenuItem("World Map", null, mShowWorldMap))
+				mShowWorldMap = !mShowWorldMap;
 			if (ImGui.MenuItem("Lighting", null, mShowLighting))
 				mShowLighting = !mShowLighting;
 			if (ImGui.MenuItem("Rigging", null, mShowRig))
@@ -342,8 +353,6 @@ extension EditorApp
 				mSceneOcclusion = !mSceneOcclusion;
 			if (ImGui.MenuItem("Occlusion Picture", null, mShowOcclusionPicture))
 				mShowOcclusionPicture = !mShowOcclusionPicture;
-			if (ImGui.MenuItem("ImGui Demo"))
-				mShowDemo = true;
 			ImGui.EndMenu();
 		}
 		let label = scope String();

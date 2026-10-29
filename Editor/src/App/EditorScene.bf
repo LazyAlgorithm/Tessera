@@ -57,8 +57,10 @@ extension EditorApp
 		{
 			mSelectedId = 0;
 			mDirty = false;
-			ResetUndo();
 			AlignSceneCameraToGameCamera();
+			// A streamed world: only the cells round the view (docs/world-streaming.md).
+			LoadStreamedCellsAroundView();
+			ResetUndo();
 			Log.Info(scope $"Opened {path}");
 		}
 	}
@@ -95,6 +97,7 @@ extension EditorApp
 		mSnapshot.Clear();
 		Foliage.SyncAll(mScene);
 		SceneSerializer.Save(mScene, mSnapshot);
+		StartPlayStreaming();
 		mPlay = .Playing;
 		mStopPlayRequested = false;
 		mFocusGame = true;
@@ -124,6 +127,7 @@ extension EditorApp
 		let path = scope String(mScene.Path);
 		SceneSerializer.Load(mScene, mSnapshot);
 		mScene.Path.Set(path);
+		StopPlayStreaming();
 		mSelectedId = mPrePlaySelection;
 		mDirty = mPrePlayDirty;
 		mPlay = .Edit;

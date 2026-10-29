@@ -30,7 +30,7 @@ extension RenderView
 		for (let component in scene.ComponentsOfType(typeof(Decal)))
 		{
 			let decal = (Decal)component;
-			if (!decal.IsActiveAndEnabled || !decal.GameObject.InActiveWorld || decal.opacity <= 0 || decal.color.a <= 0)
+			if (!decal.IsActiveAndEnabled || !decal.GameObject.InActiveWorld || HidesHere(decal.GameObject) || decal.opacity <= 0 || decal.color.a <= 0)
 				continue;
 			let volume = decal.BoxMatrix;
 			if (!frustum.Intersects(unitBox.Transformed(volume)))

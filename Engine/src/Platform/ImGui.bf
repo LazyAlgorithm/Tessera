@@ -300,11 +300,13 @@ static class ImGui
 		tn_imgui_get_color(index, &color.r);
 		return color;
 	}
+
 	public static void SetStyleColor(int32 index, Color color)
 	{
 		var color;
 		tn_imgui_set_color(index, &color.r);
 	}
+
 	public static void StyleColorsBase(bool light) => tn_imgui_base_colors(light);
 	[CLink] public static extern void tn_gizmo_begin(float x, float y, float width, float height, bool orthographic);
 	[CLink] public static extern bool tn_gizmo_manipulate(float* view, float* projection, int32 operation, bool local, float* matrix, float* snap);

@@ -27,6 +27,10 @@ extension EditorApp
 			ImGui.Separator();
 
 			ImGui.BeginChild("tree");
+			// The eyes and locks have a column of their own at the left (SceneVisibility.bf).
+			let gutterLeft = ImGui.GetCursorScreenPos().x;
+			mHierarchyGutter = gutterLeft;
+			ImGui.Indent(VisibilityGutterWidth);
 			let sceneLabel = scope String();
 			sceneLabel.AppendF("{}{}", mScene.Name, mDirty ? "*" : "");
 			if (ImGui.TreeNode(sceneLabel.CStr(), ImGui.TreeFlags.DefaultOpen | ImGui.TreeFlags.SpanAvailWidth))
@@ -36,9 +40,11 @@ extension EditorApp
 				ImGui.TreePop();
 			}
 			// Empty space: click to deselect, drop to un-parent, right click to create.
+			ImGui.Unindent(VisibilityGutterWidth);
+			EndVisibilityDrag();
 			let avail = ImGui.GetContentRegionAvail();
 			ImGui.InvisibleButton("##empty", .(Math.Max(avail.x, 1), Math.Max(avail.y, 40)));
-			if (ImGui.IsItemClicked(0))
+			if (ImGui.IsItemClicked(0) && !OverVisibilityGutter(gutterLeft))
 				mSelectedId = 0;
 			if (ImGui.BeginDragDropTarget())
 			{
@@ -92,6 +98,7 @@ extension EditorApp
 		if (inactive)
 			ImGui.PushStyleColor(ImGui.Col.Text, EditorTheme.TextDim);
 		ImGui.PushID((int32)gameObject.Id);
+		DrawVisibilityButtons(gameObject, mHierarchyGutter);
 		let nodeLabel = scope String();
 		nodeLabel.AppendF("{}  {}###node", StringView(ObjectIcon(gameObject)), gameObject.Name.IsEmpty ? "(unnamed)" : (StringView)gameObject.Name);
 		if (gameObject.IsFolder && !inactive)
@@ -99,7 +106,7 @@ extension EditorApp
 		let open = ImGui.TreeNode(nodeLabel.CStr(), flags);
 		if (inactive || gameObject.IsFolder)
 			ImGui.PopStyleColor();
-		if (ImGui.IsItemClicked(0) && !ImGui.IsItemToggledOpen())
+		if (ImGui.IsItemClicked(0) && !ImGui.IsItemToggledOpen() && mVisibilityDrag == .None)
 			mSelectedId = gameObject.Id;
 		if (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(0))
 		{

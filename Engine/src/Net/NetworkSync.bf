@@ -746,7 +746,8 @@ static class NetworkSync
 		public List<uint8> last = new .() ~ delete _;
 	}
 
-	/// The [Sync] fields of an identity's object, in a fixed order that is the same on every machine.
+	/// The [Sync] fields of an identity's object, in a fixed order that is the same on every machine (by component,
+	/// then by field name).
 	class SlotList
 	{
 		public List<Slot> slots = new .() ~ DeleteContainerAndItems!(_);
@@ -791,6 +792,9 @@ static class NetworkSync
 		{
 			fields.Clear();
 			ComponentRegistry.GetFields(component, fields);
+			// By name, not declaration: a class split over several files (extensions) lists its fields in the order
+			// the compiler met the files, which differs between Windows and Linux builds of the same game.
+			fields.Sort(scope (a, b) => a.name.CompareTo(b.name));
 			for (let field in fields)
 			{
 				if (!field.sync)

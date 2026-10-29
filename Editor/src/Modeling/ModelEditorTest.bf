@@ -311,20 +311,23 @@ extension EditorApp
 		{
 			let shape = MeshShapes.Create(.Box, .() { size = .(2, 1, 4) });
 			defer delete shape;
+			let editedId = mSelectedId;
 			let made = CreateModelObject("Origin Box", shape, .(20, 3, 7));
 			let originModel = made.GetComponent<ModelMesh>();
 			let originMesh = originModel.Edit;
 			let corner = made.Transform.TransformPoint(originMesh.positions[0]);
+			let middle = made.Transform.TransformPoint(originMesh.Bounds.Center);
+			let bottom = made.Transform.TransformPoint(originMesh.Bounds.min).y;
 			RunModelCommand(originModel, originMesh, .OriginToBase);
-			Expect(Math.Abs(made.Transform.Position.y - 2.5f) < 0.001f, "origin to base");
+			Expect(Math.Abs(made.Transform.Position.y - bottom) < 0.001f, "origin to base");
 			RunModelCommand(originModel, originMesh, .OriginToVolumeMass);
-			Expect((made.Transform.Position - Vector3(20, 3, 7)).Length < 0.001f, "origin to centre of mass (volume)");
+			Expect((made.Transform.Position - middle).Length < 0.001f, "origin to centre of mass (volume)");
 			RunModelCommand(originModel, originMesh, .OriginToBase);
 			RunModelCommand(originModel, originMesh, .OriginToSurfaceMass);
-			Expect((made.Transform.Position - Vector3(20, 3, 7)).Length < 0.001f, "origin to centre of mass (surface)");
+			Expect((made.Transform.Position - middle).Length < 0.001f, "origin to centre of mass (surface)");
 			RunModelCommand(originModel, originMesh, .OriginToBase);
 			RunModelCommand(originModel, originMesh, .OriginToGeometry);
-			Expect((made.Transform.Position - Vector3(20, 3, 7)).Length < 0.001f, "origin to geometry");
+			Expect((made.Transform.Position - middle).Length < 0.001f, "origin to geometry");
 			mModelOriginObject = block.Id;
 			RunModelCommand(originModel, originMesh, .OriginToObject);
 			Expect((made.Transform.Position - block.Transform.Position).Length < 0.001f, "origin to another object");
@@ -355,6 +358,7 @@ extension EditorApp
 			let mass = MeshOps.VolumeCentre(wedge);
 			Expect(wedge.IsClosed() && (mass - Vector3(2 / 3.0f, 2 / 3.0f, 0.5f)).Length < 0.001f, "a wedge's centre of mass");
 			mScene.Destroy(made);
+			mSelectedId = editedId;
 			let edgeMesh = block.GetComponent<MeshRenderer>().ActiveMesh;
 			bgfx.IndexBufferHandle edges;
 			int32 edgeCount = 0;

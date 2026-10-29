@@ -293,6 +293,9 @@ static class Gfx
 	/// white texture on failure.
 	public static bgfx.TextureHandle LoadTexture(StringView path, TextureKind kind = .Color)
 	{
+		// A headless run (servers, checks) has no graphics card to make textures on.
+		if (!Initialized)
+			return WhiteTexture;
 		let compressed = Textures.LoadCompressed(path);
 		if (compressed.Valid)
 			return compressed;

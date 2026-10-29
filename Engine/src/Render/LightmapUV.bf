@@ -73,7 +73,7 @@ static class LightmapUV
 	public static bool MeshesFor(MeshRenderer renderer, List<Mesh> output)
 	{
 		output.Clear();
-		let parts = renderer.RuntimeParts;
+		let parts = renderer.DrawnParts;
 		if (parts != null && parts.Count > 0)
 		{
 			for (let part in parts)

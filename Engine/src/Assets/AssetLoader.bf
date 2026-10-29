@@ -93,7 +93,7 @@ static class AssetLoader
 		let hash = lower.IndexOf('#');
 		if (hash >= 0)
 			lower.RemoveToEnd(hash);
-		if (lower.EndsWith(".glb") || lower.EndsWith(".gltf") || lower.EndsWith(".tmesh"))
+		if (Assets.IsModelPath(lower))
 		{
 			kind = .Mesh;
 			return true;

@@ -214,7 +214,7 @@ class OcclusionBuffer
 		{
 			if (renderer.occluder == .Never || !renderer.IsActiveAndEnabled || renderer.shadowOnly || !renderer.GameObject.InActiveWorld)
 				continue;
-			let parts = renderer.RuntimeParts;
+			let parts = renderer.DrawnParts;
 			let mesh = (parts != null && parts.Count > 0) ? null : renderer.ActiveMesh;
 			// Several-material models are occluders only when asked for, part by part being costly.
 			if (mesh == null || mesh.IsDynamic || mesh.Indices.Count == 0)

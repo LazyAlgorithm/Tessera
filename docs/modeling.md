@@ -55,7 +55,52 @@ object in it, **Frame All** in all four, and **Fill Window** (or a double-click 
 (**Four Views** goes back). Everything you do with a model in the Scene view works in them: picking, edit mode and
 every tool, keys and gizmos. The view the pointer was last over has the mouse (outlined); the others follow along.
 In the orthographic views the middle button pans and the wheel zooms about the pointer; the Perspective view moves as
-the Scene view does. The Scene view still works as before.
+the Scene view does. The Scene view still works as before. Model Views opens beside the Scene view the first time, with the Scripts window.
+
+### Shading
+
+Each view is shaded on its own, as in Blender. The Model Views pick it on their bar (all four start on Material
+Preview); the Scene view's is the word under its view selector (it starts on Rendered).
+
+| Shading | What it shows |
+|---|---|
+| **Rendered** | As the game shows it: the scene's lights, shadows, reflections and fog. |
+| **Material Preview** | Textures and colours lit the same from every side, wherever the scene's lights are. |
+| **Solid** | Colours without textures, lit the same from every side: the shape alone. |
+| **Unlit** | Textures and colours as they are, without light. |
+| **Wireframe** | Only the edges, seen through the model. |
+
+Reference images keep their picture in every shading. Terrain, foliage and particles are drawn as they are in each
+one.
+
+### View keys
+
+These go to the view the pointer is over (a Model View, or else the Scene view):
+
+| Key | Does |
+|---|---|
+| **F** | Shows the selected object (in edit mode F makes a face; Home frames the selection). |
+| **Shift+Z** | Wireframe, and back. |
+| **Keypad 1 / 3 / 7** | Looks from the front, right or top (with Ctrl: back, left, below). |
+| **Keypad 5** | Perspective or orthographic (in a Model View: back to Perspective). |
+
+### Origin
+
+An object's origin is the point it turns and scales about, and where its position is. **Origin** in the Model window
+moves it without moving the model:
+
+| Button | Puts the origin |
+|---|---|
+| **To Geometry** | At the middle of the model's vertices. |
+| **To Bounds Centre** | At the middle of the box round it. |
+| **To Mass (Volume)** | At its centre of mass as a solid filled evenly, where it balances (a model with holes uses the surface's). |
+| **To Mass (Surface)** | At its centre of mass as a thin shell, each part of the surface counted by its area. |
+| **To Base** | At the middle of its bottom, so it stands on what it is put on. |
+| **To Selection** | At the middle of the selected vertices, edges or faces (in edit mode). |
+| **To Object** | Where another object is (pick it in the list beside the button). |
+
+**Geometry to Origin** does the opposite: it moves the model so it stands round its origin. All of them are in the
+Space search and the right-click menu too, and can be given keys in Preferences.
 
 ### Reference images
 

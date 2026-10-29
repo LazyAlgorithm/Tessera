@@ -31,6 +31,8 @@ static class Textures
 	/// Textures made, the compressed ones among them, and the bytes on the graphics card, since the start.
 	public static int32 Made, Compressed;
 	public static int64 Bytes;
+	/// Each texture made here and its size on the graphics card, by handle (for the Profiler's memory snapshots).
+	public static Dictionary<uint16, int64> Sizes = new .() ~ delete _;
 
 	const uint64 Filtering = (uint64)bgfx.SamplerFlags.MinAnisotropic | (uint64)bgfx.SamplerFlags.MagAnisotropic;
 
@@ -90,6 +92,7 @@ static class Textures
 		tn_image_mips_free(mips);
 		Made++;
 		Bytes += size;
+		Sizes[texture.idx] = size;
 		return texture;
 	}
 
@@ -115,6 +118,7 @@ static class Textures
 			Made++;
 			Compressed++;
 			Bytes += info.storageSize;
+			Sizes[texture.idx] = info.storageSize;
 		}
 		return texture;
 	}

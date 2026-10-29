@@ -510,6 +510,7 @@ extension EditorApp
 			if (!viewport.visible)
 				continue;
 			viewport.view.onlyObject = mSceneView.onlyObject;
+			viewport.view.hiddenHere = mSceneView.hiddenHere;
 			viewport.view.shading = viewport.shading;
 			viewport.view.hideRenderers = mSceneView.hideRenderers;
 			viewport.view.Resize((int32)viewport.size.x, (int32)viewport.size.y);
