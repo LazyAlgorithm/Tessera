@@ -244,6 +244,7 @@ class PhysicsWorld
 		if (mSystem != null)
 		{
 			Jolt.tn_joint_filters_clear(mSystem);
+			SoftBody.[Friend]tn_soft_world_destroyed(mSystem);
 			Jolt.JPH_PhysicsSystem_Destroy(mSystem);
 		}
 		sWorldCount--;
@@ -327,6 +328,13 @@ class PhysicsWorld
 		}
 		ClearAndDeleteItems!(mEntries);
 		mByBody.Clear();
+		for (let (bodyId, soft) in mSoftBodies)
+		{
+			Jolt.JPH_BodyInterface_RemoveAndDestroyBody(mBodyInterface, bodyId);
+			soft.[Friend]mBody = uint32.MaxValue;
+			soft.[Friend]mWorld = null;
+		}
+		mSoftBodies.Clear();
 	}
 
 	void* CreateShape(ShapeDesc desc)
@@ -626,6 +634,17 @@ class PhysicsWorld
 		return false;
 	}
 
+	/// Soft bodies (SoftBody components) by body id: each moves its pins and feels the wind before a step.
+	Dictionary<uint32, SoftBody> mSoftBodies = new .() ~ delete _;
+
+	void AddSoftBody(uint32 bodyId, SoftBody owner) => mSoftBodies[bodyId] = owner;
+
+	void RemoveSoftBody(uint32 bodyId)
+	{
+		if (mSoftBodies.Remove(bodyId) && mBodyInterface != null)
+			Jolt.JPH_BodyInterface_RemoveAndDestroyBody(mBodyInterface, bodyId);
+	}
+
 	/// Removes a body, and every joint on it.
 	public void DestroyBody(uint32 bodyId)
 	{
@@ -834,7 +853,7 @@ class PhysicsWorld
 	public void Step(float deltaTime)
 	{
 		LastStepError = 0;
-		if (mSystem == null || mEntries.Count == 0)
+		if (mSystem == null || (mEntries.Count == 0 && mSoftBodies.Count == 0))
 			return;
 		PrepareQuery();
 		var gravity = Gravity;
@@ -852,6 +871,9 @@ class PhysicsWorld
 			else
 				Jolt.JPH_BodyInterface_SetPositionAndRotation(mBodyInterface, entry.bodyId, &position, &rotation, Jolt.Activate);
 		}
+
+		for (let soft in mSoftBodies.Values)
+			soft.[Friend]BeforeStep(deltaTime);
 
 		LastStepError = Jolt.JPH_PhysicsSystem_Update(mSystem, deltaTime, 1, sJobSystem);
 		if (LastStepError != 0 && (mReportedStepErrors & LastStepError) != LastStepError)

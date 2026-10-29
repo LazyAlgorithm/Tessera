@@ -118,6 +118,12 @@ add_library(tessera_collision_support OBJECT tessera_collision_profile.cpp tesse
 target_compile_features(tessera_collision_support PRIVATE cxx_std_17)
 target_link_libraries(tessera_collision_support PRIVATE Jolt)
 
+# Soft bodies (cloth, jelly) reach Jolt's C++ soft body settings, which joltc does not cover.
+add_library(tessera_softbody OBJECT tessera_softbody.cpp)
+target_compile_features(tessera_softbody PRIVATE cxx_std_17)
+target_include_directories(tessera_softbody PRIVATE ${TP}/joltc/include)
+target_link_libraries(tessera_softbody PRIVATE Jolt)
+
 # ---- Opus (voice chat codec), compiled into the shim so there is no extra archive to link ----
 set(OPUS_BUILD_SHARED_LIBRARY OFF CACHE BOOL "" FORCE)
 set(OPUS_BUILD_TESTING OFF CACHE BOOL "" FORCE)
@@ -156,6 +162,7 @@ add_library(tessera_native STATIC
 	tessera_physics.cpp
 	$<TARGET_OBJECTS:tessera_navigation>
 	$<TARGET_OBJECTS:tessera_collision_support>
+	$<TARGET_OBJECTS:tessera_softbody>
 	tessera_audio.c
 	tessera_web.c
 	tessera_http.c
