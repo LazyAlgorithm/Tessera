@@ -545,7 +545,7 @@ extension EditorApp
 	{
 		if (!fullName.StartsWith("Tessera.")) return "Scripts";
 		if (name == "Camera" || name == "Light" || name == "MeshRenderer" || name == "Decal" || name == "LODGroup" || name == "ReflectionProbe") return "Rendering";
-		if (name == "Rigidbody" || name == "SoftBody" || name.EndsWith("Collider") || name == "CharacterController") return "Physics";
+		if (name == "Rigidbody" || name == "SoftBody" || name == "Rope" || name.EndsWith("Collider") || name == "CharacterController") return "Physics";
 		if (name == "SkinnedMeshRenderer" || name == "Animator" || name == "SequencePlayer") return "Animation";
 		if (name == "UIDocument") return "UI";
 		if (name.StartsWith("Audio") || name == "DialogueRunner") return "Audio";
@@ -563,7 +563,7 @@ extension EditorApp
 		if (typeName == "MeshRenderer") return Icons.Cube;
 		if (typeName == "SkinnedMeshRenderer" || typeName == "Animator") return Icons.Character;
 		if (typeName == "UIDocument") return Icons.Script;
-		if (typeName == "Rigidbody" || typeName == "SoftBody") return Icons.Body;
+		if (typeName == "Rigidbody" || typeName == "SoftBody" || typeName == "Rope") return Icons.Body;
 		if (typeName.EndsWith("Collider")) return Icons.Collider;
 		if (typeName == "VoxelTerrain") return Icons.Terrain;
 		if (typeName == "VoxelObject") return Icons.Voxel;

@@ -90,13 +90,56 @@ let touched = scope List<uint32>();
 jelly.TouchingBodies(touched);
 ```
 
+## Ropes
+
+The **Rope** component is a rope, cable or chain-like line: a chain of short stiff lengths (Jolt's Cosserat rods) that keep their length and resist bending and twisting where they meet. It sags, swings, drapes over things and is pushed about by what moves through it, and draws itself as a tube with the object's Mesh Renderer (added if there is none).
+
+Each end is tied on its own:
+
+- **Start Attached To**: what the first end is on. Empty: this object holds it, or nothing does with **Hold Start** off.
+- **End Attached To**: what the other end is on. Empty: it hangs free.
+- **Start Offset** / **End Offset**: where on each object, relative to it.
+
+Any object will do: a player, a vehicle, a bone's child, a crate, an empty. An end follows its object wherever it goes. When either end is on a dynamic Rigidbody, the rope also pulls on it: the ends can get no further apart than **Length** (and it goes slack when they come closer), so it holds a crate up, swings it, and is pulled tight by it. A rope between two objects without Rigidbodies (or kinematic ones) just hangs between them.
+
+| Field | Meaning |
+| --- | --- |
+| Length | How long it is, in metres. |
+| Thickness | How thick it is (it keeps this far from other things, and is drawn this thick). |
+| Mass | The whole rope's weight. |
+| Segments | How many lengths it is made of; 0 is about one per 10 cm. |
+| Bend Stiffness | 0 a limp rope, 1 a stiff cable. |
+| Damping, Friction | As on a Rigidbody. |
+| Iterations | Solver passes each step; more is firmer. |
+
+Towing and lifting from code:
+
+```beef
+// A helicopter picks up a crate: the rope is tied under one and on top of the other.
+let sling = Rope.Attach(helicopter, crate, .(0, -0.5f, 0), .(0, 0.4f, 0), 6);
+// A truck tows a car, with as much rope as is between them now (plus a little slack).
+let tow = Rope.Attach(truck, car, .(0, 0.4f, -2.2f), .(0, 0.4f, 2.1f));
+
+if (sling.IsTaut && sling.Pull > 5000)
+	sling.Release();        // drop it: the far end lets go and hangs free
+
+tow.AttachEnd(trailer.Transform, .(0, 0.5f, 2));   // tie the far end to something else
+tow.AttachStart(player.Transform);                  // or the near end
+Scene.Active.Destroy(tow.GameObject);               // or let go of both
+```
+
+`Points` has where each point of the rope is now, from start to end. When an object an end is tied to is destroyed, that end lets go.
+
+The pull acts along the straight line between the two ends. A rope thrown over a beam still lies on the beam, but it holds as though it went straight from end to end, not as a pulley. A rope is local to each machine like other soft bodies: in multiplayer, tie it to the same networked objects everywhere (the objects are synced, so the rope looks the same).
+
 ## Networking
 
 Each machine simulates its own soft bodies. Pinned cloth follows its object, so when the object is networked (a player, a ship, a door), the cloth looks the same everywhere without sending anything about it. A free soft body on an object with a Network Identity is simulated on clients too, and each step it is drawn towards where the server has the object, or jumps there if it is more than 2 m away. Its shape is each machine's own, so squashing and wobbling can differ in detail.
 
 ## Limits
 
-- Cloth does not tear.
+- Cloth does not tear, and ropes do not snap by themselves (use `Pull` and `Release` for that).
+- A rope's pull runs straight between its ends: it does not work as a pulley over things it lies on.
 - Pins hold vertices to their object, not to a bone directly. Put the soft body on an object parented to the bone.
 - Soft bodies meet each other through a proxy: a closed body (jelly, shell) near another soft body gets a copy of its surface, rebuilt each step, that other soft bodies collide with (rays, shape queries, rigid bodies and characters ignore it). Of two closed bodies, only one is pushed by the other: the one underneath does not feel the weight of one resting on it. Cloth does not meet cloth.
 - A sphere with poles (many thin faces meeting at a point) shivers at very high pressures (300 and more); more Iterations calm it, or use an evenly meshed sphere.

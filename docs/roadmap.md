@@ -332,3 +332,9 @@ Work agreed and queued, in order (see *How to use this page* above for what "don
   GetDents/SetDents/Repair), jelly that sleeps, stays a cube at the new default pressure (10) and settles (wobble
   damping, dihedral bending, mass by area), and soft bodies meeting each other through kinematic proxies. Not
   done: tearing.
+- [x] Ropes (2026-10-29; docs/soft-bodies.md "Ropes"): the Rope component, a chain of Jolt Cosserat rods (stretch,
+  bend and twist) with long-range limits from held ends so long ropes do not stretch; each end tied to any object
+  on its own (Start/End Attached To, offsets), or free; a distance tie between the ends' bodies carries the pull, so
+  ropes hold up, swing, tow and lift Rigidbodies (`Rope.Attach`, AttachStart/AttachEnd/Release, Pull, IsTaut);
+  drawn as a tube; meets colliders, rigidbodies and soft bodies' proxies. `Tests/SoftBodies`.
+- [ ] Real-time water simulation (not started: to be described and agreed before work begins).

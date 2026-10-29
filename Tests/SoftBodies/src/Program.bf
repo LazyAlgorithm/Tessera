@@ -557,6 +557,135 @@ class Program
 			ok &= Check(Math.Abs(shell.DeepestDent() - later) < 0.01f, scope $"dents saved with GetDents come back with SetDents ({shell.DeepestDent()} of {later})");
 		}
 
+		// ---- ropes ----
+		{
+			let scene = scope Scene();
+			Scene.Active = scene;
+			scene.StartPlay();
+			Floor(scene);
+			GameObject Post(Scene scene, Vector3 at)
+			{
+				let post = scene.CreateGameObject("Post");
+				post.Transform.Position = at;
+				return post;
+			}
+			GameObject Crate(Scene scene, Vector3 at, float mass)
+			{
+				let crate = scene.CreateGameObject("Crate");
+				crate.Transform.Position = at;
+				crate.AddComponent<BoxCollider>().size = .(0.6f, 0.6f, 0.6f);
+				crate.AddComponent<Rigidbody>().mass = mass;
+				return crate;
+			}
+
+			// Hanging free from a post.
+			let hook = Post(scene, .(-6, 5, 0));
+			let free = hook.AddComponent<Rope>();
+			free.length = 3;
+			// Between two posts, with slack.
+			let left = Post(scene, .(-3, 4, 0));
+			let right = Post(scene, .(-1, 4, 0));
+			let sagging = left.AddComponent<Rope>();
+			sagging.length = 3;
+			sagging.endAttachedTo = right.Transform;
+			// Holding up a crate.
+			let beam = Post(scene, .(3, 5, 0));
+			let load = Crate(scene, .(3, 2.5f, 0), 10);
+			let holding = Rope.Attach(beam, load, .Zero, .(0, 0.3f, 0), 2.2f);
+			Run(scene, 180);
+			free.[Friend]ReadBack();
+			sagging.[Friend]ReadBack();
+			let hangs = hook.Transform.Position.y - free.Points.Back.y;
+			ok &= Check(free.HasBody && hangs > 2.85f && hangs < 3.1f && Math.Abs(free.Points.Back.x + 6) < 0.1f, scope $"a rope hangs straight down from a post ({hangs} m of 3, {free.Points.Count} points)");
+			float lowest = 99;
+			for (let p in sagging.Points)
+				lowest = Math.Min(lowest, p.y);
+			ok &= Check(lowest < 3.4f && lowest > 2.5f, scope $"a rope between two posts sags in the middle (lowest {lowest}, posts at 4)");
+			let hanging = (load.Transform.Position + Vector3(0, 0.3f, 0) - beam.Transform.Position).Length;
+			ok &= Check(hanging > 2.1f && hanging < 2.3f && holding.IsTaut, scope $"a rope holds up a crate, taut ({hanging} m from the beam, rope 2.2)");
+			ok &= Check(holding.Pull > 60 && holding.Pull < 140, scope $"and reports the crate's weight as its pull ({holding.Pull} N for 10 kg)");
+			holding.[Friend]ReadBack();
+			ok &= Check(holding.GetComponent<MeshRenderer>().RuntimeMesh.Vertices.Count == holding.Points.Count * 8, "it draws itself as a tube");
+			// Swung sideways, it swings on the rope rather than stretching it.
+			load.GetComponent<Rigidbody>().Velocity = .(3, 0, 0);
+			float furthest = 0, swungTo = 0;
+			for (int tick < 90)
+			{
+				scene.FixedUpdate();
+				furthest = Math.Max(furthest, (load.Transform.Position + Vector3(0, 0.3f, 0) - beam.Transform.Position).Length);
+				swungTo = Math.Max(swungTo, load.Transform.Position.x - 3);
+			}
+			ok &= Check(swungTo > 0.5f && furthest < 2.3f, scope $"pushed, the crate swings on the rope ({swungTo} m out) without stretching it (at most {furthest} m)");
+			// Let go, it falls.
+			holding.Release();
+			Run(scene, 60);
+			ok &= Check(load.Transform.Position.y < 0.5f, scope $"Release lets the crate fall ({load.Transform.Position.y})");
+
+			// Towing: a truck (moved by a script, no Rigidbody) drags a crate along the floor.
+			let truck = Post(scene, .(-8, 0.5f, 6));
+			let trailer = Crate(scene, .(-12, 0.3f, 6), 20);
+			Rope.Attach(truck, trailer, .Zero, .Zero, 4.2f);
+			for (int tick < 180)
+			{
+				truck.Transform.Position = truck.Transform.Position + Vector3(2 * Time.FixedDeltaTime, 0, 0);
+				scene.FixedUpdate();
+			}
+			let towed = trailer.Transform.Position.x + 12;
+			let gap = (truck.Transform.Position - trailer.Transform.Position).Length;
+			ok &= Check(towed > 3.5f && gap < 4.4f, scope $"towing: a truck drags a crate behind it ({towed} m, {gap} m apart on a 4.2 m rope)");
+
+			// Lifting: a helicopter (a dynamic Rigidbody flying up) lifts a crate off the floor, and feels its weight.
+			let copter = Crate(scene, .(8, 3, 6), 200);
+			copter.Name.Set("Helicopter");
+			let flier = copter.GetComponent<Rigidbody>();
+			let cargo = Crate(scene, .(8, 0.3f, 6), 20);
+			let sling = Rope.Attach(copter, cargo, .(0, -0.3f, 0), .(0, 0.3f, 0), 2.5f);
+			for (int tick < 180)
+			{
+				// Lift: its own weight, and a little more.
+				flier.AddForce(.(0, 200 * 9.81f + 400, 0));
+				scene.FixedUpdate();
+			}
+			ok &= Check(cargo.Transform.Position.y > 1 && sling.Pull > 100, scope $"lifting: a helicopter lifts a crate on a rope (crate at {cargo.Transform.Position.y} m, pull {sling.Pull} N)");
+
+			// Dropped on a box (held at neither end), a rope lies on it.
+			let block = scene.CreateGameObject("Block");
+			block.Transform.Position = .(0, 0.5f, -6);
+			block.AddComponent<BoxCollider>().size = .(2, 1, 2);
+			let above = Post(scene, .(0, 3, -6));
+			let draped = above.AddComponent<Rope>();
+			draped.length = 1.5f;
+			draped.holdStart = false;
+			Run(scene, 180);
+			draped.[Friend]ReadBack();
+			let bottom = Lowest(draped.Points).y;
+			ok &= Check(bottom > 0.95f && bottom < 1.1f, scope $"a rope dropped on a box lies on it (lowest {bottom}, box top 1)");
+
+			// Each end on its own: a rope held only at its far end by a crate, its start hanging free; then its
+			// start tied to a post too.
+			let lone = Post(scene, .(12, 0, -6));
+			let loose = lone.AddComponent<Rope>();
+			loose.length = 2;
+			loose.holdStart = false;
+			let carrier = Post(scene, .(12, 4, -6));
+			loose.endAttachedTo = carrier.Transform;
+			Run(scene, 120);
+			loose.[Friend]ReadBack();
+			let dangles = carrier.Transform.Position.y - Lowest(loose.Points).y;
+			ok &= Check(dangles > 1.85f && dangles < 2.1f, scope $"held only at its end, a rope hangs from that end ({dangles} m of 2)");
+			let other = Post(scene, .(13, 4, -6));
+			loose.AttachStart(other.Transform);
+			Run(scene, 60);
+			loose.[Friend]ReadBack();
+			ok &= Check((loose.Points[0] - other.Transform.Position).Length < 0.05f && (loose.Points.Back - carrier.Transform.Position).Length < 0.05f, "AttachStart ties its other end to something else");
+			// What an end is tied to is destroyed: that end lets go.
+			scene.Destroy(carrier);
+			scene.Update();
+			Run(scene, 60);
+			scene.Update();
+			ok &= Check(loose.HasBody && loose.endAttachedTo == null && Lowest(loose.Points).y < 2.3f, scope $"when what an end holds is destroyed, it lets go and hangs (lowest {Lowest(loose.Points).y})");
+		}
+
 		// ---- a free soft body on a networked object goes where the server says ----
 		{
 			Time.DeltaTime = Time.FixedDeltaTime;
