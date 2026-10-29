@@ -34,6 +34,51 @@ class Program
 	}
 
 	/// A level sheet pinned along its far edge (its last row, z = +size/2): the rest swings down and hangs from it.
+	/// A box, half its size each way, each face cut into `cells` squares across (so it can dent and bend).
+	static Mesh Box(Vector3 half, int cells)
+	{
+		let mesh = new Mesh();
+		for (int face < 6)
+		{
+			let axis = face / 2;
+			let sign = (face % 2 == 0) ? 1.0f : -1.0f;
+			let start = (uint32)mesh.Vertices.Count;
+			for (int j <= cells)
+			{
+				for (int i <= cells)
+				{
+					float[3] p = default;
+					p[axis] = sign;
+					p[(axis + 1) % 3] = i / (float)cells * 2 - 1;
+					p[(axis + 2) % 3] = j / (float)cells * 2 - 1;
+					float[3] n = default;
+					n[axis] = sign;
+					mesh.AddVertex(.(p[0] * half.x, p[1] * half.y, p[2] * half.z), .(n[0], n[1], n[2]), .White, .(i / (float)cells, j / (float)cells));
+				}
+			}
+			for (int j < cells)
+			{
+				for (int i < cells)
+				{
+					let a = start + (uint32)(j * (cells + 1) + i);
+					let c = a + (uint32)cells + 1;
+					// Wound to face outward on either side.
+					if (sign > 0)
+					{
+						mesh.AddTriangle(a, a + 1, c);
+						mesh.AddTriangle(a + 1, c + 1, c);
+					}
+					else
+					{
+						mesh.AddTriangle(a, c, a + 1);
+						mesh.AddTriangle(a + 1, c, c + 1);
+					}
+				}
+			}
+		}
+		return mesh;
+	}
+
 	static SoftBody Curtain(Scene scene, Mesh sheet, Vector3 position, int cells)
 	{
 		let object = scene.CreateGameObject("Curtain");
@@ -226,7 +271,129 @@ class Program
 			ok &= Check(corner.y < 0.95f, scope $"and its corners hang over the edge (corner y {corner.y})");
 		}
 
-		// ---- a jelly ball keeps its volume, and holds up a crate ----
+		// ---- a jelly cube, as it comes, stays a cube and does not bounce about ----
+		{
+			let scene = scope Scene();
+			Scene.Active = scene;
+			scene.StartPlay();
+			Floor(scene);
+			let cube = Box(.(0.5f, 0.5f, 0.5f), 8);
+			defer delete cube;
+			let object = scene.CreateGameObject("Jello");
+			object.Transform.Position = .(0, 1.5f, 0);
+			object.AddComponent<MeshRenderer>().RuntimeMesh = cube;
+			let jelly = object.AddComponent<SoftBody>();
+			jelly.kind = .Jelly;
+			bool landed = false;
+			float bounce = 0;
+			for (int tick < 240)
+			{
+				scene.FixedUpdate();
+				jelly.[Friend]ReadBack();
+				let low = Lowest(jelly.Positions).y;
+				landed |= low < 0.05f;
+				if (landed)
+					bounce = Math.Max(bounce, low);
+			}
+			// The faces' middles against a cube's (half its size from the middle; a ball's would be 0.87).
+			let middle = Average(jelly.Positions);
+			float faceMiddle = 0;
+			int faces = 0;
+			for (int i < jelly.Positions.Count)
+			{
+				let rest = jelly.[Friend]mRest[i];
+				if ((Math.Abs(rest.x) < 0.01f ? 1 : 0) + (Math.Abs(rest.y) < 0.01f ? 1 : 0) + (Math.Abs(rest.z) < 0.01f ? 1 : 0) == 2)
+				{
+					faceMiddle += (jelly.Positions[i] - middle).Length;
+					faces++;
+				}
+			}
+			faceMiddle /= faces;
+			ok &= Check(faceMiddle < 0.55f && bounce < 0.15f, scope $"a jelly cube dropped 1 m keeps its shape (faces' middles {faceMiddle} m out, a cube's 0.5) and hops once at most ({bounce} m)");
+
+			// At rest, it goes to sleep; something landing on it wakes it, and it holds that up.
+			int waited = 240;
+			while (!jelly.IsSleeping && waited < 600)
+			{
+				scene.FixedUpdate();
+				waited++;
+			}
+			ok &= Check(jelly.IsSleeping, scope $"a resting jelly goes to sleep ({waited / 60.0f:0.0} s after it was dropped)");
+			jelly.[Friend]ReadBack();
+			let under = Average(jelly.Positions);
+			let crate = scene.CreateGameObject("Crate");
+			crate.Transform.Position = .(under.x, 2, under.z);
+			crate.AddComponent<BoxCollider>().size = .(0.3f, 0.3f, 0.3f);
+			crate.AddComponent<Rigidbody>().mass = 0.5f;
+			bool woke = false;
+			float caught = float.MaxValue;
+			for (int tick < 90)
+			{
+				scene.FixedUpdate();
+				woke |= !jelly.IsSleeping;
+				caught = Math.Min(caught, crate.Transform.Position.y);
+			}
+			ok &= Check(woke && caught > 0.6f, scope $"a crate landing on the sleeping jelly wakes it and is held up (lowest {caught})");
+		}
+
+		// ---- soft bodies meet each other: a jelly cube on another, and cloth over one ----
+		{
+			let scene = scope Scene();
+			Scene.Active = scene;
+			scene.StartPlay();
+			Floor(scene);
+			let cubeMesh = Box(.(0.5f, 0.5f, 0.5f), 8);
+			defer delete cubeMesh;
+			SoftBody Jello(Scene scene, Mesh mesh, Vector3 at)
+			{
+				let object = scene.CreateGameObject("Jello");
+				object.Transform.Position = at;
+				object.AddComponent<MeshRenderer>().RuntimeMesh = mesh;
+				let jelly = object.AddComponent<SoftBody>();
+				jelly.kind = .Jelly;
+				return jelly;
+			}
+			let below = Jello(scene, cubeMesh, .(0, 0.55f, 0));
+			let above = Jello(scene, cubeMesh, .(0.1f, 2, 0.05f));
+			Run(scene, 240);
+			below.[Friend]ReadBack();
+			above.[Friend]ReadBack();
+			float belowTop = -99;
+			for (let p in below.Positions)
+				belowTop = Math.Max(belowTop, p.y);
+			let aboveBottom = Lowest(above.Positions).y;
+			ok &= Check(aboveBottom > belowTop - 0.05f && aboveBottom > 0.8f, scope $"a jelly cube dropped on another rests on it (its bottom {aboveBottom}, the other's top {belowTop})");
+
+			let sheet = Sheet(12, 2);
+			defer delete sheet;
+			let cloth = scene.CreateGameObject("Cloth");
+			cloth.Transform.Position = .(4, 2, 0);
+			cloth.AddComponent<MeshRenderer>().RuntimeMesh = sheet;
+			let blanket = cloth.AddComponent<SoftBody>();
+			blanket.damping = 1;
+			let under = Jello(scene, cubeMesh, .(4, 0.55f, 0));
+			Run(scene, 240);
+			blanket.[Friend]ReadBack();
+			under.[Friend]ReadBack();
+			float underTop = -99;
+			for (let p in under.Positions)
+				underTop = Math.Max(underTop, p.y);
+			// The cloth's middle (over the cube) lies on the cube's top.
+			float middleY = 0;
+			int over = 0;
+			for (let p in blanket.Positions)
+			{
+				if (Math.Abs(p.x - 4) < 0.3f && Math.Abs(p.z) < 0.3f)
+				{
+					middleY += p.y;
+					over++;
+				}
+			}
+			middleY /= Math.Max(over, 1);
+			ok &= Check(over > 0 && middleY > underTop - 0.05f, scope $"cloth dropped over a jelly cube drapes on it (cloth over it at {middleY}, its top {underTop})");
+		}
+
+		// ---- a rubber ball (jelly with more air in) keeps its volume, and holds up a crate ----
 		{
 			let scene = scope Scene();
 			Scene.Active = scene;
@@ -240,6 +407,7 @@ class Program
 			let jelly = ball.AddComponent<SoftBody>();
 			jelly.kind = .Jelly;
 			jelly.mass = 2;
+			jelly.pressure = 300;
 			Run(scene, 240);
 			jelly.[Friend]ReadBack();
 			float lowest = float.MaxValue, highest = float.MinValue;
@@ -319,6 +487,74 @@ class Program
 				pushed = Math.Max(pushed, Average(curtain.Positions).z);
 			}
 			ok &= Check(walker.Transform.Position.z > 1.5f && pushed > hanging.z + 0.2f, scope $"a character walks through a hanging curtain and pushes it aside (curtain middle z {hanging.z} hanging, {pushed} at most; walker z {walker.Transform.Position.z})");
+		}
+
+		// ---- a car's shell dents where it hits a wall, keeps the dent, and can be repaired ----
+		{
+			let scene = scope Scene();
+			Scene.Active = scene;
+			scene.StartPlay();
+			Floor(scene);
+			let wall = scene.CreateGameObject("Wall");
+			wall.Transform.Position = .(0, 1.5f, 8);
+			wall.AddComponent<BoxCollider>().size = .(6, 3, 1);
+			let car = scene.CreateGameObject("Car");
+			car.Transform.Position = .(0, 0.65f, 0);
+			// The collider a little inside the body at the front and back, and below it underneath (as wheels would be).
+			car.AddComponent<BoxCollider>().size = .(1.6f, 1.4f, 3.6f);
+			let body = car.AddComponent<Rigidbody>();
+			body.mass = 1000;
+			let shellMesh = Box(.(0.9f, 0.6f, 2), 8);
+			defer delete shellMesh;
+			car.AddComponent<MeshRenderer>().RuntimeMesh = shellMesh;
+			let shell = car.AddComponent<SoftBody>();
+			shell.kind = .Shell;
+			shell.springBack = 0.03f;
+			Run(scene, 60);
+			let restingAt = car.Transform.Position;
+			Run(scene, 60);
+			int parked = 120;
+			while (!shell.IsSleeping && parked < 600)
+			{
+				scene.FixedUpdate();
+				parked++;
+			}
+			ok &= Check(shell.IsSleeping, scope $"a parked car's shell goes to sleep ({parked / 60.0f:0.0} s)");
+			let carMoved = (car.Transform.Position - restingAt).Length;
+			let resting = shell.HasBody && shell.DeepestDent() < 0.01f && carMoved < 0.01f;
+			ok &= Check(resting, scope $"a shell rests on its car without denting or pushing it ({shell.SimulatedVertexCount} vertices, deepest dent {shell.DeepestDent()}, car moved {carMoved})");
+			for (int tick < 90)
+			{
+				if (car.Transform.Position.z < 5.4f)
+					body.Velocity = .(0, body.Velocity.y, 12);
+				scene.FixedUpdate();
+			}
+			shell.[Friend]ReadBack();
+			let dents = scope List<Vector3>();
+			shell.GetDents(dents);
+			float front = 0, back = 0;
+			for (int i < dents.Count)
+			{
+				if (shell.[Friend]mRest[i].z > 1.9f)
+					front = Math.Max(front, dents[i].Length);
+				if (shell.[Friend]mRest[i].z < -1.9f)
+					back = Math.Max(back, dents[i].Length);
+			}
+			ok &= Check(front > 0.08f && back < 0.03f, scope $"driven into a wall, its front dents and its back does not (front {front} m, back {back} m)");
+			Run(scene, 120);
+			let later = shell.DeepestDent();
+			ok &= Check(later > front * 0.9f, scope $"the dent stays ({later} m two seconds later)");
+			shell.GetDents(dents);
+			// Backed away from the wall, then mended.
+			car.Transform.Position = car.Transform.Position - Vector3(0, 0, 3);
+			body.Velocity = .Zero;
+			Run(scene, 2);
+			shell.Repair();
+			Run(scene, 30);
+			ok &= Check(shell.DeepestDent() < 0.005f, scope $"Repair takes the dents out ({shell.DeepestDent()})");
+			shell.SetDents(dents);
+			Run(scene, 30);
+			ok &= Check(Math.Abs(shell.DeepestDent() - later) < 0.01f, scope $"dents saved with GetDents come back with SetDents ({shell.DeepestDent()} of {later})");
 		}
 
 		// ---- a free soft body on a networked object goes where the server says ----

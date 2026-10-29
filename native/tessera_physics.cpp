@@ -206,8 +206,12 @@ static bool JPH_API_CALL softFilterCollide(void* userData, JPH_BodyID body) {
         if (entry.second == body && entry.first == filterSystem) return false;
     return true;
 }
-// Soft bodies (cloth, jelly) are not walls: the character's sweep goes through them, and its inner body pushes them.
-static bool JPH_API_CALL softFilterCollideLocked(void*, const JPH_Body* body) { return !JPH_Body_IsSoftBody(body); }
+// Soft bodies (cloth, jelly) and their proxies (tessera_softbody.cpp) are not walls: the character's sweep goes
+// through them, and its inner body pushes them.
+extern "C" bool tn_soft_is_proxy(uint32_t bodyId);
+static bool JPH_API_CALL softFilterCollideLocked(void*, const JPH_Body* body) {
+    return !JPH_Body_IsSoftBody(body) && !tn_soft_is_proxy(JPH_Body_GetID(body));
+}
 
 // The filter to sweep with: every character skips soft bodies; a soft character also skips soft characters.
 static const JPH_BodyFilter* characterFilter(const JPH_PhysicsSystem* system, bool soft) {
