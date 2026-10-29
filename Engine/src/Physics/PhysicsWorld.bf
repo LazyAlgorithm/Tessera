@@ -335,6 +335,16 @@ class PhysicsWorld
 			soft.[Friend]mWorld = null;
 		}
 		mSoftBodies.Clear();
+		for (let rope in mRopes)
+		{
+			if (rope.[Friend]mTie != null)
+				Rope.[Friend]tn_rope_untie(mSystem, rope.[Friend]mTie);
+			Jolt.JPH_BodyInterface_RemoveAndDestroyBody(mBodyInterface, rope.BodyId);
+			rope.[Friend]mTie = null;
+			rope.[Friend]mBody = uint32.MaxValue;
+			rope.[Friend]mWorld = null;
+		}
+		mRopes.Clear();
 	}
 
 	void* CreateShape(ShapeDesc desc)
@@ -639,6 +649,17 @@ class PhysicsWorld
 
 	void AddSoftBody(uint32 bodyId, SoftBody owner) => mSoftBodies[bodyId] = owner;
 
+	/// Ropes (Rope components): each moves its ends and ties its pull before a step.
+	List<Rope> mRopes = new .() ~ delete _;
+
+	void AddRope(Rope rope) => mRopes.Add(rope);
+
+	void RemoveRope(Rope rope)
+	{
+		if (mRopes.Remove(rope) && mBodyInterface != null)
+			Jolt.JPH_BodyInterface_RemoveAndDestroyBody(mBodyInterface, rope.BodyId);
+	}
+
 	void RemoveSoftBody(uint32 bodyId)
 	{
 		if (mSoftBodies.Remove(bodyId) && mBodyInterface != null)
@@ -853,7 +874,7 @@ class PhysicsWorld
 	public void Step(float deltaTime)
 	{
 		LastStepError = 0;
-		if (mSystem == null || (mEntries.Count == 0 && mSoftBodies.Count == 0))
+		if (mSystem == null || (mEntries.Count == 0 && mSoftBodies.Count == 0 && mRopes.Count == 0))
 			return;
 		PrepareQuery();
 		var gravity = Gravity;
@@ -874,7 +895,9 @@ class PhysicsWorld
 
 		for (let soft in mSoftBodies.Values)
 			soft.[Friend]BeforeStep(deltaTime);
-		SoftBody.[Friend]UpdateProxies(this, mSoftBodies);
+		for (let rope in mRopes)
+			rope.[Friend]BeforeStep(deltaTime);
+		SoftBody.[Friend]UpdateProxies(this, mSoftBodies, mRopes);
 
 		LastStepError = Jolt.JPH_PhysicsSystem_Update(mSystem, deltaTime, 1, sJobSystem);
 		if (LastStepError != 0 && (mReportedStepErrors & LastStepError) != LastStepError)

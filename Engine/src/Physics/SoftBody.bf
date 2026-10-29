@@ -413,9 +413,9 @@ class SoftBody : Component
 
 	/// Before each physics step: closed soft bodies near other soft bodies get proxies, surfaces the others can meet
 	/// (the physics engine only has soft bodies meet rigid bodies).
-	static void UpdateProxies(PhysicsWorld world, Dictionary<uint32, SoftBody> bodies)
+	static void UpdateProxies(PhysicsWorld world, Dictionary<uint32, SoftBody> bodies, List<Rope> ropes)
 	{
-		if (bodies.Count < 2)
+		if (bodies.Count + ropes.Count < 2 || bodies.IsEmpty)
 			return;
 		let ids = scope List<uint32>(bodies.Count);
 		let closed = scope List<int32>(bodies.Count);
@@ -425,6 +425,13 @@ class SoftBody : Component
 			ids.Add(id);
 			closed.Add(soft.kind == .Cloth ? 0 : 1);
 			reach.Add(Math.Max(soft.thickness, 0.005f) * 2 + 0.05f);
+		}
+		// Ropes meet the proxies of closed bodies, as cloth does.
+		for (let rope in ropes)
+		{
+			ids.Add(rope.BodyId);
+			closed.Add(0);
+			reach.Add(Math.Max(rope.thickness, 0.005f) + 0.05f);
 		}
 		tn_soft_proxies(world.[Friend]mSystem, ids.Ptr, closed.Ptr, reach.Ptr, (uint32)ids.Count);
 	}

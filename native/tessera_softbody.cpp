@@ -9,8 +9,10 @@
 #include <Jolt/Physics/Body/BodyLock.h>
 #include <Jolt/Physics/Body/BodyLockInterface.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
+#include <Jolt/Physics/Body/BodyLockMulti.h>
 #include <Jolt/Physics/Collision/GroupFilter.h>
 #include <Jolt/Physics/Collision/Shape/MeshShape.h>
+#include <Jolt/Physics/Constraints/DistanceConstraint.h>
 #include <Jolt/Physics/PhysicsSystem.h>
 #include <Jolt/Physics/SoftBody/SoftBodyContactListener.h>
 #include <Jolt/Physics/SoftBody/SoftBodyCreationSettings.h>
@@ -152,7 +154,7 @@ public:
 	{
 		std::lock_guard<std::mutex> guard(mutex);
 		auto found = ignored.find(soft.GetID().GetIndexAndSequenceNumber());
-		if (found != ignored.end() && found->second == other.GetID().GetIndexAndSequenceNumber())
+		if (found != ignored.end() && std::find(found->second.begin(), found->second.end(), other.GetID().GetIndexAndSequenceNumber()) != found->second.end())
 			return JPH::SoftBodyValidateResult::RejectContact;
 		return JPH::SoftBodyValidateResult::AcceptContact;
 	}
@@ -178,7 +180,7 @@ public:
 
 	std::mutex mutex;
 	std::unordered_map<uint32_t, std::unordered_set<uint32_t>> bodies;
-	std::unordered_map<uint32_t, uint32_t> ignored;
+	std::unordered_map<uint32_t, std::vector<uint32_t>> ignored;
 	std::unordered_map<uint32_t, Shell> shells;
 	// Each soft body's proxy, while it has one.
 	std::unordered_map<uint32_t, uint32_t> proxies;
@@ -525,7 +527,8 @@ TN_API void tn_soft_shift(JPH_PhysicsSystem* world, uint32_t bodyId, const float
 	Bodies(world).ActivateBody(JPH::BodyID(bodyId));
 }
 
-/// Keeps a soft body's vertices from colliding with one body (a shell's own rigidbody); 0xFFFFFFFF for none.
+/// Keeps a soft body's vertices from colliding with a body (a shell's own rigidbody, what a rope is tied to);
+/// 0xFFFFFFFF forgets them all.
 TN_API void tn_soft_ignore(JPH_PhysicsSystem* world, uint32_t bodyId, uint32_t ignoredBody)
 {
 	auto& touches = TouchesOf(world);
@@ -533,7 +536,7 @@ TN_API void tn_soft_ignore(JPH_PhysicsSystem* world, uint32_t bodyId, uint32_t i
 	if (ignoredBody == 0xFFFFFFFFu)
 		touches.ignored.erase(bodyId);
 	else
-		touches.ignored[bodyId] = ignoredBody;
+		touches.ignored[bodyId].push_back(ignoredBody);
 }
 
 /// Forgets what was kept about a soft body (when it is removed).
@@ -864,4 +867,131 @@ TN_API void tn_soft_proxies(JPH_PhysicsSystem* world, const uint32_t* bodies, co
 			Bodies(world).SetLinearVelocity(proxy, velocity);
 		}
 	}
+}
+
+namespace
+{
+
+/// Rope.bf's settings, in the same order.
+struct RopeConfig
+{
+	float mass;          // the whole rope's mass (kg), shared by its free points
+	float stretch;       // compliance of each length of rope (0 does not stretch)
+	float bend;          // compliance of bending and twisting where lengths meet
+	float damping;
+	float friction;
+	float restitution;
+	float gravityFactor;
+	float radius;        // half its thickness: how far from its line it keeps other things
+	int32_t iterations;
+	uint32_t layer;
+	uint64_t userData;
+};
+
+} // namespace
+
+/// Makes a rope: points along it (x, y, z each, in the world, relative to `center`), the first and last held where
+/// pinned says (1 held, 0 free). Each length between points is a Cosserat rod: it keeps its length and resists
+/// bending and twisting against the next. Returns the body's id, or 0xFFFFFFFF.
+TN_API uint32_t tn_rope_create(JPH_PhysicsSystem* world, const RopeConfig* config, const float* positions, uint32_t count, const float* pinned, const float* center)
+{
+	if (!world || !config || !positions || count < 2)
+		return 0xFFFFFFFFu;
+	uint32_t free = 0;
+	for (uint32_t i = 0; i < count; i++)
+		free += (pinned && pinned[i] >= 0.5f) ? 0 : 1;
+	const float inverseMass = free > 0 ? float(free) / std::max(config->mass, 0.001f) : 1.0f;
+	JPH::Ref<JPH::SoftBodySharedSettings> shared = new JPH::SoftBodySharedSettings();
+	for (uint32_t i = 0; i < count; i++)
+	{
+		JPH::SoftBodySharedSettings::Vertex vertex;
+		vertex.mPosition = JPH::Float3(positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2]);
+		vertex.mInvMass = (pinned && pinned[i] >= 0.5f) ? 0.0f : inverseMass;
+		shared->mVertices.push_back(vertex);
+		if (i > 0)
+			shared->mRodStretchShearConstraints.push_back(JPH::SoftBodySharedSettings::RodStretchShear(i - 1, i, std::max(config->stretch, 0.0f)));
+		if (i > 1)
+			shared->mRodBendTwistConstraints.push_back(JPH::SoftBodySharedSettings::RodBendTwist(i - 2, i - 1, std::max(config->bend, 0.0f)));
+	}
+	shared->CalculateRodProperties();
+	// From each held end, no point gets further away than the rope between them is long: a long rope holding
+	// weight does not stretch however few passes the solver makes.
+	for (uint32_t end : { 0u, count - 1 })
+	{
+		if (!pinned || pinned[end] < 0.5f)
+			continue;
+		float along = 0;
+		for (uint32_t step = 1; step < count; step++)
+		{
+			const uint32_t i = end == 0 ? step : count - 1 - step;
+			const uint32_t before = end == 0 ? i - 1 : i + 1;
+			along += (JPH::Vec3(shared->mVertices[i].mPosition) - JPH::Vec3(shared->mVertices[before].mPosition)).Length();
+			if (pinned[i] >= 0.5f)
+				continue;
+			JPH::SoftBodySharedSettings::LRA reach(end, i, along);
+			shared->mLRAConstraints.push_back(reach);
+		}
+	}
+	shared->Optimize();
+
+	JPH::SoftBodyCreationSettings settings(shared, JPH::RVec3(center[0], center[1], center[2]), JPH::Quat::sIdentity(), (JPH::ObjectLayer)config->layer);
+	settings.mUserData = config->userData;
+	settings.mNumIterations = (JPH::uint32)std::clamp(config->iterations, 1, 64);
+	settings.mLinearDamping = std::max(config->damping, 0.0f);
+	settings.mFriction = std::max(config->friction, 0.0f);
+	settings.mRestitution = std::clamp(config->restitution, 0.0f, 1.0f);
+	settings.mGravityFactor = config->gravityFactor;
+	settings.mVertexRadius = std::max(config->radius, 0.0f);
+	settings.mUpdatePosition = true;
+	settings.mMakeRotationIdentity = true;
+	settings.mAllowSleeping = true;
+	TouchesOf(world);
+	const JPH::BodyID id = Bodies(world).CreateAndAddSoftBody(settings, JPH::EActivation::Activate);
+	if (id.IsInvalid())
+		return 0xFFFFFFFFu;
+	JPH::BodyLockWrite lock(Locks(world), id);
+	if (lock.Succeeded())
+		lock.GetBody().SetCollisionGroup(JPH::CollisionGroup(Groups(), id.GetIndexAndSequenceNumber(), SoftGroups::Open));
+	return id.GetIndexAndSequenceNumber();
+}
+
+/// Ties two bodies (0xFFFFFFFF for a point fixed in the world) so that their points (in the world, as they are now)
+/// get no further apart than `length`: the rope's pull. Returns the tie, for tn_rope_untie.
+TN_API void* tn_rope_tie(JPH_PhysicsSystem* world, uint32_t bodyA, const float* pointA, uint32_t bodyB, const float* pointB, float length)
+{
+	auto* system = reinterpret_cast<JoltcSystem*>(world)->physicsSystem;
+	JPH::DistanceConstraintSettings settings;
+	settings.mSpace = JPH::EConstraintSpace::WorldSpace;
+	settings.mPoint1 = JPH::RVec3(pointA[0], pointA[1], pointA[2]);
+	settings.mPoint2 = JPH::RVec3(pointB[0], pointB[1], pointB[2]);
+	settings.mMinDistance = 0;
+	settings.mMaxDistance = std::max(length, 0.001f);
+	JPH::BodyID ids[2] = { JPH::BodyID(bodyA), JPH::BodyID(bodyB) };
+	JPH::BodyLockMultiWrite lock(system->GetBodyLockInterface(), ids, 2);
+	JPH::Body* a = bodyA == 0xFFFFFFFFu ? &JPH::Body::sFixedToWorld : lock.GetBody(0);
+	JPH::Body* b = bodyB == 0xFFFFFFFFu ? &JPH::Body::sFixedToWorld : lock.GetBody(1);
+	if (a == nullptr || b == nullptr || a == b)
+		return nullptr;
+	JPH::TwoBodyConstraint* tie = settings.Create(*a, *b);
+	tie->AddRef();
+	system->AddConstraint(tie);
+	return tie;
+}
+
+/// Lets go of a tie (tn_rope_tie).
+TN_API void tn_rope_untie(JPH_PhysicsSystem* world, void* tie)
+{
+	if (!tie)
+		return;
+	auto* constraint = static_cast<JPH::TwoBodyConstraint*>(tie);
+	reinterpret_cast<JoltcSystem*>(world)->physicsSystem->RemoveConstraint(constraint);
+	constraint->Release();
+}
+
+/// How hard a tie pulled in its last step, in newtons.
+TN_API float tn_rope_pull(void* tie, float step)
+{
+	if (!tie || step <= 0)
+		return 0;
+	return std::abs(static_cast<JPH::DistanceConstraint*>(tie)->GetTotalLambdaPosition()) / step;
 }
