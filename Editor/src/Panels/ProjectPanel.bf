@@ -544,7 +544,7 @@ extension EditorApp
 		if (AssetPreviews.Wants(entry.name) && AssetPreviews.TryGet(entry.path, let preview))
 		{
 			ImGui.DrawRectFilled(.(min.x + size * 0.04f, min.y + size * 0.04f), .(max.x - size * 0.04f, max.y - size * 0.04f), .(0.17f, 0.17f, 0.19f, 1), 4);
-			ImGui.DrawImage(preview, .(min.x + size * 0.04f, min.y + size * 0.04f), .(max.x - size * 0.04f, max.y - size * 0.04f), false);
+			ImGui.DrawPicture(preview, .(min.x + size * 0.04f, min.y + size * 0.04f), .(max.x - size * 0.04f, max.y - size * 0.04f), .(0, 0), .(1, 1), false);
 			return;
 		}
 		Color color;
@@ -606,6 +606,8 @@ extension EditorApp
 			BeginNewItem(9, "NewMaterial");
 		if (ImGui.MenuItem("Shader Graph (visual shader)"))
 			BeginNewItem(12, "NewShaderGraph");
+		if (ImGui.MenuItem("Shader Subgraph (reusable shader node)"))
+			BeginNewItem(16, "NewShaderSubgraph");
 		if (ImGui.MenuItem("Shader (code)"))
 			BeginNewItem(10, "NewShader");
 		if (ImGui.MenuItem("Compute Shader"))
@@ -707,7 +709,7 @@ extension EditorApp
 		}
 		if (ImGui.BeginPopupModal("Create Asset", null, ImGui.WindowFlags.AlwaysAutoResize))
 		{
-			ImGui.Text(mNewItemKind == 0 ? "Folder name" : (mNewItemKind == 1 ? "Script class name" : (mNewItemKind == 3 ? "Graph name (becomes the component's class name)" : (mNewItemKind == 6 ? "Behavior tree name" : (mNewItemKind == 7 ? "Animator controller name" : (mNewItemKind == 8 ? "Animation clip name" : (mNewItemKind == 9 ? "Material name" : (mNewItemKind == 10 ? "Shader name" : (mNewItemKind == 11 ? "Compute shader name" : (mNewItemKind == 12 ? "Shader graph name" : (mNewItemKind == 14 ? "Dialogue name" : (mNewItemKind == 15 ? "Sequence name" : "Scene name"))))))))))));
+			ImGui.Text(mNewItemKind == 0 ? "Folder name" : (mNewItemKind == 1 ? "Script class name" : (mNewItemKind == 3 ? "Graph name (becomes the component's class name)" : (mNewItemKind == 6 ? "Behavior tree name" : (mNewItemKind == 7 ? "Animator controller name" : (mNewItemKind == 8 ? "Animation clip name" : (mNewItemKind == 9 ? "Material name" : (mNewItemKind == 10 ? "Shader name" : (mNewItemKind == 11 ? "Compute shader name" : (mNewItemKind == 12 ? "Shader graph name" : (mNewItemKind == 16 ? "Shader subgraph name" : (mNewItemKind == 14 ? "Dialogue name" : (mNewItemKind == 15 ? "Sequence name" : "Scene name")))))))))))));
 			ImGui.SetNextItemWidth(300);
 			let enter = ImGui.InputText("##newname", mNewItemName, ImGui.InputFlags.EnterReturnsTrue);
 			if (mNewItemKind == 1)
@@ -829,6 +831,8 @@ extension EditorApp
 			CreateShaderAsset(mNewItemName, true);
 		case 12:
 			CreateShaderGraphAsset(mNewItemName);
+		case 16:
+			CreateShaderSubgraphAsset(mNewItemName);
 		case 13:
 			let path = scope $"{mBrowsePath}/{mNewItemName}.tdata";
 			if (File.Exists(path))

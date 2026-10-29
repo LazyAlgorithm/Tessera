@@ -72,6 +72,8 @@ class ShaderAsset
 
 	bgfx.ProgramHandle mProgram = .() { idx = uint16.MaxValue };
 	bool mProgramTried;
+	// For a shader made by FromCompiled: the folder its compiled stages are in.
+	String mCompiledFolder ~ delete _;
 
 	static Dictionary<String, ShaderAsset> sCache = new .() ~ DeleteDictionaryAndKeysAndValues!(_);
 
@@ -222,6 +224,15 @@ class ShaderAsset
 			problems.AppendF("line {}: a property needs a name of its own made of letters, digits and underscores\n", lineNumber);
 			return;
 		}
+		for (let taken in StringView[?]("uv", "worldPosition", "worldNormal", "vertexColor", "time", "tex", "albedo", "alpha", "metallic", "roughness", "specularLevel", "emissive",
+			"occlusion", "surfaceNormal", "mainTexture", "texture1", "texture2", "position", "normal", "result", "pixel", "size"))
+		{
+			if (name == taken)
+			{
+				problems.AppendF("line {}: '{}' is a name the shader code already uses; give the property another\n", lineNumber, name);
+				return;
+			}
+		}
 		if (type == .Texture ? textures >= MaxTextures : values >= MaxValues)
 		{
 			problems.AppendF("line {}: too many properties (up to {} values and {} textures)\n", lineNumber, MaxValues, MaxTextures);
@@ -273,7 +284,10 @@ class ShaderAsset
 			let name = scope String();
 			CompiledName(path, name);
 			let folder = scope String();
-			Assets.ResolvePath(scope $"Shaders/Compiled/{Gfx.ShaderFolder}" , folder);
+			if (mCompiledFolder != null)
+				folder.Set(mCompiledFolder);
+			else
+				Assets.ResolvePath(scope $"Shaders/Compiled/{Gfx.ShaderFolder}" , folder);
 			let vs = Gfx.LoadShaderFile(scope $"{folder}/{name}_vs.bin");
 			let fs = Gfx.LoadShaderFile(scope $"{folder}/{name}_fs.bin");
 			if (vs.idx == uint16.MaxValue || fs.idx == uint16.MaxValue)
@@ -331,6 +345,28 @@ class ShaderAsset
 		shader.path.Set(path);
 		shader.Reload();
 		sCache[new String(path)] = shader;
+		return shader;
+	}
+
+	/// A shader from source text whose stages were compiled into a folder of their own, for this backend (the
+	/// editor's shader graph previews). It is kept under `name`, which no file has, so a material's Shader can name
+	/// it; calling again with the same name replaces it, and materials using it draw with the new program.
+	public static ShaderAsset FromCompiled(StringView name, StringView text, StringView folder)
+	{
+		ShaderAsset shader;
+		if (!sCache.TryGetValueAlt(name, out shader))
+		{
+			shader = new ShaderAsset();
+			shader.path.Set(name);
+			sCache[new String(name)] = shader;
+		}
+		shader.Parse(text);
+		String.NewOrSet!(shader.mCompiledFolder, folder);
+		if (shader.mProgram.idx != uint16.MaxValue)
+			bgfx.destroy_program(shader.mProgram);
+		shader.mProgram.idx = uint16.MaxValue;
+		shader.mProgramTried = false;
+		shader.Revision++;
 		return shader;
 	}
 
@@ -398,6 +434,9 @@ class Material
 	public float cutoff = 0.5f;
 	/// Draw both faces of each triangle: for leaves, cloth and anything seen from behind.
 	public bool doubleSided = false;
+	/// For the editor's shader graph previews: which node of a preview shader the surface shows (0 is the surface
+	/// itself). Not saved.
+	public int32 previewOutput;
 
 	/// Values for the custom shader's own properties, by name.
 	Dictionary<String, Vector4> mValues = new .() ~ DeleteDictionaryAndKeys!(_);

@@ -32,6 +32,16 @@ static class ShaderCompiler
 		}
 	}
 
+	/// Forgets the properties' names after the shader's own code, so the engine's code that follows can use any name.
+	static void Undefines(ShaderAsset shader, bool withTextures, String output)
+	{
+		for (let property in shader.properties)
+		{
+			if (withTextures || property.type != .Texture)
+				output.AppendF("#undef {}\n", property.name);
+		}
+	}
+
 	static bool Template(StringView engineRoot, StringView name, String text)
 	{
 		return File.ReadAllText(scope $"{engineRoot}/Engine/shaders/{name}" , text, true) case .Ok;
@@ -60,8 +70,10 @@ static class ShaderCompiler
 		Defines(shader, false, valuesOnly);
 		fragment.Replace("//@PROPERTIES", withTextures);
 		fragment.Replace("//@SURFACE", shader.surface);
+		fragment.Replace("//@UNDEFINE", Undefines(shader, true, .. scope String()));
 		vertex.Replace("//@PROPERTIES", valuesOnly);
 		vertex.Replace("//@VERTEX", shader.vertex);
+		vertex.Replace("//@UNDEFINE", Undefines(shader, false, .. scope String()));
 		return true;
 	}
 
@@ -93,9 +105,9 @@ static class ShaderCompiler
 		public String log;
 	}
 
-	/// Compiles one stage (vertex, fragment or compute) for every backend. False when it fails for the backend this
-	/// machine draws with.
-	static bool CompileStage(StageJob stage, StringView source, StringView suffix, StringView type)
+	/// Compiles one stage (vertex, fragment or compute) for every backend, or only the one the editor draws with.
+	/// False when it fails for the backend this machine draws with.
+	static bool CompileStage(StageJob stage, StringView source, StringView suffix, StringView type, bool thisBackendOnly = false)
 	{
 		bool usable = true;
 		let sourcePath = scope $"{stage.work}/{stage.name}_{suffix}.sc";
@@ -103,6 +115,8 @@ static class ShaderCompiler
 		for (int t < sTargets.Count)
 		{
 			let target = sTargets[t];
+			if (thisBackendOnly && target.folder != Gfx.ShaderFolder)
+				continue;
 			let folder = scope $"{stage.outputRoot}/{target.folder}";
 			Directory.CreateDirectory(folder).IgnoreError();
 			let output = scope $"{folder}/{stage.name}_{suffix}.bin";
@@ -114,7 +128,7 @@ static class ShaderCompiler
 			File.Delete(output).IgnoreError();
 			// Only the backend this machine draws with decides whether the shader works here; the others
 			// are extras for other platforms, and say so once.
-			if (t == 0)
+			if (t == 0 || thisBackendOnly)
 			{
 				usable = false;
 				let said = scope String();
@@ -221,6 +235,40 @@ static class ShaderCompiler
 		// Running materials pick the new program up on their next draw.
 		ShaderAsset.Reloaded(shaderPath);
 		return usable;
+	}
+
+	/// Compiles shader source (a .tshader's text) for the backend the editor draws with only, into
+	/// <outputRoot>/<backend>/<name>_vs.bin and _fs.bin: the shader graph's live previews, which load it with
+	/// ShaderAsset.FromCompiled. Uses its own work folder, so it can run on another thread. Messages go to log.
+	public static bool CompilePreview(StringView engineRoot, StringView text, StringView name, StringView outputRoot, String log)
+	{
+		let shader = scope ShaderAsset();
+		shader.path.Set(name);
+		shader.Parse(text);
+		if (!shader.problems.IsEmpty || shader.IsCompute)
+		{
+			log.Append(shader.problems);
+			return false;
+		}
+		let fragment = scope String(), vertex = scope String(), compute = scope String();
+		let shaderc = scope String();
+		ShadercPath(engineRoot, shaderc);
+		if (!Generate(shader, engineRoot, fragment, vertex, compute) || !File.Exists(shaderc))
+		{
+			log.Append("the engine's shader templates or the shader compiler were not found\n");
+			return false;
+		}
+		let work = scope $"{outputRoot}/work";
+		Directory.CreateDirectory(work).IgnoreError();
+		StageJob stage;
+		stage.engineRoot = engineRoot;
+		stage.shaderPath = name;
+		stage.shaderc = shaderc;
+		stage.work = work;
+		stage.name = name;
+		stage.outputRoot = outputRoot;
+		stage.log = log;
+		return CompileStage(stage, vertex, "vs", "vertex", true) && CompileStage(stage, fragment, "fs", "fragment", true);
 	}
 
 	static void Collect(StringView folder, StringView root, List<String> output, int depth)

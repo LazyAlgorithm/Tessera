@@ -20,8 +20,11 @@ struct PinDef
 	/// in a local variable. Null when the pin type says it all.
 	public String typeName;
 	/// Inputs: the code used when nothing is connected and the pin has no literal ("GetComponent<AudioSource>()").
-	/// Outputs: the code that reads the value ("input.Yaw"); "$N" stands for the node's id.
+	/// Outputs: the code that reads the value ("input.Yaw"); "$N" stands for the node's id. In a shader graph "$V"
+	/// stands for the node's value, for nodes with several outputs ("$V.x").
 	public String code;
+	/// Inputs: the value a new node starts with, when not the type's own default.
+	public String initial;
 }
 
 /// A kind of node: its pins and the Beef code it turns into.
@@ -56,6 +59,7 @@ class NodeDef
 			delete p.name;
 			delete p.typeName;
 			delete p.code;
+			delete p.initial;
 		}
 		pins.Clear();
 	}
@@ -75,6 +79,14 @@ class NodeDef
 	public NodeDef In(StringView name, PinType type, StringView typeName = "", StringView fallback = "")
 	{
 		inputs.Add(Pin(name, type, typeName, fallback));
+		return this;
+	}
+
+	/// Sets the value the last input added starts with on a new node.
+	public NodeDef Default(StringView value)
+	{
+		var pin = ref inputs[inputs.Count - 1];
+		String.NewOrSet!(pin.initial, value);
 		return this;
 	}
 

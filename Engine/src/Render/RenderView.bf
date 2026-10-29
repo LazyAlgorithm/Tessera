@@ -932,6 +932,7 @@ class RenderView
 			surface.uvTransform = .(shared.tiling.x, shared.tiling.y, shared.offset.x, shared.offset.y);
 			if (shared.blend == .Cutout)
 				surface.surface.x = Math.Max(shared.cutoff, 0.001f);
+			surface.surface.w = shared.previewOutput;
 			if (shared.doubleSided)
 				surface.cull = 0;
 			surface.texture = shared.MainTexture;

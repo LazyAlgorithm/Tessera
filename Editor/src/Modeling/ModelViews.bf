@@ -318,7 +318,7 @@ extension EditorApp
 				UpdateModelViewCamera(viewport, viewport.size.x / viewport.size.y);
 				ImGui.SetCursorScreenPos(viewport.origin);
 				if (viewport.view.Width > 0)
-					ImGui.Image(viewport.view.OutputTexture, .(viewport.view.Width, viewport.view.Height));
+					ImGui.Picture(viewport.view.OutputTexture, .(viewport.view.Width, viewport.view.Height));
 				else
 					ImGui.Dummy(viewport.size);
 				viewport.hovered = ImGui.IsItemHovered();

@@ -10,6 +10,7 @@ $output v_wpos, v_normal, v_color0, v_texcoord0, v_depth, v_texcoord1, v_surface
 uniform vec4 u_surface;       // y: time in seconds
 uniform vec4 u_params[8];     // a custom shader's own properties
 #include "wind.sh"
+#include "shadergraph.sh"
 //@PROPERTIES
 
 void main()
@@ -22,6 +23,7 @@ void main()
 	vec2 uv = a_texcoord0;
 	float time = u_surface.y;
 //@VERTEX
+//@UNDEFINE
 	vec4 wpos = mul(model, vec4(position, 1.0));
 	wpos.xyz = tw_bend(wpos.xyz, i_data3.xyz, time);
 	gl_Position = mul(u_viewProj, wpos);

@@ -86,7 +86,7 @@ vertex {
 }
 ```
 
-**Properties** appear in the Inspector of every material using the shader, and are set from scripts by name. Types are `float`, `color`, `vector` (four numbers) and `texture`, each with an optional default. A shader may declare up to eight values and two textures.
+**Properties** appear in the Inspector of every material using the shader, and are set from scripts by name. Types are `float`, `color`, `vector` (four numbers) and `texture`, each with an optional default. A shader may declare up to eight values and two textures. A property cannot take the name of something the code already reads or changes (`uv`, `time`, `albedo` and the rest below).
 
 **`surface { }`** runs for every pixel.
 
@@ -104,6 +104,8 @@ vertex {
 | `alpha` | Texture alpha times colour alpha. |
 | `metallic`, `roughness` | The material's sliders. |
 | `emissive` | The material's emissive colour times intensity. |
+| `occlusion` | 1: how much ambient light reaches the surface (the occlusion map multiplies it afterwards). |
+| `surfaceNormal` | `vec3(0, 0, 1)`: a normal in the surface's own directions (x along U, y along V, z out of it), added to the material's normal map. |
 
 **`vertex { }`** is optional and runs for every point of the mesh: change `position` (in the mesh's own space); read `normal`, `uv` and `time`.
 
@@ -115,17 +117,27 @@ Compiled programs are written to `Shaders/Compiled/` in the project, for Vulkan,
 
 **Project > + > Shader Graph** makes a shader without writing code. It opens in the Graph tab, with shader nodes in the add-node menu, and starts with a small working graph.
 
-- **Surface Output** is where the graph ends: Albedo, Alpha, Metallic, Roughness, Emissive and Vertex Offset. Whatever you leave unconnected keeps the value the material gives, so a graph that only connects Emissive adds a glow to an otherwise ordinary material.
-- **Shader Input:** Time, UV, World Position, World Normal, Vertex Color, and what the material itself provides (Material Albedo, Material Alpha).
-- **Shader Properties:** Number Property, Color Property and Texture Property become settings in the Inspector of every material that uses the shader, under the name you give them. Material Texture samples the material's own texture.
-- **Shader Math, Shader Vectors, Shader UV:** arithmetic, blend, clamp, step, dot, length, splitting and combining, tiling and scrolling.
-- **Shader Effects:** Pulse, Bands, Rim (Fresnel), Noise and Checker.
+- **Surface Output** is where the graph ends: Albedo, Alpha, Metallic, Roughness, Emissive, Vertex Offset, Normal and Occlusion. Whatever you leave unconnected keeps the value the material gives, so a graph that only connects Emissive adds a glow to an otherwise ordinary material.
+- **Shader Input:** Time, UV, World Position, World Normal, View Direction, Vertex Color, and what the material itself provides (Material Albedo, Material Alpha).
+- **Shader Properties:** Number Property, Color Property, Texture Property and Normal Map Property become settings in the Inspector of every material that uses the shader, under the name you give them. Material Texture samples the material's own texture.
+- **Shader Math, Shader Vectors, Shader UV:** arithmetic, blend, clamp, step, remap, modulo, dot, length, reflect, splitting a colour or vector into its parts and combining them, tiling, scrolling, rotating, polar coordinates and a triplanar texture (the material's texture laid on from three sides, for ground and rock without good texture coordinates).
+- **Shader Effects:** Pulse, Bands, Rim (Fresnel), Noise, Smooth Noise, Cells (Voronoi), Checker, Gradient, Posterize and Desaturate.
+- **Shader Normals:** Normal Map Property, Normal From Height (bumps from any number: noise, cells, a texture's channel), Blend Normals and Normal Strength. Their result goes into the output's **Normal**, which is in the surface's own directions (x along U, y along V, z out of it) and adds to the material's own normal map.
+- **Shader Code:** Custom Code (Number, Vector or Color) runs a line of shader code typed into the node. Its inputs are `a` and `b` (numbers), `v` (a vector) and `c` (a colour). Type an expression (`a * a + b`), or statements that set `result` (`result = c; result.g = a * 0.5;`).
 
-Numbers, vectors and colours plug into each other: a number fills every part of a vector, and a colour into a number pin gives its first channel.
+Numbers, vectors and colours plug into each other: a number fills every part of a vector, and a colour into a number pin gives its first channel. New nodes start with values that show something (a noise's scale of 8, a remap from 0-1 to 0-1), not zeros.
+
+Each node is worked out once, however many nodes read it, so a noise feeding Roughness, Metallic and a normal costs one noise.
+
+**Previews.** Each node shows its value on a small ball under its pins, and the canvas's bottom right corner shows the whole surface, lit. They update a moment after the graph stops changing (the editor compiles a preview shader in the background, for its own graphics backend only) and move with Time. **Hide Previews** on the toolbar makes the nodes compact again. If the graph cannot compile, the toolbar says why after "Preview:".
+
+**Subgraphs.** **Project > + > Shader Subgraph** makes a reusable piece of shader graph. **Subgraph Input** nodes (Number, Vector 2, Vector, Color) become its node's input pins in other shader graphs, with a Preview value used while you edit the subgraph itself; **Subgraph Output** nodes become its outputs. Subgraphs appear under *Shader Subgraphs* in the add-node menu. Double-click a subgraph's node to open it. Saving a subgraph compiles again every shader graph that uses it. Subgraphs can use other subgraphs, and their Property nodes become properties of the shader using them.
 
 **Save** writes the graph, generates a `.tshader` file beside it and compiles it. Pick it as a material's **Shader** like any other. The generated file is hidden in the Project panel, as a script graph's code is; it is the same format a hand-written shader uses, so a graph can be outgrown: copy the generated file and carry on in code.
 
 Colours given to Albedo and Emissive are taken as you see them in the colour picker (the graph converts them for lighting). The two "vertex only" inputs, Object Position and Object Normal, are for Vertex Offset.
+
+The functions behind the effect nodes (`tsg_noise`, `tsg_cells`, `tsg_rotate`, `tsg_polar`, `tsg_triplanar`, `tsg_unpackNormal`, `tsg_heightNormal`) are in `Engine/shaders/include/shadergraph.sh`, and hand-written shaders can call them too.
 
 ## Compute shaders
 
@@ -183,7 +195,7 @@ All of it has nodes, generated from the engine source: **Engine > Render > Mesh 
 
 ## Limits
 
-- **Shader graphs** have no preview on each node, no custom-code node and no sub-graphs; a node used in two places is computed twice.
+- **Shader graph previews** show properties at their defaults, and texture properties as plain white.
 - **No environment maps.** Reflections use the scene's sky and ground colours, not an image of the surroundings, so a mirror-smooth metal shows a gradient, not the world.
 - **Shadows ignore the vertex block and cutouts.** An object moved by its shader's `vertex` code casts the shadow of its unmoved shape, and a Cutout material casts a solid one.
 - **Eight values and two textures** per custom shader, and it cannot replace the lighting itself.
@@ -194,7 +206,7 @@ All of it has nodes, generated from the engine source: **Engine > Render > Mesh 
 
 ## Tests
 
-`BeefBuild -workspace=Tests/Material -config=Debug -run` (33 checks): a shader graph turned into a shader file and compiled, every shader graph node compiled as shader code, saving and loading materials and their PBR maps, shared and per-object materials, reading shader files and reporting mistakes by line, the generated shader source, and real compiles of a surface shader for all four backends and a compute shader, including a broken one. The Network fixture checks materials across machines and for a late joiner. Drawing itself was checked by eye in the editor: a PBR material with a normal map, a custom surface shader and a compute effect.
+`BeefBuild -workspace=Tests/Material -config=Debug -run`: a shader graph turned into a shader file and compiled; a node read in several places worked out once; Normal, Occlusion, custom code and split outputs; a subgraph read as a node and written in place twice; every shader graph node in one preview shader, compiled; saving and loading materials and their PBR maps, shared and per-object materials, reading shader files and reporting mistakes by line, the generated shader source, and real compiles of a surface shader for all four backends and a compute shader, including a broken one. The Network fixture checks materials across machines and for a late joiner. Drawing itself was checked by eye in the editor: a PBR material with a normal map, a custom surface shader, a compute effect, and a shader graph's node and surface previews (OpenGL and Vulkan).
 
 ## Glowing in a model's own colours
 
