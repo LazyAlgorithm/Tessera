@@ -1035,6 +1035,76 @@ TN_API void tn_soft_damp_wobble(JPH_PhysicsSystem* world, uint32_t bodyId, float
 	}
 }
 
+/// A soft body's (or a rope's) box in the world, as Jolt last moved it. False when there is no such body.
+TN_API bool tn_soft_bounds(JPH_PhysicsSystem* world, uint32_t bodyId, float* min, float* max)
+{
+	JPH::BodyLockRead lock(Locks(world), JPH::BodyID(bodyId));
+	if (!lock.Succeeded() || !lock.GetBody().IsSoftBody())
+		return false;
+	const JPH::AABox box = lock.GetBody().GetWorldSpaceBounds();
+	box.mMin.StoreFloat3((JPH::Float3*)min);
+	box.mMax.StoreFloat3((JPH::Float3*)max);
+	return true;
+}
+
+/// Floats a soft body (or a rope) in water for one step. The water's surface over the body is given as a grid of
+/// samples, nx by nz from (minX, minZ) every cellX by cellZ metres, each its height and the water's velocity (four
+/// floats). Every vertex under the surface is pushed up by gravity times buoyancy, fading in over `band` metres round
+/// the surface, and eased towards the water's velocity at `drag` times a second. Vertices below `bottom` and held ones
+/// are left alone. A sleeping body is woken first when `wake` (the water moves), and otherwise only counted. Returns how many
+/// vertices were under.
+TN_API uint32_t tn_soft_float(JPH_PhysicsSystem* world, uint32_t bodyId, const float* samples, uint32_t nx, uint32_t nz, float minX, float minZ, float cellX,
+	float cellZ, float bottom, float band, float buoyancy, float drag, float gravity, float step, bool wake)
+{
+	if (nx < 1 || nz < 1 || step <= 0 || band <= 0)
+		return 0;
+	if (wake)
+		Bodies(world).ActivateBody(JPH::BodyID(bodyId));
+	JPH::BodyLockWrite lock(Locks(world), JPH::BodyID(bodyId));
+	if (!lock.Succeeded())
+		return 0;
+	JPH::Body& body = lock.GetBody();
+	auto* soft = Soft(body);
+	if (!soft)
+		return 0;
+	// Asleep (settled in still water): only counted, so it stays asleep.
+	const bool awake = body.IsActive();
+	const JPH::RMat44 toWorld = body.GetCenterOfMassTransform();
+	const JPH::Mat44 toLocal = body.GetInverseCenterOfMassTransform();
+	const float lift = gravity * buoyancy * step;
+	uint32_t under = 0;
+	for (auto& vertex : soft->GetVertices())
+	{
+		if (vertex.mInvMass <= 0)
+			continue;
+		const JPH::Vec3 p = JPH::Vec3(toWorld * vertex.mPosition);
+		if (p.GetY() < bottom)
+			continue;
+		// The surface here, between the four samples round it.
+		const float gx = std::clamp((p.GetX() - minX) / cellX, 0.0f, (float)(nx - 1));
+		const float gz = std::clamp((p.GetZ() - minZ) / cellZ, 0.0f, (float)(nz - 1));
+		const uint32_t x0 = std::min((uint32_t)gx, nx - 1), z0 = std::min((uint32_t)gz, nz - 1);
+		const uint32_t x1 = std::min(x0 + 1, nx - 1), z1 = std::min(z0 + 1, nz - 1);
+		const float fx = gx - x0, fz = gz - z0;
+		float water[4];
+		for (int c = 0; c < 4; c++)
+		{
+			const float a = samples[(z0 * nx + x0) * 4 + c] * (1 - fx) + samples[(z0 * nx + x1) * 4 + c] * fx;
+			const float b = samples[(z1 * nx + x0) * 4 + c] * (1 - fx) + samples[(z1 * nx + x1) * 4 + c] * fx;
+			water[c] = a * (1 - fz) + b * fz;
+		}
+		const float wet = std::clamp((water[0] - p.GetY()) / band + 0.5f, 0.0f, 1.0f);
+		if (wet <= 0)
+			continue;
+		under++;
+		if (!awake)
+			continue;
+		const JPH::Vec3 flow = toLocal.Multiply3x3(JPH::Vec3(water[1], water[2], water[3]));
+		vertex.mVelocity = flow + (vertex.mVelocity - flow) * std::exp(-std::max(drag, 0.0f) * wet * step);
+		vertex.mVelocity += toLocal.Multiply3x3(JPH::Vec3(0, lift * wet, 0));
+	}
+	return under;
+}
 
 extern "C" void tn_physics_set_debris(uint32_t bodyId, bool debris);
 

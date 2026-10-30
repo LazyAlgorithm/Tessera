@@ -364,6 +364,8 @@ Work agreed and queued, in order (see *How to use this page* above for what "don
   the waterline; Jolt buoyancy for Rigidbodies (Floater for one object's own), Flow currents, water drag that does
   not depend on the body's density; Character Controller swimming (Swim, IsSwimming, Can Swim). Networked by default:
   waves on the session tick, settings and level `[Sync]`. `Tests/Water`.
+  Then (2026-10-30): jelly, cloth and ropes float vertex by vertex (`tn_soft_float`, the surface sampled at most 8 x 8
+  per body), Floater on soft bodies and ropes.
 - [ ] Flowing water: rivers that bend and run downhill (a flow map or spline painted over the water, the surface
   sloping with the river bed), foam and speed following the flow, waterfalls; floating things and swimmers carried
   along it. Networked: the flow is part of the scene, so nothing extra to send.

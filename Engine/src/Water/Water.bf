@@ -115,7 +115,7 @@ class Water : Component
 	[Sync]
 	public float underwaterVisibility = 22;
 
-	/// Every Rigidbody in the water floats (or sinks) by Buoyancy; off, only those with a Floater do.
+	/// Every Rigidbody, soft body and rope in the water floats (or sinks) by Buoyancy; off, only those with a Floater do.
 	[Sync]
 	public bool floatRigidbodies = true;
 	/// How strongly things float: 1 neither floats nor sinks, more floats higher, less sinks. A Floater sets an
@@ -416,10 +416,84 @@ class Water : Component
 			if (scene.Physics.ApplyBuoyancy(body.BodyId, surface, normal, factor, drag, angularDrag, velocity, deltaTime))
 				water.mFloating.Add(body.BodyId);
 		}
+		// Jelly, cloth and ropes float vertex by vertex; a shell rides its Rigidbody, which floats above.
+		for (let component in scene.ComponentsOfType(typeof(SoftBody)))
+		{
+			let soft = (SoftBody)component;
+			if (soft.kind != .Shell && soft.IsActiveAndEnabled && soft.GameObject.InActiveWorld)
+				FloatSoft(scene, soft.GameObject, soft.BodyId, soft.gravityScale, time, deltaTime);
+		}
+		for (let component in scene.ComponentsOfType(typeof(Rope)))
+		{
+			let rope = (Rope)component;
+			if (rope.IsActiveAndEnabled && rope.GameObject.InActiveWorld)
+				FloatSoft(scene, rope.GameObject, rope.BodyId, 1, time, deltaTime);
+		}
+	}
+
+	[CLink] static extern bool tn_soft_bounds(void* world, uint32 bodyId, Vector3* min, Vector3* max);
+	[CLink] static extern uint32 tn_soft_float(void* world, uint32 bodyId, float* samples, uint32 nx, uint32 nz, float minX, float minZ, float cellX, float cellZ, float bottom,
+		float band, float buoyancy, float drag, float gravity, float step, bool wake);
+
+	/// The most samples of the surface across a soft body each way, and how far apart they are at most.
+	const int SoftSamples = 8;
+	const float SoftSampleSpacing = 0.5f;
+	/// How far round the surface a vertex goes from dry to wholly under: the floating's give.
+	const float SoftBand = 0.05f;
+
+	/// Floats one soft body or rope: the surface is sampled on a small grid over it (at most 8 x 8, whatever its
+	/// vertex count) and each vertex under it is lifted and dragged, natively.
+	static void FloatSoft(Scene scene, GameObject owner, uint32 bodyId, float gravityScale, double time, float deltaTime)
+	{
+		if (bodyId == uint32.MaxValue || scene.Physics == null)
+			return;
+		let floater = owner.GetComponent<Floater>();
+		if (floater != null && !floater.IsActiveAndEnabled)
+			return;
+		let system = scene.Physics.[Friend]mSystem;
+		Vector3 min = default, max = default;
+		if (!tn_soft_bounds(system, bodyId, &min, &max))
+			return;
+		let center = (min + max) * 0.5f;
+		let water = At(scene, center, (max.y - min.y) * 0.5f + 1);
+		if (water == null || (floater == null && !water.floatRigidbodies) || min.y > water.Level + water.waveHeight + SoftBand || max.y < water.Bottom)
+			return;
+		let nx = Math.Clamp((int)Math.Ceiling((max.x - min.x) / SoftSampleSpacing) + 1, 2, SoftSamples);
+		let nz = Math.Clamp((int)Math.Ceiling((max.z - min.z) / SoftSampleSpacing) + 1, 2, SoftSamples);
+		let cellX = Math.Max((max.x - min.x) / (nx - 1), 0.001f), cellZ = Math.Max((max.z - min.z) / (nz - 1), 0.001f);
+		float[SoftSamples * SoftSamples * 4] samples = default;
+		for (int z < nz)
+		{
+			for (int x < nx)
+			{
+				let at = Vector3(min.x + x * cellX, center.y, min.z + z * cellZ);
+				let i = (z * nx + x) * 4;
+				// Past the edge of a pond the surface is far below: nothing there floats.
+				if (!water.SurfaceAt(at, time, let height, ?, let velocity))
+				{
+					samples[i] = water.Bottom - 100;
+					continue;
+				}
+				samples[i] = height;
+				samples[i + 1] = velocity.x;
+				samples[i + 2] = velocity.y;
+				samples[i + 3] = velocity.z;
+			}
+		}
+		let gravity = Math.Abs(scene.Physics.Gravity.y) * gravityScale;
+		let wake = water.waveHeight > 0 || water.flow != .Zero;
+		let buoyancy = floater?.buoyancy ?? water.buoyancy;
+		let drag = floater?.drag ?? water.waterDrag;
+		if (tn_soft_float(system, bodyId, &samples, (uint32)nx, (uint32)nz, min.x, min.z, cellX, cellZ, water.Bottom, SoftBand, buoyancy, drag, gravity, deltaTime, wake) > 0)
+			water.mFloating.Add(bodyId);
 	}
 
 	/// Whether a Rigidbody was in this water at the last physics step.
 	public bool IsFloating(Rigidbody body) => body != null && body.HasBody && mFloating.Contains(body.BodyId);
+	/// Whether any of a soft body's vertices were in this water at the last physics step (a shell: its Rigidbody).
+	public bool IsFloating(SoftBody soft) => soft != null && soft.HasBody && mFloating.Contains(soft.BodyId);
+	/// Whether any of a rope's points were in this water at the last physics step.
+	public bool IsFloating(Rope rope) => rope != null && rope.HasBody && mFloating.Contains(rope.BodyId);
 
 	public override void OnDrawGizmos(bool selected)
 	{
@@ -444,8 +518,9 @@ class Water : Component
 	}
 }
 
-/// Sets how one Rigidbody floats in Water, in place of the water's own settings; disabled, it does not float at all.
-/// Floating needs Water's Float Rigidbodies only for objects without one.
+/// Sets how one Rigidbody, soft body or rope floats in Water, in place of the water's own settings; disabled, it
+/// does not float at all. Floating needs Water's Float Rigidbodies only for objects without one. (Angular Drag is
+/// for Rigidbodies: soft bodies and ropes are slowed vertex by vertex.)
 [Component]
 class Floater : Component
 {
@@ -463,11 +538,12 @@ class Floater : Component
 		get
 		{
 			let body = GameObject.GetComponent<Rigidbody>();
-			if (body == null)
-				return false;
+			let soft = GameObject.GetComponent<SoftBody>();
+			let rope = GameObject.GetComponent<Rope>();
 			for (let component in Scene.ComponentsOfType(typeof(Water)))
 			{
-				if (((Water)component).IsFloating(body))
+				let water = (Water)component;
+				if (water.IsFloating(body) || water.IsFloating(soft) || water.IsFloating(rope))
 					return true;
 			}
 			return false;
