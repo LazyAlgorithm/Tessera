@@ -749,6 +749,7 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
       <a href="#manual" data-sec="manual-touch">Touch screens</a>
       <a href="#manual" data-sec="manual-character">Character controller</a>
       <a href="#manual" data-sec="manual-physics">Physics and joints</a>
+      <a href="#manual" data-sec="manual-water">Water</a>
       <h4>Multiplayer</h4>
       <a href="#manual" data-sec="manual-net">Networking</a>
       <a href="#manual" data-sec="manual-net-test">Testing on one machine</a>
@@ -858,6 +859,17 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
       <div data-code="hinge" data-file="Scripts/Example.bf"></div>
       <p>Turn on <strong>Debris</strong> on a Rigidbody for things that should lie about without getting in the way: characters, other bodies, rays and casts all pass through it. Joints are local to each machine, so in multiplayer create the same ones everywhere; Joint components saved in a scene or prefab already are.</p>
 
+      <h2 id="manual-water">Water</h2>
+      <p><strong>GameObject &gt; Water</strong> makes a pond or an endless <strong>Ocean</strong>, each in a <strong>Realistic</strong> look (refraction, clarity, screen and probe reflections, caustics, shore and crest foam) or a <strong>Low Poly</strong> one (flat facets, colour bands, sparkles). The surface is at the object&#39;s height; it fills <strong>Size</strong> and reaches <strong>Depth</strong> below. Wave Height, Wave Length, Direction, Spread, Choppiness, Speed and Seed shape the waves; <strong>Flow</strong> is the current.</p>
+      <ul>
+        <li><strong>Floating:</strong> every Rigidbody in the water floats with Jolt&#39;s buoyancy (1.6 by default, about 62% under) and is carried by the current. A <strong>Floater</strong> gives one object its own buoyancy and drag; disable it to sink.</li>
+        <li><strong>Swimming:</strong> a Character Controller in water deeper than <strong>Swim Depth</strong> swims with its head out; jump swims up, <code>controller.Swim(velocity, dt)</code> dives, <code>IsSwimming</code> drives animations.</li>
+        <li><strong>Under the water:</strong> a camera in the water sees through the water&#39;s Underwater Color, with caustics, cut exactly at the waterline when it is half in.</li>
+        <li><strong>Code:</strong> <code>Water.At(scene, point)</code>, <code>SurfaceAt</code>, <code>HeightAt</code>, <code>Contains</code>, <code>DepthOf</code>.</li>
+        <li><strong>Multiplayer:</strong> no code; the waves run on the session clock and the water&#39;s settings and level are the server&#39;s.</li>
+      </ul>
+      <p>See <code>docs/water.md</code>. The Sandbox&#39;s Water and Ocean scenes show both looks.</p>
+
       <h2 id="manual-net">Networking</h2>
       <p>Add a <strong>Network Session</strong> and the scene is multiplayer; without one nothing changes. The server runs the game from each player's controls and sends the result.</p>
       <div class="tbl-wrap"><table>
@@ -865,6 +877,7 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
         <tbody>
           <tr><td>Physics bodies, characters, AI</td><td>Motion is shared; AI thinks on the server.</td></tr>
           <tr><td>Voxel terrain and objects</td><td>Edits applied everywhere in the server's order; late joiners catch up.</td></tr>
+          <tr><td>Water</td><td>Nothing sent for the waves: they run on the session&#39;s tick, so every machine sees and floats things on the same water. Settings and level are the server&#39;s; late joiners catch up.</td></tr>
           <tr><td>Soft bodies and ropes</td><td>Free soft bodies move as the server has them; dents, ropes tied, let go and snapped are the server's, on every machine; late joiners catch up.</td></tr>
           <tr><td>Animation, sound, materials</td><td>Started by the server or the object's owner, seen and heard everywhere.</td></tr>
           <tr><td>Prefabs with a Network Identity</td><td>Instantiated on the server, they appear on every machine.</td></tr>
