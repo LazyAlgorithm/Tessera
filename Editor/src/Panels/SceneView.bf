@@ -9,6 +9,19 @@ namespace Tessera.Editor;
 /// The Scene tab: camera, picking, gizmos.
 extension EditorApp
 {
+	// A left click in the Scene view picks when it is let go; moved further first, it drags the object under it out
+	// (into an Inspector field or onto the Hierarchy) without selecting it.
+	bool mScenePressed;
+	ImGui.Vec2 mScenePressAt;
+	float mScenePressU, mScenePressV;
+	// The object being dragged out of the Scene view (0: none).
+	uint32 mSceneDragId;
+	// A prefab or model dragged from the Project panel over the Scene view: made already, following the mouse, and
+	// kept when it is dropped (thrown away if the drag leaves the view or is let go elsewhere).
+	GameObject mDropPreview;
+	String mDropPreviewAsset = new .() ~ delete _;
+	bool mDropPreviewSeen;
+
 	void DrawSceneView()
 	{
 		ImGui.PushStyleVar(ImGui.StyleVar.WindowPadding, ImGui.Vec2(0, 0));
@@ -34,16 +47,30 @@ extension EditorApp
 				if (mSceneView.Width > 0)
 					ImGui.Picture(mSceneView.OutputTexture, .(mSceneView.Width, mSceneView.Height));
 				mSceneHovered = ImGui.IsItemHovered();
+				mDropPreviewSeen = false;
 				if (ImGui.BeginDragDropTarget())
 				{
-					let asset = ImGui.AcceptDragDropPayload("ASSET");
+					let asset = ImGui.AcceptDragDropPayload("ASSET", ImGui.DragDropFlags.AcceptBeforeDelivery);
 					if (asset != null)
 					{
 						let mouse = ImGui.GetMousePos();
-						DropAssetIntoScene(StringView((char8*)asset.data, asset.dataSize), true, (mouse.x - origin.x) / size.x, (mouse.y - origin.y) / size.y);
+						let relative = StringView((char8*)asset.data, asset.dataSize);
+						let u = (mouse.x - origin.x) / size.x, v = (mouse.y - origin.y) / size.y;
+						if (ImGui.IsMouseReleased(0))
+						{
+							if (mDropPreview != null && mDropPreviewAsset == relative)
+								KeepDropPreview(u, v);
+							else
+								DropAssetIntoScene(relative, true, u, v);
+						}
+						else
+							ShowDropPreview(relative, u, v);
 					}
 					ImGui.EndDragDropTarget();
 				}
+				// Dragged away from the view, or let go somewhere else: the preview goes.
+				if (!mDropPreviewSeen)
+					ClearDropPreview();
 				HandleSceneCameraInput();
 
 				let selected = Selected;
@@ -53,14 +80,23 @@ extension EditorApp
 				if (mModelViewActive == -1 || !ModelViewsShown)
 				{
 					// An active sculpting or placing tool owns the mouse instead of selection and the transform gizmo.
-					bool gizmoActive = UpdateRigTools(selected, origin, size) || UpdateSoftBodyPaint(selected, origin, size) || UpdateModelTools(selected, origin, size) || UpdateBrush(selected, origin, size) || UpdatePlacement(origin, size);
+					bool gizmoActive = UpdateRigTools(selected, origin, size) || UpdateSoftBodyPaint(selected, origin, size) || UpdateModelTools(selected, origin, size) || UpdateBrush(selected, origin, size);
 					gizmoActive = ObjectGizmo(selected, origin, size, gizmoActive);
 					if (mSceneHovered && ImGui.IsMouseClicked(0) && !gizmoActive && !mFlying && !ViewSelectorHovered(origin, size))
 					{
 						let mouse = ImGui.GetMousePos();
-						Pick((mouse.x - origin.x) / size.x, (mouse.y - origin.y) / size.y);
+						let u = (mouse.x - origin.x) / size.x, v = (mouse.y - origin.y) / size.y;
+						// A bone is picked at once (and dragged with its own handle); an object when the click is let go.
+						if (!PickBone(u, v))
+						{
+							mScenePressed = true;
+							mScenePressAt = mouse;
+							mScenePressU = u;
+							mScenePressV = v;
+						}
 					}
 				}
+				UpdateSceneDrag();
 				DrawViewSelector(origin, size);
 
 				UpdateQuickAdd(origin, size);
@@ -237,6 +273,48 @@ extension EditorApp
 	{
 		if (PickBone(u, v))
 			return;
+		let best = PickObject(u, v);
+		mSelectedId = best != null ? best.Id : 0;
+	}
+
+	/// A pending click in the Scene view: let go where it was pressed, it picks; moved further than a few pixels
+	/// with an object under where it was pressed, it drags that object out as a reference, leaving the selection.
+	void UpdateSceneDrag()
+	{
+		if (mScenePressed)
+		{
+			let mouse = ImGui.GetMousePos();
+			let moved = Math.Abs(mouse.x - mScenePressAt.x) + Math.Abs(mouse.y - mScenePressAt.y);
+			if (ImGui.IsMouseReleased(0) || !ImGui.IsMouseDown(0))
+			{
+				mScenePressed = false;
+				if (moved < 6)
+					Pick(mScenePressU, mScenePressV);
+			}
+			else if (moved >= 6)
+			{
+				mScenePressed = false;
+				mSceneDragId = PickObject(mScenePressU, mScenePressV)?.Id ?? 0;
+			}
+		}
+		if (mSceneDragId == 0)
+			return;
+		let dragged = mScene.FindById(mSceneDragId);
+		if (dragged != null && ImGui.BeginDragDropSource(ImGui.DragDropFlags.SourceExtern))
+		{
+			var id = mSceneDragId;
+			ImGui.SetDragDropPayload("GAMEOBJECT", &id, sizeof(uint32));
+			ImGui.Text(dragged.Name);
+			ImGui.EndDragDropSource();
+		}
+		// The frame it is let go is still a drag (that is when a target takes it); after it, none.
+		if (dragged == null || !ImGui.IsMouseDown(0))
+			mSceneDragId = 0;
+	}
+
+	/// The object under a point of the Scene view (from 0 to 1 across and down), or null.
+	GameObject PickObject(float u, float v)
+	{
 		let ray = mSceneCamera.ViewportPointToRay(u, v);
 		GameObject best = null;
 		float bestDistance = float.MaxValue;
@@ -299,7 +377,7 @@ extension EditorApp
 		// Generated children (voxel chunks) select the object that owns them.
 		while (best != null && best.Transient && best.Transform.Parent != null)
 			best = best.Transform.Parent.GameObject;
-		mSelectedId = best != null ? best.Id : 0;
+		return best;
 	}
 
 	/// The one object the Scene view shows while modelling (Show Only) or rigging (the model on its own); else 0.
@@ -325,7 +403,7 @@ extension EditorApp
 			if (renderer != null && renderer.ActiveMesh != null)
 				Gizmos.Lines.Box(renderer.ActiveMesh.Bounds, selected.Transform.LocalToWorld, .(1.0f, 0.62f, 0.15f, 1));
 		}
-		BuildMapBuilderGizmos();
+		BuildSceneToolGizmos();
 		BuildProbePlacementGizmos();
 		BuildBoneGizmos();
 		BuildModelGizmos();

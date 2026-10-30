@@ -68,7 +68,6 @@ extension EditorApp
 		DrawBuildWindow();
 		DrawAchievements();
 		DrawInputActions();
-		DrawMapBuilder();
 		DrawModelWindow();
 		DrawQualityWindow();
 		DrawProfilerWindow();
@@ -118,6 +117,7 @@ extension EditorApp
 	/// are docked, but not whether they are open, so that is kept beside it (windows5_<project>.txt).
 	static StringView[?] sOpenWindowNames = .("Model", "Rigging", "Animation", "Animator", "Dialogue", "Sequencer", "Map Builder", "UV Editor", "Graphics Quality", "Lighting", "Model Views", "Scripts", "Profiler", "World Map");
 	int32 mOpenWindowsSaved = -1;
+	bool mRetiredWindow;
 
 	bool* OpenWindowFlag(int index)
 	{
@@ -129,7 +129,8 @@ extension EditorApp
 		case 3: return &mShowAnimator;
 		case 4: return &mShowDialogue;
 		case 5: return &mShowSequencer;
-		case 6: return &mShowMapBuilder;
+		// 6 was the Map Builder window: kept so that saved layouts read the same.
+		case 6: return &mRetiredWindow;
 		case 7: return &mShowUVEditor;
 		case 8: return &mShowQuality;
 		case 9: return &mShowLighting;
@@ -321,8 +322,6 @@ extension EditorApp
 				mShowSequencer = true;
 				mDockSequencer = true;
 			}
-			if (ImGui.MenuItem("Map Builder", null, mShowMapBuilder))
-				mShowMapBuilder = !mShowMapBuilder;
 			if (ImGui.MenuItem("Model Views", null, mShowModelViews))
 				mShowModelViews = mFocusModelViews = !mShowModelViews;
 			if (ImGui.MenuItem("Model", null, mShowModel))
@@ -417,8 +416,6 @@ extension EditorApp
 			ImGui.EndMenu();
 		}
 		ImGui.Separator();
-		if (ImGui.MenuItem("Map Builder...", null, mShowMapBuilder))
-			mShowMapBuilder = !mShowMapBuilder;
 		if (ImGui.MenuItem("Model...", null, mShowModel))
 			mShowModel = !mShowModel;
 	}

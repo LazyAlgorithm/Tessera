@@ -149,6 +149,14 @@ struct CameraData
 	/// The viewmodel's own projection, with its field of view and near clip.
 	public Matrix4 viewmodelProjection;
 
+	/// Where a point of the world appears in the viewport, in 0..1 coordinates from the top left (z: its depth,
+	/// above 1 or below the near plane when it is behind the camera).
+	public Vector3 WorldToViewportPoint(Vector3 point)
+	{
+		let clip = (projection * view).Project(point);
+		return .((clip.x + 1) * 0.5f, (1 - clip.y) * 0.5f, clip.z);
+	}
+
 	/// Ray through a viewport point given in 0..1 coordinates, origin at the top left.
 	public Ray ViewportPointToRay(float u, float v)
 	{

@@ -46,6 +46,47 @@ extension EditorApp
 		}
 	}
 
+	// The object the Inspector is locked to (0: it follows the selection), and its name when locked, so that opening
+	// another scene, whose object may have the same id, unlocks it.
+	uint32 mInspectorLock;
+	String mInspectorLockName = new .() ~ delete _;
+
+	/// The object the Inspector shows: the one it is locked to, while it still exists, else the selection.
+	GameObject InspectedObject
+	{
+		get
+		{
+			if (mInspectorLock == 0)
+				return Selected;
+			let locked = mScene.FindById(mInspectorLock);
+			if (locked == null || locked.Name != mInspectorLockName)
+			{
+				mInspectorLock = 0;
+				return Selected;
+			}
+			return locked;
+		}
+	}
+
+	/// The lock button beside an object's name: locked, the Inspector keeps showing it whatever is selected, so things
+	/// can be dragged into its fields from the Hierarchy, the Scene view and the Project panel.
+	void DrawInspectorLock(GameObject gameObject)
+	{
+		let locked = mInspectorLock == gameObject.Id;
+		if (locked)
+			ImGui.PushStyleColor(ImGui.Col.Button, EditorTheme.Accent);
+		if (ImGui.Button(locked ? "\u{f023}##inspectorlock" : "\u{f09c}##inspectorlock", .(ImGui.GetFrameHeight(), 0)))
+		{
+			mInspectorLock = locked ? 0 : gameObject.Id;
+			mInspectorLockName.Set(gameObject.Name);
+		}
+		if (locked)
+			ImGui.PopStyleColor();
+		NoteTestRect("lock");
+		if (ImGui.IsItemHovered())
+			ImGui.SetTooltip(locked ? "Locked: the Inspector stays on this object whatever is selected. Click to follow the selection again." : "Lock the Inspector to this object, to drag other objects and assets into its fields.");
+	}
+
 	void DrawInspector()
 	{
 		if (ImGui.Begin("Inspector"))
@@ -54,15 +95,16 @@ extension EditorApp
 			let inspectorDock = ImGui.GetWindowDockID();
 			if (inspectorDock != 0)
 				mInspectorDock = inspectorDock;
-			let selected = Selected;
+			let selected = InspectedObject;
+			let locked = mInspectorLock != 0;
 			// Selecting another object takes the Inspector back from an asset clicked in the Project panel.
-			if (mSelectedId != mInspectedObject)
+			if (!locked && mSelectedId != mInspectedObject)
 			{
 				mInspectedObject = mSelectedId;
 				if (mSelectedId != 0)
 					mInspectAsset = false;
 			}
-			if (mInspectAsset && mSelectedAsset.EndsWith(".tmat"))
+			if (!locked && mInspectAsset && mSelectedAsset.EndsWith(".tmat"))
 			{
 				let relative = scope String();
 				Assets.MakeRelative(mSelectedAsset, relative);
@@ -72,9 +114,9 @@ extension EditorApp
 				ImGui.TextDisabled(relative.CStr());
 				DrawMaterialInspector(relative);
 			}
-			else if (mInspectAsset && mSelectedAsset.EndsWith(".tdata"))
+			else if (!locked && mInspectAsset && mSelectedAsset.EndsWith(".tdata"))
 				DrawDataAssetInspector(mSelectedAsset);
-			else if (mInspectAsset && Assets.IsConvertedModel(mSelectedAsset))
+			else if (!locked && mInspectAsset && Assets.IsConvertedModel(mSelectedAsset))
 				DrawModelImportInspector(mSelectedAsset);
 			else if (selected == null)
 				DrawSceneSettings();
@@ -211,9 +253,15 @@ extension EditorApp
 			MarkDirty();
 		}
 		ImGui.SameLine();
-		ImGui.SetNextItemWidth(-1);
+		ImGui.SetNextItemWidth(-(ImGui.GetFrameHeight() + 6));
 		if (ImGui.InputText("##name", gameObject.Name))
+		{
+			if (mInspectorLock == gameObject.Id)
+				mInspectorLockName.Set(gameObject.Name);
 			MarkDirty();
+		}
+		ImGui.SameLine();
+		DrawInspectorLock(gameObject);
 		DrawStreamingObject(gameObject);
 		ImGui.Spacing();
 	}
@@ -776,6 +824,7 @@ extension EditorApp
 		ImGui.SetNextItemWidth(-28);
 		let text = scope String(target != null ? (StringView)target.Name : "None");
 		ImGui.InputText("##v", text, ImGui.InputFlags.ReadOnly);
+		NoteTestRect(scope $"field:{field.name}");
 		if (ImGui.BeginDragDropTarget())
 		{
 			let payload = ImGui.AcceptDragDropPayload("GAMEOBJECT");
