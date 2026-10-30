@@ -1,0 +1,7551 @@
+{
+  "engine_commit": "62f33b0e3b97667946e3741903652095f1ecc6e4",
+  "engine_tree": "c7c60b942f5b1931c00e6499b81ebe46d167fb0b",
+  "started": "2026-10-29T20:06:37.043650",
+  "binary_sha256": "bef36ae10f0553af65b6342e6f783931a7750e6b8f9df6e187d2974ca8590ea1",
+  "jobs": [
+    {
+      "name": "idle-100-16-0-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "idle",
+        "100",
+        "16",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "150.376195",
+        "base_objects": "101",
+        "density_hash": "10070931814937091007",
+        "draws": "103",
+        "vertices": "405600",
+        "triangles": "202400",
+        "grid_samples": "491300",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "idle-100-16-0-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "idle",
+        "100",
+        "16",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "150.373861",
+        "base_objects": "101",
+        "density_hash": "10070931814937091007",
+        "draws": "103",
+        "vertices": "405600",
+        "triangles": "202400",
+        "grid_samples": "491300",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "idle-100-16-0-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "idle",
+        "100",
+        "16",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "147.051718",
+        "base_objects": "101",
+        "density_hash": "10070931814937091007",
+        "draws": "103",
+        "vertices": "405600",
+        "triangles": "202400",
+        "grid_samples": "491300",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shared-100-16-0-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shared",
+        "100",
+        "16",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "35.134063",
+        "base_objects": "101",
+        "density_hash": "6754839795302358384",
+        "draws": "4",
+        "vertices": "4056",
+        "triangles": "2024",
+        "grid_samples": "4913",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shared-100-16-0-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shared",
+        "100",
+        "16",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "35.258818",
+        "base_objects": "101",
+        "density_hash": "6754839795302358384",
+        "draws": "4",
+        "vertices": "4056",
+        "triangles": "2024",
+        "grid_samples": "4913",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shared-100-16-0-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shared",
+        "100",
+        "16",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "33.981808",
+        "base_objects": "101",
+        "density_hash": "6754839795302358384",
+        "draws": "4",
+        "vertices": "4056",
+        "triangles": "2024",
+        "grid_samples": "4913",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "idle-500-16-0-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "idle",
+        "500",
+        "16",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "739.027689",
+        "base_objects": "501",
+        "density_hash": "12089784684925813935",
+        "draws": "503",
+        "vertices": "2028000",
+        "triangles": "1012000",
+        "grid_samples": "2456500",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "idle-500-16-0-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "idle",
+        "500",
+        "16",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "738.567725",
+        "base_objects": "501",
+        "density_hash": "12089784684925813935",
+        "draws": "503",
+        "vertices": "2028000",
+        "triangles": "1012000",
+        "grid_samples": "2456500",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "idle-500-16-0-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "idle",
+        "500",
+        "16",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "741.36911",
+        "base_objects": "501",
+        "density_hash": "12089784684925813935",
+        "draws": "503",
+        "vertices": "2028000",
+        "triangles": "1012000",
+        "grid_samples": "2456500",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shared-500-16-0-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shared",
+        "500",
+        "16",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "160.432095",
+        "base_objects": "501",
+        "density_hash": "6754839795302358384",
+        "draws": "4",
+        "vertices": "4056",
+        "triangles": "2024",
+        "grid_samples": "4913",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shared-500-16-0-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shared",
+        "500",
+        "16",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "166.028834",
+        "base_objects": "501",
+        "density_hash": "6754839795302358384",
+        "draws": "4",
+        "vertices": "4056",
+        "triangles": "2024",
+        "grid_samples": "4913",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shared-500-16-0-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shared",
+        "500",
+        "16",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "160.143673",
+        "base_objects": "501",
+        "density_hash": "6754839795302358384",
+        "draws": "4",
+        "vertices": "4056",
+        "triangles": "2024",
+        "grid_samples": "4913",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "idle-1000-16-0-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "idle",
+        "1000",
+        "16",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "1520.315896",
+        "base_objects": "1001",
+        "density_hash": "4603757569841120795",
+        "draws": "1003",
+        "vertices": "4056000",
+        "triangles": "2024000",
+        "grid_samples": "4913000",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "idle-1000-16-0-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "idle",
+        "1000",
+        "16",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "1524.581202",
+        "base_objects": "1001",
+        "density_hash": "4603757569841120795",
+        "draws": "1003",
+        "vertices": "4056000",
+        "triangles": "2024000",
+        "grid_samples": "4913000",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "idle-1000-16-0-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "idle",
+        "1000",
+        "16",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "1520.064593",
+        "base_objects": "1001",
+        "density_hash": "4603757569841120795",
+        "draws": "1003",
+        "vertices": "4056000",
+        "triangles": "2024000",
+        "grid_samples": "4913000",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shared-1000-16-0-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shared",
+        "1000",
+        "16",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "320.263111",
+        "base_objects": "1001",
+        "density_hash": "6754839795302358384",
+        "draws": "4",
+        "vertices": "4056",
+        "triangles": "2024",
+        "grid_samples": "4913",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shared-1000-16-0-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shared",
+        "1000",
+        "16",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "330.971777",
+        "base_objects": "1001",
+        "density_hash": "6754839795302358384",
+        "draws": "4",
+        "vertices": "4056",
+        "triangles": "2024",
+        "grid_samples": "4913",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shared-1000-16-0-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shared",
+        "1000",
+        "16",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "326.441452",
+        "base_objects": "1001",
+        "density_hash": "6754839795302358384",
+        "draws": "4",
+        "vertices": "4056",
+        "triangles": "2024",
+        "grid_samples": "4913",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "idle-100-24-0-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "idle",
+        "100",
+        "24",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "293.720905",
+        "base_objects": "101",
+        "density_hash": "870441661627462431",
+        "draws": "103",
+        "vertices": "1058400",
+        "triangles": "528800",
+        "grid_samples": "1562500",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "idle-100-24-0-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "idle",
+        "100",
+        "24",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "299.750859",
+        "base_objects": "101",
+        "density_hash": "870441661627462431",
+        "draws": "103",
+        "vertices": "1058400",
+        "triangles": "528800",
+        "grid_samples": "1562500",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "idle-100-24-0-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "idle",
+        "100",
+        "24",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "289.319583",
+        "base_objects": "101",
+        "density_hash": "870441661627462431",
+        "draws": "103",
+        "vertices": "1058400",
+        "triangles": "528800",
+        "grid_samples": "1562500",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shared-100-24-0-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shared",
+        "100",
+        "24",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "115.552656",
+        "base_objects": "101",
+        "density_hash": "13610973810668257272",
+        "draws": "4",
+        "vertices": "10584",
+        "triangles": "5288",
+        "grid_samples": "15625",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shared-100-24-0-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shared",
+        "100",
+        "24",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "117.277257",
+        "base_objects": "101",
+        "density_hash": "13610973810668257272",
+        "draws": "4",
+        "vertices": "10584",
+        "triangles": "5288",
+        "grid_samples": "15625",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shared-100-24-0-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shared",
+        "100",
+        "24",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "118.899727",
+        "base_objects": "101",
+        "density_hash": "13610973810668257272",
+        "draws": "4",
+        "vertices": "10584",
+        "triangles": "5288",
+        "grid_samples": "15625",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "idle-500-24-0-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "idle",
+        "500",
+        "24",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "1464.799895",
+        "base_objects": "501",
+        "density_hash": "10524224746895297359",
+        "draws": "503",
+        "vertices": "5292000",
+        "triangles": "2644000",
+        "grid_samples": "7812500",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "idle-500-24-0-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "idle",
+        "500",
+        "24",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "1462.92381",
+        "base_objects": "501",
+        "density_hash": "10524224746895297359",
+        "draws": "503",
+        "vertices": "5292000",
+        "triangles": "2644000",
+        "grid_samples": "7812500",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "idle-500-24-0-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "idle",
+        "500",
+        "24",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "1426.2484",
+        "base_objects": "501",
+        "density_hash": "10524224746895297359",
+        "draws": "503",
+        "vertices": "5292000",
+        "triangles": "2644000",
+        "grid_samples": "7812500",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shared-500-24-0-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shared",
+        "500",
+        "24",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "568.15411",
+        "base_objects": "501",
+        "density_hash": "13610973810668257272",
+        "draws": "4",
+        "vertices": "10584",
+        "triangles": "5288",
+        "grid_samples": "15625",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shared-500-24-0-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shared",
+        "500",
+        "24",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "585.505501",
+        "base_objects": "501",
+        "density_hash": "13610973810668257272",
+        "draws": "4",
+        "vertices": "10584",
+        "triangles": "5288",
+        "grid_samples": "15625",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shared-500-24-0-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shared",
+        "500",
+        "24",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "587.0691",
+        "base_objects": "501",
+        "density_hash": "13610973810668257272",
+        "draws": "4",
+        "vertices": "10584",
+        "triangles": "5288",
+        "grid_samples": "15625",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "idle-1000-24-0-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "idle",
+        "1000",
+        "24",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2817.903593",
+        "base_objects": "1001",
+        "density_hash": "603441839265742107",
+        "draws": "1003",
+        "vertices": "10584000",
+        "triangles": "5288000",
+        "grid_samples": "15625000",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "idle-1000-24-0-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "idle",
+        "1000",
+        "24",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2883.862781",
+        "base_objects": "1001",
+        "density_hash": "603441839265742107",
+        "draws": "1003",
+        "vertices": "10584000",
+        "triangles": "5288000",
+        "grid_samples": "15625000",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "idle-1000-24-0-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "idle",
+        "1000",
+        "24",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2847.05383",
+        "base_objects": "1001",
+        "density_hash": "603441839265742107",
+        "draws": "1003",
+        "vertices": "10584000",
+        "triangles": "5288000",
+        "grid_samples": "15625000",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shared-1000-24-0-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shared",
+        "1000",
+        "24",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "1136.253808",
+        "base_objects": "1001",
+        "density_hash": "13610973810668257272",
+        "draws": "4",
+        "vertices": "10584",
+        "triangles": "5288",
+        "grid_samples": "15625",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shared-1000-24-0-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shared",
+        "1000",
+        "24",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "1130.406308",
+        "base_objects": "1001",
+        "density_hash": "13610973810668257272",
+        "draws": "4",
+        "vertices": "10584",
+        "triangles": "5288",
+        "grid_samples": "15625",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shared-1000-24-0-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shared",
+        "1000",
+        "24",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "1133.715818",
+        "base_objects": "1001",
+        "density_hash": "13610973810668257272",
+        "draws": "4",
+        "vertices": "10584",
+        "triangles": "5288",
+        "grid_samples": "15625",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "idle-100-32-0-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "idle",
+        "100",
+        "32",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "499.157865",
+        "base_objects": "101",
+        "density_hash": "17106590868023355519",
+        "draws": "103",
+        "vertices": "2018400",
+        "triangles": "1008800",
+        "grid_samples": "3593700",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "idle-100-32-0-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "idle",
+        "100",
+        "32",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "496.951768",
+        "base_objects": "101",
+        "density_hash": "17106590868023355519",
+        "draws": "103",
+        "vertices": "2018400",
+        "triangles": "1008800",
+        "grid_samples": "3593700",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "idle-100-32-0-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "idle",
+        "100",
+        "32",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "495.379383",
+        "base_objects": "101",
+        "density_hash": "17106590868023355519",
+        "draws": "103",
+        "vertices": "2018400",
+        "triangles": "1008800",
+        "grid_samples": "3593700",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "idle-500-32-0-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "idle",
+        "500",
+        "32",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2461.753616",
+        "base_objects": "501",
+        "density_hash": "3423189239130476911",
+        "draws": "503",
+        "vertices": "10092000",
+        "triangles": "5044000",
+        "grid_samples": "17968500",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "idle-500-32-0-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "idle",
+        "500",
+        "32",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2463.827193",
+        "base_objects": "501",
+        "density_hash": "3423189239130476911",
+        "draws": "503",
+        "vertices": "10092000",
+        "triangles": "5044000",
+        "grid_samples": "17968500",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "idle-500-32-0-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "idle",
+        "500",
+        "32",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2461.020358",
+        "base_objects": "501",
+        "density_hash": "3423189239130476911",
+        "draws": "503",
+        "vertices": "10092000",
+        "triangles": "5044000",
+        "grid_samples": "17968500",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "idle-100-48-0-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "idle",
+        "100",
+        "48",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "1174.040016",
+        "base_objects": "101",
+        "density_hash": "10089357532666265919",
+        "draws": "103",
+        "vertices": "4860000",
+        "triangles": "2429600",
+        "grid_samples": "11764900",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "idle-100-48-0-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "idle",
+        "100",
+        "48",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "1191.541188",
+        "base_objects": "101",
+        "density_hash": "10089357532666265919",
+        "draws": "103",
+        "vertices": "4860000",
+        "triangles": "2429600",
+        "grid_samples": "11764900",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "idle-100-48-0-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "idle",
+        "100",
+        "48",
+        "0",
+        "mesh",
+        "render",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "1137.527431",
+        "base_objects": "101",
+        "density_hash": "10089357532666265919",
+        "draws": "103",
+        "vertices": "4860000",
+        "triangles": "2429600",
+        "grid_samples": "11764900",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "idle-100-24-0-mesh-hq-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "idle",
+        "100",
+        "24",
+        "0",
+        "mesh",
+        "hq",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "289.188466",
+        "base_objects": "101",
+        "density_hash": "870441661627462431",
+        "draws": "340",
+        "vertices": "1058400",
+        "triangles": "528800",
+        "grid_samples": "1562500",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "idle-100-24-0-mesh-hq-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "idle",
+        "100",
+        "24",
+        "0",
+        "mesh",
+        "hq",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "299.042748",
+        "base_objects": "101",
+        "density_hash": "870441661627462431",
+        "draws": "340",
+        "vertices": "1058400",
+        "triangles": "528800",
+        "grid_samples": "1562500",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "idle-100-24-0-mesh-hq-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "idle",
+        "100",
+        "24",
+        "0",
+        "mesh",
+        "hq",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "298.860565",
+        "base_objects": "101",
+        "density_hash": "870441661627462431",
+        "draws": "340",
+        "vertices": "1058400",
+        "triangles": "528800",
+        "grid_samples": "1562500",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "idle-500-24-0-mesh-hq-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "idle",
+        "500",
+        "24",
+        "0",
+        "mesh",
+        "hq",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "1464.070144",
+        "base_objects": "501",
+        "density_hash": "10524224746895297359",
+        "draws": "1165",
+        "vertices": "5292000",
+        "triangles": "2644000",
+        "grid_samples": "7812500",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "idle-500-24-0-mesh-hq-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "idle",
+        "500",
+        "24",
+        "0",
+        "mesh",
+        "hq",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "1412.588757",
+        "base_objects": "501",
+        "density_hash": "10524224746895297359",
+        "draws": "1165",
+        "vertices": "5292000",
+        "triangles": "2644000",
+        "grid_samples": "7812500",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "idle-500-24-0-mesh-hq-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "idle",
+        "500",
+        "24",
+        "0",
+        "mesh",
+        "hq",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "1413.975854",
+        "base_objects": "501",
+        "density_hash": "10524224746895297359",
+        "draws": "1165",
+        "vertices": "5292000",
+        "triangles": "2644000",
+        "grid_samples": "7812500",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shared-500-24-0-mesh-hq-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shared",
+        "500",
+        "24",
+        "0",
+        "mesh",
+        "hq",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "567.192423",
+        "base_objects": "501",
+        "density_hash": "13610973810668257272",
+        "draws": "12",
+        "vertices": "10584",
+        "triangles": "5288",
+        "grid_samples": "15625",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shared-500-24-0-mesh-hq-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shared",
+        "500",
+        "24",
+        "0",
+        "mesh",
+        "hq",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "582.930502",
+        "base_objects": "501",
+        "density_hash": "13610973810668257272",
+        "draws": "12",
+        "vertices": "10584",
+        "triangles": "5288",
+        "grid_samples": "15625",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shared-500-24-0-mesh-hq-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shared",
+        "500",
+        "24",
+        "0",
+        "mesh",
+        "hq",
+        "40",
+        "100"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "564.342386",
+        "base_objects": "501",
+        "density_hash": "13610973810668257272",
+        "draws": "12",
+        "vertices": "10584",
+        "triangles": "5288",
+        "grid_samples": "15625",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "rays-100-24-0-mesh-cpu-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "rays",
+        "100",
+        "24",
+        "0",
+        "mesh",
+        "cpu",
+        "20",
+        "80"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "261.168675",
+        "base_objects": "101",
+        "density_hash": "870441661627462431",
+        "vertices": "1058400",
+        "triangles": "528800",
+        "grid_samples": "1562500",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "100000",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "rays-100-24-0-mesh-cpu-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "rays",
+        "100",
+        "24",
+        "0",
+        "mesh",
+        "cpu",
+        "20",
+        "80"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "261.050363",
+        "base_objects": "101",
+        "density_hash": "870441661627462431",
+        "vertices": "1058400",
+        "triangles": "528800",
+        "grid_samples": "1562500",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "100000",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "rays-100-24-0-mesh-cpu-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "rays",
+        "100",
+        "24",
+        "0",
+        "mesh",
+        "cpu",
+        "20",
+        "80"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "260.291606",
+        "base_objects": "101",
+        "density_hash": "870441661627462431",
+        "vertices": "1058400",
+        "triangles": "528800",
+        "grid_samples": "1562500",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "100000",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "rays-500-24-0-mesh-cpu-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "rays",
+        "500",
+        "24",
+        "0",
+        "mesh",
+        "cpu",
+        "20",
+        "80"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "1300.740434",
+        "base_objects": "501",
+        "density_hash": "10524224746895297359",
+        "vertices": "5292000",
+        "triangles": "2644000",
+        "grid_samples": "7812500",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "100000",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "rays-500-24-0-mesh-cpu-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "rays",
+        "500",
+        "24",
+        "0",
+        "mesh",
+        "cpu",
+        "20",
+        "80"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "1302.932113",
+        "base_objects": "501",
+        "density_hash": "10524224746895297359",
+        "vertices": "5292000",
+        "triangles": "2644000",
+        "grid_samples": "7812500",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "100000",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "rays-500-24-0-mesh-cpu-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "rays",
+        "500",
+        "24",
+        "0",
+        "mesh",
+        "cpu",
+        "20",
+        "80"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "1294.621473",
+        "base_objects": "501",
+        "density_hash": "10524224746895297359",
+        "vertices": "5292000",
+        "triangles": "2644000",
+        "grid_samples": "7812500",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "100000",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "rays-1000-24-0-mesh-cpu-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "rays",
+        "1000",
+        "24",
+        "0",
+        "mesh",
+        "cpu",
+        "20",
+        "80"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2618.428138",
+        "base_objects": "1001",
+        "density_hash": "603441839265742107",
+        "vertices": "10584000",
+        "triangles": "5288000",
+        "grid_samples": "15625000",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "100000",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "rays-1000-24-0-mesh-cpu-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "rays",
+        "1000",
+        "24",
+        "0",
+        "mesh",
+        "cpu",
+        "20",
+        "80"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2606.294734",
+        "base_objects": "1001",
+        "density_hash": "603441839265742107",
+        "vertices": "10584000",
+        "triangles": "5288000",
+        "grid_samples": "15625000",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "100000",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "rays-1000-24-0-mesh-cpu-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "rays",
+        "1000",
+        "24",
+        "0",
+        "mesh",
+        "cpu",
+        "20",
+        "80"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2611.692469",
+        "base_objects": "1001",
+        "density_hash": "603441839265742107",
+        "vertices": "10584000",
+        "triangles": "5288000",
+        "grid_samples": "15625000",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "100000",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-8-1-none-cpu-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "8",
+        "1",
+        "none",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": false,
+      "checks": {
+        "setup_ms": "1.808258",
+        "base_objects": "2",
+        "density_hash": "14284047962491632173",
+        "vertices": "600",
+        "triangles": "296",
+        "grid_samples": "729",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "False"
+      }
+    },
+    {
+      "name": "shots-1-8-1-mesh-cpu-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "8",
+        "1",
+        "mesh",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": false,
+      "checks": {
+        "setup_ms": "1.853633",
+        "base_objects": "2",
+        "density_hash": "14284047962491632173",
+        "vertices": "600",
+        "triangles": "296",
+        "grid_samples": "729",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "False"
+      }
+    },
+    {
+      "name": "shots-1-8-1-dynamic-cpu-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "8",
+        "1",
+        "dynamic",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": false,
+      "checks": {
+        "setup_ms": "2.304351",
+        "base_objects": "2",
+        "density_hash": "14284047962491632173",
+        "vertices": "600",
+        "triangles": "296",
+        "grid_samples": "729",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "False"
+      }
+    },
+    {
+      "name": "shots-1-8-1-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "8",
+        "1",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": false,
+      "checks": {
+        "setup_ms": "1.887187",
+        "base_objects": "2",
+        "density_hash": "14284047962491632173",
+        "draws": "4",
+        "vertices": "600",
+        "triangles": "296",
+        "grid_samples": "729",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "False"
+      }
+    },
+    {
+      "name": "slab-1-8-1-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "slab",
+        "1",
+        "8",
+        "1",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "1.785315",
+        "base_objects": "2",
+        "density_hash": "8813355498421357657",
+        "draws": "4",
+        "vertices": "512",
+        "triangles": "256",
+        "grid_samples": "729",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "slab-1-8-1-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "slab",
+        "1",
+        "8",
+        "1",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "1.725583",
+        "base_objects": "2",
+        "density_hash": "8813355498421357657",
+        "draws": "4",
+        "vertices": "512",
+        "triangles": "256",
+        "grid_samples": "729",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "slab-1-8-1-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "slab",
+        "1",
+        "8",
+        "1",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "1.785045",
+        "base_objects": "2",
+        "density_hash": "8813355498421357657",
+        "draws": "4",
+        "vertices": "512",
+        "triangles": "256",
+        "grid_samples": "729",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-16-1-none-cpu-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "16",
+        "1",
+        "none",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "1.962208",
+        "base_objects": "2",
+        "density_hash": "7501736730334359916",
+        "vertices": "4120",
+        "triangles": "2056",
+        "grid_samples": "4913",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-16-1-none-cpu-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "16",
+        "1",
+        "none",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "1.943282",
+        "base_objects": "2",
+        "density_hash": "7501736730334359916",
+        "vertices": "4120",
+        "triangles": "2056",
+        "grid_samples": "4913",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-16-1-none-cpu-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "16",
+        "1",
+        "none",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.030526",
+        "base_objects": "2",
+        "density_hash": "7501736730334359916",
+        "vertices": "4120",
+        "triangles": "2056",
+        "grid_samples": "4913",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-16-1-mesh-cpu-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "16",
+        "1",
+        "mesh",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.693552",
+        "base_objects": "2",
+        "density_hash": "7501736730334359916",
+        "vertices": "4120",
+        "triangles": "2056",
+        "grid_samples": "4913",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-16-1-mesh-cpu-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "16",
+        "1",
+        "mesh",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.582624",
+        "base_objects": "2",
+        "density_hash": "7501736730334359916",
+        "vertices": "4120",
+        "triangles": "2056",
+        "grid_samples": "4913",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-16-1-mesh-cpu-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "16",
+        "1",
+        "mesh",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.355447",
+        "base_objects": "2",
+        "density_hash": "7501736730334359916",
+        "vertices": "4120",
+        "triangles": "2056",
+        "grid_samples": "4913",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-16-1-dynamic-cpu-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "16",
+        "1",
+        "dynamic",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.065793",
+        "base_objects": "2",
+        "density_hash": "7501736730334359916",
+        "vertices": "4120",
+        "triangles": "2056",
+        "grid_samples": "4913",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-16-1-dynamic-cpu-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "16",
+        "1",
+        "dynamic",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.177603",
+        "base_objects": "2",
+        "density_hash": "7501736730334359916",
+        "vertices": "4120",
+        "triangles": "2056",
+        "grid_samples": "4913",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-16-1-dynamic-cpu-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "16",
+        "1",
+        "dynamic",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.352362",
+        "base_objects": "2",
+        "density_hash": "7501736730334359916",
+        "vertices": "4120",
+        "triangles": "2056",
+        "grid_samples": "4913",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-16-1-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "16",
+        "1",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.543421",
+        "base_objects": "2",
+        "density_hash": "7501736730334359916",
+        "draws": "4",
+        "vertices": "4120",
+        "triangles": "2056",
+        "grid_samples": "4913",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-16-1-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "16",
+        "1",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.590849",
+        "base_objects": "2",
+        "density_hash": "7501736730334359916",
+        "draws": "4",
+        "vertices": "4120",
+        "triangles": "2056",
+        "grid_samples": "4913",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-16-1-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "16",
+        "1",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.574709",
+        "base_objects": "2",
+        "density_hash": "7501736730334359916",
+        "draws": "4",
+        "vertices": "4120",
+        "triangles": "2056",
+        "grid_samples": "4913",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "slab-1-16-1-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "slab",
+        "1",
+        "16",
+        "1",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.147066",
+        "base_objects": "2",
+        "density_hash": "12009473508977789329",
+        "draws": "4",
+        "vertices": "2112",
+        "triangles": "1056",
+        "grid_samples": "4913",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "slab-1-16-1-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "slab",
+        "1",
+        "16",
+        "1",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.099506",
+        "base_objects": "2",
+        "density_hash": "12009473508977789329",
+        "draws": "4",
+        "vertices": "2112",
+        "triangles": "1056",
+        "grid_samples": "4913",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "slab-1-16-1-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "slab",
+        "1",
+        "16",
+        "1",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.087693",
+        "base_objects": "2",
+        "density_hash": "12009473508977789329",
+        "draws": "4",
+        "vertices": "2112",
+        "triangles": "1056",
+        "grid_samples": "4913",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-split-1-16-1-mesh-cpu-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots-split",
+        "1",
+        "16",
+        "1",
+        "mesh",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.869062",
+        "base_objects": "2",
+        "density_hash": "7501736730334359916",
+        "vertices": "4120",
+        "triangles": "2056",
+        "grid_samples": "4913",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-split-1-16-1-mesh-cpu-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots-split",
+        "1",
+        "16",
+        "1",
+        "mesh",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.613732",
+        "base_objects": "2",
+        "density_hash": "7501736730334359916",
+        "vertices": "4120",
+        "triangles": "2056",
+        "grid_samples": "4913",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-split-1-16-1-mesh-cpu-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots-split",
+        "1",
+        "16",
+        "1",
+        "mesh",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.539173",
+        "base_objects": "2",
+        "density_hash": "7501736730334359916",
+        "vertices": "4120",
+        "triangles": "2056",
+        "grid_samples": "4913",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-24-1-none-cpu-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "24",
+        "1",
+        "none",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.717918",
+        "base_objects": "2",
+        "density_hash": "7126507992411718263",
+        "vertices": "10696",
+        "triangles": "5344",
+        "grid_samples": "15625",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-24-1-none-cpu-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "24",
+        "1",
+        "none",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.839196",
+        "base_objects": "2",
+        "density_hash": "7126507992411718263",
+        "vertices": "10696",
+        "triangles": "5344",
+        "grid_samples": "15625",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-24-1-none-cpu-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "24",
+        "1",
+        "none",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.380424",
+        "base_objects": "2",
+        "density_hash": "7126507992411718263",
+        "vertices": "10696",
+        "triangles": "5344",
+        "grid_samples": "15625",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-24-1-mesh-cpu-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "24",
+        "1",
+        "mesh",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "4.199934",
+        "base_objects": "2",
+        "density_hash": "7126507992411718263",
+        "vertices": "10696",
+        "triangles": "5344",
+        "grid_samples": "15625",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-24-1-mesh-cpu-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "24",
+        "1",
+        "mesh",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "4.140211",
+        "base_objects": "2",
+        "density_hash": "7126507992411718263",
+        "vertices": "10696",
+        "triangles": "5344",
+        "grid_samples": "15625",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-24-1-mesh-cpu-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "24",
+        "1",
+        "mesh",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "4.016569",
+        "base_objects": "2",
+        "density_hash": "7126507992411718263",
+        "vertices": "10696",
+        "triangles": "5344",
+        "grid_samples": "15625",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-24-1-dynamic-cpu-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "24",
+        "1",
+        "dynamic",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.663345",
+        "base_objects": "2",
+        "density_hash": "7126507992411718263",
+        "vertices": "10696",
+        "triangles": "5344",
+        "grid_samples": "15625",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-24-1-dynamic-cpu-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "24",
+        "1",
+        "dynamic",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.696327",
+        "base_objects": "2",
+        "density_hash": "7126507992411718263",
+        "vertices": "10696",
+        "triangles": "5344",
+        "grid_samples": "15625",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-24-1-dynamic-cpu-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "24",
+        "1",
+        "dynamic",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.890754",
+        "base_objects": "2",
+        "density_hash": "7126507992411718263",
+        "vertices": "10696",
+        "triangles": "5344",
+        "grid_samples": "15625",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-24-1-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "24",
+        "1",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "4.017341",
+        "base_objects": "2",
+        "density_hash": "7126507992411718263",
+        "draws": "4",
+        "vertices": "10696",
+        "triangles": "5344",
+        "grid_samples": "15625",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-24-1-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "24",
+        "1",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "3.941138",
+        "base_objects": "2",
+        "density_hash": "7126507992411718263",
+        "draws": "4",
+        "vertices": "10696",
+        "triangles": "5344",
+        "grid_samples": "15625",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-24-1-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "24",
+        "1",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "4.052737",
+        "base_objects": "2",
+        "density_hash": "7126507992411718263",
+        "draws": "4",
+        "vertices": "10696",
+        "triangles": "5344",
+        "grid_samples": "15625",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "slab-1-24-1-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "slab",
+        "1",
+        "24",
+        "1",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "3.007492",
+        "base_objects": "2",
+        "density_hash": "6702722265281822587",
+        "draws": "4",
+        "vertices": "4736",
+        "triangles": "2368",
+        "grid_samples": "15625",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "slab-1-24-1-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "slab",
+        "1",
+        "24",
+        "1",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.994769",
+        "base_objects": "2",
+        "density_hash": "6702722265281822587",
+        "draws": "4",
+        "vertices": "4736",
+        "triangles": "2368",
+        "grid_samples": "15625",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "slab-1-24-1-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "slab",
+        "1",
+        "24",
+        "1",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.914738",
+        "base_objects": "2",
+        "density_hash": "6702722265281822587",
+        "draws": "4",
+        "vertices": "4736",
+        "triangles": "2368",
+        "grid_samples": "15625",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-split-1-24-1-mesh-cpu-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots-split",
+        "1",
+        "24",
+        "1",
+        "mesh",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "4.274644",
+        "base_objects": "2",
+        "density_hash": "7126507992411718263",
+        "vertices": "10696",
+        "triangles": "5344",
+        "grid_samples": "15625",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-split-1-24-1-mesh-cpu-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots-split",
+        "1",
+        "24",
+        "1",
+        "mesh",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "4.398387",
+        "base_objects": "2",
+        "density_hash": "7126507992411718263",
+        "vertices": "10696",
+        "triangles": "5344",
+        "grid_samples": "15625",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-split-1-24-1-mesh-cpu-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots-split",
+        "1",
+        "24",
+        "1",
+        "mesh",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "4.091029",
+        "base_objects": "2",
+        "density_hash": "7126507992411718263",
+        "vertices": "10696",
+        "triangles": "5344",
+        "grid_samples": "15625",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-32-1-none-cpu-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "32",
+        "1",
+        "none",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "3.44783",
+        "base_objects": "2",
+        "density_hash": "15442923188818611421",
+        "vertices": "20392",
+        "triangles": "10192",
+        "grid_samples": "35937",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-32-1-none-cpu-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "32",
+        "1",
+        "none",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "3.505468",
+        "base_objects": "2",
+        "density_hash": "15442923188818611421",
+        "vertices": "20392",
+        "triangles": "10192",
+        "grid_samples": "35937",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-32-1-none-cpu-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "32",
+        "1",
+        "none",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "3.542518",
+        "base_objects": "2",
+        "density_hash": "15442923188818611421",
+        "vertices": "20392",
+        "triangles": "10192",
+        "grid_samples": "35937",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-32-1-mesh-cpu-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "32",
+        "1",
+        "mesh",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "6.559628",
+        "base_objects": "2",
+        "density_hash": "15442923188818611421",
+        "vertices": "20392",
+        "triangles": "10192",
+        "grid_samples": "35937",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-32-1-mesh-cpu-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "32",
+        "1",
+        "mesh",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "6.973085",
+        "base_objects": "2",
+        "density_hash": "15442923188818611421",
+        "vertices": "20392",
+        "triangles": "10192",
+        "grid_samples": "35937",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-32-1-mesh-cpu-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "32",
+        "1",
+        "mesh",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "7.202226",
+        "base_objects": "2",
+        "density_hash": "15442923188818611421",
+        "vertices": "20392",
+        "triangles": "10192",
+        "grid_samples": "35937",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-32-1-dynamic-cpu-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "32",
+        "1",
+        "dynamic",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "3.574619",
+        "base_objects": "2",
+        "density_hash": "15442923188818611421",
+        "vertices": "20392",
+        "triangles": "10192",
+        "grid_samples": "35937",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-32-1-dynamic-cpu-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "32",
+        "1",
+        "dynamic",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "3.698771",
+        "base_objects": "2",
+        "density_hash": "15442923188818611421",
+        "vertices": "20392",
+        "triangles": "10192",
+        "grid_samples": "35937",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-32-1-dynamic-cpu-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "32",
+        "1",
+        "dynamic",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "3.571061",
+        "base_objects": "2",
+        "density_hash": "15442923188818611421",
+        "vertices": "20392",
+        "triangles": "10192",
+        "grid_samples": "35937",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-32-1-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "32",
+        "1",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "6.701526",
+        "base_objects": "2",
+        "density_hash": "15442923188818611421",
+        "draws": "4",
+        "vertices": "20392",
+        "triangles": "10192",
+        "grid_samples": "35937",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-32-1-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "32",
+        "1",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "6.506198",
+        "base_objects": "2",
+        "density_hash": "15442923188818611421",
+        "draws": "4",
+        "vertices": "20392",
+        "triangles": "10192",
+        "grid_samples": "35937",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-32-1-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "32",
+        "1",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "6.920487",
+        "base_objects": "2",
+        "density_hash": "15442923188818611421",
+        "draws": "4",
+        "vertices": "20392",
+        "triangles": "10192",
+        "grid_samples": "35937",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "slab-1-32-1-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "slab",
+        "1",
+        "32",
+        "1",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "4.130072",
+        "base_objects": "2",
+        "density_hash": "6698702618546615582",
+        "draws": "4",
+        "vertices": "7392",
+        "triangles": "3696",
+        "grid_samples": "35937",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "slab-1-32-1-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "slab",
+        "1",
+        "32",
+        "1",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "3.966124",
+        "base_objects": "2",
+        "density_hash": "6698702618546615582",
+        "draws": "4",
+        "vertices": "7392",
+        "triangles": "3696",
+        "grid_samples": "35937",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "slab-1-32-1-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "slab",
+        "1",
+        "32",
+        "1",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "4.048328",
+        "base_objects": "2",
+        "density_hash": "6698702618546615582",
+        "draws": "4",
+        "vertices": "7392",
+        "triangles": "3696",
+        "grid_samples": "35937",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-split-1-32-1-mesh-cpu-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots-split",
+        "1",
+        "32",
+        "1",
+        "mesh",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "6.945403",
+        "base_objects": "2",
+        "density_hash": "15442923188818611421",
+        "vertices": "20392",
+        "triangles": "10192",
+        "grid_samples": "35937",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-split-1-32-1-mesh-cpu-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots-split",
+        "1",
+        "32",
+        "1",
+        "mesh",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "6.763301",
+        "base_objects": "2",
+        "density_hash": "15442923188818611421",
+        "vertices": "20392",
+        "triangles": "10192",
+        "grid_samples": "35937",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-split-1-32-1-mesh-cpu-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots-split",
+        "1",
+        "32",
+        "1",
+        "mesh",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "6.877446",
+        "base_objects": "2",
+        "density_hash": "15442923188818611421",
+        "vertices": "20392",
+        "triangles": "10192",
+        "grid_samples": "35937",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-48-1-none-cpu-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "48",
+        "1",
+        "none",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "6.337781",
+        "base_objects": "2",
+        "density_hash": "14319203906862863778",
+        "vertices": "49016",
+        "triangles": "24504",
+        "grid_samples": "117649",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-48-1-none-cpu-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "48",
+        "1",
+        "none",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "6.701065",
+        "base_objects": "2",
+        "density_hash": "14319203906862863778",
+        "vertices": "49016",
+        "triangles": "24504",
+        "grid_samples": "117649",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-48-1-none-cpu-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "48",
+        "1",
+        "none",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "6.72543",
+        "base_objects": "2",
+        "density_hash": "14319203906862863778",
+        "vertices": "49016",
+        "triangles": "24504",
+        "grid_samples": "117649",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-48-1-mesh-cpu-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "48",
+        "1",
+        "mesh",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "14.840953",
+        "base_objects": "2",
+        "density_hash": "14319203906862863778",
+        "vertices": "49016",
+        "triangles": "24504",
+        "grid_samples": "117649",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-48-1-mesh-cpu-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "48",
+        "1",
+        "mesh",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "15.175121",
+        "base_objects": "2",
+        "density_hash": "14319203906862863778",
+        "vertices": "49016",
+        "triangles": "24504",
+        "grid_samples": "117649",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-48-1-mesh-cpu-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "48",
+        "1",
+        "mesh",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "14.164762",
+        "base_objects": "2",
+        "density_hash": "14319203906862863778",
+        "vertices": "49016",
+        "triangles": "24504",
+        "grid_samples": "117649",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-48-1-dynamic-cpu-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "48",
+        "1",
+        "dynamic",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "7.031004",
+        "base_objects": "2",
+        "density_hash": "14319203906862863778",
+        "vertices": "49016",
+        "triangles": "24504",
+        "grid_samples": "117649",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-48-1-dynamic-cpu-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "48",
+        "1",
+        "dynamic",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "7.277869",
+        "base_objects": "2",
+        "density_hash": "14319203906862863778",
+        "vertices": "49016",
+        "triangles": "24504",
+        "grid_samples": "117649",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-48-1-dynamic-cpu-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "48",
+        "1",
+        "dynamic",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "7.085116",
+        "base_objects": "2",
+        "density_hash": "14319203906862863778",
+        "vertices": "49016",
+        "triangles": "24504",
+        "grid_samples": "117649",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-48-1-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "48",
+        "1",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "14.704266",
+        "base_objects": "2",
+        "density_hash": "14319203906862863778",
+        "draws": "4",
+        "vertices": "49016",
+        "triangles": "24504",
+        "grid_samples": "117649",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-48-1-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "48",
+        "1",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "14.701501",
+        "base_objects": "2",
+        "density_hash": "14319203906862863778",
+        "draws": "4",
+        "vertices": "49016",
+        "triangles": "24504",
+        "grid_samples": "117649",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-48-1-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "48",
+        "1",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "14.484173",
+        "base_objects": "2",
+        "density_hash": "14319203906862863778",
+        "draws": "4",
+        "vertices": "49016",
+        "triangles": "24504",
+        "grid_samples": "117649",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "slab-1-48-1-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "slab",
+        "1",
+        "48",
+        "1",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "8.807584",
+        "base_objects": "2",
+        "density_hash": "7503564186369701080",
+        "draws": "4",
+        "vertices": "19136",
+        "triangles": "9568",
+        "grid_samples": "117649",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "slab-1-48-1-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "slab",
+        "1",
+        "48",
+        "1",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "8.634509",
+        "base_objects": "2",
+        "density_hash": "7503564186369701080",
+        "draws": "4",
+        "vertices": "19136",
+        "triangles": "9568",
+        "grid_samples": "117649",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "slab-1-48-1-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "slab",
+        "1",
+        "48",
+        "1",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "8.361585",
+        "base_objects": "2",
+        "density_hash": "7503564186369701080",
+        "draws": "4",
+        "vertices": "19136",
+        "triangles": "9568",
+        "grid_samples": "117649",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-split-1-48-1-mesh-cpu-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots-split",
+        "1",
+        "48",
+        "1",
+        "mesh",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "13.774699",
+        "base_objects": "2",
+        "density_hash": "14319203906862863778",
+        "vertices": "49016",
+        "triangles": "24504",
+        "grid_samples": "117649",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-split-1-48-1-mesh-cpu-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots-split",
+        "1",
+        "48",
+        "1",
+        "mesh",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "15.252497",
+        "base_objects": "2",
+        "density_hash": "14319203906862863778",
+        "vertices": "49016",
+        "triangles": "24504",
+        "grid_samples": "117649",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-split-1-48-1-mesh-cpu-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots-split",
+        "1",
+        "48",
+        "1",
+        "mesh",
+        "cpu",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "14.767295",
+        "base_objects": "2",
+        "density_hash": "14319203906862863778",
+        "vertices": "49016",
+        "triangles": "24504",
+        "grid_samples": "117649",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "blast-1-16-1-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "blast",
+        "1",
+        "16",
+        "1",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.532389",
+        "base_objects": "2",
+        "density_hash": "8045353611131931511",
+        "draws": "4",
+        "vertices": "4840",
+        "triangles": "2416",
+        "grid_samples": "4913",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "blast-1-16-1-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "blast",
+        "1",
+        "16",
+        "1",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.684495",
+        "base_objects": "2",
+        "density_hash": "8045353611131931511",
+        "draws": "4",
+        "vertices": "4840",
+        "triangles": "2416",
+        "grid_samples": "4913",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "blast-1-16-1-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "blast",
+        "1",
+        "16",
+        "1",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.647796",
+        "base_objects": "2",
+        "density_hash": "8045353611131931511",
+        "draws": "4",
+        "vertices": "4840",
+        "triangles": "2416",
+        "grid_samples": "4913",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "blast-4-16-4-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "blast",
+        "4",
+        "16",
+        "4",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "7.507851",
+        "base_objects": "5",
+        "density_hash": "8901663641102826067",
+        "draws": "7",
+        "vertices": "19360",
+        "triangles": "9664",
+        "grid_samples": "19652",
+        "changed_carves": "192",
+        "spawned_fragments": "0",
+        "peak_objects": "7",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "blast-4-16-4-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "blast",
+        "4",
+        "16",
+        "4",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "7.103591",
+        "base_objects": "5",
+        "density_hash": "8901663641102826067",
+        "draws": "7",
+        "vertices": "19360",
+        "triangles": "9664",
+        "grid_samples": "19652",
+        "changed_carves": "192",
+        "spawned_fragments": "0",
+        "peak_objects": "7",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "blast-4-16-4-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "blast",
+        "4",
+        "16",
+        "4",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "7.568615",
+        "base_objects": "5",
+        "density_hash": "8901663641102826067",
+        "draws": "7",
+        "vertices": "19360",
+        "triangles": "9664",
+        "grid_samples": "19652",
+        "changed_carves": "192",
+        "spawned_fragments": "0",
+        "peak_objects": "7",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "blast-16-16-16-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "blast",
+        "16",
+        "16",
+        "16",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "25.493805",
+        "base_objects": "17",
+        "density_hash": "7540277450634719427",
+        "draws": "19",
+        "vertices": "77440",
+        "triangles": "38656",
+        "grid_samples": "78608",
+        "changed_carves": "768",
+        "spawned_fragments": "0",
+        "peak_objects": "19",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "blast-16-16-16-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "blast",
+        "16",
+        "16",
+        "16",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "25.83723",
+        "base_objects": "17",
+        "density_hash": "7540277450634719427",
+        "draws": "19",
+        "vertices": "77440",
+        "triangles": "38656",
+        "grid_samples": "78608",
+        "changed_carves": "768",
+        "spawned_fragments": "0",
+        "peak_objects": "19",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "blast-16-16-16-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "blast",
+        "16",
+        "16",
+        "16",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "25.330147",
+        "base_objects": "17",
+        "density_hash": "7540277450634719427",
+        "draws": "19",
+        "vertices": "77440",
+        "triangles": "38656",
+        "grid_samples": "78608",
+        "changed_carves": "768",
+        "spawned_fragments": "0",
+        "peak_objects": "19",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "blast-1-24-1-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "blast",
+        "1",
+        "24",
+        "1",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "4.162253",
+        "base_objects": "2",
+        "density_hash": "8006483558318728249",
+        "draws": "4",
+        "vertices": "12616",
+        "triangles": "6304",
+        "grid_samples": "15625",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "blast-1-24-1-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "blast",
+        "1",
+        "24",
+        "1",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "4.33595",
+        "base_objects": "2",
+        "density_hash": "8006483558318728249",
+        "draws": "4",
+        "vertices": "12616",
+        "triangles": "6304",
+        "grid_samples": "15625",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "blast-1-24-1-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "blast",
+        "1",
+        "24",
+        "1",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "4.187901",
+        "base_objects": "2",
+        "density_hash": "8006483558318728249",
+        "draws": "4",
+        "vertices": "12616",
+        "triangles": "6304",
+        "grid_samples": "15625",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "blast-4-24-4-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "blast",
+        "4",
+        "24",
+        "4",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "12.996466",
+        "base_objects": "5",
+        "density_hash": "7871981529176503467",
+        "draws": "7",
+        "vertices": "50464",
+        "triangles": "25216",
+        "grid_samples": "62500",
+        "changed_carves": "192",
+        "spawned_fragments": "0",
+        "peak_objects": "7",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "blast-4-24-4-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "blast",
+        "4",
+        "24",
+        "4",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "13.03023",
+        "base_objects": "5",
+        "density_hash": "7871981529176503467",
+        "draws": "7",
+        "vertices": "50464",
+        "triangles": "25216",
+        "grid_samples": "62500",
+        "changed_carves": "192",
+        "spawned_fragments": "0",
+        "peak_objects": "7",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "blast-4-24-4-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "blast",
+        "4",
+        "24",
+        "4",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "12.614208",
+        "base_objects": "5",
+        "density_hash": "7871981529176503467",
+        "draws": "7",
+        "vertices": "50464",
+        "triangles": "25216",
+        "grid_samples": "62500",
+        "changed_carves": "192",
+        "spawned_fragments": "0",
+        "peak_objects": "7",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "blast-16-24-16-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "blast",
+        "16",
+        "24",
+        "16",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "48.822881",
+        "base_objects": "17",
+        "density_hash": "12142487451123575203",
+        "draws": "19",
+        "vertices": "201856",
+        "triangles": "100864",
+        "grid_samples": "250000",
+        "changed_carves": "768",
+        "spawned_fragments": "0",
+        "peak_objects": "19",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "blast-16-24-16-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "blast",
+        "16",
+        "24",
+        "16",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "47.115341",
+        "base_objects": "17",
+        "density_hash": "12142487451123575203",
+        "draws": "19",
+        "vertices": "201856",
+        "triangles": "100864",
+        "grid_samples": "250000",
+        "changed_carves": "768",
+        "spawned_fragments": "0",
+        "peak_objects": "19",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "blast-16-24-16-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "blast",
+        "16",
+        "24",
+        "16",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "47.866102",
+        "base_objects": "17",
+        "density_hash": "12142487451123575203",
+        "draws": "19",
+        "vertices": "201856",
+        "triangles": "100864",
+        "grid_samples": "250000",
+        "changed_carves": "768",
+        "spawned_fragments": "0",
+        "peak_objects": "19",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "blast-1-32-1-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "blast",
+        "1",
+        "32",
+        "1",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "6.745348",
+        "base_objects": "2",
+        "density_hash": "14013414525952779303",
+        "draws": "4",
+        "vertices": "24072",
+        "triangles": "12032",
+        "grid_samples": "35937",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "blast-1-32-1-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "blast",
+        "1",
+        "32",
+        "1",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "6.700724",
+        "base_objects": "2",
+        "density_hash": "14013414525952779303",
+        "draws": "4",
+        "vertices": "24072",
+        "triangles": "12032",
+        "grid_samples": "35937",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "blast-1-32-1-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "blast",
+        "1",
+        "32",
+        "1",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "6.771797",
+        "base_objects": "2",
+        "density_hash": "14013414525952779303",
+        "draws": "4",
+        "vertices": "24072",
+        "triangles": "12032",
+        "grid_samples": "35937",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "blast-4-32-4-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "blast",
+        "4",
+        "32",
+        "4",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "21.656412",
+        "base_objects": "5",
+        "density_hash": "10292855361895219059",
+        "draws": "7",
+        "vertices": "96288",
+        "triangles": "48128",
+        "grid_samples": "143748",
+        "changed_carves": "192",
+        "spawned_fragments": "0",
+        "peak_objects": "7",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "blast-4-32-4-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "blast",
+        "4",
+        "32",
+        "4",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "21.850788",
+        "base_objects": "5",
+        "density_hash": "10292855361895219059",
+        "draws": "7",
+        "vertices": "96288",
+        "triangles": "48128",
+        "grid_samples": "143748",
+        "changed_carves": "192",
+        "spawned_fragments": "0",
+        "peak_objects": "7",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "blast-4-32-4-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "blast",
+        "4",
+        "32",
+        "4",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "22.285965",
+        "base_objects": "5",
+        "density_hash": "10292855361895219059",
+        "draws": "7",
+        "vertices": "96288",
+        "triangles": "48128",
+        "grid_samples": "143748",
+        "changed_carves": "192",
+        "spawned_fragments": "0",
+        "peak_objects": "7",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "blast-16-32-16-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "blast",
+        "16",
+        "32",
+        "16",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "81.52926",
+        "base_objects": "17",
+        "density_hash": "11324357746471186755",
+        "draws": "19",
+        "vertices": "385152",
+        "triangles": "192512",
+        "grid_samples": "574992",
+        "changed_carves": "768",
+        "spawned_fragments": "0",
+        "peak_objects": "19",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "blast-16-32-16-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "blast",
+        "16",
+        "32",
+        "16",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "82.34338",
+        "base_objects": "17",
+        "density_hash": "11324357746471186755",
+        "draws": "19",
+        "vertices": "385152",
+        "triangles": "192512",
+        "grid_samples": "574992",
+        "changed_carves": "768",
+        "spawned_fragments": "0",
+        "peak_objects": "19",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "blast-16-32-16-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "blast",
+        "16",
+        "32",
+        "16",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "84.74775",
+        "base_objects": "17",
+        "density_hash": "11324357746471186755",
+        "draws": "19",
+        "vertices": "385152",
+        "triangles": "192512",
+        "grid_samples": "574992",
+        "changed_carves": "768",
+        "spawned_fragments": "0",
+        "peak_objects": "19",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "burst-1-16-4-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "burst",
+        "1",
+        "16",
+        "4",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.928074",
+        "base_objects": "2",
+        "density_hash": "10345161848690023642",
+        "draws": "4",
+        "vertices": "4136",
+        "triangles": "2064",
+        "grid_samples": "4913",
+        "changed_carves": "192",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "burst-1-16-4-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "burst",
+        "1",
+        "16",
+        "4",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.620926",
+        "base_objects": "2",
+        "density_hash": "10345161848690023642",
+        "draws": "4",
+        "vertices": "4136",
+        "triangles": "2064",
+        "grid_samples": "4913",
+        "changed_carves": "192",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "burst-1-16-4-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "burst",
+        "1",
+        "16",
+        "4",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.681439",
+        "base_objects": "2",
+        "density_hash": "10345161848690023642",
+        "draws": "4",
+        "vertices": "4136",
+        "triangles": "2064",
+        "grid_samples": "4913",
+        "changed_carves": "192",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "batch-1-16-4-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "batch",
+        "1",
+        "16",
+        "4",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.884982",
+        "base_objects": "2",
+        "density_hash": "10345161848690023642",
+        "draws": "4",
+        "vertices": "4136",
+        "triangles": "2064",
+        "grid_samples": "4913",
+        "changed_carves": "192",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "batch-1-16-4-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "batch",
+        "1",
+        "16",
+        "4",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.549601",
+        "base_objects": "2",
+        "density_hash": "10345161848690023642",
+        "draws": "4",
+        "vertices": "4136",
+        "triangles": "2064",
+        "grid_samples": "4913",
+        "changed_carves": "192",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "batch-1-16-4-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "batch",
+        "1",
+        "16",
+        "4",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.604896",
+        "base_objects": "2",
+        "density_hash": "10345161848690023642",
+        "draws": "4",
+        "vertices": "4136",
+        "triangles": "2064",
+        "grid_samples": "4913",
+        "changed_carves": "192",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "burst-1-16-16-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "burst",
+        "1",
+        "16",
+        "16",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.553148",
+        "base_objects": "2",
+        "density_hash": "5180202382347385207",
+        "draws": "4",
+        "vertices": "4336",
+        "triangles": "2164",
+        "grid_samples": "4913",
+        "changed_carves": "768",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "burst-1-16-16-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "burst",
+        "1",
+        "16",
+        "16",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.722877",
+        "base_objects": "2",
+        "density_hash": "5180202382347385207",
+        "draws": "4",
+        "vertices": "4336",
+        "triangles": "2164",
+        "grid_samples": "4913",
+        "changed_carves": "768",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "burst-1-16-16-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "burst",
+        "1",
+        "16",
+        "16",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.746722",
+        "base_objects": "2",
+        "density_hash": "5180202382347385207",
+        "draws": "4",
+        "vertices": "4336",
+        "triangles": "2164",
+        "grid_samples": "4913",
+        "changed_carves": "768",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "batch-1-16-16-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "batch",
+        "1",
+        "16",
+        "16",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.669247",
+        "base_objects": "2",
+        "density_hash": "5180202382347385207",
+        "draws": "4",
+        "vertices": "4336",
+        "triangles": "2164",
+        "grid_samples": "4913",
+        "changed_carves": "768",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "batch-1-16-16-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "batch",
+        "1",
+        "16",
+        "16",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.852581",
+        "base_objects": "2",
+        "density_hash": "5180202382347385207",
+        "draws": "4",
+        "vertices": "4336",
+        "triangles": "2164",
+        "grid_samples": "4913",
+        "changed_carves": "768",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "batch-1-16-16-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "batch",
+        "1",
+        "16",
+        "16",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.551395",
+        "base_objects": "2",
+        "density_hash": "5180202382347385207",
+        "draws": "4",
+        "vertices": "4336",
+        "triangles": "2164",
+        "grid_samples": "4913",
+        "changed_carves": "768",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "burst-1-24-4-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "burst",
+        "1",
+        "24",
+        "4",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "4.379511",
+        "base_objects": "2",
+        "density_hash": "16952453470571483159",
+        "draws": "4",
+        "vertices": "10896",
+        "triangles": "5444",
+        "grid_samples": "15625",
+        "changed_carves": "192",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "burst-1-24-4-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "burst",
+        "1",
+        "24",
+        "4",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "4.142556",
+        "base_objects": "2",
+        "density_hash": "16952453470571483159",
+        "draws": "4",
+        "vertices": "10896",
+        "triangles": "5444",
+        "grid_samples": "15625",
+        "changed_carves": "192",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "burst-1-24-4-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "burst",
+        "1",
+        "24",
+        "4",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "4.206746",
+        "base_objects": "2",
+        "density_hash": "16952453470571483159",
+        "draws": "4",
+        "vertices": "10896",
+        "triangles": "5444",
+        "grid_samples": "15625",
+        "changed_carves": "192",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "batch-1-24-4-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "batch",
+        "1",
+        "24",
+        "4",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "4.190135",
+        "base_objects": "2",
+        "density_hash": "16952453470571483159",
+        "draws": "4",
+        "vertices": "10896",
+        "triangles": "5444",
+        "grid_samples": "15625",
+        "changed_carves": "192",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "batch-1-24-4-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "batch",
+        "1",
+        "24",
+        "4",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "4.258564",
+        "base_objects": "2",
+        "density_hash": "16952453470571483159",
+        "draws": "4",
+        "vertices": "10896",
+        "triangles": "5444",
+        "grid_samples": "15625",
+        "changed_carves": "192",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "batch-1-24-4-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "batch",
+        "1",
+        "24",
+        "4",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "4.125173",
+        "base_objects": "2",
+        "density_hash": "16952453470571483159",
+        "draws": "4",
+        "vertices": "10896",
+        "triangles": "5444",
+        "grid_samples": "15625",
+        "changed_carves": "192",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "burst-1-24-16-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "burst",
+        "1",
+        "24",
+        "16",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "4.170519",
+        "base_objects": "2",
+        "density_hash": "6833267262594647488",
+        "draws": "4",
+        "vertices": "11336",
+        "triangles": "5664",
+        "grid_samples": "15625",
+        "changed_carves": "768",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "burst-1-24-16-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "burst",
+        "1",
+        "24",
+        "16",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "4.153487",
+        "base_objects": "2",
+        "density_hash": "6833267262594647488",
+        "draws": "4",
+        "vertices": "11336",
+        "triangles": "5664",
+        "grid_samples": "15625",
+        "changed_carves": "768",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "burst-1-24-16-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "burst",
+        "1",
+        "24",
+        "16",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "4.22983",
+        "base_objects": "2",
+        "density_hash": "6833267262594647488",
+        "draws": "4",
+        "vertices": "11336",
+        "triangles": "5664",
+        "grid_samples": "15625",
+        "changed_carves": "768",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "batch-1-24-16-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "batch",
+        "1",
+        "24",
+        "16",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "4.0488",
+        "base_objects": "2",
+        "density_hash": "6833267262594647488",
+        "draws": "4",
+        "vertices": "11336",
+        "triangles": "5664",
+        "grid_samples": "15625",
+        "changed_carves": "768",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "batch-1-24-16-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "batch",
+        "1",
+        "24",
+        "16",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "4.166721",
+        "base_objects": "2",
+        "density_hash": "6833267262594647488",
+        "draws": "4",
+        "vertices": "11336",
+        "triangles": "5664",
+        "grid_samples": "15625",
+        "changed_carves": "768",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "batch-1-24-16-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "batch",
+        "1",
+        "24",
+        "16",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "4.345457",
+        "base_objects": "2",
+        "density_hash": "6833267262594647488",
+        "draws": "4",
+        "vertices": "11336",
+        "triangles": "5664",
+        "grid_samples": "15625",
+        "changed_carves": "768",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "burst-1-32-4-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "burst",
+        "1",
+        "32",
+        "4",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "6.781305",
+        "base_objects": "2",
+        "density_hash": "17596164803098188640",
+        "draws": "4",
+        "vertices": "20760",
+        "triangles": "10376",
+        "grid_samples": "35937",
+        "changed_carves": "192",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "burst-1-32-4-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "burst",
+        "1",
+        "32",
+        "4",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "7.000086",
+        "base_objects": "2",
+        "density_hash": "17596164803098188640",
+        "draws": "4",
+        "vertices": "20760",
+        "triangles": "10376",
+        "grid_samples": "35937",
+        "changed_carves": "192",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "burst-1-32-4-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "burst",
+        "1",
+        "32",
+        "4",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "6.867708",
+        "base_objects": "2",
+        "density_hash": "17596164803098188640",
+        "draws": "4",
+        "vertices": "20760",
+        "triangles": "10376",
+        "grid_samples": "35937",
+        "changed_carves": "192",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "batch-1-32-4-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "batch",
+        "1",
+        "32",
+        "4",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "7.201875",
+        "base_objects": "2",
+        "density_hash": "17596164803098188640",
+        "draws": "4",
+        "vertices": "20760",
+        "triangles": "10376",
+        "grid_samples": "35937",
+        "changed_carves": "192",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "batch-1-32-4-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "batch",
+        "1",
+        "32",
+        "4",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "6.501659",
+        "base_objects": "2",
+        "density_hash": "17596164803098188640",
+        "draws": "4",
+        "vertices": "20760",
+        "triangles": "10376",
+        "grid_samples": "35937",
+        "changed_carves": "192",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "batch-1-32-4-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "batch",
+        "1",
+        "32",
+        "4",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "6.94908",
+        "base_objects": "2",
+        "density_hash": "17596164803098188640",
+        "draws": "4",
+        "vertices": "20760",
+        "triangles": "10376",
+        "grid_samples": "35937",
+        "changed_carves": "192",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "burst-1-32-16-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "burst",
+        "1",
+        "32",
+        "16",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "6.796344",
+        "base_objects": "2",
+        "density_hash": "9788658883823299528",
+        "draws": "4",
+        "vertices": "21784",
+        "triangles": "10888",
+        "grid_samples": "35937",
+        "changed_carves": "768",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "burst-1-32-16-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "burst",
+        "1",
+        "32",
+        "16",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "6.685385",
+        "base_objects": "2",
+        "density_hash": "9788658883823299528",
+        "draws": "4",
+        "vertices": "21784",
+        "triangles": "10888",
+        "grid_samples": "35937",
+        "changed_carves": "768",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "burst-1-32-16-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "burst",
+        "1",
+        "32",
+        "16",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "6.546234",
+        "base_objects": "2",
+        "density_hash": "9788658883823299528",
+        "draws": "4",
+        "vertices": "21784",
+        "triangles": "10888",
+        "grid_samples": "35937",
+        "changed_carves": "768",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "batch-1-32-16-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "batch",
+        "1",
+        "32",
+        "16",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "6.64553",
+        "base_objects": "2",
+        "density_hash": "9788658883823299528",
+        "draws": "4",
+        "vertices": "21784",
+        "triangles": "10888",
+        "grid_samples": "35937",
+        "changed_carves": "768",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "batch-1-32-16-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "batch",
+        "1",
+        "32",
+        "16",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "7.290522",
+        "base_objects": "2",
+        "density_hash": "9788658883823299528",
+        "draws": "4",
+        "vertices": "21784",
+        "triangles": "10888",
+        "grid_samples": "35937",
+        "changed_carves": "768",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "batch-1-32-16-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "batch",
+        "1",
+        "32",
+        "16",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "6.945153",
+        "base_objects": "2",
+        "density_hash": "9788658883823299528",
+        "draws": "4",
+        "vertices": "21784",
+        "triangles": "10888",
+        "grid_samples": "35937",
+        "changed_carves": "768",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "split-1-24-1-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "split",
+        "1",
+        "24",
+        "1",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.575671",
+        "base_objects": "2",
+        "density_hash": "5239407761888020579",
+        "draws": "5",
+        "vertices": "1176",
+        "triangles": "584",
+        "grid_samples": "15625",
+        "changed_carves": "48",
+        "spawned_fragments": "48",
+        "peak_objects": "5",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "split-1-24-1-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "split",
+        "1",
+        "24",
+        "1",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.555072",
+        "base_objects": "2",
+        "density_hash": "5239407761888020579",
+        "draws": "5",
+        "vertices": "1176",
+        "triangles": "584",
+        "grid_samples": "15625",
+        "changed_carves": "48",
+        "spawned_fragments": "48",
+        "peak_objects": "5",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "split-1-24-1-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "split",
+        "1",
+        "24",
+        "1",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.565793",
+        "base_objects": "2",
+        "density_hash": "5239407761888020579",
+        "draws": "5",
+        "vertices": "1176",
+        "triangles": "584",
+        "grid_samples": "15625",
+        "changed_carves": "48",
+        "spawned_fragments": "48",
+        "peak_objects": "5",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "split-4-24-4-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "split",
+        "4",
+        "24",
+        "4",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "7.527848",
+        "base_objects": "5",
+        "density_hash": "18242687464908155267",
+        "draws": "11",
+        "vertices": "4704",
+        "triangles": "2336",
+        "grid_samples": "62500",
+        "changed_carves": "192",
+        "spawned_fragments": "192",
+        "peak_objects": "11",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "split-4-24-4-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "split",
+        "4",
+        "24",
+        "4",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "7.869421",
+        "base_objects": "5",
+        "density_hash": "18242687464908155267",
+        "draws": "11",
+        "vertices": "4704",
+        "triangles": "2336",
+        "grid_samples": "62500",
+        "changed_carves": "192",
+        "spawned_fragments": "192",
+        "peak_objects": "11",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "split-4-24-4-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "split",
+        "4",
+        "24",
+        "4",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "7.683431",
+        "base_objects": "5",
+        "density_hash": "18242687464908155267",
+        "draws": "11",
+        "vertices": "4704",
+        "triangles": "2336",
+        "grid_samples": "62500",
+        "changed_carves": "192",
+        "spawned_fragments": "192",
+        "peak_objects": "11",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "split-16-24-16-mesh-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "split",
+        "16",
+        "24",
+        "16",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "27.645018",
+        "base_objects": "17",
+        "density_hash": "12380580664886745987",
+        "draws": "35",
+        "vertices": "18816",
+        "triangles": "9344",
+        "grid_samples": "250000",
+        "changed_carves": "768",
+        "spawned_fragments": "768",
+        "peak_objects": "35",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "split-16-24-16-mesh-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "split",
+        "16",
+        "24",
+        "16",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "27.538848",
+        "base_objects": "17",
+        "density_hash": "12380580664886745987",
+        "draws": "35",
+        "vertices": "18816",
+        "triangles": "9344",
+        "grid_samples": "250000",
+        "changed_carves": "768",
+        "spawned_fragments": "768",
+        "peak_objects": "35",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "split-16-24-16-mesh-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "split",
+        "16",
+        "24",
+        "16",
+        "mesh",
+        "render",
+        "8",
+        "40"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "27.993643",
+        "base_objects": "17",
+        "density_hash": "12380580664886745987",
+        "draws": "35",
+        "vertices": "18816",
+        "triangles": "9344",
+        "grid_samples": "250000",
+        "changed_carves": "768",
+        "spawned_fragments": "768",
+        "peak_objects": "35",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "split-1-16-1-mesh-cpu-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "split",
+        "1",
+        "16",
+        "1",
+        "mesh",
+        "cpu",
+        "1",
+        "3"
+      ],
+      "exit": 0,
+      "valid": false,
+      "checks": {
+        "setup_ms": "2.067105",
+        "base_objects": "2",
+        "density_hash": "7573317531150672587",
+        "vertices": "600",
+        "triangles": "296",
+        "grid_samples": "4913",
+        "changed_carves": "4",
+        "spawned_fragments": "4",
+        "peak_objects": "3",
+        "checksum": "0",
+        "valid": "False"
+      }
+    },
+    {
+      "name": "debris-100-8-0-dynamic-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "debris",
+        "100",
+        "8",
+        "0",
+        "dynamic",
+        "render",
+        "60",
+        "120"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "98.651341",
+        "base_objects": "101",
+        "density_hash": "9403972714097525811",
+        "draws": "103",
+        "vertices": "60000",
+        "triangles": "29600",
+        "grid_samples": "72900",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "debris-100-8-0-dynamic-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "debris",
+        "100",
+        "8",
+        "0",
+        "dynamic",
+        "render",
+        "60",
+        "120"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "98.64561",
+        "base_objects": "101",
+        "density_hash": "9403972714097525811",
+        "draws": "103",
+        "vertices": "60000",
+        "triangles": "29600",
+        "grid_samples": "72900",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "debris-100-8-0-dynamic-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "debris",
+        "100",
+        "8",
+        "0",
+        "dynamic",
+        "render",
+        "60",
+        "120"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "98.861876",
+        "base_objects": "101",
+        "density_hash": "9403972714097525811",
+        "draws": "103",
+        "vertices": "60000",
+        "triangles": "29600",
+        "grid_samples": "72900",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "debris-500-8-0-dynamic-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "debris",
+        "500",
+        "8",
+        "0",
+        "dynamic",
+        "render",
+        "60",
+        "120"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "469.824855",
+        "base_objects": "501",
+        "density_hash": "6115387464680252147",
+        "draws": "503",
+        "vertices": "300000",
+        "triangles": "148000",
+        "grid_samples": "364500",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "debris-500-8-0-dynamic-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "debris",
+        "500",
+        "8",
+        "0",
+        "dynamic",
+        "render",
+        "60",
+        "120"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "468.817601",
+        "base_objects": "501",
+        "density_hash": "6115387464680252147",
+        "draws": "503",
+        "vertices": "300000",
+        "triangles": "148000",
+        "grid_samples": "364500",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "debris-500-8-0-dynamic-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "debris",
+        "500",
+        "8",
+        "0",
+        "dynamic",
+        "render",
+        "60",
+        "120"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "470.08282",
+        "base_objects": "501",
+        "density_hash": "6115387464680252147",
+        "draws": "503",
+        "vertices": "300000",
+        "triangles": "148000",
+        "grid_samples": "364500",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "debris-100-16-0-dynamic-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "debris",
+        "100",
+        "16",
+        "0",
+        "dynamic",
+        "render",
+        "60",
+        "120"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "127.082406",
+        "base_objects": "101",
+        "density_hash": "10070931814937091007",
+        "draws": "103",
+        "vertices": "405600",
+        "triangles": "202400",
+        "grid_samples": "491300",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "debris-100-16-0-dynamic-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "debris",
+        "100",
+        "16",
+        "0",
+        "dynamic",
+        "render",
+        "60",
+        "120"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "126.956029",
+        "base_objects": "101",
+        "density_hash": "10070931814937091007",
+        "draws": "103",
+        "vertices": "405600",
+        "triangles": "202400",
+        "grid_samples": "491300",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "debris-100-16-0-dynamic-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "debris",
+        "100",
+        "16",
+        "0",
+        "dynamic",
+        "render",
+        "60",
+        "120"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "132.4269",
+        "base_objects": "101",
+        "density_hash": "10070931814937091007",
+        "draws": "103",
+        "vertices": "405600",
+        "triangles": "202400",
+        "grid_samples": "491300",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "debris-500-16-0-dynamic-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "debris",
+        "500",
+        "16",
+        "0",
+        "dynamic",
+        "render",
+        "60",
+        "120"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "622.248849",
+        "base_objects": "501",
+        "density_hash": "12089784684925813935",
+        "draws": "503",
+        "vertices": "2028000",
+        "triangles": "1012000",
+        "grid_samples": "2456500",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "debris-500-16-0-dynamic-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "debris",
+        "500",
+        "16",
+        "0",
+        "dynamic",
+        "render",
+        "60",
+        "120"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "635.518068",
+        "base_objects": "501",
+        "density_hash": "12089784684925813935",
+        "draws": "503",
+        "vertices": "2028000",
+        "triangles": "1012000",
+        "grid_samples": "2456500",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "debris-500-16-0-dynamic-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "debris",
+        "500",
+        "16",
+        "0",
+        "dynamic",
+        "render",
+        "60",
+        "120"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "623.634273",
+        "base_objects": "501",
+        "density_hash": "12089784684925813935",
+        "draws": "503",
+        "vertices": "2028000",
+        "triangles": "1012000",
+        "grid_samples": "2456500",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "debris-100-24-0-dynamic-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "debris",
+        "100",
+        "24",
+        "0",
+        "dynamic",
+        "render",
+        "60",
+        "120"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "181.811146",
+        "base_objects": "101",
+        "density_hash": "870441661627462431",
+        "draws": "103",
+        "vertices": "1058400",
+        "triangles": "528800",
+        "grid_samples": "1562500",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "debris-100-24-0-dynamic-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "debris",
+        "100",
+        "24",
+        "0",
+        "dynamic",
+        "render",
+        "60",
+        "120"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "189.174405",
+        "base_objects": "101",
+        "density_hash": "870441661627462431",
+        "draws": "103",
+        "vertices": "1058400",
+        "triangles": "528800",
+        "grid_samples": "1562500",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "debris-100-24-0-dynamic-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "debris",
+        "100",
+        "24",
+        "0",
+        "dynamic",
+        "render",
+        "60",
+        "120"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "182.372451",
+        "base_objects": "101",
+        "density_hash": "870441661627462431",
+        "draws": "103",
+        "vertices": "1058400",
+        "triangles": "528800",
+        "grid_samples": "1562500",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "debris-500-24-0-dynamic-render-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "debris",
+        "500",
+        "24",
+        "0",
+        "dynamic",
+        "render",
+        "60",
+        "120"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "890.182779",
+        "base_objects": "501",
+        "density_hash": "10524224746895297359",
+        "draws": "503",
+        "vertices": "5292000",
+        "triangles": "2644000",
+        "grid_samples": "7812500",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "debris-500-24-0-dynamic-render-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "debris",
+        "500",
+        "24",
+        "0",
+        "dynamic",
+        "render",
+        "60",
+        "120"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "891.822159",
+        "base_objects": "501",
+        "density_hash": "10524224746895297359",
+        "draws": "503",
+        "vertices": "5292000",
+        "triangles": "2644000",
+        "grid_samples": "7812500",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "debris-500-24-0-dynamic-render-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "debris",
+        "500",
+        "24",
+        "0",
+        "dynamic",
+        "render",
+        "60",
+        "120"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "892.270453",
+        "base_objects": "501",
+        "density_hash": "10524224746895297359",
+        "draws": "503",
+        "vertices": "5292000",
+        "triangles": "2644000",
+        "grid_samples": "7812500",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "model-cube-1-16-0-mesh-cpu-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "model-cube",
+        "1",
+        "16",
+        "0",
+        "mesh",
+        "cpu",
+        "2",
+        "10"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "3.517681",
+        "base_objects": "2",
+        "density_hash": "5336170221646424767",
+        "vertices": "4056",
+        "triangles": "2024",
+        "grid_samples": "4913",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "model-cube-1-16-0-mesh-cpu-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "model-cube",
+        "1",
+        "16",
+        "0",
+        "mesh",
+        "cpu",
+        "2",
+        "10"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "3.465874",
+        "base_objects": "2",
+        "density_hash": "5336170221646424767",
+        "vertices": "4056",
+        "triangles": "2024",
+        "grid_samples": "4913",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "model-cube-1-16-0-mesh-cpu-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "model-cube",
+        "1",
+        "16",
+        "0",
+        "mesh",
+        "cpu",
+        "2",
+        "10"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "3.756921",
+        "base_objects": "2",
+        "density_hash": "5336170221646424767",
+        "vertices": "4056",
+        "triangles": "2024",
+        "grid_samples": "4913",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "model-cube-1-24-0-mesh-cpu-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "model-cube",
+        "1",
+        "24",
+        "0",
+        "mesh",
+        "cpu",
+        "2",
+        "10"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "5.717696",
+        "base_objects": "2",
+        "density_hash": "14524421287557861785",
+        "vertices": "10584",
+        "triangles": "5288",
+        "grid_samples": "15625",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "model-cube-1-24-0-mesh-cpu-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "model-cube",
+        "1",
+        "24",
+        "0",
+        "mesh",
+        "cpu",
+        "2",
+        "10"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "6.206144",
+        "base_objects": "2",
+        "density_hash": "14524421287557861785",
+        "vertices": "10584",
+        "triangles": "5288",
+        "grid_samples": "15625",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "model-cube-1-24-0-mesh-cpu-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "model-cube",
+        "1",
+        "24",
+        "0",
+        "mesh",
+        "cpu",
+        "2",
+        "10"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "6.044841",
+        "base_objects": "2",
+        "density_hash": "14524421287557861785",
+        "vertices": "10584",
+        "triangles": "5288",
+        "grid_samples": "15625",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "model-cube-1-32-0-mesh-cpu-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "model-cube",
+        "1",
+        "32",
+        "0",
+        "mesh",
+        "cpu",
+        "2",
+        "10"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "10.143494",
+        "base_objects": "2",
+        "density_hash": "10404625408576301526",
+        "vertices": "20184",
+        "triangles": "10088",
+        "grid_samples": "35937",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "model-cube-1-32-0-mesh-cpu-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "model-cube",
+        "1",
+        "32",
+        "0",
+        "mesh",
+        "cpu",
+        "2",
+        "10"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "10.323973",
+        "base_objects": "2",
+        "density_hash": "10404625408576301526",
+        "vertices": "20184",
+        "triangles": "10088",
+        "grid_samples": "35937",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "model-cube-1-32-0-mesh-cpu-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "model-cube",
+        "1",
+        "32",
+        "0",
+        "mesh",
+        "cpu",
+        "2",
+        "10"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "9.823333",
+        "base_objects": "2",
+        "density_hash": "10404625408576301526",
+        "vertices": "20184",
+        "triangles": "10088",
+        "grid_samples": "35937",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "model-sphere-1-16-0-mesh-cpu-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "model-sphere",
+        "1",
+        "16",
+        "0",
+        "mesh",
+        "cpu",
+        "2",
+        "10"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "6.971202",
+        "base_objects": "2",
+        "density_hash": "1590422920750997757",
+        "vertices": "3224",
+        "triangles": "1608",
+        "grid_samples": "4913",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "model-sphere-1-16-0-mesh-cpu-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "model-sphere",
+        "1",
+        "16",
+        "0",
+        "mesh",
+        "cpu",
+        "2",
+        "10"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "6.889188",
+        "base_objects": "2",
+        "density_hash": "1590422920750997757",
+        "vertices": "3224",
+        "triangles": "1608",
+        "grid_samples": "4913",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "model-sphere-1-16-0-mesh-cpu-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "model-sphere",
+        "1",
+        "16",
+        "0",
+        "mesh",
+        "cpu",
+        "2",
+        "10"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "6.95426",
+        "base_objects": "2",
+        "density_hash": "1590422920750997757",
+        "vertices": "3224",
+        "triangles": "1608",
+        "grid_samples": "4913",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "model-sphere-1-24-0-mesh-cpu-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "model-sphere",
+        "1",
+        "24",
+        "0",
+        "mesh",
+        "cpu",
+        "2",
+        "10"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "10.89689",
+        "base_objects": "2",
+        "density_hash": "9140108315826305829",
+        "vertices": "8312",
+        "triangles": "4152",
+        "grid_samples": "15625",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "model-sphere-1-24-0-mesh-cpu-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "model-sphere",
+        "1",
+        "24",
+        "0",
+        "mesh",
+        "cpu",
+        "2",
+        "10"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "10.563173",
+        "base_objects": "2",
+        "density_hash": "9140108315826305829",
+        "vertices": "8312",
+        "triangles": "4152",
+        "grid_samples": "15625",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "model-sphere-1-24-0-mesh-cpu-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "model-sphere",
+        "1",
+        "24",
+        "0",
+        "mesh",
+        "cpu",
+        "2",
+        "10"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "10.99779",
+        "base_objects": "2",
+        "density_hash": "9140108315826305829",
+        "vertices": "8312",
+        "triangles": "4152",
+        "grid_samples": "15625",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "model-sphere-1-32-0-mesh-cpu-0",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "model-sphere",
+        "1",
+        "32",
+        "0",
+        "mesh",
+        "cpu",
+        "2",
+        "10"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "16.125026",
+        "base_objects": "2",
+        "density_hash": "5838654840470411097",
+        "vertices": "15704",
+        "triangles": "7848",
+        "grid_samples": "35937",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "model-sphere-1-32-0-mesh-cpu-1",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "model-sphere",
+        "1",
+        "32",
+        "0",
+        "mesh",
+        "cpu",
+        "2",
+        "10"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "16.060605",
+        "base_objects": "2",
+        "density_hash": "5838654840470411097",
+        "vertices": "15704",
+        "triangles": "7848",
+        "grid_samples": "35937",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "model-sphere-1-32-0-mesh-cpu-2",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "model-sphere",
+        "1",
+        "32",
+        "0",
+        "mesh",
+        "cpu",
+        "2",
+        "10"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "15.883472",
+        "base_objects": "2",
+        "density_hash": "5838654840470411097",
+        "vertices": "15704",
+        "triangles": "7848",
+        "grid_samples": "35937",
+        "changed_carves": "0",
+        "spawned_fragments": "0",
+        "peak_objects": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shots-1-24-1-mesh-cpu-0-profile",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "shots",
+        "1",
+        "24",
+        "1",
+        "mesh",
+        "cpu",
+        "8",
+        "40",
+        "Benchmarks/results/voxel-62f33b0-20261030/shots-1-24-1-mesh-cpu-0-profile.tprofile"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "3.913716",
+        "base_objects": "2",
+        "density_hash": "7126507992411718263",
+        "vertices": "10696",
+        "triangles": "5344",
+        "grid_samples": "15625",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "blast-16-24-16-mesh-cpu-0-profile",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "blast",
+        "16",
+        "24",
+        "16",
+        "mesh",
+        "cpu",
+        "8",
+        "40",
+        "Benchmarks/results/voxel-62f33b0-20261030/blast-16-24-16-mesh-cpu-0-profile.tprofile"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "45.438119",
+        "base_objects": "17",
+        "density_hash": "12142487451123575203",
+        "vertices": "201856",
+        "triangles": "100864",
+        "grid_samples": "250000",
+        "changed_carves": "768",
+        "spawned_fragments": "0",
+        "peak_objects": "17",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "split-1-24-1-mesh-cpu-0-profile",
+      "args": [
+        "Benchmarks/voxel/build/Release_Linux64/Benchmark/Benchmark",
+        "split",
+        "1",
+        "24",
+        "1",
+        "mesh",
+        "cpu",
+        "8",
+        "40",
+        "Benchmarks/results/voxel-62f33b0-20261030/split-1-24-1-mesh-cpu-0-profile.tprofile"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.533021",
+        "base_objects": "2",
+        "density_hash": "5239407761888020579",
+        "vertices": "1176",
+        "triangles": "584",
+        "grid_samples": "15625",
+        "changed_carves": "48",
+        "spawned_fragments": "48",
+        "peak_objects": "3",
+        "checksum": "0",
+        "valid": "True"
+      }
+    }
+  ],
+  "finished": "2026-10-29T20:10:40.203897",
+  "command_cwd": "repository root"
+}

@@ -1,0 +1,1343 @@
+{
+  "archive": "raw-data.tar.gz",
+  "bytes": 388506,
+  "sha256": "cb7f11b14a03df6b21866fe6e53d98351ed2a4e9e55abfd2066f5bb4cf88c05f",
+  "files": [
+    {
+      "path": "shots-1-48-1-mesh-cpu-0.log",
+      "bytes": 2256,
+      "sha256": "25aa7d05345a56128563f97b2dab4a33eb3a04e6056267141e46c7be376ab6f5"
+    },
+    {
+      "path": "idle-100-48-0-mesh-render-2.log",
+      "bytes": 6624,
+      "sha256": "7f6e6e0aa7f7d6de0e789bb009544f25a4601ab74a0a0db8bddacd6add0d6855"
+    },
+    {
+      "path": "blast-1-24-1-mesh-render-0.log",
+      "bytes": 2965,
+      "sha256": "e1189135ee7a187ca9f1ab88db66ab76283edb27e399eea7ced1c4bee7c5f01e"
+    },
+    {
+      "path": "slab-1-48-1-mesh-render-1.log",
+      "bytes": 2973,
+      "sha256": "a56afda52bfe6b08d9a673c079543a0042f73a6d85bf8fff27acae8ec3d6b0b0"
+    },
+    {
+      "path": "debris-500-16-0-dynamic-render-2.log",
+      "bytes": 8199,
+      "sha256": "23e196b1fb572aa81d855b398f1a4db332b9c369d4879fc59670ed4f6c7e2eb0"
+    },
+    {
+      "path": "blast-4-16-4-mesh-render-2.log",
+      "bytes": 2981,
+      "sha256": "af60a51efa41b17c65d1cc504af41f796cc61b339357e7ff90c557349cbaf625"
+    },
+    {
+      "path": "native-configure.log",
+      "bytes": 28529,
+      "sha256": "47e44014d683a105a782081673a996346f7b780c759e83e7a0b18bd083b6e25a"
+    },
+    {
+      "path": "idle-500-24-0-mesh-render-1.log",
+      "bytes": 6606,
+      "sha256": "053dabdbd4d8e9fb0686416626c65a1e20ea71331cd81be831542f037fd34029"
+    },
+    {
+      "path": "shots-1-16-1-dynamic-cpu-2.log",
+      "bytes": 2140,
+      "sha256": "3dd0b1c84e1b7d929f5b64b20555f57686e9b7181948b7e1807cf4d4f41e96a7"
+    },
+    {
+      "path": "burst-1-32-16-mesh-render-1.log",
+      "bytes": 3134,
+      "sha256": "45ab70ad5d20ce69c592e9bd23c473ee8687459c39a9b1f65edc2a490450a37c"
+    },
+    {
+      "path": "shots-1-48-1-none-cpu-1.log",
+      "bytes": 2146,
+      "sha256": "c1db5ef4dd0c523f0daa86971107a545018a7bed6ce273a1391bb55c30b3563f"
+    },
+    {
+      "path": "blast-1-32-1-mesh-render-0.log",
+      "bytes": 2963,
+      "sha256": "0cd53ed44d10c2cf3379a75e14905db6fea722dda718f6cfb87a04b0b48e1cf4"
+    },
+    {
+      "path": "slab-1-24-1-mesh-render-1.log",
+      "bytes": 2973,
+      "sha256": "ab6e5cd139c570ac44476b4a18ef5447f8003444f25a6b273c312aab29eb5433"
+    },
+    {
+      "path": "burst-1-16-16-mesh-render-1.log",
+      "bytes": 3121,
+      "sha256": "abe6c2732eda9afcbc997ec4b6a2153cb41eb5e6fbafa3e71499406541ed1b6e"
+    },
+    {
+      "path": "slab-1-16-1-mesh-render-1.log",
+      "bytes": 2967,
+      "sha256": "bafeb9b6f7f5ee2b1476bfb5516aceff8578833e6c68fca29b0be523372543e5"
+    },
+    {
+      "path": "debris-500-16-0-dynamic-render-0.log",
+      "bytes": 8231,
+      "sha256": "875d1e3898a7fb3fc38bf2f28fb8a757055dd9389574ef5f80cc2876190586eb"
+    },
+    {
+      "path": "idle-100-16-0-mesh-render-1.log",
+      "bytes": 6621,
+      "sha256": "619d2a0d29f3d9042f74a000bd50d8d7cb64d109f72eb267aec204b930d37b3e"
+    },
+    {
+      "path": "burst-1-24-16-mesh-render-1.log",
+      "bytes": 3144,
+      "sha256": "819b2b0ea19d82a6d963bf87195e17a8cda25bd8d4b3f8372d5ba9edd0b7a8cb"
+    },
+    {
+      "path": "batch-1-32-16-mesh-render-1.log",
+      "bytes": 3014,
+      "sha256": "2555fc67b15e94d32bbda6f5ca9e444cff0e9d123c51f5073401bc7863fe381b"
+    },
+    {
+      "path": "blast-16-24-16-mesh-render-2.log",
+      "bytes": 3147,
+      "sha256": "3ed6dd9cc88f84769b12ae511a9d35375abe4dc5404a7bf208064f16127b7d48"
+    },
+    {
+      "path": "batch-1-24-4-mesh-render-2.log",
+      "bytes": 2969,
+      "sha256": "93f1e6db4ff8b4f43c96f63e35050a9f8e63232707b8056c451b129cb6391684"
+    },
+    {
+      "path": "idle-500-32-0-mesh-render-1.log",
+      "bytes": 6677,
+      "sha256": "e9c90e4e8c8f4ead0ee0e2cc297a58885433bbba59830c7842bf60d9945736d6"
+    },
+    {
+      "path": "model-sphere-1-32-0-mesh-cpu-2.log",
+      "bytes": 711,
+      "sha256": "b9759162877350adc7f63d440314611e4f512c110e12676bc4e7cd294c79e7aa"
+    },
+    {
+      "path": "batch-1-24-4-mesh-render-1.log",
+      "bytes": 2958,
+      "sha256": "db1157e2fd64f663b8cb94dcbf227e02c1913baed2a4663c67c373d115fddd18"
+    },
+    {
+      "path": "shots-1-32-1-mesh-render-1.log",
+      "bytes": 2968,
+      "sha256": "89a444f98c938695cd01d62006f3adc6197e2f9c1503565cdac6326a3825c25a"
+    },
+    {
+      "path": "split-1-16-1-mesh-cpu-0.log",
+      "bytes": 414,
+      "sha256": "5a50ce95b85ed61f3682c9a57302c6fc2079a05f4759f8db1adf85b102ab02db"
+    },
+    {
+      "path": "idle-500-32-0-mesh-render-2.log",
+      "bytes": 6683,
+      "sha256": "13a7ccc56a6a4b178d8095fc4c5d5d823a1bd20e1d128f59baacdc9c51b1fcef"
+    },
+    {
+      "path": "shared-500-24-0-mesh-render-2.log",
+      "bytes": 6617,
+      "sha256": "a4ef1a4094f8be97552125771a8fe953a710a40d592768bade55d83ce611c58b"
+    },
+    {
+      "path": "shots-1-48-1-dynamic-cpu-1.log",
+      "bytes": 2156,
+      "sha256": "d4e9aff96c6dbb6fa3a6454346a5b25da1e5b15705c928cb4bdbb869c7af6a0d"
+    },
+    {
+      "path": "idle-1000-24-0-mesh-render-2.log",
+      "bytes": 6640,
+      "sha256": "ba7e7043af49954508ceeda58fbc2b0db4769930aba71f228e88ce8c6f0a3f43"
+    },
+    {
+      "path": "split-4-24-4-mesh-render-2.log",
+      "bytes": 2979,
+      "sha256": "894ff13c46b94763028fc0d4f22d7015e3d7d10e1aad09007c1ce6796f9c6fca"
+    },
+    {
+      "path": "blast-1-32-1-mesh-render-2.log",
+      "bytes": 2964,
+      "sha256": "042f5446eb8d4fe3ab4c7b152b22bbd8bee9abadc129d4b232f29e733b0ddacc"
+    },
+    {
+      "path": "shots-1-48-1-mesh-cpu-2.log",
+      "bytes": 2259,
+      "sha256": "2267d56063d50aff15696869da356a22b0384777dac5a46e15f2b083fab4a802"
+    },
+    {
+      "path": "slab-1-8-1-mesh-render-1.log",
+      "bytes": 2956,
+      "sha256": "1dbfa5730f0ec7e9ad5c2ed11183211b3eedb645026d5f9b62871e571830788f"
+    },
+    {
+      "path": "rays-500-24-0-mesh-cpu-1.log",
+      "bytes": 4093,
+      "sha256": "ebc6b4259c71687f6ef549827ec20658382ca97fa010b610a630bfb4e640b9f5"
+    },
+    {
+      "path": "shots-1-24-1-mesh-cpu-0-profile.tprofile",
+      "bytes": 54923,
+      "sha256": "cdfd0daa8710cc6f63a9c16bf771ed4e10f1dd96fbeb9598b025aea48552331c"
+    },
+    {
+      "path": "slab-1-16-1-mesh-render-2.log",
+      "bytes": 2965,
+      "sha256": "4f8261909c68e7b2f4948079feec85619ab9531f122543e83eab5df370d745e1"
+    },
+    {
+      "path": "model-sphere-1-24-0-mesh-cpu-1.log",
+      "bytes": 711,
+      "sha256": "5edda47115e037bd22f4bca07e3e1420b2b14523b3af29ccc89377d665c9cbd3"
+    },
+    {
+      "path": "model-sphere-1-16-0-mesh-cpu-1.log",
+      "bytes": 707,
+      "sha256": "a42236c42c380ffd04843085a2f7895fd333c3220fc4d57d5b5d32295ee3c001"
+    },
+    {
+      "path": "batch-1-24-16-mesh-render-0.log",
+      "bytes": 3007,
+      "sha256": "350d0f2e7d8b6cfa6a5686148bbead5298dd8b7254d119323ac03db693f46cf2"
+    },
+    {
+      "path": "shots-1-32-1-none-cpu-2.log",
+      "bytes": 2145,
+      "sha256": "00cce2e71a3573d0642d5cf4a1746751ea378abb0f6168a082ff961d5328286f"
+    },
+    {
+      "path": "burst-1-16-4-mesh-render-0.log",
+      "bytes": 2980,
+      "sha256": "d1b58cb517a34e5189785016244f46ed46f4829118d24ca975fdcb03bfa874d7"
+    },
+    {
+      "path": "slab-1-48-1-mesh-render-2.log",
+      "bytes": 2974,
+      "sha256": "3e28380bddf4a30aea29063acf8e3688364ea063825aa87c1e77f7cb0516819f"
+    },
+    {
+      "path": "idle-1000-16-0-mesh-render-0.log",
+      "bytes": 6631,
+      "sha256": "f1666181a24658cd3251755aefe38213f69cc14f4e471e19de8faaeb417d84fd"
+    },
+    {
+      "path": "idle-100-24-0-mesh-hq-0.log",
+      "bytes": 6624,
+      "sha256": "4661ca77953621711372214010ded9604379599a2a62dc79df6a3393d85378a0"
+    },
+    {
+      "path": "burst-1-16-16-mesh-render-0.log",
+      "bytes": 3123,
+      "sha256": "ce31abe21c291292038de484b16e127414bcbed7648697099f715f8185e75af4"
+    },
+    {
+      "path": "shots-1-16-1-mesh-cpu-0.log",
+      "bytes": 2162,
+      "sha256": "16206a74b40ad9ae2ab7805961d80fc2c145663e9411fa9246ae631c492c3e9d"
+    },
+    {
+      "path": "split-1-24-1-mesh-cpu-0-profile.log",
+      "bytes": 2170,
+      "sha256": "683124523c9bb80c6df5a92e72de375ae580e94be7f6c76c0a32ece9c8070678"
+    },
+    {
+      "path": "shared-100-16-0-mesh-render-0.log",
+      "bytes": 6673,
+      "sha256": "a16ea8e403e31ba7b59cf2d72094f4944edf0c117b7a02fc78bb41b614b1741a"
+    },
+    {
+      "path": "batch-1-32-16-mesh-render-2.log",
+      "bytes": 3018,
+      "sha256": "223371bcc2c0e7338cbab06341503cd2008bdcea929dd7861857a1ef50926dc1"
+    },
+    {
+      "path": "idle-500-24-0-mesh-hq-0.log",
+      "bytes": 6635,
+      "sha256": "4f91389cad6c1f25d56645356bbbec7509ad2e42a17851b42350da6ec6276768"
+    },
+    {
+      "path": "idle-100-48-0-mesh-render-1.log",
+      "bytes": 6681,
+      "sha256": "99015dabe23b92899a15972adbcf3a0d644e8dc3f82baf92acf5ac7ffd4c0af3"
+    },
+    {
+      "path": "shots-1-24-1-none-cpu-2.log",
+      "bytes": 2150,
+      "sha256": "512360a951e5880402c9e2cf02850a1e048667e0a082a99698bd776b8e65559d"
+    },
+    {
+      "path": "burst-1-16-4-mesh-render-1.log",
+      "bytes": 2958,
+      "sha256": "ae453b0b8752de4db8105779a50d62f6fb1a2e7023339554dc82b3502da1be6d"
+    },
+    {
+      "path": "shots-split-1-48-1-mesh-cpu-2.log",
+      "bytes": 2258,
+      "sha256": "ef60652198ada7c2c2ab6fcf91d0b81429f22d6aa200adeab7978553764153d4"
+    },
+    {
+      "path": "model-sphere-1-24-0-mesh-cpu-2.log",
+      "bytes": 708,
+      "sha256": "7729bfb7a9498f3900804d39584e3c04daa7112d4edd4ab6d2c4954e70b8600c"
+    },
+    {
+      "path": "rays-500-24-0-mesh-cpu-2.log",
+      "bytes": 4114,
+      "sha256": "ae04414febfc2c7c673652be08ff22d8a0697f65458d6cc5d0fbe8c1d6dc3f32"
+    },
+    {
+      "path": "model-cube-1-32-0-mesh-cpu-0.log",
+      "bytes": 712,
+      "sha256": "72c5e34e7ed3918d3d16296f12f63a53ce9c5a187f60868f3874a742e98baacc"
+    },
+    {
+      "path": "smoke-render.log",
+      "bytes": 664,
+      "sha256": "6df20836c5270b0d3778fd880d50fc8513851fc4186628758e71b76c73b8c949"
+    },
+    {
+      "path": "shots-1-16-1-mesh-render-0.log",
+      "bytes": 2967,
+      "sha256": "4f0f334e310b3180afb372f34ccea559865b43d3e696262e2c5898a6dd343b5c"
+    },
+    {
+      "path": "shots-1-32-1-mesh-cpu-0.log",
+      "bytes": 2173,
+      "sha256": "331d044c7798538ebd76dc6425b22e65d3ac904a1b99f7c0b9496d90a3adf1c7"
+    },
+    {
+      "path": "rays-100-24-0-mesh-cpu-2.log",
+      "bytes": 4086,
+      "sha256": "0dc6edd137195402081726fe0638fde18c22d54075446584ff3fb96a2871584f"
+    },
+    {
+      "path": "shared-1000-16-0-mesh-render-2.log",
+      "bytes": 6581,
+      "sha256": "6fbe5c1f5fc7a02b19c22fa6bd6f10d63358a3634cd4784e4de1251deb8b70ba"
+    },
+    {
+      "path": "idle-500-24-0-mesh-render-0.log",
+      "bytes": 6610,
+      "sha256": "20963401b65f2d02becd87df1aa54260cbee1cef0389666f9f6322a71c8a2e93"
+    },
+    {
+      "path": "split-1-24-1-mesh-render-2.log",
+      "bytes": 2979,
+      "sha256": "7f312191d4743d9176055eaaa6bdbec74ae3793b57c180ddf546ab871afbb4a4"
+    },
+    {
+      "path": "shared-500-24-0-mesh-hq-0.log",
+      "bytes": 6726,
+      "sha256": "b9ced0abddd91cccd17b4c8c5df9039553064692a66cd9e487fb0472e3f3b2a1"
+    },
+    {
+      "path": "burst-1-32-16-mesh-render-0.log",
+      "bytes": 3139,
+      "sha256": "d15b9dca263673e8702d5dc2fcfc5b662796e68883ad63862b317ea7e5f6f368"
+    },
+    {
+      "path": "idle-1000-16-0-mesh-render-2.log",
+      "bytes": 6680,
+      "sha256": "c0e550f1edf1b576851abae86bb8bfc1724b6677f3b2c059079b7d99d49546e3"
+    },
+    {
+      "path": "blast-16-32-16-mesh-render-0.log",
+      "bytes": 3148,
+      "sha256": "f7b6dd424adc99ae6714b5b7c901c1db5aa94ee143d3dcd8d38d2b4da0607f16"
+    },
+    {
+      "path": "shots-1-32-1-dynamic-cpu-0.log",
+      "bytes": 2161,
+      "sha256": "72d08865b403200bc3dc74f7c3805fe5c9a6976ae8cf73ca01d95c342dda07b7"
+    },
+    {
+      "path": "blast-1-16-1-mesh-render-2.log",
+      "bytes": 2970,
+      "sha256": "abd23d4b0c36c149502a73b42908b9574aee3e7c4e3b9666aa8583bb985c15b6"
+    },
+    {
+      "path": "split-4-24-4-mesh-render-1.log",
+      "bytes": 2992,
+      "sha256": "5dcae7c22bc6c116f5ff94f775fc33fca048e108b716fc5dcfeabc733d643919"
+    },
+    {
+      "path": "shots-1-24-1-none-cpu-0.log",
+      "bytes": 2147,
+      "sha256": "b70d6cf61bfcba3e756763da6ca0785644e3dd444f94e8f3fc9e786d19b52c6f"
+    },
+    {
+      "path": "slab-1-32-1-mesh-render-1.log",
+      "bytes": 2961,
+      "sha256": "a8330275bf56e2fc28a1550e440ec1bd1960df376557918b1da2968b0117de5f"
+    },
+    {
+      "path": "burst-1-32-4-mesh-render-2.log",
+      "bytes": 3091,
+      "sha256": "acfe4ef3ac02e923aadbd2ca61d782c41bf9b2f01fdbb4a7e365c8c5bf376702"
+    },
+    {
+      "path": "idle-100-32-0-mesh-render-2.log",
+      "bytes": 6642,
+      "sha256": "00bebdfaef7fa361659e4567aef1eecb6f49910abe9b3488a2eaf4a0266bd32b"
+    },
+    {
+      "path": "shared-500-24-0-mesh-hq-1.log",
+      "bytes": 6717,
+      "sha256": "7515958d9a787768108ab86ea1d94d832a221ca5373b6868a263a08b14ede06e"
+    },
+    {
+      "path": "debris-100-24-0-dynamic-render-1.log",
+      "bytes": 8268,
+      "sha256": "ab32449b0d0a81854b315b7a208ec8e16aec98dee0ad710fd2ffb57824b0ec8c"
+    },
+    {
+      "path": "shots-split-1-24-1-mesh-cpu-1.log",
+      "bytes": 2170,
+      "sha256": "8d1bbab31955787476e2b901115378d27e152feea564c30a8ca674e8a739ea4c"
+    },
+    {
+      "path": "blast-16-24-16-mesh-render-1.log",
+      "bytes": 3154,
+      "sha256": "d57ea60129930429edf48a78129c8a62a3d235f59f017307e69da0a828ef04c7"
+    },
+    {
+      "path": "blast-16-32-16-mesh-render-1.log",
+      "bytes": 3132,
+      "sha256": "d258f64a2b02f3a5d6322b482e0183d3c67328e30cba8eca9a8de31dcfd2177b"
+    },
+    {
+      "path": "shots-1-24-1-mesh-cpu-1.log",
+      "bytes": 2163,
+      "sha256": "665dc2cc43e05e6492d2a671d6fc80afba1799bd5d1150a8089d6bd78d116628"
+    },
+    {
+      "path": "blast-16-16-16-mesh-render-2.log",
+      "bytes": 3142,
+      "sha256": "e582a1a0d986c0ab36548d1578a6ce3d8284d44da40d35f9ee0976b0b882d2df"
+    },
+    {
+      "path": "rays-100-24-0-mesh-cpu-1.log",
+      "bytes": 4099,
+      "sha256": "b0aa9a0064ec0b7c0579510bfdbcc7d22a12b06e3ab6299a055a0142faceab78"
+    },
+    {
+      "path": "shared-1000-24-0-mesh-render-0.log",
+      "bytes": 6747,
+      "sha256": "949d43870b206ef6a8ce2482b5b7f25fc282f509546844d0f5f5dddd801b03ac"
+    },
+    {
+      "path": "blast-16-16-16-mesh-render-0.log",
+      "bytes": 3144,
+      "sha256": "40646077b69cd4f6e4593d24f60b331028d84e9bf149c600dab8ce09b39903ab"
+    },
+    {
+      "path": "shots-1-8-1-mesh-cpu-0.log",
+      "bytes": 2159,
+      "sha256": "460562ede5d6b8e524342c1458440eeee24a7312a5e0e0b3dd9845d2d8235606"
+    },
+    {
+      "path": "blast-16-24-16-mesh-cpu-0-profile.log",
+      "bytes": 2310,
+      "sha256": "86144fe476b5d4c43314fe13399d95a38e4905ad4d034cdc3c515da6166e7ced"
+    },
+    {
+      "path": "rays-1000-24-0-mesh-cpu-0.log",
+      "bytes": 4092,
+      "sha256": "c0d6e634d77217a344eaeda180ee24ec4cc44b32aa651d265f63b0c2c1fb80fe"
+    },
+    {
+      "path": "shots-split-1-24-1-mesh-cpu-2.log",
+      "bytes": 2170,
+      "sha256": "148b5c815bee9b9097fd87e4201b368b54fab1bebd0b3de15635aed0c02dfa4e"
+    },
+    {
+      "path": "shared-500-24-0-mesh-hq-2.log",
+      "bytes": 6741,
+      "sha256": "056eb1aad627734d2bc7f600a2a3ec80ca7ba8e75d0e6bbfe56781821b70e068"
+    },
+    {
+      "path": "shots-1-24-1-mesh-render-2.log",
+      "bytes": 2960,
+      "sha256": "cf0cfa15efcb27c059fbe36a5272fed921598a5b9d38bf64be29fbd172b9a55c"
+    },
+    {
+      "path": "blast-4-24-4-mesh-render-1.log",
+      "bytes": 2983,
+      "sha256": "d1bfa7d1820ddcd0a6f3d53675413e2a4d82a16a6eddd6e0a833a0f3060e4705"
+    },
+    {
+      "path": "shots-1-16-1-none-cpu-1.log",
+      "bytes": 2133,
+      "sha256": "3275a6b56df7cdef46d12aa40d02b8222626412f0a4f48998c30d9ffacf00e89"
+    },
+    {
+      "path": "slab-1-24-1-mesh-render-0.log",
+      "bytes": 2971,
+      "sha256": "926734242f6dbd891d4dfa292b604235c68763a3b427e1bf94041e5afbe73aa0"
+    },
+    {
+      "path": "rays-1000-24-0-mesh-cpu-2.log",
+      "bytes": 4094,
+      "sha256": "66a731770040ba71aba748970603af203f95eed963dac7c2a876c8856ebd2382"
+    },
+    {
+      "path": "shots-1-24-1-mesh-render-1.log",
+      "bytes": 2961,
+      "sha256": "6f214c8f70277b93d5a6ab48d292d89bf92a3f84d4dab22c49ef7c9cd958bfe1"
+    },
+    {
+      "path": "shared-100-16-0-mesh-render-2.log",
+      "bytes": 6666,
+      "sha256": "c686e6cccfc173cad1c3900e2df40503dfbea98f7d28b7e7c030c023d1c03b40"
+    },
+    {
+      "path": "rays-500-24-0-mesh-cpu-0.log",
+      "bytes": 4112,
+      "sha256": "6438065c2f1960710d0c3903855f0059025b2458aab1dc2c60cd675e7f5c9788"
+    },
+    {
+      "path": "shots-1-48-1-none-cpu-2.log",
+      "bytes": 2151,
+      "sha256": "b7f1eab5b2cccfd98c721c816e3ddfd2c1295d373b4d18965ddd584398a07637"
+    },
+    {
+      "path": "shots-1-24-1-dynamic-cpu-1.log",
+      "bytes": 2157,
+      "sha256": "73a86d52807ec0220c93f60f5da9c92b5218eea2679f5193258a56dc0de4cc49"
+    },
+    {
+      "path": "split-1-24-1-mesh-cpu-0-profile.tprofile",
+      "bytes": 82075,
+      "sha256": "a24a3880a371beeb8f6c0527edf0cddd56f620d8a382a9ff3238ecd761abcd89"
+    },
+    {
+      "path": "shared-500-24-0-mesh-render-0.log",
+      "bytes": 6689,
+      "sha256": "2e2a78e556cb74d2f9289dab74360efacbea55637d99de1857acf1b28aefff4c"
+    },
+    {
+      "path": "blast-1-24-1-mesh-render-1.log",
+      "bytes": 2966,
+      "sha256": "a0042fa4ef1d8627df150875f8e5a2d3c5ba6adbfbcaf9992c122c0a0a463132"
+    },
+    {
+      "path": "idle-1000-24-0-mesh-render-0.log",
+      "bytes": 6668,
+      "sha256": "5cb613e1b19a7c6464f7f92e8d06bd5202b8b39ef8f69d15cde8026794bb1cf1"
+    },
+    {
+      "path": "idle-100-48-0-mesh-render-0.log",
+      "bytes": 6633,
+      "sha256": "f70c3d52864c26d909b86019c7e4e9d4284607b3802fc248d86683b902ab1418"
+    },
+    {
+      "path": "slab-1-8-1-mesh-render-2.log",
+      "bytes": 2956,
+      "sha256": "53af0b9d5b4bc23c0a76bc83dc4b1b72f4e95967ec026fc3c4dc91ee84807479"
+    },
+    {
+      "path": "blast-4-32-4-mesh-render-0.log",
+      "bytes": 3104,
+      "sha256": "dd09eb63dabf6df63bfa3dcc90bc030917144981ff4252a9bc4a26fb987f85e9"
+    },
+    {
+      "path": "shots-1-48-1-mesh-cpu-1.log",
+      "bytes": 2257,
+      "sha256": "86fc9d5310798ec1b8e39140f9f9dc0bbfe4ce545e5773fcb2997346f6f7cb36"
+    },
+    {
+      "path": "shots-1-24-1-mesh-render-0.log",
+      "bytes": 2961,
+      "sha256": "17aee8dfe8b39f6b4729da53c4a27c5c4594e684552359752624d9e6006d8b58"
+    },
+    {
+      "path": "idle-500-24-0-mesh-hq-2.log",
+      "bytes": 6636,
+      "sha256": "9759af402142341aca9a48da7ee25ca36870167641063921973f3f045df00927"
+    },
+    {
+      "path": "shared-1000-16-0-mesh-render-0.log",
+      "bytes": 6652,
+      "sha256": "36f4bc6177ff4227817c64ee765c187c6930907d30a5c0f681791124e4a2e60f"
+    },
+    {
+      "path": "shared-1000-24-0-mesh-render-1.log",
+      "bytes": 6681,
+      "sha256": "5e0a90cc11a38bf34268866712018b9ee5abf5bbdd76fc15c745b6e2b51ebcd4"
+    },
+    {
+      "path": "batch-1-32-16-mesh-render-0.log",
+      "bytes": 3007,
+      "sha256": "8ae5abf3771a2b774cf8178dd746aa85aaac371bb6bd1c4ea81374270435771c"
+    },
+    {
+      "path": "slab-1-32-1-mesh-render-0.log",
+      "bytes": 2959,
+      "sha256": "fad6932b507287bc96ac8ffc5609e097779f8db0f1038047226bdd921ab9ac5d"
+    },
+    {
+      "path": "shots-1-32-1-mesh-render-2.log",
+      "bytes": 2968,
+      "sha256": "1a668bc9092d0123837d751f118312cdaa317dfadd863ad31e076343bdbc498b"
+    },
+    {
+      "path": "shots-1-8-1-dynamic-cpu-0.log",
+      "bytes": 2145,
+      "sha256": "e6d0efb653eb455d5ccdb841eda1dcf835679a18bc9b965872f98a5368611c29"
+    },
+    {
+      "path": "shared-500-16-0-mesh-render-0.log",
+      "bytes": 6609,
+      "sha256": "a67d79ab3cf331730aa97238ba51ea0e8393dc808c0db6c8af053113f80cade1"
+    },
+    {
+      "path": "split-16-24-16-mesh-render-1.log",
+      "bytes": 3148,
+      "sha256": "e8b29dd89dfb632246b4ee568a4f909926af11d9bbd22211cd7b091db7c5b482"
+    },
+    {
+      "path": "shots-split-1-16-1-mesh-cpu-0.log",
+      "bytes": 2171,
+      "sha256": "3b138d7fd2e9480bed0eac20c98e50a7e031917c9811f7cd1b7e1e31d1872b69"
+    },
+    {
+      "path": "split-1-24-1-mesh-cpu-0-profile.tprofile.md",
+      "bytes": 5251,
+      "sha256": "20ac1762b9d73515db316e885217e73882b7b220ead006677cf603c5b454b543"
+    },
+    {
+      "path": "shared-500-16-0-mesh-render-1.log",
+      "bytes": 6636,
+      "sha256": "ba8646ee15cbd8e003d948bd14ec3831fab429a8817b0901f8733a14d9d5c21b"
+    },
+    {
+      "path": "blast-1-32-1-mesh-render-1.log",
+      "bytes": 2971,
+      "sha256": "98112545a4f7d911fa9b5e2e5e482488514c715360009cb22b1236fd8f55f9a8"
+    },
+    {
+      "path": "shared-100-24-0-mesh-render-0.log",
+      "bytes": 6671,
+      "sha256": "71dd9ec31a2882efe8279bb39de798bcefcc0d042e4fca6bdec0b560830289a6"
+    },
+    {
+      "path": "debris-100-16-0-dynamic-render-2.log",
+      "bytes": 8283,
+      "sha256": "6ce678b42183912a384ad4094bb3a6b749e2636ce85f46a39eb8e28609cd4f76"
+    },
+    {
+      "path": "shots-1-32-1-mesh-cpu-1.log",
+      "bytes": 2169,
+      "sha256": "8397edb887ff1e96dbe714cf69c13d53e7b0ec8fca3c202223f083ce30fcf2c9"
+    },
+    {
+      "path": "shots-1-48-1-mesh-render-1.log",
+      "bytes": 3105,
+      "sha256": "c6eb2c1fb6fa85df355ebd492e6991b2d97ac42d398131e71868b225b55e7d2b"
+    },
+    {
+      "path": "debris-500-8-0-dynamic-render-2.log",
+      "bytes": 8245,
+      "sha256": "2c1f817f3113fa6b1ef4a88874636479cbc0a6162b73e49c393960954c32231d"
+    },
+    {
+      "path": "shots-1-32-1-none-cpu-1.log",
+      "bytes": 2152,
+      "sha256": "191016d0fdc70d53e019c754433601c094586a93e9944177400849edaea07e39"
+    },
+    {
+      "path": "burst-1-24-4-mesh-render-1.log",
+      "bytes": 2966,
+      "sha256": "72d7e58caba27fe0fc6479b4b5221f38ab9e5ebb115f1a660c7dc2d0dc27bbce"
+    },
+    {
+      "path": "batch-1-16-16-mesh-render-1.log",
+      "bytes": 3009,
+      "sha256": "365c36cf095221eb2f4a69421b375c7820faa28676c656f29f415082efd9144f"
+    },
+    {
+      "path": "shots-split-1-32-1-mesh-cpu-2.log",
+      "bytes": 2179,
+      "sha256": "757322a870db63e2792b1f88ef6a7d1d7f446e563a652d35c54eaf3a9ea10e61"
+    },
+    {
+      "path": "shots-1-8-1-none-cpu-0.log",
+      "bytes": 2153,
+      "sha256": "d3d5ce2379cdab2fd006f0bac406c430f62de016507cb534661b2df6d43a4465"
+    },
+    {
+      "path": "shots-split-1-16-1-mesh-cpu-1.log",
+      "bytes": 2156,
+      "sha256": "6c272a848aff13df6fcf4f37c2ab8f1e5a2135a1bfc4400504179221dde0417d"
+    },
+    {
+      "path": "shared-1000-16-0-mesh-render-1.log",
+      "bytes": 6629,
+      "sha256": "2bdd3762013a90eeaae1cb5c6d7be9775110bdc8f3dfb17f948c37e4ed6782e4"
+    },
+    {
+      "path": "shared-100-24-0-mesh-render-1.log",
+      "bytes": 6671,
+      "sha256": "f48ca0ecb34879fe9dd11e777841b3447983196ee95a8356a3b79432943501dc"
+    },
+    {
+      "path": "shared-100-24-0-mesh-render-2.log",
+      "bytes": 6679,
+      "sha256": "170afcb988b9d66ab34eb5234f5264781a76347839243bc6f857e16a78c5f8b1"
+    },
+    {
+      "path": "blast-1-24-1-mesh-render-2.log",
+      "bytes": 2961,
+      "sha256": "52cf80e20fc398fc1b837497021b8618fd87834d0f5dd4e352649820dacab419"
+    },
+    {
+      "path": "blast-4-32-4-mesh-render-1.log",
+      "bytes": 3101,
+      "sha256": "8117a55c91ab81345a83ccd7d6b258776e7ddf7a1ba4af916e66d2a40b55629f"
+    },
+    {
+      "path": "slab-visual-check.log",
+      "bytes": 665,
+      "sha256": "b36642cb32ba6dfa3eaa6bc4f565acfd8010b03af34dccc58494dd81b0b10b8e"
+    },
+    {
+      "path": "shots-1-24-1-mesh-cpu-0-profile.tprofile.md",
+      "bytes": 4247,
+      "sha256": "77bf3dd23414355c759b2765ded6956ec8c473759679d6fc2137aba3253c499a"
+    },
+    {
+      "path": "blast-1-16-1-mesh-render-1.log",
+      "bytes": 2969,
+      "sha256": "9b2150f2ae008d17b443780dc1a5e5325fcdfa40b20464091f62b916b9ac1920"
+    },
+    {
+      "path": "debris-100-16-0-dynamic-render-0.log",
+      "bytes": 8280,
+      "sha256": "4ab5f0accb85dd457c61469de7597b29e862032889db857d656a36664c2443b6"
+    },
+    {
+      "path": "shared-500-16-0-mesh-render-2.log",
+      "bytes": 6658,
+      "sha256": "13bb48c5ab3126927140eed167a03fa306e05f3e93ac8525b95972040a56eda7"
+    },
+    {
+      "path": "shots-1-24-1-mesh-cpu-0.log",
+      "bytes": 2170,
+      "sha256": "f090aa053ca7948b30755f0eb03b8bc30565fccde44d99f9aa639cbbce1c059a"
+    },
+    {
+      "path": "idle-100-24-0-mesh-render-0.log",
+      "bytes": 6655,
+      "sha256": "d4d0de7eac7a77e00f960e85154a776fc18c2214ca7725a841ae968839df0d91"
+    },
+    {
+      "path": "batch-1-16-4-mesh-render-1.log",
+      "bytes": 2969,
+      "sha256": "31637760f5227f58034bf07d2f94399f50613c2087183bf181214f1dcc7a565a"
+    },
+    {
+      "path": "model-sphere-1-16-0-mesh-cpu-2.log",
+      "bytes": 704,
+      "sha256": "840b49dcaa4365c6d37398c3ae0783f93a343f630a0654006c82a9caa84d35bf"
+    },
+    {
+      "path": "batch-1-16-16-mesh-render-2.log",
+      "bytes": 2993,
+      "sha256": "97f50af622df2c92d1af231fcc00ac47b7281cc8fd5a39aa148319b9ef0b24a2"
+    },
+    {
+      "path": "rays-1000-24-0-mesh-cpu-1.log",
+      "bytes": 4090,
+      "sha256": "af928e3d21a69afaeaad41954d2b637c000dfc354228e8f4cca9584aff9d0e07"
+    },
+    {
+      "path": "debris-100-24-0-dynamic-render-0.log",
+      "bytes": 8290,
+      "sha256": "478cef751bf024c7014c68a9c7e1a44681a98e676da5a1cd2d28f4f1e85a048a"
+    },
+    {
+      "path": "split-1-24-1-mesh-render-0.log",
+      "bytes": 2973,
+      "sha256": "6150e29ae5e4607c9f9c10c98250b0c6e0bffa2b5bc70c6c6451e24e22bbc25b"
+    },
+    {
+      "path": "shots-split-1-48-1-mesh-cpu-1.log",
+      "bytes": 2256,
+      "sha256": "ae6a5d473f5a27a5534c517f69d0c4cfe39dfc829c3819761baff884e13ddc23"
+    },
+    {
+      "path": "shots-1-32-1-mesh-render-0.log",
+      "bytes": 2967,
+      "sha256": "2d5d1aeb21e71e35a9e55d0cb96fa83f05c1b114257e8ab7efb3c7648c8938f3"
+    },
+    {
+      "path": "model-cube-1-16-0-mesh-cpu-1.log",
+      "bytes": 709,
+      "sha256": "29fc8614ad061537827e16fda3bd19ddadef6185e3f763417df667814c5ac6f5"
+    },
+    {
+      "path": "shots-1-32-1-mesh-cpu-2.log",
+      "bytes": 2172,
+      "sha256": "6b4f0fa6e84f97d7bc5a358d4aa1a59ba209b501c6c5b635bbb505c674913b14"
+    },
+    {
+      "path": "idle-100-24-0-mesh-hq-1.log",
+      "bytes": 6612,
+      "sha256": "db77c4c5b9164e1ab5fdbe50a8344fa97fc5a40eba887c158bb62595d4ffa21a"
+    },
+    {
+      "path": "blast-4-16-4-mesh-render-0.log",
+      "bytes": 2975,
+      "sha256": "28fc908660a51d7dcd3cc3162525a87e30c53736a3fdef199cde97154ba24c34"
+    },
+    {
+      "path": "shots-1-16-1-mesh-cpu-1.log",
+      "bytes": 2165,
+      "sha256": "4b38db6fa89b5a679b9469a27bc8ae4f3916217a0005ee340de18749aa1a2798"
+    },
+    {
+      "path": "batch-1-16-4-mesh-render-2.log",
+      "bytes": 2968,
+      "sha256": "f298f15175f5f1403ba4de8fee04dbfed9f601425e7f2cf8c3955df4c4bc91cd"
+    },
+    {
+      "path": "split-16-24-16-mesh-render-0.log",
+      "bytes": 3139,
+      "sha256": "ada8bcb0029686a80ea1ace7ecfcae3c892c9234ce4949d5cf3e2ed99475b92c"
+    },
+    {
+      "path": "burst-1-16-4-mesh-render-2.log",
+      "bytes": 2967,
+      "sha256": "0d0be020d624be98fb63267333d7eb6f62baaa270daf1bcb3515841d47a58811"
+    },
+    {
+      "path": "shared-1000-24-0-mesh-render-2.log",
+      "bytes": 6715,
+      "sha256": "577e657046650e5a27b0a5d4759670dc181f38e674701a701392a695690b5aca"
+    },
+    {
+      "path": "shots-1-16-1-mesh-render-2.log",
+      "bytes": 2957,
+      "sha256": "4f3dfb2c752d19dc1322644199dd415008f5f1756e78b2ac4174ddcef0c49d31"
+    },
+    {
+      "path": "shader-build.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "slab-1-8-1-mesh-render-0.log",
+      "bytes": 2943,
+      "sha256": "81106001c90b67b5424191c376af8d0f026bf372c1959287b1c180cbe5ab7b19"
+    },
+    {
+      "path": "debris-100-8-0-dynamic-render-1.log",
+      "bytes": 8280,
+      "sha256": "9b9db52ed09eab26ac9ad17b0ddfb1226db46df803ffa540b2a96fcb3db42e53"
+    },
+    {
+      "path": "batch-1-32-4-mesh-render-0.log",
+      "bytes": 2959,
+      "sha256": "8b1124812525689e6a663321e1c75de9288ded299d0b1b11bfad0e2c5a96d54b"
+    },
+    {
+      "path": "burst-1-24-16-mesh-render-2.log",
+      "bytes": 3132,
+      "sha256": "cf92f7df5f40b67e8abca2991b9a06138503a762a709511ca658176400e61a89"
+    },
+    {
+      "path": "idle-100-32-0-mesh-render-1.log",
+      "bytes": 6671,
+      "sha256": "b3aa320da2d76f829db4445cff73a7d217db1aa26fd7bf052232dcec3aa33683"
+    },
+    {
+      "path": "model-cube-1-16-0-mesh-cpu-2.log",
+      "bytes": 710,
+      "sha256": "95ca82981e6e66a9451d4a914b880b726cd11d895b2fb52116eef17b4b0b2ae6"
+    },
+    {
+      "path": "batch-1-16-4-mesh-render-0.log",
+      "bytes": 2958,
+      "sha256": "f9584964f5abdc9ab8ce5a034b377de5c17ac1cc611708ece15c8b8953567631"
+    },
+    {
+      "path": "shots-1-16-1-dynamic-cpu-1.log",
+      "bytes": 2137,
+      "sha256": "c83470df70f9743c26ea8534014bbb7e010dd7e162971beca17a9d2ef744f4b8"
+    },
+    {
+      "path": "blast-4-16-4-mesh-render-1.log",
+      "bytes": 2982,
+      "sha256": "7699df4df419a6f7372ebecdfe98b750402c6817c75dbc5a0dc1acb51d75275e"
+    },
+    {
+      "path": "debris-500-8-0-dynamic-render-0.log",
+      "bytes": 8250,
+      "sha256": "cb8b1cd950ce3e30642e1919ea148f45fbac235bbd3c6561ac4ad34213b9538d"
+    },
+    {
+      "path": "shots-1-48-1-dynamic-cpu-2.log",
+      "bytes": 2164,
+      "sha256": "1b1cab254373a74245e5e8070a849e97ac5b3b7b48ac8b9babf4f8c37cba9e67"
+    },
+    {
+      "path": "split-4-24-4-mesh-render-0.log",
+      "bytes": 2974,
+      "sha256": "4b77a865bc05d22ab572b4d2043735c1f97ec429c74dc377dd7d167865f9757b"
+    },
+    {
+      "path": "model-sphere-1-32-0-mesh-cpu-0.log",
+      "bytes": 710,
+      "sha256": "31decbaf12d7b975b7fa7ceb01b155e5581d56ed6cb9f4d15c8df58564605a2a"
+    },
+    {
+      "path": "idle-500-24-0-mesh-hq-1.log",
+      "bytes": 6667,
+      "sha256": "33206bf23ec1414ff8d9294851738f7bfce8818242fc4557e11a630249e4e295"
+    },
+    {
+      "path": "batch-1-24-16-mesh-render-1.log",
+      "bytes": 3014,
+      "sha256": "a80bcc75fe9355b29d6f177f01989318f7f48a455915979cb6123d7bd5d4f8c6"
+    },
+    {
+      "path": "batch-1-24-4-mesh-render-0.log",
+      "bytes": 2964,
+      "sha256": "b6eeaeb241eff4938db4d37ef6b1111f0b86c72667ff93203c0274ef1107f4a4"
+    },
+    {
+      "path": "model-cube-1-24-0-mesh-cpu-0.log",
+      "bytes": 713,
+      "sha256": "240453eaac468e44ec0c7f975863b929230cc84aa3fa4051da95e040a6b2464b"
+    },
+    {
+      "path": "model-cube-1-24-0-mesh-cpu-2.log",
+      "bytes": 711,
+      "sha256": "1be3d978a7db90acd19bfac1a5cd928d8d926d43ac20959ef6b8a02f139db4c6"
+    },
+    {
+      "path": "shots-1-32-1-none-cpu-0.log",
+      "bytes": 2138,
+      "sha256": "5e01ee9fa00f76c7f4f2efae9dae060cd3bc61d96ab685dffa4614cc6e9822ec"
+    },
+    {
+      "path": "shots-1-32-1-dynamic-cpu-2.log",
+      "bytes": 2153,
+      "sha256": "0933ea82bc22b2dd53e4a0b8d3a20d44a1e77c1dd368d6e80a09a6e4018d8c09"
+    },
+    {
+      "path": "shots-1-16-1-dynamic-cpu-0.log",
+      "bytes": 2151,
+      "sha256": "06b432514686d1f9b2071fdaa5b7ee716835c60512737659cbc19469dac40946"
+    },
+    {
+      "path": "blast-4-32-4-mesh-render-2.log",
+      "bytes": 3105,
+      "sha256": "60572bd69faa9d1706025dbf92556f066e3b0178b3c7e38505439cffd95a387d"
+    },
+    {
+      "path": "idle-100-16-0-mesh-render-0.log",
+      "bytes": 6619,
+      "sha256": "bfdb9be71fc6831ebfb1dc7708998e14a719f2cf3a25057ed51c094db6ddfeb1"
+    },
+    {
+      "path": "model-sphere-1-32-0-mesh-cpu-1.log",
+      "bytes": 709,
+      "sha256": "689d460a45f64809a45bb28b8f7b8420b412f334b531e48415cae87776e61a29"
+    },
+    {
+      "path": "smoke-cpu.log",
+      "bytes": 488,
+      "sha256": "2d518c5cda2705635fd077b7796021607d16f92d79bd2bfef882126ff88a6a11"
+    },
+    {
+      "path": "slab-1-16-1-mesh-render-0.log",
+      "bytes": 2966,
+      "sha256": "a9f5a8a3d8633f3cc0c30991fb2deec20ee14f0521cc86bf20a64762f4c02cdc"
+    },
+    {
+      "path": "idle-500-16-0-mesh-render-2.log",
+      "bytes": 6598,
+      "sha256": "a949158b5488f034b4367b390831f934d671b071caf02c07fe5bcf47bb457cd5"
+    },
+    {
+      "path": "model-sphere-1-24-0-mesh-cpu-0.log",
+      "bytes": 707,
+      "sha256": "c6bfa673e71bbe4c61db8f44057b67a1685d176e44822d072300bf9bb8f8ab22"
+    },
+    {
+      "path": "idle-500-32-0-mesh-render-0.log",
+      "bytes": 6711,
+      "sha256": "c56a326003ae8cd9b3fcf1023591de23108f57b86486c0bcf1edc2031fc44f95"
+    },
+    {
+      "path": "burst-1-24-4-mesh-render-2.log",
+      "bytes": 2971,
+      "sha256": "e63dcb5e332c0c755956937a35a4da362b70ab12ffcf3dd65c016b6ad04725d7"
+    },
+    {
+      "path": "idle-100-32-0-mesh-render-0.log",
+      "bytes": 6678,
+      "sha256": "f8f7382739870a2bbab1b92f7f73b62b64bf79b47edd6939dd0d13f3ceb840b4"
+    },
+    {
+      "path": "shared-500-24-0-mesh-render-1.log",
+      "bytes": 6643,
+      "sha256": "eb12282b66416057cf9425eb3cf2f018a4f305e705fb6654cee75cf9b011f95d"
+    },
+    {
+      "path": "blast-4-24-4-mesh-render-2.log",
+      "bytes": 2980,
+      "sha256": "525987e077062b53c77b225df73ccb7a660d9185e6b742a057745f51725586a5"
+    },
+    {
+      "path": "blast-16-24-16-mesh-render-0.log",
+      "bytes": 3142,
+      "sha256": "f1653891ed919d3359fe98217067d5693cdc52b538ec3d73b02663677ca045d2"
+    },
+    {
+      "path": "shared-100-16-0-mesh-render-1.log",
+      "bytes": 6671,
+      "sha256": "f7c78e7f1ee5ecb424929ba81566306952038d0167b4a939faba81f46554353a"
+    },
+    {
+      "path": "model-cube-1-24-0-mesh-cpu-1.log",
+      "bytes": 708,
+      "sha256": "a77c46a4afdeceb7b9227e3ef5a9325f90b80b8ad798c8b31ee1ddc9e33f1ddb"
+    },
+    {
+      "path": "rays-100-24-0-mesh-cpu-0.log",
+      "bytes": 4097,
+      "sha256": "a924c96d3d95df40a90151b64ece2bfcaf1de764d9acbe4900a60d9c39320655"
+    },
+    {
+      "path": "idle-100-24-0-mesh-render-2.log",
+      "bytes": 6639,
+      "sha256": "ff9e3129faaffd84c949d2b0af9a48103d5544167aa3022eb151cf618b571285"
+    },
+    {
+      "path": "debris-100-8-0-dynamic-render-0.log",
+      "bytes": 8266,
+      "sha256": "c6c8353c376c873e3110c12519167f7abb212e62917c9791efb8de8c008724c8"
+    },
+    {
+      "path": "shots-1-32-1-dynamic-cpu-1.log",
+      "bytes": 2162,
+      "sha256": "6271979a319784ed6be3ddbc523d87da0a2ba8adacae2f10851ae5842a88cdf6"
+    },
+    {
+      "path": "shots-split-1-32-1-mesh-cpu-0.log",
+      "bytes": 2175,
+      "sha256": "fb054a59c72c5057118d36a15e51a09f22acb360fa82b4a18c3c1e26538d1e68"
+    },
+    {
+      "path": "shots-1-48-1-none-cpu-0.log",
+      "bytes": 2161,
+      "sha256": "1c56bacfa5f59b633ff27dde2895808ffa727da7b6cfafac86013d8541c3c01d"
+    },
+    {
+      "path": "burst-1-16-16-mesh-render-2.log",
+      "bytes": 3125,
+      "sha256": "6d1df0af3c52e53293ca2f97980060ccf4595bdd21467e62d94b868352ab4b52"
+    },
+    {
+      "path": "model-cube-1-16-0-mesh-cpu-0.log",
+      "bytes": 711,
+      "sha256": "116251c21c1907b1d897fe25359da24ed0fa1083f1a5073ca2f3721d11101051"
+    },
+    {
+      "path": "idle-1000-16-0-mesh-render-1.log",
+      "bytes": 6675,
+      "sha256": "5dd04eb0dbb1c9f248c4f1abedb6ae13bc6282723f34af71fe2b5c8c695777a4"
+    },
+    {
+      "path": "debris-100-8-0-dynamic-render-2.log",
+      "bytes": 8284,
+      "sha256": "87381e1091cc5c43cc1ab87f2dea26cb3a16eef7582e828663f4a940d81fad7a"
+    },
+    {
+      "path": "blast-16-24-16-mesh-cpu-0-profile.tprofile.md",
+      "bytes": 4295,
+      "sha256": "d0b1819db6eb69934f74edd65a88a7665f9492391ee30e883151a7f28b848f69"
+    },
+    {
+      "path": "blast-16-16-16-mesh-render-1.log",
+      "bytes": 3136,
+      "sha256": "a43a547bf1ce3c1b260f722b3df989c9c7484bdfceef8fd8a99dce0ace5557b4"
+    },
+    {
+      "path": "model-cube-1-32-0-mesh-cpu-2.log",
+      "bytes": 712,
+      "sha256": "cf259e728c69122f25586bb44e31d045a05848301571f9960339d3be06188aa0"
+    },
+    {
+      "path": "shots-split-1-16-1-mesh-cpu-2.log",
+      "bytes": 2166,
+      "sha256": "b10bf7d6270c7cb170c7fac37144df92a038e518387074bf55bab16e03f6492b"
+    },
+    {
+      "path": "idle-500-24-0-mesh-render-2.log",
+      "bytes": 6626,
+      "sha256": "c6d93bf0ccc38060ba850b04025ca11f4cd4f523d68b6307408ce3046ecf3e6f"
+    },
+    {
+      "path": "shots-1-48-1-mesh-render-2.log",
+      "bytes": 3099,
+      "sha256": "faab12b1d9bb7e6af4f3973e75336c829f40bf38bd55c8ab72666d49970d96b7"
+    },
+    {
+      "path": "shots-1-24-1-dynamic-cpu-2.log",
+      "bytes": 2150,
+      "sha256": "1d5b7b6b193b2942f718acd814162059bcc5439221e65e5563c2068a759f9e04"
+    },
+    {
+      "path": "blast-1-16-1-mesh-render-0.log",
+      "bytes": 2972,
+      "sha256": "c72dd2b85fde80ddd256d04f4bfc964013b196bf59772a97ba50a277049e35bb"
+    },
+    {
+      "path": "shots-1-24-1-mesh-cpu-2.log",
+      "bytes": 2168,
+      "sha256": "d1377d07512823eb6b7f053810dc67e535b6ed8f0e8025c37eb8a06072e3a4d0"
+    },
+    {
+      "path": "idle-1000-24-0-mesh-render-1.log",
+      "bytes": 6659,
+      "sha256": "15a386ba22d7558928218a6fa44af63edc4aeb7561a348fdb2e14f618ef15dd5"
+    },
+    {
+      "path": "shots-1-16-1-none-cpu-2.log",
+      "bytes": 2140,
+      "sha256": "a5b17c973fd065a6bac0f754c3d236240a78f729a70ca2e20ace4ec19863ae35"
+    },
+    {
+      "path": "shots-split-1-32-1-mesh-cpu-1.log",
+      "bytes": 2168,
+      "sha256": "63d0469bf3ca60807dae1c1fb87ad0cf307ef2aa0f8af140ae043ef2bb72f107"
+    },
+    {
+      "path": "debris-500-8-0-dynamic-render-1.log",
+      "bytes": 8252,
+      "sha256": "f328f41868a137aa8f89a21320e6a863c1bb7970e2d12c8a55ad678fe986ba45"
+    },
+    {
+      "path": "shots-1-16-1-mesh-render-1.log",
+      "bytes": 2965,
+      "sha256": "4c5b40afb2da068bf6e1f0b6c54bc01a2dd43f27e1b5191ed6d413fddf98827b"
+    },
+    {
+      "path": "shots-split-1-48-1-mesh-cpu-0.log",
+      "bytes": 2257,
+      "sha256": "564b8ed95b34754f6d809aed5a69a57658dc6da1c71fdead71463dfcc970b0c4"
+    },
+    {
+      "path": "native-build.log",
+      "bytes": 241800,
+      "sha256": "4e907c55457eb7d56dbc27f912456ddc7a18fdea3a78210ddeeb236f48db8035"
+    },
+    {
+      "path": "debris-500-16-0-dynamic-render-1.log",
+      "bytes": 8271,
+      "sha256": "bfa0f1bdfa3479973567da475c10c4bc7549c497c92c8831ab9c737e8089d1cb"
+    },
+    {
+      "path": "beef-build.log",
+      "bytes": 992,
+      "sha256": "238798f03d4d3ec7436c52cbbebe6b5733514ddbfc2aea8f50757ea37700a2a5"
+    },
+    {
+      "path": "idle-100-24-0-mesh-hq-2.log",
+      "bytes": 6693,
+      "sha256": "168ab39dfebba438d863505f91fbf8e1205fcbb0197ba729c207736deafadd6d"
+    },
+    {
+      "path": "debris-500-24-0-dynamic-render-0.log",
+      "bytes": 8289,
+      "sha256": "d65f5c262be3076ae5deb858c8d9e322a44ff504419ed32a72f7741fe66f2c26"
+    },
+    {
+      "path": "blast-16-24-16-mesh-cpu-0-profile.tprofile",
+      "bytes": 357323,
+      "sha256": "e8a64aa836c0fe4163b43e0c8224239c9346472e06a5aa42dd43e17485669f54"
+    },
+    {
+      "path": "debris-500-24-0-dynamic-render-1.log",
+      "bytes": 8273,
+      "sha256": "cfb36d474547ce561e5cb035c45d3e38984ac22585b0fdfbb25d849af399120b"
+    },
+    {
+      "path": "idle-100-24-0-mesh-render-1.log",
+      "bytes": 6663,
+      "sha256": "a427e778bc1e99231c4456b851e0cbe56d4ca0784bbcf1be404a2c76d7db076d"
+    },
+    {
+      "path": "slab-1-48-1-mesh-render-0.log",
+      "bytes": 2972,
+      "sha256": "a8b68a6864febe4b2b196592f69a594b06a914bca9ae67723d23ecc0aef0e6f0"
+    },
+    {
+      "path": "slab-1-24-1-mesh-render-2.log",
+      "bytes": 2960,
+      "sha256": "41f5d04a228f2dee0ecc970125be89d0590ce7f115c2c6f5038ea722ca1bcebd"
+    },
+    {
+      "path": "shots-1-48-1-mesh-render-0.log",
+      "bytes": 3103,
+      "sha256": "144ac9f4914769bc7232cdd35d477b4c526678273349f08a124fbfaf4507c68c"
+    },
+    {
+      "path": "blast-4-24-4-mesh-render-0.log",
+      "bytes": 2980,
+      "sha256": "32c3264fc1c2fc96abe505a36ea6b53e75bad02e21c3435811563ae430af984f"
+    },
+    {
+      "path": "shots-1-8-1-mesh-render-0.log",
+      "bytes": 2965,
+      "sha256": "326cac2aa598db6ff8a0314dfcf3b30382886873997cc7a55a199a6f25e8dd7b"
+    },
+    {
+      "path": "burst-1-32-4-mesh-render-1.log",
+      "bytes": 3096,
+      "sha256": "b200d03c2e9efaf48defdcfc23846ec259519deaa7388a64b1b2c3e2c3711942"
+    },
+    {
+      "path": "burst-1-32-4-mesh-render-0.log",
+      "bytes": 3092,
+      "sha256": "3107508a9894d6993042ffd91391aee99512fb09462f0f78bc6b45122718de00"
+    },
+    {
+      "path": "burst-1-24-16-mesh-render-0.log",
+      "bytes": 3141,
+      "sha256": "3a6e47d8c346edacbc22327d51145012e0e9442845fddf54263b7000d7e8bf77"
+    },
+    {
+      "path": "batch-1-32-4-mesh-render-1.log",
+      "bytes": 2972,
+      "sha256": "1a9d2e0c695488b668d834f19fd81c129ae3fb4645a0cac137d1d5f24ccb349f"
+    },
+    {
+      "path": "shots-1-24-1-mesh-cpu-0-profile.log",
+      "bytes": 2178,
+      "sha256": "57a6b5909ac59f6fb5ffd3ee2575c90b92dccbe294c67ea8235beb3f3ebaa0c3"
+    },
+    {
+      "path": "idle-100-16-0-mesh-render-2.log",
+      "bytes": 6605,
+      "sha256": "35b3783e1493e9f01c918871a6dcef5fd1033c5ec3c1cede5ff58da953722cc8"
+    },
+    {
+      "path": "burst-1-24-4-mesh-render-0.log",
+      "bytes": 2980,
+      "sha256": "ec89be94a2d68ce85d7ffa4ae42a2a4e117c70b83b784d76986c968e7dde0ac7"
+    },
+    {
+      "path": "idle-500-16-0-mesh-render-0.log",
+      "bytes": 6668,
+      "sha256": "42d3d50e7d4538ab20130e2e86045947913a7276aca55b426c69dedb60cf5c4a"
+    },
+    {
+      "path": "burst-1-32-16-mesh-render-2.log",
+      "bytes": 3140,
+      "sha256": "3efde23d8e140c6d41ae883d7ac9572c2b19d02f2794ced78d627f324be5ee2b"
+    },
+    {
+      "path": "shots-1-24-1-none-cpu-1.log",
+      "bytes": 2146,
+      "sha256": "80bf7c975bef87af4088096ff0fca80bcd79c05b95214c401d1bf1bcd0b7a3ac"
+    },
+    {
+      "path": "idle-500-16-0-mesh-render-1.log",
+      "bytes": 6670,
+      "sha256": "5efeab2beacabd459d43a91220c4a693d0340764d63d1edf4e61a073a20ac5fe"
+    },
+    {
+      "path": "shots-1-48-1-dynamic-cpu-0.log",
+      "bytes": 2157,
+      "sha256": "a8e8ba3baed4a09d9759c41f0db9b9d64e54f6cd2f0ba1e6b4f357e5a6d93518"
+    },
+    {
+      "path": "split-1-24-1-mesh-render-1.log",
+      "bytes": 2973,
+      "sha256": "586348881053ac77c653b2b633e954f091c4394bb85d500eed489d9afc600e43"
+    },
+    {
+      "path": "shots-split-1-24-1-mesh-cpu-0.log",
+      "bytes": 2163,
+      "sha256": "a841538afee1e47f676c7e2d2651cbb460e21c3c0f2cf0aac2fd0cdb19cccfe1"
+    },
+    {
+      "path": "shots-1-24-1-dynamic-cpu-0.log",
+      "bytes": 2148,
+      "sha256": "431d3c866e026f38520d51f23f9fe836da9d8af29e26bf27e2185e6e57c30f8f"
+    },
+    {
+      "path": "debris-500-24-0-dynamic-render-2.log",
+      "bytes": 8253,
+      "sha256": "c940586db4acad4f992d4a38b7faa9859d4b123b565dee20593114192d4214b2"
+    },
+    {
+      "path": "debris-100-16-0-dynamic-render-1.log",
+      "bytes": 8275,
+      "sha256": "2a830577965f021baf9bf3183e36b0bbf639deae1d083f76b024919d50be5494"
+    },
+    {
+      "path": "shots-1-16-1-mesh-cpu-2.log",
+      "bytes": 2167,
+      "sha256": "f68095937e88860e993d4133c49c0e293406baca3a91b444e59330c557173218"
+    },
+    {
+      "path": "batch-1-32-4-mesh-render-2.log",
+      "bytes": 2969,
+      "sha256": "ac6e672177e952f19c2f982b809c91350520a81155e1c9d9e5af567c6f7d279e"
+    },
+    {
+      "path": "split-16-24-16-mesh-render-2.log",
+      "bytes": 3146,
+      "sha256": "3c0f44cc7bd49d7509358d23092c007f74ff358ff07cd2cdb052414a9ca06a75"
+    },
+    {
+      "path": "slab-1-32-1-mesh-render-2.log",
+      "bytes": 2974,
+      "sha256": "fa5222248b2fa9d3a23f97abb29cccc614ebd47dab470617cb45cc0f00ea5883"
+    },
+    {
+      "path": "model-sphere-1-16-0-mesh-cpu-0.log",
+      "bytes": 706,
+      "sha256": "d02f8fe5f28f26ae154b44e89d63e07da71578f7671c23b1590df147831db098"
+    },
+    {
+      "path": "batch-1-24-16-mesh-render-2.log",
+      "bytes": 3008,
+      "sha256": "32aa0e5696906a1ff7437564203fb4fd451a2eff2c33ddba42145bb038fece90"
+    },
+    {
+      "path": "batch-1-16-16-mesh-render-0.log",
+      "bytes": 3007,
+      "sha256": "f4100ef7cce09aa70d3ecd6fb0da79ab3883ab128e5e988c25d7bdba0cfef41b"
+    },
+    {
+      "path": "model-cube-1-32-0-mesh-cpu-1.log",
+      "bytes": 712,
+      "sha256": "6c2d1949872abce11db2837322062bf0849c8e8a513378d5e5903bff4969772d"
+    },
+    {
+      "path": "debris-100-24-0-dynamic-render-2.log",
+      "bytes": 8285,
+      "sha256": "b6163faaf99b7717e957e29c5ed681614205189610745f3f6705fe8cedd942f4"
+    },
+    {
+      "path": "blast-16-32-16-mesh-render-2.log",
+      "bytes": 3141,
+      "sha256": "12b338f4cbda82869cbe1a6a0c3e345f814a3040b293a54dfa77b21623ac7528"
+    },
+    {
+      "path": "shots-1-16-1-none-cpu-0.log",
+      "bytes": 2135,
+      "sha256": "180dcacb87dadbac0673c9ed01dd0b10ca71cd413318db7928e7039c2d397c80"
+    }
+  ],
+  "log_normalization": "Checkout paths replaced with <checkout>; measurement values unchanged. Binary profiler files unchanged."
+}

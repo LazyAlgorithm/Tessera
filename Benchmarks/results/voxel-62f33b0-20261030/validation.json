@@ -1,0 +1,21 @@
+{
+  "tested_commit": "62f33b0e3b97667946e3741903652095f1ecc6e4",
+  "completed_processes": 254,
+  "accepted_processes": 249,
+  "rejected_processes": [
+    "shots-1-8-1-dynamic-cpu-0",
+    "shots-1-8-1-mesh-cpu-0",
+    "shots-1-8-1-mesh-render-0",
+    "shots-1-8-1-none-cpu-0",
+    "split-1-16-1-mesh-cpu-0"
+  ],
+  "rejection_explanations": {
+    "shots resolution 8": "Density changed but failed positive-solid-sample removal quality gate. Not a numerical crash; small dents may still be visible.",
+    "split resolution 16": "Detached fragment sample arrays/layout do not match parent resolution."
+  },
+  "source_files_checked": 213,
+  "source_hash_mismatches": [],
+  "coalescing_equivalence": "All paired final density FNV hashes, vertex counts and triangle counts match; assertions in runner passed.",
+  "engine_implementation_changes": false,
+  "validated_utc": "2026-10-30T01:12:39.697716+00:00"
+}
