@@ -385,12 +385,14 @@ class Water : Component
 
 	/// Before each physics step (Scene): floats the scene's dynamic Rigidbodies in the water they are in, with Jolt's
 	/// buoyancy against the surface under each one's middle.
-	public static void Simulate(Scene scene, float deltaTime)
+	public static void Simulate(Scene scene, float deltaTime) => SimulateAt(scene, deltaTime, SimulationTime(scene));
+
+	/// Rollback supplies its historical tick rather than the scene's current clock.
+	static void SimulateAt(Scene scene, float deltaTime, double time)
 	{
 		let waters = scene.ComponentsOfType(typeof(Water));
 		if (waters.Count == 0)
 			return;
-		let time = SimulationTime(scene);
 		for (let component in waters)
 			((Water)component).mFloating.Clear();
 		for (let component in scene.ComponentsOfType(typeof(Rigidbody)))
