@@ -32,7 +32,7 @@ extension EditorApp
 
 	static readonly StringView[?] BuiltinObjects = .("Create Empty", "Folder", "Cube", "Sphere", "Capsule", "Cylinder", "Cone", "Plane", "Quad",
 		"Directional Light", "Point Light", "Spot Light", "Camera", "Decal", "Reflection Probe", "Light Probe Volume", "Spawn Point", "Audio Source", "Particle System", "Destructible Voxel Object",
-		"Voxel Terrain", "Network Session");
+		"Voxel Terrain", "Network Session", "Water", "Water (Low Poly)", "Ocean", "Ocean (Low Poly)");
 
 	bool SnapActive => mSnap != ImGui.IsKeyDown(ImGui.Key.LeftCtrl);
 
@@ -391,6 +391,26 @@ extension EditorApp
 			mSelectedId = 0;
 			made = CreateObject("Network Session");
 			made.AddComponent<NetworkSession>();
+		case "Water","Water (Low Poly)","Ocean","Ocean (Low Poly)":
+			let ocean = kind.StartsWith("Ocean");
+			made = CreateObject(ocean ? "Ocean" : "Water");
+			let water = made.AddComponent<Water>();
+			water.UseLook(kind.Contains("Low Poly") ? .LowPoly : .Realistic);
+			if (ocean)
+			{
+				// The sea: to the horizon, at the level of the ground, with a long swell.
+				water.endless = true;
+				water.depth = 40;
+				water.waveHeight = water.look == .LowPoly ? 0.8f : 1.2f;
+				water.waveLength = 30;
+				made.Transform.Position = .(made.Transform.Position.x, 0, made.Transform.Position.z);
+			}
+			else
+			{
+				// A pond a little above the ground where it was put, so that it is seen at once.
+				water.depth = 4;
+				made.Transform.Position = made.Transform.Position + Vector3(0, 0.5f, 0);
+			}
 		}
 		MarkDirty();
 		return made;

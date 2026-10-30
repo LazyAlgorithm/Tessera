@@ -1060,6 +1060,53 @@ class PhysicsWorld
 			Jolt.JPH_BodyInterface_AddImpulse(mBodyInterface, bodyId, &i);
 	}
 
+	/// Floats a body in water whose surface passes through surfacePoint facing surfaceNormal, for one step: Jolt works
+	/// out how much of the body's shape is under that plane and pushes it up (buoyancy 1 neither sinks nor floats,
+	/// more floats). The water then slows it: its velocity eases towards the water's own (fluidVelocity) and its
+	/// turning stops, linearDrag and angularDrag times a second when it is all under, less as less of it is. (Jolt's
+	/// own drag counts the water as dense as the body, which leaves a light thing bobbing for a long time.) False
+	/// when no part of it is under.
+	public bool ApplyBuoyancy(uint32 bodyId, Vector3 surfacePoint, Vector3 surfaceNormal, float buoyancy, float linearDrag, float angularDrag, Vector3 fluidVelocity,
+		float deltaTime)
+	{
+		if (mBodyInterface == null || bodyId == uint32.MaxValue)
+			return false;
+		Entry entry;
+		if (!mByBody.TryGetValue(bodyId, out entry) || !entry.dynamic || entry.outOfWorld)
+			return false;
+		Flush(bodyId);
+		var point = surfacePoint;
+		var normal = surfaceNormal;
+		var flow = fluidVelocity;
+		var gravity = Gravity;
+		if (!Jolt.JPH_BodyInterface_ApplyBuoyancyImpulse(mBodyInterface, bodyId, &point, &normal, buoyancy, linearDrag * 0.5f, angularDrag * 0.05f, &flow, &gravity, deltaTime))
+			return false;
+		// How much of it is under, measured up and down its box in the world.
+		var under = 1.0f;
+		if (entry.shape != null)
+		{
+			Bounds local = default;
+			Jolt.JPH_Shape_GetLocalBounds(entry.shape, &local);
+			Vector3 position = default;
+			Quaternion rotation = default;
+			Jolt.JPH_BodyInterface_GetPosition(mBodyInterface, bodyId, &position);
+			Jolt.JPH_BodyInterface_GetRotation(mBodyInterface, bodyId, &rotation);
+			let center = position + rotation * ((local.min + local.max) * 0.5f);
+			let half = (local.max - local.min) * 0.5f;
+			let reach = Math.Abs((rotation * Vector3(half.x, 0, 0)).y) + Math.Abs((rotation * Vector3(0, half.y, 0)).y) + Math.Abs((rotation * Vector3(0, 0, half.z)).y);
+			let level = surfacePoint.y;
+			under = reach > 0.0001f ? Math.Clamp((level - (center.y - reach)) / (reach * 2), 0, 1) : 1;
+		}
+		Vector3 velocity = default, spin = default;
+		Jolt.JPH_BodyInterface_GetLinearVelocity(mBodyInterface, bodyId, &velocity);
+		Jolt.JPH_BodyInterface_GetAngularVelocity(mBodyInterface, bodyId, &spin);
+		velocity = fluidVelocity + (velocity - fluidVelocity) * Math.Exp(-Math.Max(linearDrag, 0) * under * deltaTime);
+		spin = spin * Math.Exp(-Math.Max(angularDrag, 0) * under * deltaTime);
+		Jolt.JPH_BodyInterface_SetLinearVelocity(mBodyInterface, bodyId, &velocity);
+		Jolt.JPH_BodyInterface_SetAngularVelocity(mBodyInterface, bodyId, &spin);
+		return true;
+	}
+
 	// Queries run on the scene thread, like simulation and body state changes.
 	void* PrepareQuery()
 	{

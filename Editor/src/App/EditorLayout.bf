@@ -392,6 +392,15 @@ extension EditorApp
 			if (ImGui.MenuItem(scope String(kind).CStr()))
 				CreateBuiltin(kind);
 		}
+		if (ImGui.BeginMenu("Water"))
+		{
+			for (let kind in StringView[?]("Water", "Water (Low Poly)", "Ocean", "Ocean (Low Poly)"))
+			{
+				if (ImGui.MenuItem(scope String(kind).CStr()))
+					CreateBuiltin(kind);
+			}
+			ImGui.EndMenu();
+		}
 		ImGui.Separator();
 		DrawAssetCreateMenu("Prefabs", true);
 		DrawAssetCreateMenu("Models", false);

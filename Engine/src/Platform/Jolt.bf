@@ -164,6 +164,9 @@ static class Jolt
 	[CLink] public static extern void JPH_BodyInterface_SetAngularVelocity(void* bodyInterface, uint32 bodyId, Vector3* velocity);
 	[CLink] public static extern void JPH_BodyInterface_AddForce(void* bodyInterface, uint32 bodyId, Vector3* force);
 	[CLink] public static extern void JPH_BodyInterface_AddImpulse(void* bodyInterface, uint32 bodyId, Vector3* impulse);
+	[CLink] public static extern void JPH_Shape_GetLocalBounds(void* shape, Bounds* result);
+	[CLink] public static extern bool JPH_BodyInterface_ApplyBuoyancyImpulse(void* bodyInterface, uint32 bodyId, Vector3* surfacePosition, Vector3* surfaceNormal, float buoyancy,
+		float linearDrag, float angularDrag, Vector3* fluidVelocity, Vector3* gravity, float deltaTime);
 	[CLink] public static extern void JPH_BodyInterface_AddTorque(void* bodyInterface, uint32 bodyId, Vector3* torque);
 	[CLink] public static extern void JPH_BodyInterface_MoveKinematic(void* bodyInterface, uint32 bodyId, Vector3* position, Quaternion* rotation, float deltaTime);
 	[CLink] public static extern void JPH_BodyInterface_ActivateBody(void* bodyInterface, uint32 bodyId);

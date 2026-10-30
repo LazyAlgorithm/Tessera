@@ -17,7 +17,7 @@ namespace Tessera.Editor;
 class ShaderGraphPreview
 {
 	/// RenderView.ViewCount views from here: after the reflection captures, before ImGui's (250).
-	const uint16 ViewBase = 200;
+	const uint16 ViewBase = Reflections.FaceViewBase + 6;
 	/// The picture's size of one cell, in pixels.
 	public const int32 CellSize = 128;
 	const int32 MaxCells = 100;

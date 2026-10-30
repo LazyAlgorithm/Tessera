@@ -20,6 +20,7 @@ struct SyncAttribute : Attribute
 ///   Prefab.Instantiate, Scene.Destroy                        for objects with a Network Identity, on the server
 ///   NavigationAgent, BehaviorTreeRunner                      think on the server only; clients see the movement
 ///   Soft bodies                                              a free one's object is shared; a shell's dents are the server's
+///   Water                                                    waves by the session's clock; its settings and level are the server's
 ///   Rope.Attach, AttachStart / AttachEnd, LayAlong, Snap     tied, changed and snapped on every machine by the server
 ///   [Sync] fields                                            copied from the server when they change
 ///
@@ -108,7 +109,7 @@ static class NetworkSync
 			if ((body != null && !body.isKinematic) || object.GetComponent<CharacterController>() != null
 				|| object.GetComponent<AIMovementDriver>() != null || object.GetComponent<BehaviorTreeRunner>() != null
 				|| object.GetComponent<NetworkBehaviour>() != null || (object.GetComponent<DialogueRunner>()?.shared ?? false) || (object.GetComponent<SequencePlayer>()?.shared ?? false)
-				|| (object.GetComponent<SoftBody>()?.MovesByItself ?? false))
+				|| (object.GetComponent<SoftBody>()?.MovesByItself ?? false) || object.GetComponent<Water>() != null)
 				wanted.Add(object);
 		}
 		for (let object in wanted)

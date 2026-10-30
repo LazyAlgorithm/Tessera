@@ -29,6 +29,10 @@ static class RenderResources
 	// Decals (docs/decals.md).
 	public static bgfx.ProgramHandle DecalProgram;
 	public static bgfx.UniformHandle uDecalBox, uDecalInverse, uDecalColor, uDecalAxis, uDecalParams;
+	// Water (docs/water.md).
+	public static bgfx.ProgramHandle WaterProgram, UnderwaterProgram, CopyProgram;
+	public static bgfx.UniformHandle uWaveA, uWaveB, uWaterLevel, uWaterModel, uWaterParams, uWaterShallow, uWaterDeep, uWaterFoam, uWaterOptions, uWaterUnder;
+	public static bgfx.UniformHandle uWaterInverse, uWaterUnderParams;
 
 	public static bgfx.UniformHandle sAlbedo, sShadowMap, sLocalShadowMap, sColor;
 	public static bgfx.UniformHandle uWind, uWindZone, uWindPush, uSway, uBender, uBenderPush;
@@ -89,6 +93,21 @@ static class RenderResources
 		uDecalColor = bgfx.create_uniform("u_decalColor", .Vec4, 1);
 		uDecalAxis = bgfx.create_uniform("u_decalAxis", .Vec4, 1);
 		uDecalParams = bgfx.create_uniform("u_decalParams", .Vec4, 1);
+		WaterProgram = Gfx.LoadProgram("vs_water", "fs_water");
+		UnderwaterProgram = Gfx.LoadProgram("vs_fullscreen", "fs_underwater");
+		CopyProgram = Gfx.LoadProgram("vs_fullscreen", "fs_copy");
+		uWaveA = bgfx.create_uniform("u_waveA", .Vec4, Water.WaveCount);
+		uWaveB = bgfx.create_uniform("u_waveB", .Vec4, Water.WaveCount);
+		uWaterLevel = bgfx.create_uniform("u_waterLevel", .Vec4, 1);
+		uWaterModel = bgfx.create_uniform("u_waterModel", .Mat4, 1);
+		uWaterParams = bgfx.create_uniform("u_waterParams", .Vec4, 1);
+		uWaterShallow = bgfx.create_uniform("u_waterShallow", .Vec4, 1);
+		uWaterDeep = bgfx.create_uniform("u_waterDeep", .Vec4, 1);
+		uWaterFoam = bgfx.create_uniform("u_waterFoam", .Vec4, 1);
+		uWaterOptions = bgfx.create_uniform("u_waterOptions", .Vec4, 1);
+		uWaterUnder = bgfx.create_uniform("u_waterUnder", .Vec4, 1);
+		uWaterInverse = bgfx.create_uniform("u_waterInverse", .Mat4, 1);
+		uWaterUnderParams = bgfx.create_uniform("u_waterUnderParams", .Vec4, 1);
 
 		sAlbedo = bgfx.create_uniform("s_albedo", .Sampler, 1);
 		sShadowMap = bgfx.create_uniform("s_shadowMap", .Sampler, 1);
@@ -207,6 +226,9 @@ static class RenderResources
 		bgfx.destroy_program(MotionBlurProgram);
 		bgfx.destroy_program(LineProgram);
 		bgfx.destroy_program(DecalProgram);
+		bgfx.destroy_program(WaterProgram);
+		bgfx.destroy_program(UnderwaterProgram);
+		bgfx.destroy_program(CopyProgram);
 		bgfx.destroy_uniform(uDecalBox);
 		bgfx.destroy_uniform(uDecalInverse);
 		bgfx.destroy_uniform(uDecalColor);
