@@ -1,0 +1,828 @@
+[0/2] Re-checking globbed directories...
+[1/773] Building C object SDL/CMakeFiles/SDL_uclibc.dir/src/libm/e_log10.c.o
+[2/773] Building C object SDL/CMakeFiles/SDL_uclibc.dir/src/libm/k_cos.c.o
+[3/773] Building C object SDL/CMakeFiles/SDL_uclibc.dir/src/libm/e_exp.c.o
+[4/773] Building C object SDL/CMakeFiles/SDL_uclibc.dir/src/libm/e_atan2.c.o
+[5/773] Building C object SDL/CMakeFiles/SDL_uclibc.dir/src/libm/e_rem_pio2.c.o
+[6/773] Building C object SDL/CMakeFiles/SDL_uclibc.dir/src/libm/e_log.c.o
+[7/773] Building C object SDL/CMakeFiles/SDL_uclibc.dir/src/libm/e_sqrt.c.o
+[8/773] Building C object SDL/CMakeFiles/SDL_uclibc.dir/src/libm/e_fmod.c.o
+[9/773] Building C object SDL/CMakeFiles/SDL_uclibc.dir/src/libm/e_pow.c.o
+[10/773] Building C object SDL/CMakeFiles/SDL_uclibc.dir/src/libm/k_rem_pio2.c.o
+[11/773] Building C object SDL/CMakeFiles/SDL_uclibc.dir/src/libm/k_sin.c.o
+[12/773] Building C object SDL/CMakeFiles/SDL_uclibc.dir/src/libm/k_tan.c.o
+[13/773] Building C object SDL/CMakeFiles/SDL_uclibc.dir/src/libm/s_atan.c.o
+[14/773] Building C object SDL/CMakeFiles/SDL_uclibc.dir/src/libm/s_fabs.c.o
+[15/773] Building C object SDL/CMakeFiles/SDL_uclibc.dir/src/libm/s_copysign.c.o
+[16/773] Building C object SDL/CMakeFiles/SDL_uclibc.dir/src/libm/s_cos.c.o
+[17/773] Building C object SDL/CMakeFiles/SDL_uclibc.dir/src/libm/s_isinf.c.o
+[18/773] Building C object SDL/CMakeFiles/SDL_uclibc.dir/src/libm/s_floor.c.o
+[19/773] Building C object SDL/CMakeFiles/SDL_uclibc.dir/src/libm/s_isinff.c.o
+[20/773] Building CXX object bgfx/cmake/bx/CMakeFiles/bx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bx/src/allocator.cpp.o
+[21/773] Building C object SDL/CMakeFiles/SDL_uclibc.dir/src/libm/s_isnan.c.o
+[22/773] Building C object SDL/CMakeFiles/SDL_uclibc.dir/src/libm/s_isnanf.c.o
+[23/773] Building C object SDL/CMakeFiles/SDL_uclibc.dir/src/libm/s_tan.c.o
+[24/773] Building C object SDL/CMakeFiles/SDL_uclibc.dir/src/libm/s_sin.c.o
+[25/773] Building C object SDL/CMakeFiles/SDL_uclibc.dir/src/libm/s_modf.c.o
+[26/773] Building C object SDL/CMakeFiles/SDL_uclibc.dir/src/libm/s_scalbn.c.o
+[27/773] Building CXX object bgfx/cmake/bx/CMakeFiles/bx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bx/src/crtnone.cpp.o
+[28/773] Linking C static library SDL/libSDL_uclibc.a
+[29/773] Generating wayland-generated-protocols/alpha-modifier-v1-client-protocol.h
+[30/773] Generating wayland-generated-protocols/color-management-v1-client-protocol.h
+[31/773] Generating wayland-generated-protocols/cursor-shape-v1-client-protocol.h
+[32/773] Generating wayland-generated-protocols/fractional-scale-v1-client-protocol.h
+[33/773] Generating wayland-generated-protocols/frog-color-management-v1-client-protocol.h
+[34/773] Generating wayland-generated-protocols/idle-inhibit-unstable-v1-client-protocol.h
+[35/773] Generating wayland-generated-protocols/input-timestamps-unstable-v1-client-protocol.h
+[36/773] Generating wayland-generated-protocols/keyboard-shortcuts-inhibit-unstable-v1-client-protocol.h
+[37/773] Generating wayland-generated-protocols/pointer-constraints-unstable-v1-client-protocol.h
+[38/773] Generating wayland-generated-protocols/primary-selection-unstable-v1-client-protocol.h
+[39/773] Generating wayland-generated-protocols/relative-pointer-unstable-v1-client-protocol.h
+[40/773] Generating wayland-generated-protocols/tablet-v2-client-protocol.h
+[41/773] Generating wayland-generated-protocols/text-input-unstable-v3-client-protocol.h
+[42/773] Building CXX object bgfx/cmake/bx/CMakeFiles/bx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bx/src/bx.cpp.o
+[43/773] Generating wayland-generated-protocols/viewporter-client-protocol.h
+[44/773] Building CXX object bgfx/cmake/bx/CMakeFiles/bx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bx/src/bitarray.cpp.o
+[45/773] Generating wayland-generated-protocols/xdg-activation-v1-client-protocol.h
+[46/773] Generating wayland-generated-protocols/xdg-decoration-unstable-v1-client-protocol.h
+[47/773] Generating wayland-generated-protocols/wayland-client-protocol.h
+[48/773] Generating wayland-generated-protocols/xdg-dialog-v1-client-protocol.h
+[49/773] Generating wayland-generated-protocols/xdg-foreign-unstable-v2-client-protocol.h
+[50/773] Generating wayland-generated-protocols/xdg-output-unstable-v1-client-protocol.h
+[51/773] Generating wayland-generated-protocols/xdg-toplevel-icon-v1-client-protocol.h
+[52/773] Generating wayland-generated-protocols/xdg-shell-client-protocol.h
+[53/773] Building CXX object bgfx/cmake/bx/CMakeFiles/bx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bx/src/easing.cpp.o
+[54/773] Building CXX object bgfx/cmake/bx/CMakeFiles/bx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bx/src/literal-parser.cpp.o
+[55/773] Building CXX object bgfx/cmake/bx/CMakeFiles/bx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bx/src/mutex.cpp.o
+[56/773] Building CXX object bgfx/cmake/bx/CMakeFiles/bx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bx/src/hash.cpp.o
+[57/773] Building CXX object bgfx/cmake/bx/CMakeFiles/bx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bx/src/dtoa.cpp.o
+[58/773] Building CXX object bgfx/cmake/bx/CMakeFiles/bx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bx/src/math.cpp.o
+[59/773] Building CXX object bgfx/cmake/bx/CMakeFiles/bx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bx/src/semaphore.cpp.o
+[60/773] Building CXX object bgfx/cmake/bx/CMakeFiles/bx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bx/src/os.cpp.o
+[61/773] Building CXX object bgfx/cmake/bx/CMakeFiles/bx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bx/src/process.cpp.o
+[62/773] Building CXX object bgfx/cmake/bx/CMakeFiles/bx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bx/src/sort.cpp.o
+[63/773] Building CXX object bgfx/cmake/bx/CMakeFiles/bx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bx/src/debug.cpp.o
+[64/773] Building CXX object bgfx/cmake/bx/CMakeFiles/bx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bx/src/timer.cpp.o
+[65/773] Building CXX object bgfx/cmake/bx/CMakeFiles/bx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bx/src/bounds.cpp.o
+[66/773] Generating wayland-generated-protocols/alpha-modifier-v1-protocol.c
+[67/773] Generating wayland-generated-protocols/color-management-v1-protocol.c
+[68/773] Generating wayland-generated-protocols/cursor-shape-v1-protocol.c
+[69/773] Generating wayland-generated-protocols/fractional-scale-v1-protocol.c
+[70/773] Generating wayland-generated-protocols/frog-color-management-v1-protocol.c
+[71/773] Generating wayland-generated-protocols/idle-inhibit-unstable-v1-protocol.c
+[72/773] Generating wayland-generated-protocols/input-timestamps-unstable-v1-protocol.c
+[73/773] Building CXX object bgfx/cmake/bx/CMakeFiles/bx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bx/src/commandline.cpp.o
+[74/773] Generating wayland-generated-protocols/keyboard-shortcuts-inhibit-unstable-v1-protocol.c
+[75/773] Generating wayland-generated-protocols/pointer-constraints-unstable-v1-protocol.c
+[76/773] Generating wayland-generated-protocols/primary-selection-unstable-v1-protocol.c
+[77/773] Generating wayland-generated-protocols/relative-pointer-unstable-v1-protocol.c
+[78/773] Generating wayland-generated-protocols/tablet-v2-protocol.c
+[79/773] Generating wayland-generated-protocols/text-input-unstable-v3-protocol.c
+[80/773] Generating wayland-generated-protocols/viewporter-protocol.c
+[81/773] Generating wayland-generated-protocols/xdg-activation-v1-protocol.c
+[82/773] Generating wayland-generated-protocols/wayland-protocol.c
+[83/773] Generating wayland-generated-protocols/xdg-decoration-unstable-v1-protocol.c
+[84/773] Generating wayland-generated-protocols/xdg-dialog-v1-protocol.c
+[85/773] Generating wayland-generated-protocols/xdg-foreign-unstable-v2-protocol.c
+[86/773] Generating wayland-generated-protocols/xdg-output-unstable-v1-protocol.c
+[87/773] Generating wayland-generated-protocols/xdg-shell-protocol.c
+[88/773] Generating wayland-generated-protocols/xdg-toplevel-icon-v1-protocol.c
+[89/773] Building CXX object bgfx/cmake/bx/CMakeFiles/bx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bx/src/file.cpp.o
+[90/773] Building CXX object bgfx/cmake/bx/CMakeFiles/bx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bx/src/thread.cpp.o
+[91/773] Building CXX object bgfx/cmake/bx/CMakeFiles/bx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bx/src/scanner.cpp.o
+[92/773] Building CXX object bgfx/cmake/bx/CMakeFiles/bx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bx/src/filepath.cpp.o
+[93/773] Building CXX object bgfx/cmake/bx/CMakeFiles/bx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bx/src/superluminal.cpp.o
+[94/773] Building CXX object bgfx/cmake/bx/CMakeFiles/bx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bx/src/url.cpp.o
+[95/773] Building CXX object bgfx/cmake/bimg/CMakeFiles/bimg.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bimg/3rdparty/astc-encoder/source/astcenc_diagnostic_trace.cpp.o
+[96/773] Building CXX object bgfx/cmake/bx/CMakeFiles/bx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bx/src/settings.cpp.o
+[97/773] Building CXX object bgfx/cmake/bimg/CMakeFiles/bimg.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bimg/3rdparty/astc-encoder/source/astcenc_color_unquantize.cpp.o
+[98/773] Building CXX object bgfx/cmake/bimg/CMakeFiles/bimg.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bimg/3rdparty/astc-encoder/source/astcenc_averages_and_directions.cpp.o
+[99/773] Building CXX object bgfx/cmake/bimg/CMakeFiles/bimg.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bimg/3rdparty/astc-encoder/source/astcenc_compute_variance.cpp.o
+[100/773] Building CXX object bgfx/cmake/bimg/CMakeFiles/bimg.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bimg/3rdparty/astc-encoder/source/astcenc_decompress_symbolic.cpp.o
+[101/773] Building CXX object bgfx/cmake/bimg/CMakeFiles/bimg.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bimg/3rdparty/astc-encoder/source/astcenc_color_quantize.cpp.o
+[102/773] Building CXX object bgfx/cmake/bimg/CMakeFiles/bimg.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bimg/3rdparty/astc-encoder/source/astcenc_compress_symbolic.cpp.o
+[103/773] Building CXX object bgfx/cmake/bimg/CMakeFiles/bimg.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bimg/3rdparty/astc-encoder/source/astcenc_block_sizes.cpp.o
+[104/773] Building CXX object bgfx/cmake/bx/CMakeFiles/bx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bx/src/string.cpp.o
+[105/773] Linking CXX static library bgfx/cmake/bx/libbx.a
+[106/773] Building CXX object bgfx/cmake/bimg/CMakeFiles/bimg.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bimg/3rdparty/astc-encoder/source/astcenc_mathlib.cpp.o
+[107/773] Building CXX object bgfx/cmake/bimg/CMakeFiles/bimg.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bimg/3rdparty/astc-encoder/source/astcenc_find_best_partitioning.cpp.o
+[108/773] Building CXX object bgfx/cmake/bimg/CMakeFiles/bimg.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bimg/3rdparty/astc-encoder/source/astcenc_mathlib_softfloat.cpp.o
+[109/773] Building CXX object bgfx/cmake/bimg/CMakeFiles/bimg.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bimg/3rdparty/astc-encoder/source/astcenc_integer_sequence.cpp.o
+[110/773] Building CXX object bgfx/cmake/bimg/CMakeFiles/bimg.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bimg/3rdparty/astc-encoder/source/astcenc_image.cpp.o
+[111/773] Building CXX object bgfx/cmake/bimg/CMakeFiles/bimg.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bimg/3rdparty/astc-encoder/source/astcenc_entry.cpp.o
+[112/773] Building CXX object bgfx/cmake/bimg/CMakeFiles/bimg.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bimg/3rdparty/astc-encoder/source/astcenc_ideal_endpoints_and_weights.cpp.o
+[113/773] Building CXX object bgfx/cmake/bimg/CMakeFiles/bimg.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bimg/3rdparty/astc-encoder/source/astcenc_percentile_tables.cpp.o
+[114/773] Building CXX object bgfx/cmake/bimg/CMakeFiles/bimg.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bimg/3rdparty/astc-encoder/source/astcenc_partition_tables.cpp.o
+[115/773] Building CXX object bgfx/cmake/bimg/CMakeFiles/bimg.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bimg/3rdparty/astc-encoder/source/astcenc_quantization.cpp.o
+[116/773] Building CXX object bgfx/cmake/bimg/CMakeFiles/bimg.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bimg/3rdparty/astc-encoder/source/astcenc_weight_quant_xfer_tables.cpp.o
+[117/773] Building CXX object bgfx/cmake/bimg/CMakeFiles/bimg.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bimg/3rdparty/astc-encoder/source/astcenc_weight_align.cpp.o
+[118/773] Building CXX object bgfx/cmake/bimg/CMakeFiles/bimg.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bimg/3rdparty/astc-encoder/source/astcenc_symbolic_physical.cpp.o
+[119/773] Building CXX object bgfx/cmake/bgfx/CMakeFiles/bgfx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bgfx/src/debug_renderdoc.cpp.o
+[120/773] Building CXX object bgfx/cmake/bimg/CMakeFiles/bimg.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bimg/3rdparty/astc-encoder/source/astcenc_pick_best_endpoint_format.cpp.o
+[121/773] Building CXX object bgfx/cmake/bgfx/CMakeFiles/bgfx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bgfx/src/dxgi.cpp.o
+[122/773] Building C object SDL/CMakeFiles/SDL3-static.dir/cmake_pch.h.gch
+[123/773] Building CXX object bgfx/cmake/bgfx/CMakeFiles/bgfx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bgfx/src/glcontext_html5.cpp.o
+[124/773] Building CXX object bgfx/cmake/bgfx/CMakeFiles/bgfx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bgfx/src/nvapi.cpp.o
+[125/773] Building CXX object bgfx/cmake/bgfx/CMakeFiles/bgfx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bgfx/src/glcontext_wgl.cpp.o
+[126/773] Building CXX object bgfx/cmake/bgfx/CMakeFiles/bgfx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bgfx/src/renderer_agc.cpp.o
+[127/773] Building CXX object bgfx/cmake/bgfx/CMakeFiles/bgfx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bgfx/src/renderer_gnm.cpp.o
+[128/773] Building CXX object bgfx/cmake/bgfx/CMakeFiles/bgfx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bgfx/src/renderer_mtl.cpp.o
+[129/773] Building CXX object bgfx/cmake/bgfx/CMakeFiles/bgfx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bgfx/src/glcontext_egl.cpp.o
+[130/773] Building CXX object bgfx/cmake/bgfx/CMakeFiles/bgfx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bgfx/src/renderer_noop.cpp.o
+[131/773] Building CXX object bgfx/cmake/bgfx/CMakeFiles/bgfx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bgfx/src/renderer_nvn.cpp.o
+[132/773] Building CXX object bgfx/cmake/bgfx/CMakeFiles/bgfx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bgfx/src/shader.cpp.o
+[133/773] Building CXX object bgfx/cmake/bgfx/CMakeFiles/bgfx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bgfx/src/topology.cpp.o
+[134/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/cmake_pch.hxx.gch
+[135/773] Building CXX object bgfx/cmake/bgfx/CMakeFiles/bgfx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bgfx/src/vertexlayout.cpp.o
+[136/773] Building CXX object bgfx/cmake/bgfx/CMakeFiles/bgfx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bgfx/src/video_d3d11.cpp.o
+[137/773] Building CXX object bgfx/cmake/bgfx/CMakeFiles/bgfx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bgfx/src/video_d3d12.cpp.o
+[138/773] Building CXX object bgfx/cmake/bgfx/CMakeFiles/bgfx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bgfx/src/video_mtl.cpp.o
+[139/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/SDL.c.o
+[140/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/SDL_error.c.o
+[141/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/SDL_assert.c.o
+[142/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/SDL_guid.c.o
+[143/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/SDL_hints.c.o
+[144/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/SDL_hashtable.c.o
+[145/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/SDL_list.c.o
+[146/773] Building CXX object bgfx/cmake/bgfx/CMakeFiles/bgfx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bgfx/src/video_vk.cpp.o
+[147/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/SDL_log.c.o
+[148/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/atomic/SDL_atomic.c.o
+[149/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/atomic/SDL_spinlock.c.o
+[150/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/SDL_utils.c.o
+[151/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/SDL_properties.c.o
+[152/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/audio/SDL_audiodev.c.o
+[153/773] Building CXX object bgfx/cmake/bimg/CMakeFiles/bimg.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bimg/src/image.cpp.o
+[154/773] Linking CXX static library bgfx/cmake/bimg/libbimg.a
+[155/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/audio/SDL_audioqueue.c.o
+[156/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/audio/SDL_audioresample.c.o
+[157/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/audio/SDL_mixer.c.o
+[158/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/audio/SDL_audio.c.o
+[159/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/audio/SDL_audiotypecvt.c.o
+[160/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/core/SDL_core_unsupported.c.o
+[161/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/cpuinfo/SDL_cpuinfo.c.o
+[162/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/camera/SDL_camera.c.o
+[163/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/events/SDL_categories.c.o
+[164/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/events/SDL_clipboardevents.c.o
+[165/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/events/SDL_displayevents.c.o
+[166/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/audio/SDL_wave.c.o
+[167/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/audio/SDL_audiocvt.c.o
+[168/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/events/SDL_dropevents.c.o
+[169/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/events/SDL_eventwatch.c.o
+[170/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/events/SDL_keymap.c.o
+[171/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/events/SDL_keysym_to_keycode.c.o
+[172/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/events/SDL_keyboard.c.o
+[173/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/events/SDL_keysym_to_scancode.c.o
+[174/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/events/SDL_events.c.o
+[175/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/events/SDL_quit.c.o
+[176/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/events/SDL_scancode_tables.c.o
+[177/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/events/SDL_pen.c.o
+[178/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/events/SDL_windowevents.c.o
+[179/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/events/SDL_touch.c.o
+[180/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/events/imKStoUCS.c.o
+[181/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/events/SDL_mouse.c.o
+[182/773] Building CXX object bgfx/cmake/bgfx/CMakeFiles/bgfx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bgfx/src/renderer_gl.cpp.o
+[183/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/filesystem/SDL_filesystem.c.o
+[184/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/haptic/SDL_haptic.c.o
+[185/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/hidapi/SDL_hidapi.c.o
+[186/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/io/SDL_asyncio.c.o
+[187/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/io/generic/SDL_asyncio_generic.c.o
+[188/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/io/SDL_iostream.c.o
+[189/773] Building CXX object bgfx/cmake/bgfx/CMakeFiles/bgfx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bgfx/src/renderer_d3d11.cpp.o
+[190/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/joystick/SDL_steam_virtual_gamepad.c.o
+[191/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/joystick/controller_type.c.o
+[192/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/locale/SDL_locale.c.o
+[193/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/main/SDL_main_callbacks.c.o
+[194/773] Building CXX object bgfx/cmake/bgfx/CMakeFiles/bgfx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bgfx/src/renderer_d3d12.cpp.o
+[195/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/main/SDL_runapp.c.o
+[196/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/misc/SDL_url.c.o
+[197/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/power/SDL_power.c.o
+[198/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/render/SDL_render_unsupported.c.o
+[199/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/gpu/SDL_gpu.c.o
+[200/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/render/direct3d/SDL_render_d3d.c.o
+[201/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/render/direct3d/SDL_shaders_d3d.c.o
+[202/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/render/direct3d11/SDL_render_d3d11.c.o
+[203/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/render/direct3d11/SDL_shaders_d3d11.c.o
+[204/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/render/direct3d12/SDL_render_d3d12.c.o
+[205/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/render/direct3d12/SDL_shaders_d3d12.c.o
+[206/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/render/SDL_yuv_sw.c.o
+[207/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/render/gpu/SDL_pipeline_gpu.c.o
+[208/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/render/gpu/SDL_shaders_gpu.c.o
+[209/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/joystick/SDL_gamepad.c.o
+[210/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/joystick/SDL_joystick.c.o
+[211/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/render/opengl/SDL_shaders_gl.c.o
+[212/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/render/opengles2/SDL_shaders_gles2.c.o
+[213/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/render/ps2/SDL_render_ps2.c.o
+[214/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/render/psp/SDL_render_psp.c.o
+[215/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/render/gpu/SDL_render_gpu.c.o
+[216/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/render/opengl/SDL_render_gl.c.o
+[217/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/render/software/SDL_blendpoint.c.o
+[218/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/render/software/SDL_drawpoint.c.o
+[219/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/render/opengles2/SDL_render_gles2.c.o
+[220/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/render/software/SDL_drawline.c.o
+[221/773] Building CXX object bgfx/cmake/bgfx/CMakeFiles/bgfx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bgfx/src/bgfx.cpp.o
+[222/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/render/vitagxm/SDL_render_vita_gxm.c.o
+[223/773] Building CXX object bgfx/cmake/bgfx/CMakeFiles/bgfx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bgfx/src/renderer_webgpu.cpp.o
+[224/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/render/vitagxm/SDL_render_vita_gxm_memory.c.o
+[225/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/render/vitagxm/SDL_render_vita_gxm_tools.c.o
+[226/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/render/software/SDL_rotate.c.o
+[227/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/render/vulkan/SDL_shaders_vulkan.c.o
+[228/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/render/software/SDL_render_sw.c.o
+[229/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/stdlib/SDL_crc16.c.o
+[230/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/stdlib/SDL_crc32.c.o
+[231/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/sensor/SDL_sensor.c.o
+[232/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/stdlib/SDL_getenv.c.o
+[233/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/stdlib/SDL_iconv.c.o
+[234/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/stdlib/SDL_malloc.c.o
+[235/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/stdlib/SDL_memcpy.c.o
+[236/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/stdlib/SDL_memmove.c.o
+[237/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/stdlib/SDL_memset.c.o
+[238/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/stdlib/SDL_mslibc.c.o
+[239/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/stdlib/SDL_murmur3.c.o
+[240/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/render/SDL_render.c.o
+[241/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/stdlib/SDL_random.c.o
+[242/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/stdlib/SDL_strtokr.c.o
+[243/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/stdlib/SDL_stdlib.c.o
+[244/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/dynapi/SDL_dynapi.c.o
+[245/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/storage/SDL_storage.c.o
+[246/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/time/SDL_time.c.o
+[247/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/thread/SDL_thread.c.o
+[248/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/stdlib/SDL_qsort.c.o
+[249/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/stdlib/SDL_string.c.o
+/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/SDL/src/stdlib/SDL_string.c: In function ‘SDL_strpbrk_REAL’:
+/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/SDL/src/stdlib/SDL_string.c:2493:12: warning: return discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+ 2493 |     return strpbrk(str, breakset);
+      |            ^~~~~~~
+[250/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/render/software/SDL_triangle.c.o
+[251/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/timer/SDL_timer.c.o
+[252/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/SDL_blit.c.o
+[253/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/render/vulkan/SDL_render_vulkan.c.o
+[254/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/SDL_blit_copy.c.o
+[255/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/render/software/SDL_blendfillrect.c.o
+[256/773] Building CXX object bgfx/cmake/bgfx/CMakeFiles/bgfx.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bgfx/src/renderer_vk.cpp.o
+[257/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/SDL_blit_1.c.o
+[258/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/SDL_bmp.c.o
+[259/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/SDL_clipboard.c.o
+[260/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/SDL_RLEaccel.c.o
+[261/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/SDL_blit_slow.c.o
+[262/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/SDL_blit_0.c.o
+[263/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/SDL_fillrect.c.o
+[264/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/render/software/SDL_blendline.c.o
+[265/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/SDL_egl.c.o
+[266/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/SDL_video_unsupported.c.o
+[267/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/SDL_pixels.c.o
+[268/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/SDL_rect.c.o
+[269/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/yuv2rgb/yuv_rgb_lsx.c.o
+[270/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/SDL_vulkan_utils.c.o
+[271/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/SDL_stretch.c.o
+[272/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/audio/dummy/SDL_dummyaudio.c.o
+[273/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/SDL_blit_N.c.o
+[274/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/audio/disk/SDL_diskaudio.c.o
+[275/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/camera/dummy/SDL_camera_dummy.c.o
+[276/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/loadso/dlopen/SDL_sysloadso.c.o
+[277/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/dummy/SDL_nullevents.c.o
+[278/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/dummy/SDL_nullframebuffer.c.o
+[279/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/dummy/SDL_nullvideo.c.o
+[280/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/joystick/virtual/SDL_virtualjoystick.c.o
+[281/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/SDL_surface.c.o
+[282/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/x11/SDL_x11clipboard.c.o
+[283/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/x11/SDL_x11framebuffer.c.o
+[284/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/SDL_stb.c.o
+[285/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/SDL_blit_A.c.o
+[286/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/x11/SDL_x11dyn.c.o
+[287/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/yuv2rgb/yuv_rgb_sse.c.o
+[288/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/x11/SDL_x11events.c.o
+[289/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/x11/SDL_x11keyboard.c.o
+[290/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/x11/SDL_x11messagebox.c.o
+[291/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/SDL_video.c.o
+[292/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/x11/SDL_x11opengles.c.o
+[293/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/x11/SDL_x11settings.c.o
+[294/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/x11/SDL_x11mouse.c.o
+[295/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/yuv2rgb/yuv_rgb_std.c.o
+[296/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/x11/SDL_x11shape.c.o
+[297/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/x11/SDL_x11pen.c.o
+[298/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/x11/SDL_x11modes.c.o
+[299/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/x11/SDL_x11touch.c.o
+[300/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/x11/SDL_x11opengl.c.o
+[301/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/x11/SDL_x11xfixes.c.o
+[302/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/x11/SDL_x11video.c.o
+[303/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/x11/SDL_x11vulkan.c.o
+[304/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/x11/SDL_x11xsync.c.o
+[305/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/wayland/SDL_waylandclipboard.c.o
+[306/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/wayland/SDL_waylandcolor.c.o
+[307/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/x11/SDL_x11xinput2.c.o
+[308/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/x11/edid-parse.c.o
+[309/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/wayland/SDL_waylanddatamanager.c.o
+[310/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/x11/xsettings-client.c.o
+[311/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/wayland/SDL_waylandkeyboard.c.o
+[312/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/wayland/SDL_waylandmessagebox.c.o
+[313/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/wayland/SDL_waylandshmbuffer.c.o
+[314/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/wayland/SDL_waylandopengles.c.o
+[315/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/wayland/SDL_waylanddyn.c.o
+[316/773] Building C object SDL/CMakeFiles/SDL3-static.dir/wayland-generated-protocols/alpha-modifier-v1-protocol.c.o
+[317/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/wayland/SDL_waylandvulkan.c.o
+[318/773] Building C object SDL/CMakeFiles/SDL3-static.dir/wayland-generated-protocols/color-management-v1-protocol.c.o
+[319/773] Building C object SDL/CMakeFiles/SDL3-static.dir/wayland-generated-protocols/cursor-shape-v1-protocol.c.o
+[320/773] Building C object SDL/CMakeFiles/SDL3-static.dir/wayland-generated-protocols/fractional-scale-v1-protocol.c.o
+[321/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/wayland/SDL_waylandmouse.c.o
+[322/773] Building C object SDL/CMakeFiles/SDL3-static.dir/wayland-generated-protocols/frog-color-management-v1-protocol.c.o
+[323/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/x11/SDL_x11window.c.o
+[324/773] Building C object SDL/CMakeFiles/SDL3-static.dir/wayland-generated-protocols/idle-inhibit-unstable-v1-protocol.c.o
+[325/773] Building C object SDL/CMakeFiles/SDL3-static.dir/wayland-generated-protocols/keyboard-shortcuts-inhibit-unstable-v1-protocol.c.o
+[326/773] Building C object SDL/CMakeFiles/SDL3-static.dir/wayland-generated-protocols/input-timestamps-unstable-v1-protocol.c.o
+[327/773] Building C object SDL/CMakeFiles/SDL3-static.dir/wayland-generated-protocols/pointer-constraints-unstable-v1-protocol.c.o
+[328/773] Building C object SDL/CMakeFiles/SDL3-static.dir/wayland-generated-protocols/primary-selection-unstable-v1-protocol.c.o
+[329/773] Building C object SDL/CMakeFiles/SDL3-static.dir/wayland-generated-protocols/tablet-v2-protocol.c.o
+[330/773] Building C object SDL/CMakeFiles/SDL3-static.dir/wayland-generated-protocols/relative-pointer-unstable-v1-protocol.c.o
+[331/773] Building C object SDL/CMakeFiles/SDL3-static.dir/wayland-generated-protocols/text-input-unstable-v3-protocol.c.o
+[332/773] Building C object SDL/CMakeFiles/SDL3-static.dir/wayland-generated-protocols/viewporter-protocol.c.o
+[333/773] Building C object SDL/CMakeFiles/SDL3-static.dir/wayland-generated-protocols/xdg-dialog-v1-protocol.c.o
+[334/773] Building C object SDL/CMakeFiles/SDL3-static.dir/wayland-generated-protocols/xdg-activation-v1-protocol.c.o
+[335/773] Building C object SDL/CMakeFiles/SDL3-static.dir/wayland-generated-protocols/wayland-protocol.c.o
+[336/773] Building C object SDL/CMakeFiles/SDL3-static.dir/wayland-generated-protocols/xdg-decoration-unstable-v1-protocol.c.o
+[337/773] Building C object SDL/CMakeFiles/SDL3-static.dir/wayland-generated-protocols/xdg-foreign-unstable-v2-protocol.c.o
+[338/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/wayland/SDL_waylandvideo.c.o
+[339/773] Building C object SDL/CMakeFiles/SDL3-static.dir/wayland-generated-protocols/xdg-output-unstable-v1-protocol.c.o
+[340/773] Building C object SDL/CMakeFiles/SDL3-static.dir/wayland-generated-protocols/xdg-shell-protocol.c.o
+[341/773] Building C object SDL/CMakeFiles/SDL3-static.dir/wayland-generated-protocols/xdg-toplevel-icon-v1-protocol.c.o
+[342/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/core/unix/SDL_appid.c.o
+[343/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/core/unix/SDL_gtk.c.o
+[344/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/core/unix/SDL_poll.c.o
+[345/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/core/linux/SDL_evdev_capabilities.c.o
+[346/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/tray/unix/SDL_tray.c.o
+[347/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/core/linux/SDL_threadprio.c.o
+[348/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/wayland/SDL_waylandevents.c.o
+[349/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/haptic/linux/SDL_syshaptic.c.o
+[350/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/camera/v4l2/SDL_camera_v4l2.c.o
+[351/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/core/linux/SDL_evdev.c.o
+[352/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapi_combined.c.o
+[353/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/core/linux/SDL_evdev_kbd.c.o
+[354/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapi_luna.c.o
+[355/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapi_rumble.c.o
+[356/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapi_gamecube.c.o
+[357/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapi_stadia.c.o
+[358/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapi_shield.c.o
+[359/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapi_steam_hori.c.o
+[360/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapi_ps3.c.o
+[361/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/SDL_yuv.c.o
+[362/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/wayland/SDL_waylandwindow.c.o
+[363/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapi_steamdeck.c.o
+[364/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapi_ps4.c.o
+[365/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapi_xbox360.c.o
+[366/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapi_ps5.c.o
+[367/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapi_xbox360w.c.o
+[368/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/thread/pthread/SDL_sysmutex.c.o
+[369/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapi_steam.c.o
+[370/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/thread/pthread/SDL_systhread.c.o
+[371/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/thread/pthread/SDL_syscond.c.o
+[372/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/thread/pthread/SDL_systls.c.o
+[373/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/thread/pthread/SDL_sysrwlock.c.o
+[374/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/thread/pthread/SDL_syssem.c.o
+[375/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/misc/unix/SDL_sysurl.c.o
+[376/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/locale/unix/SDL_syslocale.c.o
+[377/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapi_wii.c.o
+[378/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapi_xboxone.c.o
+[379/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/storage/generic/SDL_genericstorage.c.o
+[380/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/storage/steam/SDL_steamstorage.c.o
+[381/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/filesystem/unix/SDL_sysfilesystem.c.o
+[382/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/filesystem/posix/SDL_sysfsops.c.o
+[383/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/time/unix/SDL_systime.c.o
+[384/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/power/linux/SDL_syspower.c.o
+[385/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapijoystick.c.o
+[386/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/timer/unix/SDL_systimer.c.o
+[387/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/dialog/SDL_dialog.c.o
+[388/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/dialog/unix/SDL_portaldialog.c.o
+[389/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/dialog/unix/SDL_unixdialog.c.o
+[390/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/offscreen/SDL_offscreenevents.c.o
+[391/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/dialog/SDL_dialog_utils.c.o
+[392/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/offscreen/SDL_offscreenopengles.c.o
+[393/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/process/SDL_process.c.o
+[394/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/offscreen/SDL_offscreenframebuffer.c.o
+[395/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/dialog/unix/SDL_zenitydialog.c.o
+[396/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/offscreen/SDL_offscreenvideo.c.o
+[397/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/offscreen/SDL_offscreenwindow.c.o
+[398/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/joystick/hidapi/SDL_hidapi_switch.c.o
+[399/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/process/posix/SDL_posixprocess.c.o
+[400/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/tray/SDL_tray_utils.c.o
+[401/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/joystick/linux/SDL_sysjoystick.c.o
+[402/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/sensor/dummy/SDL_dummysensor.c.o
+[403/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/main/generic/SDL_sysmain_callbacks.c.o
+[404/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/offscreen/SDL_offscreenvulkan.c.o
+[405/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Core/Color.cpp.o
+[406/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Core/IssueReporting.cpp.o
+[407/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Compute/ComputeSystem.cpp.o
+[408/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Core/Memory.cpp.o
+[409/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Core/JobSystemSingleThreaded.cpp.o
+[410/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Core/JobSystemWithBarrier.cpp.o
+[411/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Core/Profiler.cpp.o
+[412/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/AABBTree/AABBTreeBuilder.cpp.o
+[413/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Core/LinearCurve.cpp.o
+[414/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Core/RTTI.cpp.o
+[415/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Core/Semaphore.cpp.o
+[416/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Core/TickCounter.cpp.o
+[417/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Core/JobSystemThreadPool.cpp.o
+[418/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Core/Factory.cpp.o
+[419/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Math/Vec3.cpp.o
+[420/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Geometry/ConvexHullBuilder2D.cpp.o
+[421/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/ObjectStream/SerializableObject.cpp.o
+[422/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Core/StringTools.cpp.o
+[423/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Geometry/OrientedBox.cpp.o
+[424/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Geometry/Indexify.cpp.o
+[425/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Body/MotionProperties.cpp.o
+[426/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Body/MassProperties.cpp.o
+[427/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Character/CharacterBase.cpp.o
+[428/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Body/Body.cpp.o
+[429/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Collision/BroadPhase/BroadPhase.cpp.o
+[430/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Character/Character.cpp.o
+[431/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Body/BodyCreationSettings.cpp.o
+[432/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Body/BodyManager.cpp.o
+[433/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Geometry/ConvexHullBuilder.cpp.o
+[434/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Collision/BroadPhase/BroadPhaseBruteForce.cpp.o
+[435/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Collision/CastSphereVsTriangles.cpp.o
+[436/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Collision/BroadPhase/BroadPhaseQuadTree.cpp.o
+[437/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Collision/CollideSphereVsTriangles.cpp.o
+[438/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Collision/CollisionGroup.cpp.o
+[439/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Collision/CastConvexVsTriangles.cpp.o
+[440/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Collision/CollisionDispatch.cpp.o
+[441/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Collision/GroupFilter.cpp.o
+[442/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Collision/EstimateCollisionResponse.cpp.o
+[443/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Body/BodyInterface.cpp.o
+[444/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Collision/CollideConvexVsTriangles.cpp.o
+[445/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Collision/GroupFilterTable.cpp.o
+[446/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Collision/ManifoldBetweenTwoFaces.cpp.o
+[447/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Collision/BroadPhase/QuadTree.cpp.o
+[448/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Collision/NarrowPhaseStats.cpp.o
+[449/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Collision/PhysicsMaterial.cpp.o
+[450/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Collision/PhysicsMaterialSimple.cpp.o
+[451/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Collision/Shape/BoxShape.cpp.o
+[452/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Collision/NarrowPhaseQuery.cpp.o
+[453/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Collision/Shape/CapsuleShape.cpp.o
+[454/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Collision/Shape/CylinderShape.cpp.o
+[455/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Collision/Shape/DecoratedShape.cpp.o
+[456/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/gpu/vulkan/SDL_gpu_vulkan.c.o
+[457/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Collision/Shape/EmptyShape.cpp.o
+[458/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Character/CharacterVirtual.cpp.o
+[459/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Collision/Shape/CompoundShape.cpp.o
+[460/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Collision/Shape/PlaneShape.cpp.o
+[461/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Collision/Shape/OffsetCenterOfMassShape.cpp.o
+[462/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Collision/Shape/ConvexHullShape.cpp.o
+[463/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Collision/Shape/ScaledShape.cpp.o
+[464/773] Building C object SDL/CMakeFiles/SDL3-static.dir/src/video/SDL_blit_auto.c.o
+[465/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Collision/Shape/RotatedTranslatedShape.cpp.o
+[466/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Collision/Shape/ConvexShape.cpp.o
+[467/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Collision/Shape/SphereShape.cpp.o
+[468/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Collision/Shape/MutableCompoundShape.cpp.o
+[469/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Collision/Shape/TaperedCapsuleShape.cpp.o
+[470/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Collision/TransformedShape.cpp.o
+[471/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Constraints/Constraint.cpp.o
+[472/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Collision/Shape/TaperedCylinderShape.cpp.o
+[473/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Collision/Shape/TriangleShape.cpp.o
+[474/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Constraints/ConeConstraint.cpp.o
+[475/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Constraints/ConstraintManager.cpp.o
+[476/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Collision/Shape/Shape.cpp.o
+[477/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Constraints/DistanceConstraint.cpp.o
+[478/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Constraints/MotorSettings.cpp.o
+[479/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Constraints/GearConstraint.cpp.o
+[480/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Constraints/PathConstraintPath.cpp.o
+[481/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Constraints/FixedConstraint.cpp.o
+[482/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Collision/Shape/StaticCompoundShape.cpp.o
+[483/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Constraints/PathConstraintPathHermite.cpp.o
+[484/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Constraints/PointConstraint.cpp.o
+[485/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Constraints/HingeConstraint.cpp.o
+[486/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Constraints/RackAndPinionConstraint.cpp.o
+[487/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Constraints/PulleyConstraint.cpp.o
+[488/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Constraints/SpringSettings.cpp.o
+[489/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/DeterminismLog.cpp.o
+[490/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Constraints/PathConstraint.cpp.o
+[491/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Collision/Shape/MeshShape.cpp.o
+[492/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Constraints/TwoBodyConstraint.cpp.o
+[493/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Hair/HairShaders.cpp.o
+[494/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Hair/RegisterHair.cpp.o
+[495/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Collision/Shape/HeightFieldShape.cpp.o
+[496/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Constraints/SliderConstraint.cpp.o
+[497/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/IslandBuilder.cpp.o
+[498/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/LargeIslandSplitter.cpp.o
+[499/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/PhysicsUpdateContext.cpp.o
+[500/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Constraints/SwingTwistConstraint.cpp.o
+[501/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Hair/Hair.cpp.o
+[502/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Constraints/SixDOFConstraint.cpp.o
+[503/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/SoftBody/SoftBodyCreationSettings.cpp.o
+[504/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/StateRecorderImpl.cpp.o
+[505/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/SoftBody/SoftBodyShape.cpp.o
+[506/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Vehicle/VehicleAntiRollBar.cpp.o
+[507/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/PhysicsScene.cpp.o
+[508/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/SoftBody/SoftBodyMotionProperties.cpp.o
+[509/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Vehicle/MotorcycleController.cpp.o
+[510/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Hair/HairSettings.cpp.o
+[511/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Constraints/ContactConstraintManager.cpp.o
+[512/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Vehicle/VehicleController.cpp.o
+[513/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Vehicle/TrackedVehicleController.cpp.o
+[514/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Vehicle/VehicleDifferential.cpp.o
+[515/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Vehicle/VehicleCollisionTester.cpp.o
+[516/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Vehicle/VehicleEngine.cpp.o
+[517/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Ragdoll/Ragdoll.cpp.o
+[518/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Renderer/DebugRenderer.cpp.o
+[519/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Vehicle/VehicleTrack.cpp.o
+[520/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Renderer/DebugRendererPlayback.cpp.o
+[521/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Vehicle/VehicleTransmission.cpp.o
+[522/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Renderer/DebugRendererRecorder.cpp.o
+[523/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Renderer/DebugRendererSimple.cpp.o
+[524/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Vehicle/Wheel.cpp.o
+[525/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/RegisterTypes.cpp.o
+[526/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/TriangleSplitter/TriangleSplitter.cpp.o
+[527/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Skeleton/SkeletonPose.cpp.o
+[528/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/TriangleSplitter/TriangleSplitterBinning.cpp.o
+[529/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/TriangleSplitter/TriangleSplitterMean.cpp.o
+[530/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Skeleton/SkeletonMapper.cpp.o
+[531/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Skeleton/Skeleton.cpp.o
+[532/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/PhysicsSystem.cpp.o
+[533/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/ObjectStream/ObjectStream.cpp.o
+[534/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Skeleton/SkeletalAnimation.cpp.o
+[535/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Vehicle/WheeledVehicleController.cpp.o
+[536/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/Vehicle/VehicleConstraint.cpp.o
+[537/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/ObjectStream/ObjectStreamBinaryIn.cpp.o
+[538/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/ObjectStream/ObjectStreamBinaryOut.cpp.o
+[539/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Compute/CPU/ComputeBufferCPU.cpp.o
+[540/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/ObjectStream/ObjectStreamTextOut.cpp.o
+[541/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/ObjectStream/TypeDeclarations.cpp.o
+[542/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/ObjectStream/ObjectStreamOut.cpp.o
+[543/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Compute/CPU/ComputeQueueCPU.cpp.o
+[544/773] Building C object opus/CMakeFiles/opus.dir/src/opus.c.o
+[545/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Compute/CPU/ComputeSystemCPU.cpp.o
+[546/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/ObjectStream/ObjectStreamTextIn.cpp.o
+[547/773] Building C object opus/CMakeFiles/opus.dir/src/opus_multistream.c.o
+[548/773] Building C object opus/CMakeFiles/opus.dir/src/extensions.c.o
+[549/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Shaders/TestComputeWrapper.cpp.o
+[550/773] Building C object opus/CMakeFiles/opus.dir/src/opus_projection_encoder.c.o
+[551/773] Building C object opus/CMakeFiles/opus.dir/src/opus_multistream_decoder.c.o
+[552/773] Building C object opus/CMakeFiles/opus.dir/src/repacketizer.c.o
+[553/773] Building C object opus/CMakeFiles/opus.dir/src/opus_decoder.c.o
+[554/773] Building C object opus/CMakeFiles/opus.dir/src/opus_projection_decoder.c.o
+[555/773] Building C object opus/CMakeFiles/opus.dir/src/mlp_data.c.o
+[556/773] Building C object opus/CMakeFiles/opus.dir/silk/code_signs.c.o
+[557/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/ObjectStream/ObjectStreamIn.cpp.o
+[558/773] Building C object opus/CMakeFiles/opus.dir/silk/init_decoder.c.o
+[559/773] Building C object opus/CMakeFiles/opus.dir/src/mapping_matrix.c.o
+[560/773] Building C object opus/CMakeFiles/opus.dir/silk/decode_frame.c.o
+[561/773] Building C object opus/CMakeFiles/opus.dir/silk/CNG.c.o
+[562/773] Building C object opus/CMakeFiles/opus.dir/silk/decode_parameters.c.o
+[563/773] Building C object opus/CMakeFiles/opus.dir/src/mlp.c.o
+[564/773] Building C object opus/CMakeFiles/opus.dir/silk/decode_indices.c.o
+/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/opus/silk/decode_indices.c: In function ‘silk_decode_indices’:
+/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/opus/silk/decode_indices.c:74:42: warning: writing 1 byte into a region of size 0 [-Wstringop-overflow=]
+   74 |         psDec->indices.GainsIndices[ i ] = (opus_int8)ec_dec_icdf( psRangeDec, silk_delta_gain_iCDF, 8 );
+      |         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/opus/silk/main.h:33,
+                 from /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/opus/silk/decode_indices.c:32:
+/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/opus/silk/structs.h:134:34: note: at offset 4 into destination object ‘GainsIndices’ of size 4
+  134 |     opus_int8                    GainsIndices[ MAX_NB_SUBFR ];
+      |                                  ^~~~~~~~~~~~
+/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/opus/silk/decode_indices.c:133:42: warning: writing 1 byte into a region of size 0 [-Wstringop-overflow=]
+  133 |             psDec->indices.LTPIndex[ k ] = (opus_int8)ec_dec_icdf( psRangeDec, silk_LTP_gain_iCDF_ptrs[ psDec->indices.PERIndex ], 8 );
+      |             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/opus/silk/structs.h:135:34: note: at offset 4 into destination object ‘LTPIndex’ of size 4
+  135 |     opus_int8                    LTPIndex[ MAX_NB_SUBFR ];
+      |                                  ^~~~~~~~
+[565/773] Building C object opus/CMakeFiles/opus.dir/silk/decode_pulses.c.o
+[566/773] Building C object opus/CMakeFiles/opus.dir/silk/decoder_set_fs.c.o
+[567/773] Building C object opus/CMakeFiles/opus.dir/src/opus_multistream_encoder.c.o
+[568/773] Building C object opus/CMakeFiles/opus.dir/silk/decode_core.c.o
+[569/773] Building C object opus/CMakeFiles/opus.dir/silk/encode_indices.c.o
+[570/773] Building C object opus/CMakeFiles/opus.dir/silk/gain_quant.c.o
+[571/773] Building C object opus/CMakeFiles/opus.dir/silk/interpolate.c.o
+[572/773] Building C object opus/CMakeFiles/opus.dir/silk/LP_variable_cutoff.c.o
+[573/773] Building C object opus/CMakeFiles/opus.dir/silk/encode_pulses.c.o
+[574/773] Building C object opus/CMakeFiles/opus.dir/silk/NLSF_decode.c.o
+[575/773] Building C object opus/CMakeFiles/opus.dir/silk/dec_API.c.o
+[576/773] Building C object opus/CMakeFiles/opus.dir/silk/tables_gain.c.o
+[577/773] Building C object opus/CMakeFiles/opus.dir/silk/shell_coder.c.o
+[578/773] Building C object opus/CMakeFiles/opus.dir/silk/tables_LTP.c.o
+[579/773] Building C object opus/CMakeFiles/opus.dir/silk/tables_NLSF_CB_NB_MB.c.o
+[580/773] Building C object opus/CMakeFiles/opus.dir/silk/tables_NLSF_CB_WB.c.o
+[581/773] Building C object opus/CMakeFiles/opus.dir/src/analysis.c.o
+[582/773] Building C object opus/CMakeFiles/opus.dir/silk/tables_other.c.o
+[583/773] Building C object opus/CMakeFiles/opus.dir/silk/tables_pitch_lag.c.o
+[584/773] Building C object opus/CMakeFiles/opus.dir/silk/enc_API.c.o
+[585/773] Building C object opus/CMakeFiles/opus.dir/silk/NSQ.c.o
+[586/773] Building C object opus/CMakeFiles/opus.dir/silk/tables_pulses_per_block.c.o
+[587/773] Building C object opus/CMakeFiles/opus.dir/silk/control_audio_bandwidth.c.o
+[588/773] Building C object opus/CMakeFiles/opus.dir/src/opus_encoder.c.o
+[589/773] Building C object opus/CMakeFiles/opus.dir/silk/PLC.c.o
+[590/773] Building C object opus/CMakeFiles/opus.dir/silk/quant_LTP_gains.c.o
+[591/773] Building C object opus/CMakeFiles/opus.dir/silk/VQ_WMat_EC.c.o
+[592/773] Building C object opus/CMakeFiles/opus.dir/silk/HP_variable_cutoff.c.o
+[593/773] Building C object opus/CMakeFiles/opus.dir/silk/NLSF_unpack.c.o
+[594/773] Building C object opus/CMakeFiles/opus.dir/silk/NLSF_VQ.c.o
+[595/773] Building C object opus/CMakeFiles/opus.dir/silk/NLSF_encode.c.o
+[596/773] Building C object opus/CMakeFiles/opus.dir/silk/process_NLSFs.c.o
+[597/773] Building C object opus/CMakeFiles/opus.dir/silk/VAD.c.o
+[598/773] Building C object opus/CMakeFiles/opus.dir/silk/check_control_input.c.o
+[599/773] Building C object opus/CMakeFiles/opus.dir/silk/control_SNR.c.o
+[600/773] Building C object opus/CMakeFiles/opus.dir/silk/init_encoder.c.o
+[601/773] Building C object opus/CMakeFiles/opus.dir/silk/NLSF_del_dec_quant.c.o
+[602/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Shaders/HairWrapper.cpp.o
+[603/773] Building C object opus/CMakeFiles/opus.dir/silk/ana_filt_bank_1.c.o
+[604/773] Building C object opus/CMakeFiles/opus.dir/silk/stereo_MS_to_LR.c.o
+[605/773] Building C object opus/CMakeFiles/opus.dir/silk/debug.c.o
+[606/773] Building C object opus/CMakeFiles/opus.dir/silk/bwexpander_32.c.o
+[607/773] Building C object opus/CMakeFiles/opus.dir/silk/bwexpander.c.o
+[608/773] Building C object opus/CMakeFiles/opus.dir/silk/biquad_alt.c.o
+[609/773] Building C object opus/CMakeFiles/opus.dir/silk/decode_pitch.c.o
+[610/773] Building C object opus/CMakeFiles/opus.dir/silk/log2lin.c.o
+[611/773] Building C object opus/CMakeFiles/opus.dir/silk/lin2log.c.o
+[612/773] Building C object opus/CMakeFiles/opus.dir/silk/control_codec.c.o
+[613/773] Building C object opus/CMakeFiles/opus.dir/silk/inner_prod_aligned.c.o
+[614/773] Building C object opus/CMakeFiles/opus.dir/silk/NSQ_del_dec.c.o
+[615/773] Building C object opus/CMakeFiles/opus.dir/silk/pitch_est_tables.c.o
+[616/773] Building C object opus/CMakeFiles/opus.dir/silk/table_LSF_cos.c.o
+[617/773] Building C object opus/CMakeFiles/opus.dir/silk/stereo_LR_to_MS.c.o
+[618/773] Building C object opus/CMakeFiles/opus.dir/silk/NLSF_VQ_weights_laroia.c.o
+[619/773] Building C object opus/CMakeFiles/opus.dir/silk/LPC_analysis_filter.c.o
+[620/773] Building C object opus/CMakeFiles/opus.dir/silk/LPC_inv_pred_gain.c.o
+[621/773] Building C object opus/CMakeFiles/opus.dir/silk/resampler_private_AR2.c.o
+[622/773] Building C object opus/CMakeFiles/opus.dir/silk/resampler_down2.c.o
+[623/773] Building C object opus/CMakeFiles/opus.dir/silk/resampler_down2_3.c.o
+[624/773] Building C object opus/CMakeFiles/opus.dir/silk/NLSF_stabilize.c.o
+[625/773] Building C object opus/CMakeFiles/opus.dir/silk/resampler.c.o
+[626/773] Building C object opus/CMakeFiles/opus.dir/silk/NLSF2A.c.o
+[627/773] Building C object opus/CMakeFiles/opus.dir/silk/resampler_rom.c.o
+[628/773] Building C object opus/CMakeFiles/opus.dir/silk/sigm_Q15.c.o
+[629/773] Building C object opus/CMakeFiles/opus.dir/silk/resampler_private_IIR_FIR.c.o
+[630/773] Building C object opus/CMakeFiles/opus.dir/silk/resampler_private_up2_HQ.c.o
+[631/773] Building C object opus/CMakeFiles/opus.dir/silk/stereo_decode_pred.c.o
+[632/773] Building C object opus/CMakeFiles/opus.dir/silk/A2NLSF.c.o
+[633/773] Building C object opus/CMakeFiles/opus.dir/silk/stereo_encode_pred.c.o
+[634/773] Building C object opus/CMakeFiles/opus.dir/silk/sort.c.o
+[635/773] Building C object opus/CMakeFiles/opus.dir/silk/resampler_private_down_FIR.c.o
+[636/773] Building C object opus/CMakeFiles/opus.dir/silk/sum_sqr_shift.c.o
+[637/773] Building C object opus/CMakeFiles/opus.dir/silk/stereo_quant_pred.c.o
+[638/773] Building C object opus/CMakeFiles/opus.dir/silk/stereo_find_predictor.c.o
+[639/773] Building C object opus/CMakeFiles/opus.dir/celt/entcode.c.o
+[640/773] Building C object opus/CMakeFiles/opus.dir/celt/celt.c.o
+[641/773] Building C object opus/CMakeFiles/opus.dir/silk/LPC_fit.c.o
+[642/773] Building C object opus/CMakeFiles/opus.dir/celt/cwrs.c.o
+[643/773] Building C object opus/CMakeFiles/opus.dir/celt/entdec.c.o
+[644/773] Building C object opus/CMakeFiles/opus.dir/celt/mathops.c.o
+[645/773] Building C object opus/CMakeFiles/opus.dir/celt/laplace.c.o
+[646/773] Building C object opus/CMakeFiles/opus.dir/celt/modes.c.o
+[647/773] Building C object opus/CMakeFiles/opus.dir/celt/entenc.c.o
+[648/773] Building CXX object _deps/joltphysics-build/CMakeFiles/Jolt.dir/__/joltphysics-src/Jolt/Physics/SoftBody/SoftBodySharedSettings.cpp.o
+[649/773] Building C object opus/CMakeFiles/opus.dir/celt/mdct.c.o
+[650/773] Building C object opus/CMakeFiles/opus.dir/celt/kiss_fft.c.o
+[651/773] Building C object opus/CMakeFiles/opus.dir/celt/pitch.c.o
+[652/773] Building C object opus/CMakeFiles/opus.dir/celt/celt_lpc.c.o
+[653/773] Building C object opus/CMakeFiles/opus.dir/silk/float/apply_sine_window_FLP.c.o
+[654/773] Building C object opus/CMakeFiles/opus.dir/silk/float/corrMatrix_FLP.c.o
+[655/773] Building C object opus/CMakeFiles/opus.dir/silk/float/find_LTP_FLP.c.o
+[656/773] Building C object opus/CMakeFiles/opus.dir/silk/float/find_LPC_FLP.c.o
+[657/773] Building C object opus/CMakeFiles/opus.dir/celt/quant_bands.c.o
+[658/773] Building C object opus/CMakeFiles/opus.dir/silk/float/find_pitch_lags_FLP.c.o
+[659/773] Building C object opus/CMakeFiles/opus.dir/celt/vq.c.o
+[660/773] Building C object opus/CMakeFiles/opus.dir/celt/rate.c.o
+[661/773] Building C object opus/CMakeFiles/opus.dir/silk/float/find_pred_coefs_FLP.c.o
+[662/773] Building C object opus/CMakeFiles/opus.dir/silk/float/LTP_scale_ctrl_FLP.c.o
+[663/773] Building C object opus/CMakeFiles/opus.dir/silk/float/LTP_analysis_filter_FLP.c.o
+[664/773] Building C object opus/CMakeFiles/opus.dir/silk/float/regularize_correlations_FLP.c.o
+[665/773] Building C object opus/CMakeFiles/opus.dir/silk/float/encode_frame_FLP.c.o
+[666/773] Building C object opus/CMakeFiles/opus.dir/silk/float/process_gains_FLP.c.o
+[667/773] Building C object opus/CMakeFiles/opus.dir/silk/float/warped_autocorrelation_FLP.c.o
+[668/773] Building C object opus/CMakeFiles/opus.dir/silk/float/residual_energy_FLP.c.o
+[669/773] Building C object opus/CMakeFiles/opus.dir/silk/float/LPC_analysis_filter_FLP.c.o
+[670/773] Building C object opus/CMakeFiles/opus.dir/silk/float/autocorrelation_FLP.c.o
+[671/773] Building C object opus/CMakeFiles/opus.dir/celt/celt_decoder.c.o
+[672/773] Building C object opus/CMakeFiles/opus.dir/silk/float/bwexpander_FLP.c.o
+[673/773] Building C object opus/CMakeFiles/opus.dir/silk/float/energy_FLP.c.o
+[674/773] Building C object opus/CMakeFiles/opus.dir/silk/float/noise_shape_analysis_FLP.c.o
+[675/773] Building C object opus/CMakeFiles/opus.dir/silk/float/inner_product_FLP.c.o
+[676/773] Building C object opus/CMakeFiles/opus.dir/silk/float/k2a_FLP.c.o
+[677/773] Building C object opus/CMakeFiles/opus.dir/silk/float/wrappers_FLP.c.o
+[678/773] Building C object opus/CMakeFiles/opus.dir/silk/float/LPC_inv_pred_gain_FLP.c.o
+[679/773] Building C object opus/CMakeFiles/opus.dir/celt/x86/x86_celt_map.c.o
+[680/773] Building C object opus/CMakeFiles/opus.dir/silk/float/scale_vector_FLP.c.o
+[681/773] Building C object opus/CMakeFiles/opus.dir/silk/float/scale_copy_vector_FLP.c.o
+[682/773] Building C object opus/CMakeFiles/opus.dir/celt/x86/x86cpu.c.o
+[683/773] Building C object opus/CMakeFiles/opus.dir/silk/float/sort_FLP.c.o
+[684/773] Building C object opus/CMakeFiles/opus.dir/celt/bands.c.o
+[685/773] Building C object opus/CMakeFiles/opus.dir/silk/x86/x86_silk_map.c.o
+[686/773] Building C object opus/CMakeFiles/opus.dir/silk/float/schur_FLP.c.o
+[687/773] Building C object opus/CMakeFiles/opus.dir/celt/x86/pitch_sse2.c.o
+[688/773] Building C object opus/CMakeFiles/opus.dir/celt/x86/celt_lpc_sse4_1.c.o
+[689/773] Building C object opus/CMakeFiles/opus.dir/celt/x86/pitch_sse4_1.c.o
+[690/773] Building C object opus/CMakeFiles/opus.dir/celt/x86/pitch_sse.c.o
+[691/773] Building C object opus/CMakeFiles/opus.dir/celt/x86/vq_sse2.c.o
+[692/773] Building C object opus/CMakeFiles/opus.dir/silk/float/burg_modified_FLP.c.o
+[693/773] Building C object opus/CMakeFiles/opus.dir/silk/x86/VQ_WMat_EC_sse4_1.c.o
+[694/773] Building CXX object CMakeFiles/tessera_navigation.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/recastnavigation/Detour/Source/DetourAlloc.cpp.o
+[695/773] Building CXX object CMakeFiles/tessera_navigation.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/recastnavigation/Detour/Source/DetourAssert.cpp.o
+[696/773] Building C object opus/CMakeFiles/opus.dir/silk/x86/VAD_sse4_1.c.o
+[697/773] Building C object opus/CMakeFiles/opus.dir/silk/float/pitch_analysis_core_FLP.c.o
+[698/773] Building C object opus/CMakeFiles/opus.dir/silk/x86/NSQ_sse4_1.c.o
+[699/773] Building CXX object CMakeFiles/tessera_navigation.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/recastnavigation/Detour/Source/DetourCommon.cpp.o
+[700/773] Building C object opus/CMakeFiles/opus.dir/celt/x86/pitch_avx.c.o
+[701/773] Building C object opus/CMakeFiles/opus.dir/silk/float/x86/inner_product_FLP_avx2.c.o
+[702/773] Building C object opus/CMakeFiles/opus.dir/silk/x86/NSQ_del_dec_sse4_1.c.o
+[703/773] Building CXX object CMakeFiles/tessera_navigation.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/recastnavigation/Recast/Source/RecastAlloc.cpp.o
+[704/773] Building CXX object CMakeFiles/tessera_navigation.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/recastnavigation/Recast/Source/RecastAssert.cpp.o
+[705/773] Building CXX object CMakeFiles/tessera_navigation.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/recastnavigation/Detour/Source/DetourNode.cpp.o
+[706/773] Building CXX object CMakeFiles/tessera_navigation.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/recastnavigation/Detour/Source/DetourNavMeshBuilder.cpp.o
+[707/773] Building CXX object CMakeFiles/tessera_navigation.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/recastnavigation/Recast/Source/RecastFilter.cpp.o
+[708/773] Building CXX object CMakeFiles/tessera_navigation.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/recastnavigation/Recast/Source/Recast.cpp.o
+[709/773] Building C object opus/CMakeFiles/opus.dir/silk/x86/NSQ_del_dec_avx2.c.o
+[710/773] Building CXX object CMakeFiles/tessera_navigation.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/recastnavigation/Detour/Source/DetourNavMesh.cpp.o
+[711/773] Building CXX object CMakeFiles/tessera_navigation.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/recastnavigation/Recast/Source/RecastArea.cpp.o
+[712/773] Building C object opus/CMakeFiles/opus.dir/celt/celt_encoder.c.o
+[713/773] Building CXX object CMakeFiles/tessera_navigation.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/recastnavigation/Recast/Source/RecastRasterization.cpp.o
+[714/773] Building CXX object CMakeFiles/tessera_navigation.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/recastnavigation/Recast/Source/RecastLayers.cpp.o
+[715/773] Building CXX object CMakeFiles/tessera_navigation.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/recastnavigation/Recast/Source/RecastContour.cpp.o
+[716/773] Building CXX object CMakeFiles/tessera_navigation.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/recastnavigation/Detour/Source/DetourNavMeshQuery.cpp.o
+[717/773] Building CXX object CMakeFiles/tessera_navigation.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/recastnavigation/Recast/Source/RecastMesh.cpp.o
+[718/773] Building CXX object CMakeFiles/tessera_navigation.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/recastnavigation/Recast/Source/RecastMeshDetail.cpp.o
+[719/773] Building CXX object CMakeFiles/tessera_collision_support.dir/tessera_collision_profile.cpp.o
+[720/773] Building CXX object CMakeFiles/tessera_navigation.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/recastnavigation/Recast/Source/RecastRegion.cpp.o
+[721/773] Building CXX object CMakeFiles/tessera_collision_support.dir/tessera_overlap_contacts.cpp.o
+[722/773] Building CXX object CMakeFiles/tessera_native.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/cimgui/imgui/backends/imgui_impl_sdl3.cpp.o
+[723/773] Building CXX object CMakeFiles/tessera_navigation.dir/tessera_navigation.cpp.o
+[724/773] Building CXX object CMakeFiles/tessera_native.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/cimgui/cimgui.cpp.o
+[725/773] Building CXX object CMakeFiles/tessera_native.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/cimgui/imgui/imgui_tables.cpp.o
+[726/773] Building CXX object CMakeFiles/tessera_native.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/ImGuizmo/src/ImGuizmo.cpp.o
+[727/773] Building CXX object CMakeFiles/tessera_native.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/TextEdit/extras/TrieAutoComplete.cpp.o
+[728/773] Building CXX object CMakeFiles/tessera_native.dir/tessera_bake.cpp.o
+[729/773] Building CXX object CMakeFiles/tessera_softbody.dir/tessera_softbody.cpp.o
+[730/773] Building CXX object CMakeFiles/tessera_native.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/cimgui/imgui/imgui_draw.cpp.o
+[731/773] Building CXX object CMakeFiles/tessera_native.dir/tessera_native.cpp.o
+[732/773] Building CXX object CMakeFiles/tessera_native.dir/tessera_rig.cpp.o
+[733/773] Building C object CMakeFiles/tessera_native.dir/tessera_pack.c.o
+[734/773] Building CXX object CMakeFiles/tessera_native.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/cimgui/imgui/imgui_demo.cpp.o
+[735/773] Building C object CMakeFiles/tessera_native.dir/tessera_web.c.o
+[736/773] Building C object CMakeFiles/tessera_native.dir/tessera_guard.c.o
+[737/773] Building C object CMakeFiles/tessera_native.dir/tessera_http.c.o
+[738/773] Building C object CMakeFiles/tessera_native.dir/tessera_network.c.o
+[739/773] Building C object CMakeFiles/tessera_native.dir/tessera_modelimport.c.o
+[740/773] Building CXX object bgfx/cmake/bimg/CMakeFiles/bimg_decode.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bimg/src/image_decode_wic.cpp.o
+[741/773] Building CXX object CMakeFiles/tessera_native.dir/tessera_physics.cpp.o
+[742/773] Building CXX object CMakeFiles/tessera_native.dir/tessera_code.cpp.o
+[743/773] Building CXX object CMakeFiles/tessera_native.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/cimgui/imgui/imgui_widgets.cpp.o
+[744/773] Linking CXX static library bgfx/cmake/bgfx/libbgfx.a
+[745/773] Linking C static library SDL/libSDL3.a
+[746/773] Building C object enet/CMakeFiles/enet.dir/callbacks.c.o
+[747/773] Building C object enet/CMakeFiles/enet.dir/compress.c.o
+[748/773] Building C object enet/CMakeFiles/enet.dir/host.c.o
+[749/773] Building C object enet/CMakeFiles/enet.dir/list.c.o
+[750/773] Building C object enet/CMakeFiles/enet.dir/packet.c.o
+[751/773] Building C object enet/CMakeFiles/enet.dir/peer.c.o
+[752/773] Building C object enet/CMakeFiles/enet.dir/protocol.c.o
+[753/773] Building C object enet/CMakeFiles/enet.dir/unix.c.o
+[754/773] Building C object enet/CMakeFiles/enet.dir/win32.c.o
+[755/773] Building CXX object CMakeFiles/tessera_native.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/cimgui/imgui/imgui.cpp.o
+[756/773] Building C object CMakeFiles/tessera_native.dir/tessera_assets.c.o
+[757/773] Building C object joltc/CMakeFiles/joltc.dir/src/joltc.c.o
+[758/773] Building CXX object CMakeFiles/tessera_native.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/TextEdit/TextEditor.cpp.o
+[759/773] Linking C static library opus/libopus.a
+[760/773] Linking CXX static library _deps/joltphysics-build/libJolt.a
+[761/773] Linking C static library enet/libenet.a
+[762/773] Building CXX object joltc/CMakeFiles/joltc.dir/src/joltc_assert.cpp.o
+[763/773] Building C object bgfx/cmake/bimg/CMakeFiles/bimg_decode.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bimg/3rdparty/dav1d/dav1d-amalgamated.c.o
+[764/773] Building C object bgfx/cmake/bimg/CMakeFiles/bimg_decode.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bimg/3rdparty/dav1d/dav1d-bitdepth-8.c.o
+[765/773] Building C object bgfx/cmake/bimg/CMakeFiles/bimg_decode.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bimg/3rdparty/libavif/libavif-amalgamated.c.o
+[766/773] Building C object bgfx/cmake/bimg/CMakeFiles/bimg_decode.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bimg/3rdparty/dav1d/dav1d-bitdepth-16.c.o
+[767/773] Building CXX object joltc/CMakeFiles/joltc.dir/src/joltc.cpp.o
+[768/773] Linking CXX static library joltc/libjoltc.a
+[769/773] Building C object CMakeFiles/tessera_native.dir/tessera_audio.c.o
+[770/773] Linking CXX static library libtessera_native.a
+[771/773] Building CXX object bgfx/cmake/bimg/CMakeFiles/bimg_decode.dir/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bimg/src/image_decode.cpp.o
+In file included from /usr/include/c++/16/algorithm:62,
+                 from /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bimg/3rdparty/tinyexr/tinyexr.h:734,
+                 from /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bimg/src/image_decode.cpp:28:
+In function ‘constexpr typename __gnu_cxx::__enable_if<(std::__is_byte<_Tp>::__value && (std::__are_same< <template-parameter-1-1>, <template-parameter-1-2> >::__value || std::__memcpyable_integer<_Up>::__width)), void>::__type std::__fill_a1(_Up*, _Up*, const _Tp&) [with _Up = unsigned char; _Tp = unsigned char]’,
+    inlined from ‘constexpr void std::__fill_a(_FIte, _FIte, const _Tp&) [with _FIte = unsigned char*; _Tp = unsigned char]’ at /usr/include/c++/16/bits/stl_algobase.h:977:21,
+    inlined from ‘constexpr _OutputIterator std::__fill_n_a(_OutputIterator, _Size, const _Tp&, random_access_iterator_tag) [with _OutputIterator = unsigned char*; _Size = long unsigned int; _Tp = unsigned char]’ at /usr/include/c++/16/bits/stl_algobase.h:1154:20,
+    inlined from ‘constexpr _OI std::fill_n(_OI, _Size, const _Tp&) [with _OI = unsigned char*; _Size = long unsigned int; _Tp = unsigned char]’ at /usr/include/c++/16/bits/stl_algobase.h:1184:29,
+    inlined from ‘static constexpr _ForwardIterator std::__uninitialized_default_n_1<true>::__uninit_default_n(_ForwardIterator, _Size) [with _ForwardIterator = unsigned char*; _Size = long unsigned int]’ at /usr/include/c++/16/bits/stl_uninitialized.h:947:29,
+    inlined from ‘static constexpr _ForwardIterator std::__uninitialized_default_n_1<true>::__uninit_default_n(_ForwardIterator, _Size) [with _ForwardIterator = unsigned char*; _Size = long unsigned int]’ at /usr/include/c++/16/bits/stl_uninitialized.h:939:9,
+    inlined from ‘constexpr _ForwardIterator std::__uninitialized_default_n(_ForwardIterator, _Size) [with _ForwardIterator = unsigned char*; _Size = long unsigned int]’ at /usr/include/c++/16/bits/stl_uninitialized.h:998:20,
+    inlined from ‘constexpr _ForwardIterator std::__uninitialized_default_n_a(_ForwardIterator, _Size, allocator<_Tp>&) [with _ForwardIterator = unsigned char*; _Size = long unsigned int; _Tp = unsigned char]’ at /usr/include/c++/16/bits/stl_uninitialized.h:1053:44,
+    inlined from ‘constexpr void std::vector<_Tp, _Alloc>::_M_default_append(size_type) [with _Tp = unsigned char; _Alloc = std::allocator<unsigned char>]’ at /usr/include/c++/16/bits/vector.tcc:862:35,
+    inlined from ‘constexpr void std::vector<_Tp, _Alloc>::resize(size_type) [with _Tp = unsigned char; _Alloc = std::allocator<unsigned char>]’ at /usr/include/c++/16/bits/stl_vector.h:1136:21,
+    inlined from ‘bool tinyexr::ReadAttribute.constprop(std::string*, std::string*, std::vector<unsigned char>*, size_t*, const char*, size_t)’ at /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bimg/3rdparty/tinyexr/tinyexr.h:1246:19:
+/usr/include/c++/16/bits/stl_algobase.h:949:25: warning: ‘void* __builtin_memset(void*, int, long unsigned int)’ writing 1 or more bytes into a region of size 0 overflows the destination [-Wstringop-overflow=]
+  949 |         __builtin_memset(__first, static_cast<unsigned char>(__val), __len);
+      |         ~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/c++/16/x86_64-redhat-linux/bits/c++allocator.h:33,
+                 from /usr/include/c++/16/bits/allocator.h:46,
+                 from /usr/include/c++/16/string:46,
+                 from /usr/include/c++/16/bits/locale_classes.h:43,
+                 from /usr/include/c++/16/bits/ios_base.h:43,
+                 from /usr/include/c++/16/ios:46,
+                 from /usr/include/c++/16/istream:42,
+                 from /usr/include/c++/16/sstream:42,
+                 from /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bimg/3rdparty/tinyexr/tinyexr.h:739:
+In member function ‘constexpr _Tp* std::__new_allocator<_Tp>::allocate(size_type, const void*) [with _Tp = unsigned char]’,
+    inlined from ‘constexpr _Tp* std::allocator< <template-parameter-1-1> >::allocate(std::size_t) [with _Tp = unsigned char]’ at /usr/include/c++/16/bits/allocator.h:206:40,
+    inlined from ‘static constexpr _Tp* std::allocator_traits<std::allocator<_CharT> >::allocate(allocator_type&, size_type) [with _Tp = unsigned char]’ at /usr/include/c++/16/bits/alloc_traits.h:638:28,
+    inlined from ‘constexpr std::_Vector_base<_Tp, _Alloc>::pointer std::_Vector_base<_Tp, _Alloc>::_M_allocate(std::size_t) [with _Tp = unsigned char; _Alloc = std::allocator<unsigned char>]’ at /usr/include/c++/16/bits/stl_vector.h:389:33,
+    inlined from ‘constexpr void std::vector<_Tp, _Alloc>::_M_default_append(size_type) [with _Tp = unsigned char; _Alloc = std::allocator<unsigned char>]’ at /usr/include/c++/16/bits/vector.tcc:857:45,
+    inlined from ‘constexpr void std::vector<_Tp, _Alloc>::resize(size_type) [with _Tp = unsigned char; _Alloc = std::allocator<unsigned char>]’ at /usr/include/c++/16/bits/stl_vector.h:1136:21,
+    inlined from ‘bool tinyexr::ReadAttribute.constprop(std::string*, std::string*, std::vector<unsigned char>*, size_t*, const char*, size_t)’ at /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/third_party/bgfx.cmake/bimg/3rdparty/tinyexr/tinyexr.h:1246:19:
+/usr/include/c++/16/bits/new_allocator.h:162:75: note: at offset 1 into destination object of size 1 allocated by ‘operator new’
+  162 |           return static_cast<_Tp*>(_GLIBCXX_OPERATOR_NEW(__n * sizeof(_Tp)));
+      |                                                                           ^
+[772/773] Linking CXX static library bgfx/cmake/bimg/libbimg_decode.a

@@ -1,0 +1,60 @@
+WARNING: BF4200: A variable named 'value' has already been declared in an outer scope at line 698:84 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Engine/src/Physics/SoftBody.bf
+   let last = dash < 0 ? first : (int.Parse(word.Substring(dash + 1)) case .Ok(let value) ? value : -1);
+                                                                                   ^
+  > Previous declaration at line 697:82 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Engine/src/Physics/SoftBody.bf
+    let first = int.Parse(dash < 0 ? word : word.Substring(0, dash)) case .Ok(let value) ? value : -1;
+                                                                                  ^^^^^
+WARNING(2): BF4200: A variable named 'parsed' has already been declared in this scope at line 38:67 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/ModelImport.bf
+   case "scale": scale = Math.Max(float.Parse(value) case .Ok(let parsed) ? parsed : 1, 0.0001f);
+                                                                  ^
+  > Previous declaration at line 38:67 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/ModelImport.bf
+    case "scale": scale = Math.Max(float.Parse(value) case .Ok(let parsed) ? parsed : 1, 0.0001f);
+                                                                   ^^^^^^
+WARNING(3): BF4200: A variable named 'sizeIndex' has already been declared in this scope at line 61:10 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/QualityTools.bf
+   int32 sizeIndex = v.reflectionSize >= 256 ? (v.reflectionSize >= 512 ? 4 : 3) : (v.reflectionSize >= 128 ? 2 : (v.reflectionSize >= 64 ? 1 : 0));
+         ^
+  > Previous declaration at line 37:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/QualityTools.bf
+    var sizeIndex = (float)Math.Round(Math.Log(v.shadowMapSize / 512.0) / Math.Log(2));
+        ^^^^^^^^^
+WARNING(4): BF4200: A variable named 'before' has already been declared in an outer scope at line 110:10 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+     let before = tipBone.Position;
+         ^
+  > Previous declaration at line 59:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+    let before = scope List<float>(mRig.weights);
+        ^^^^^^
+WARNING(5): BF4200: A variable named 'moved' has already been declared in an outer scope at line 123:11 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+      let moved = (tipBone.Position - before).Length;
+          ^
+  > Previous declaration at line 82:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+    var moved = false;
+        ^^^^^
+WARNING(6): BF0168: The variable 'resolved' is assigned but its value is never used at line 130:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Behavior/BehaviorTreeEditor.bf
+   let resolved = scope String();
+       ^
+Server listening on port 48146.
+PASS: host starts
+Connecting to 127.0.0.1:48146...
+Client 1 connected.
+Connected as client 1.
+PASS: client connects over a lagging connection (40 ms each way)
+PASS: the server's crates are predicted on the client (6 bodies)
+PASS: players are not: the host's has a script the client cannot run, and the client's own is predicted as ever
+PASS: crates at rest stay asleep on the client
+PASS: a crate spawned on the server is predicted from its first snapshot
+PASS: it falls, tumbles onto the stack and settles with 0 correction(s) after it is taken up (1 on taking it up)
+PASS: and it comes to rest where the server has it (0.0000 apart)
+PASS: a crate the client's player walks into moves on the client first (tick 202, on the server tick 208)
+PASS: and the server agrees with the client about the shove (0 corrections)
+PASS: once the shoving is over, every crate is where the server has it (worst 0.0000 apart)
+PASS: and the crates sleep on the client as they do on the server
+PASS: a crate another player shoves is corrected on the client (2 corrections)
+PASS: and ends up where the server has it (worst 0.0000 apart)
+PASS: on a lossy, uneven connection the client knocks a stack over and the crates end up where the server has them (worst 0.0000 apart)
+PASS: a crate a server script carries about is shown in the past after a few corrections (11 in five seconds)
+PASS: and predicted again once it is left to physics, ending where the server has it
+PASS: lag compensation leaves predicted bodies where they are: the player saw them there
+PASS: with everything at rest little is sent (413 bytes a second to the client)
+PASS: with PredictPhysics off on the server, the client shows the crates in the past again
+PASS: and a client with it off does the same
+PASS: turned back on, they are predicted again
+ALL PASSED

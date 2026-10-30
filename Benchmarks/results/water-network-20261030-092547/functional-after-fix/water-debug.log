@@ -1,0 +1,94 @@
+WARNING: BF4200: A variable named 'value' has already been declared in an outer scope at line 698:84 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Engine/src/Physics/SoftBody.bf
+   let last = dash < 0 ? first : (int.Parse(word.Substring(dash + 1)) case .Ok(let value) ? value : -1);
+                                                                                   ^
+  > Previous declaration at line 697:82 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Engine/src/Physics/SoftBody.bf
+    let first = int.Parse(dash < 0 ? word : word.Substring(0, dash)) case .Ok(let value) ? value : -1;
+                                                                                  ^^^^^
+WARNING(2): BF4200: A variable named 'parsed' has already been declared in this scope at line 38:67 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/ModelImport.bf
+   case "scale": scale = Math.Max(float.Parse(value) case .Ok(let parsed) ? parsed : 1, 0.0001f);
+                                                                  ^
+  > Previous declaration at line 38:67 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/ModelImport.bf
+    case "scale": scale = Math.Max(float.Parse(value) case .Ok(let parsed) ? parsed : 1, 0.0001f);
+                                                                   ^^^^^^
+WARNING(3): BF4200: A variable named 'sizeIndex' has already been declared in this scope at line 61:10 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/QualityTools.bf
+   int32 sizeIndex = v.reflectionSize >= 256 ? (v.reflectionSize >= 512 ? 4 : 3) : (v.reflectionSize >= 128 ? 2 : (v.reflectionSize >= 64 ? 1 : 0));
+         ^
+  > Previous declaration at line 37:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/QualityTools.bf
+    var sizeIndex = (float)Math.Round(Math.Log(v.shadowMapSize / 512.0) / Math.Log(2));
+        ^^^^^^^^^
+WARNING(4): BF4200: A variable named 'before' has already been declared in an outer scope at line 110:10 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+     let before = tipBone.Position;
+         ^
+  > Previous declaration at line 59:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+    let before = scope List<float>(mRig.weights);
+        ^^^^^^
+WARNING(5): BF4200: A variable named 'moved' has already been declared in an outer scope at line 123:11 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+      let moved = (tipBone.Position - before).Length;
+          ^
+  > Previous declaration at line 82:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+    var moved = false;
+        ^^^^^
+WARNING(6): BF0168: The variable 'resolved' is assigned but its value is never used at line 130:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Behavior/BehaviorTreeEditor.bf
+   let resolved = scope String();
+       ^
+PASS: the surface's height is where the waves carry the water (0.0005021095 m off at most)
+PASS: waves 1 m high stay within it, round the level (1.56 to 2.45 m)
+PASS: crests never fold over (0.475 of 1)
+PASS: two waters with the same settings have the same waves
+PASS: another seed arranges them differently
+PASS: waves stay smooth a day in (a tick moves the surface 0.0011 m)
+PASS: with no waves the surface is level, at the object's height
+PASS: the water's rectangle turns and scales with its object
+PASS: a point past it is not over it
+PASS: endless water is everywhere
+PASS: a point is in the water below the surface and above the bottom
+PASS: how deep a point is under the surface
+PASS: Water.At finds the water a point is in, the highest of several
+PASS: a Rigidbody floats with the water's buoyancy, about as deep as it should (62 percent under, 1 / 1.6 is 62; moving at 0.051 m/s)
+PASS: and is in the water without a Floater
+PASS: a Floater's own buoyancy floats a cork higher (0.236 m)
+PASS: and a stone sinks to the bottom (-9.52 m)
+PASS: a disabled Floater does not float
+PASS: a crate beside the water is not floated by it
+PASS: with Float Rigidbodies off, only objects with a Floater float
+PASS: the current carries a floating object along it (6.9 m in 5 s)
+PASS: waves lift and drop it (-0.17 to 0.58 m)
+PASS: a character in deep water swims, floating with its head out (top at 0.40 m)
+PASS: one in water shallower than Swim Depth wades on the bottom
+PASS: a jump swims it up (0.47 m)
+PASS: swimming is slower than walking (3.16 m in 2 s at 3 m/s)
+PASS: the current carries a swimmer (2.64 m in 2 s)
+PASS: Swim dives under (-2.61 m)
+PASS: let go, it floats back up
+PASS: with Can Swim off it walks on the bottom
+PASS: a jelly floats on the water (its middle at -0.11 m)
+PASS: and one with a Floater of buoyancy 0.5 sinks
+PASS: cloth lies on the surface (-0.013 m)
+PASS: a rope floats (-0.008 m, lowest point -0.02 m)
+PASS: a shell floats on its Rigidbody (-0.12 m)
+PASS: the current carries cloth and jelly (2.3 m and 2.3 m in 3 s)
+PASS: waves lift and drop the cloth (-0.13 to 0.15 m)
+PASS: a fine cloth rides the waves without coming apart (-0.30 to 0.22 m high, 4.0 m across)
+PASS: floating is cheap: 148 microseconds a step for every body in this scene (a Debug build)
+PASS: with Float Rigidbodies off, soft bodies without a Floater sink
+Server listening on port 47372.
+PASS: networked by default: a host starts
+Connecting to 127.0.0.1:47372...
+Client 1 connected.
+Connected as client 1.
+PASS: a client joins
+PASS: water in the scene gets a Network Identity when the session starts
+PASS: the client's waves are the server's (17 ms apart, 0.5 cm)
+PASS: a crate floats on the server and on the client in the same place (0.02 m apart)
+PASS: the server's changes to the water reach the client
+PASS: and so does a new water level (1.00 m)
+PASS: the server's settings win over a client's
+Connecting to 127.0.0.1:47372...
+Client 2 connected.
+Connected as client 2.
+PASS: a late joiner's water is the server's as it is now (waves 1.5 m, level 1.00 m)
+PASS: rollback reapplies buoyancy at historical ticks (predicted False, waves 0, position gap 0, velocity gap 0)
+PASS: rollback reapplies buoyancy at historical ticks (predicted False, waves 0.8, position gap 0, velocity gap 0)
+PASS: rollback reapplies buoyancy at historical ticks (predicted True, waves 0, position gap 0, velocity gap 0)
+PASS: rollback reapplies buoyancy at historical ticks (predicted True, waves 0.8, position gap 0, velocity gap 0)
+ALL PASS

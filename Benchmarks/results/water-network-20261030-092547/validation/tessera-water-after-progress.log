@@ -1,0 +1,4 @@
+DONE ocean 0 0.5 real render 1920 water95 0.0 frame95 1.014
+DONE bodies 1000 0.5 real cpu 1920 water95 0.627 frame95 0
+DONE bodies 1000 0.5 real render 1920 water95 0.699 frame95 1.519
+WATER COMPLETE 9

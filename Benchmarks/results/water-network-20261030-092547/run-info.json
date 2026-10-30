@@ -1,0 +1,18 @@
+{
+  "engine_commit": "6cfa1faa568940e629b71d9999605319d55bc037",
+  "native_sources_unchanged": true,
+  "binaries": {
+    "water": {
+      "path": "Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+      "sha256": "98e8cb6691fb76e7d39111ce963a9786c370a4085dc51fff272ab716590c0ce1"
+    },
+    "network": {
+      "path": "Benchmarks/water-network/network/build/Release_Linux64/Benchmark/Benchmark",
+      "sha256": "a932e64bdcbdce404b88f72f6f851409646b33947dcd9230d0a2cfa2cb251ac0"
+    },
+    "features": {
+      "path": "Benchmarks/water-network/features/build/Release_Linux64/NetworkTests/NetworkTests",
+      "sha256": "d657d20b9ba5fe110fc9dc9b4cf954f93cf780d497cc9a57dfab3e9f8ff3ae16"
+    }
+  }
+}

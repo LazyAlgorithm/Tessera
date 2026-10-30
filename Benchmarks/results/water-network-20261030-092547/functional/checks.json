@@ -1,0 +1,143 @@
+{
+  "jobs": [
+    {
+      "name": "water-debug",
+      "args": [
+        "BeefBuild",
+        "-workspace=Tests/Water",
+        "-config=Debug",
+        "-run"
+      ],
+      "exit": 0,
+      "pass": true,
+      "pass_checks": 49,
+      "failures": [],
+      "seconds": 6.605231944005936
+    },
+    {
+      "name": "water-release",
+      "args": [
+        "BeefBuild",
+        "-workspace=Tests/Water",
+        "-config=Release",
+        "-run"
+      ],
+      "exit": 0,
+      "pass": true,
+      "pass_checks": 49,
+      "failures": [],
+      "seconds": 5.800745820975862
+    },
+    {
+      "name": "network",
+      "args": [
+        "BeefBuild",
+        "-workspace=Tests/Network",
+        "-config=Debug",
+        "-run"
+      ],
+      "exit": 0,
+      "pass": true,
+      "pass_checks": 82,
+      "failures": [],
+      "seconds": 8.167291841993574
+    },
+    {
+      "name": "bandwidth-debug",
+      "args": [
+        "BeefBuild",
+        "-workspace=Tests/NetworkBandwidth",
+        "-config=Debug",
+        "-run"
+      ],
+      "exit": 0,
+      "pass": true,
+      "pass_checks": 31,
+      "failures": [],
+      "seconds": 2.4761709030135535
+    },
+    {
+      "name": "bandwidth-release",
+      "args": [
+        "/usr/bin/python3",
+        "tools/run_network_bandwidth_tests.py",
+        "--engine",
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa"
+      ],
+      "exit": 0,
+      "pass": true,
+      "pass_checks": 31,
+      "failures": [],
+      "seconds": 2.4352813590085134
+    },
+    {
+      "name": "prediction",
+      "args": [
+        "BeefBuild",
+        "-workspace=Tests/PhysicsPrediction",
+        "-config=Debug",
+        "-run"
+      ],
+      "exit": 0,
+      "pass": true,
+      "pass_checks": 22,
+      "failures": [],
+      "seconds": 30.220794967957772
+    },
+    {
+      "name": "voice",
+      "args": [
+        "BeefBuild",
+        "-workspace=Tests/Voice",
+        "-config=Debug",
+        "-run"
+      ],
+      "exit": 0,
+      "pass": true,
+      "pass_checks": 28,
+      "failures": [],
+      "seconds": 3.7060022610239685
+    },
+    {
+      "name": "softbody",
+      "args": [
+        "BeefBuild",
+        "-workspace=Tests/SoftBodies",
+        "-config=Debug",
+        "-run"
+      ],
+      "exit": 0,
+      "pass": true,
+      "pass_checks": 84,
+      "failures": [],
+      "seconds": 10.406572689011227
+    },
+    {
+      "name": "character",
+      "args": [
+        "BeefBuild",
+        "-workspace=Tests/CharacterController",
+        "-config=Debug",
+        "-run"
+      ],
+      "exit": 0,
+      "pass": true,
+      "pass_checks": 34,
+      "failures": [],
+      "seconds": 2.486675390973687
+    },
+    {
+      "name": "anti-cheat",
+      "args": [
+        "/usr/bin/python3",
+        "Tests/AntiCheat/run.py"
+      ],
+      "exit": 0,
+      "pass": true,
+      "pass_checks": 26,
+      "failures": [],
+      "seconds": 9.041433245001826
+    }
+  ],
+  "updated": "2026-10-30T09:27:47.796565"
+}

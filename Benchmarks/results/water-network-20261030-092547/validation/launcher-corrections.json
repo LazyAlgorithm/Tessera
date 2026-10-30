@@ -1,0 +1,4 @@
+{
+  "maps": "Initial focused runner cwd was checkout root; fixture requires Tests/Maps to find ../SkinnedMaterials/assets/plain.glb. Corrected run passed all 49 checks.",
+  "render": "Initial renderer used window dimensions which SDL/window manager can clamp. Published rendered timings use requested offscreen target sizes and explicit width/height checks."
+}

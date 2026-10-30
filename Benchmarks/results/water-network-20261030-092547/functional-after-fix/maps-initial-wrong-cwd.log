@@ -1,0 +1,99 @@
+WARNING: BF4200: A variable named 'value' has already been declared in an outer scope at line 698:84 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Engine/src/Physics/SoftBody.bf
+   let last = dash < 0 ? first : (int.Parse(word.Substring(dash + 1)) case .Ok(let value) ? value : -1);
+                                                                                   ^
+  > Previous declaration at line 697:82 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Engine/src/Physics/SoftBody.bf
+    let first = int.Parse(dash < 0 ? word : word.Substring(0, dash)) case .Ok(let value) ? value : -1;
+                                                                                  ^^^^^
+WARNING(2): BF4200: A variable named 'parsed' has already been declared in this scope at line 38:67 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/ModelImport.bf
+   case "scale": scale = Math.Max(float.Parse(value) case .Ok(let parsed) ? parsed : 1, 0.0001f);
+                                                                  ^
+  > Previous declaration at line 38:67 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/ModelImport.bf
+    case "scale": scale = Math.Max(float.Parse(value) case .Ok(let parsed) ? parsed : 1, 0.0001f);
+                                                                   ^^^^^^
+WARNING(3): BF4200: A variable named 'sizeIndex' has already been declared in this scope at line 61:10 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/QualityTools.bf
+   int32 sizeIndex = v.reflectionSize >= 256 ? (v.reflectionSize >= 512 ? 4 : 3) : (v.reflectionSize >= 128 ? 2 : (v.reflectionSize >= 64 ? 1 : 0));
+         ^
+  > Previous declaration at line 37:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/QualityTools.bf
+    var sizeIndex = (float)Math.Round(Math.Log(v.shadowMapSize / 512.0) / Math.Log(2));
+        ^^^^^^^^^
+WARNING(4): BF4200: A variable named 'before' has already been declared in an outer scope at line 110:10 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+     let before = tipBone.Position;
+         ^
+  > Previous declaration at line 59:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+    let before = scope List<float>(mRig.weights);
+        ^^^^^^
+WARNING(5): BF4200: A variable named 'moved' has already been declared in an outer scope at line 123:11 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+      let moved = (tipBone.Position - before).Length;
+          ^
+  > Previous declaration at line 82:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+    var moved = false;
+        ^^^^^
+WARNING(6): BF0168: The variable 'resolved' is assigned but its value is never used at line 130:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Behavior/BehaviorTreeEditor.bf
+   let resolved = scope String();
+       ^
+PASS: the level has a sculpted hill (2.7 m)
+PASS: a scene exports as a map file with nothing missing (0 problems)
+PASS: it holds its description, its scene and the terrain's sculpting
+PASS: Find lists the map, with no problems
+PASS: with the name, author, description and game it was exported with
+PASS: a game can count what is in it (one spawn point, one terrain)
+PASS: a missing Maps folder finds nothing
+PASS: before it is mounted its scene cannot be read
+PASS: mounting it makes its scene readable
+PASS: its scene loads into the game like any other
+PASS: and its terrain has the sculpting from the map (2.7 m, 2.7 m when exported)
+PASS: unmounting it frees its files
+PASS: Export says when the scene names a file the project does not have
+PASS: of eight map files only the good one can be played (1 of 8)
+PASS: a file that is not a map says so
+PASS: a changed map file is caught by its checksums
+PASS: a map for another game is refused
+PASS: a map that needs a file the game lacks is refused
+PASS: a map with a component the game lacks is refused
+PASS: a map from a newer engine is refused
+PASS: a renamed copy is the same map, and only one of the two is listed as playable
+PASS: a map with problems cannot be mounted
+PASS: MapRules.txt is read: three rules and a scene that is not a map
+PASS: a rule counts the components of its type
+PASS: a field test counts only components that pass it, not another component's field
+PASS: a component that leaves a field out has the field's default (clearRadius 1)
+PASS: Check says what is missing (It needs at least 3 roomy spawn points and has 2.)
+PASS: Find refuses a map that breaks the game's rules
+PASS: ignore names scenes that are not maps
+PASS: Ignore adds a scene to the rules file
+PASS: each map has its file's hash and size
+PASS: a changed copy has another hash
+PASS: a most rule limits how many a map has (It can have at most 2 physics items and has 3.)
+PASS: and passes a map within the limit
+FAIL: a level loaded into a game saves as a map, with its own model (0 problems)
+PASS: the model travels inside the map
+PASS: only what is under the level is saved, and the model's path is the map's
+PASS: it keeps the Id it was saved with, and is playable
+PASS: mounted, its model can be read
+FAIL: and the model loads from inside the map (0 vertices)
+PASS: unmounted, it is gone
+PASS: the player does not have the map
+Server listening on port 47878.
+Connecting to 127.0.0.1:47878...
+Client 1 connected.
+Connected as client 1.
+PASS: the player joins the host
+Asking the host for map built-keep.
+Sending map Built in game (1 KB) to player 1.
+Downloaded map Built in game into /tmp//tessera-map-test/Downloads/Built in game.tmap.
+PASS: the map comes from the host, whole, into the player's Maps folder (2 ticks, )
+PASS: after which the player has it
+PASS: a player with another version of the map does not have the host's
+Asking the host for map built-keep.
+Sending map Built in game (1 KB) to player 1.
+Downloaded map Built in game into /tmp//tessera-map-test/Downloads/My old copy.tmap.
+PASS: downloading it replaces the old version
+Asking the host for map big-1.
+Sending map Big (3072 KB) to player 1.
+Downloaded map Big into /tmp//tessera-map-test/Downloads/Big.tmap.
+PASS: a 3 MB map arrives whole, in pieces (51 ticks, )
+Asking the host for map no-such-map.
+[warning] A player asked for map no-such-map, which this host cannot send.
+[warning] Map download failed: The host does not have that map any more.
+PASS: a map the host does not have fails, saying why
+2 MAP TESTS FAILED

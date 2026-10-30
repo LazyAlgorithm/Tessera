@@ -1,0 +1,2800 @@
+{
+  "commit": "6cfa1faa568940e629b71d9999605319d55bc037",
+  "binary_sha256": "98e8cb6691fb76e7d39111ce963a9786c370a4085dc51fff272ab716590c0ce1",
+  "jobs": [
+    {
+      "name": "baseline-0-0.5-real-render-1280-0",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "baseline",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "1280",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.912926",
+        "render_width": "1280",
+        "render_height": "720",
+        "draws": "12",
+        "grid_cache_count": "0",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "baseline-0-0.5-real-render-1280-1",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "baseline",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "1280",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.843455",
+        "render_width": "1280",
+        "render_height": "720",
+        "draws": "12",
+        "grid_cache_count": "0",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "baseline-0-0.5-real-render-1280-2",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "baseline",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "1280",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.949164",
+        "render_width": "1280",
+        "render_height": "720",
+        "draws": "12",
+        "grid_cache_count": "0",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "ocean-0-0.5-real-render-1280-0",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "ocean",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "1280",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.846401",
+        "render_width": "1280",
+        "render_height": "720",
+        "water_vertices": "37249",
+        "draws": "16",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "ocean-0-0.5-real-render-1280-1",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "ocean",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "1280",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.833877",
+        "render_width": "1280",
+        "render_height": "720",
+        "water_vertices": "37249",
+        "draws": "16",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "ocean-0-0.5-real-render-1280-2",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "ocean",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "1280",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.854025",
+        "render_width": "1280",
+        "render_height": "720",
+        "water_vertices": "37249",
+        "draws": "16",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "underwater-0-0.5-real-render-1280-0",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "underwater",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "1280",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.846791",
+        "render_width": "1280",
+        "render_height": "720",
+        "water_vertices": "37249",
+        "draws": "18",
+        "visible_water": "1",
+        "underwater": "True",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "underwater-0-0.5-real-render-1280-1",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "underwater",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "1280",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.85663",
+        "render_width": "1280",
+        "render_height": "720",
+        "water_vertices": "37249",
+        "draws": "18",
+        "visible_water": "1",
+        "underwater": "True",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "underwater-0-0.5-real-render-1280-2",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "underwater",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "1280",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.852763",
+        "render_width": "1280",
+        "render_height": "720",
+        "water_vertices": "37249",
+        "draws": "18",
+        "visible_water": "1",
+        "underwater": "True",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "waterline-0-0.5-real-render-1280-0",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "waterline",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "1280",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.827475",
+        "render_width": "1280",
+        "render_height": "720",
+        "water_vertices": "37249",
+        "draws": "18",
+        "visible_water": "1",
+        "underwater": "True",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "waterline-0-0.5-real-render-1280-1",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "waterline",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "1280",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.952189",
+        "render_width": "1280",
+        "render_height": "720",
+        "water_vertices": "37249",
+        "draws": "18",
+        "visible_water": "1",
+        "underwater": "True",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "waterline-0-0.5-real-render-1280-2",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "waterline",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "1280",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.859485",
+        "render_width": "1280",
+        "render_height": "720",
+        "water_vertices": "37249",
+        "draws": "18",
+        "visible_water": "1",
+        "underwater": "True",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "ocean-0-0.5-low-render-1280-0",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "ocean",
+        "0",
+        "0.5",
+        "low",
+        "render",
+        "1280",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.951899",
+        "render_width": "1280",
+        "render_height": "720",
+        "water_vertices": "37249",
+        "draws": "16",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "ocean-0-0.5-low-render-1280-1",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "ocean",
+        "0",
+        "0.5",
+        "low",
+        "render",
+        "1280",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.87824",
+        "render_width": "1280",
+        "render_height": "720",
+        "water_vertices": "37249",
+        "draws": "16",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "ocean-0-0.5-low-render-1280-2",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "ocean",
+        "0",
+        "0.5",
+        "low",
+        "render",
+        "1280",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.854866",
+        "render_width": "1280",
+        "render_height": "720",
+        "water_vertices": "37249",
+        "draws": "16",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "underwater-0-0.5-low-render-1280-0",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "underwater",
+        "0",
+        "0.5",
+        "low",
+        "render",
+        "1280",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.854646",
+        "render_width": "1280",
+        "render_height": "720",
+        "water_vertices": "37249",
+        "draws": "18",
+        "visible_water": "1",
+        "underwater": "True",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "underwater-0-0.5-low-render-1280-1",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "underwater",
+        "0",
+        "0.5",
+        "low",
+        "render",
+        "1280",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.842453",
+        "render_width": "1280",
+        "render_height": "720",
+        "water_vertices": "37249",
+        "draws": "18",
+        "visible_water": "1",
+        "underwater": "True",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "underwater-0-0.5-low-render-1280-2",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "underwater",
+        "0",
+        "0.5",
+        "low",
+        "render",
+        "1280",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "1.052929",
+        "render_width": "1280",
+        "render_height": "720",
+        "water_vertices": "37249",
+        "draws": "18",
+        "visible_water": "1",
+        "underwater": "True",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "waterline-0-0.5-low-render-1280-0",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "waterline",
+        "0",
+        "0.5",
+        "low",
+        "render",
+        "1280",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.877719",
+        "render_width": "1280",
+        "render_height": "720",
+        "water_vertices": "37249",
+        "draws": "18",
+        "visible_water": "1",
+        "underwater": "True",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "waterline-0-0.5-low-render-1280-1",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "waterline",
+        "0",
+        "0.5",
+        "low",
+        "render",
+        "1280",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.848234",
+        "render_width": "1280",
+        "render_height": "720",
+        "water_vertices": "37249",
+        "draws": "18",
+        "visible_water": "1",
+        "underwater": "True",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "waterline-0-0.5-low-render-1280-2",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "waterline",
+        "0",
+        "0.5",
+        "low",
+        "render",
+        "1280",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.870766",
+        "render_width": "1280",
+        "render_height": "720",
+        "water_vertices": "37249",
+        "draws": "18",
+        "visible_water": "1",
+        "underwater": "True",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "baseline-0-0.5-real-render-1920-0",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "baseline",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.853114",
+        "render_width": "1920",
+        "render_height": "1080",
+        "draws": "12",
+        "grid_cache_count": "0",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "baseline-0-0.5-real-render-1920-1",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "baseline",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.938524",
+        "render_width": "1920",
+        "render_height": "1080",
+        "draws": "12",
+        "grid_cache_count": "0",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "baseline-0-0.5-real-render-1920-2",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "baseline",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.863603",
+        "render_width": "1920",
+        "render_height": "1080",
+        "draws": "12",
+        "grid_cache_count": "0",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "ocean-0-0.5-real-render-1920-0",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "ocean",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "1.026489",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "16",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "ocean-0-0.5-real-render-1920-1",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "ocean",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.847463",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "16",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "ocean-0-0.5-real-render-1920-2",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "ocean",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "1.013685",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "16",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "underwater-0-0.5-real-render-1920-0",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "underwater",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.837103",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "18",
+        "visible_water": "1",
+        "underwater": "True",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "underwater-0-0.5-real-render-1920-1",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "underwater",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.84587",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "18",
+        "visible_water": "1",
+        "underwater": "True",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "underwater-0-0.5-real-render-1920-2",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "underwater",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.866869",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "18",
+        "visible_water": "1",
+        "underwater": "True",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "waterline-0-0.5-real-render-1920-0",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "waterline",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.946169",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "18",
+        "visible_water": "1",
+        "underwater": "True",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "waterline-0-0.5-real-render-1920-1",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "waterline",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.869725",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "18",
+        "visible_water": "1",
+        "underwater": "True",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "waterline-0-0.5-real-render-1920-2",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "waterline",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.932773",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "18",
+        "visible_water": "1",
+        "underwater": "True",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "ocean-0-0.5-low-render-1920-0",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "ocean",
+        "0",
+        "0.5",
+        "low",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.883731",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "16",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "ocean-0-0.5-low-render-1920-1",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "ocean",
+        "0",
+        "0.5",
+        "low",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.880114",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "16",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "ocean-0-0.5-low-render-1920-2",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "ocean",
+        "0",
+        "0.5",
+        "low",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.841201",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "16",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "underwater-0-0.5-low-render-1920-0",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "underwater",
+        "0",
+        "0.5",
+        "low",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "1.041658",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "18",
+        "visible_water": "1",
+        "underwater": "True",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "underwater-0-0.5-low-render-1920-1",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "underwater",
+        "0",
+        "0.5",
+        "low",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.842353",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "18",
+        "visible_water": "1",
+        "underwater": "True",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "underwater-0-0.5-low-render-1920-2",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "underwater",
+        "0",
+        "0.5",
+        "low",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.853093",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "18",
+        "visible_water": "1",
+        "underwater": "True",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "waterline-0-0.5-low-render-1920-0",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "waterline",
+        "0",
+        "0.5",
+        "low",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.938434",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "18",
+        "visible_water": "1",
+        "underwater": "True",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "waterline-0-0.5-low-render-1920-1",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "waterline",
+        "0",
+        "0.5",
+        "low",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.937172",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "18",
+        "visible_water": "1",
+        "underwater": "True",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "waterline-0-0.5-low-render-1920-2",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "waterline",
+        "0",
+        "0.5",
+        "low",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.844316",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "18",
+        "visible_water": "1",
+        "underwater": "True",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "baseline-0-0.5-real-render-3840-0",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "baseline",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "3840",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.88822",
+        "render_width": "3840",
+        "render_height": "2160",
+        "draws": "12",
+        "grid_cache_count": "0",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "baseline-0-0.5-real-render-3840-1",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "baseline",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "3840",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.927643",
+        "render_width": "3840",
+        "render_height": "2160",
+        "draws": "12",
+        "grid_cache_count": "0",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "baseline-0-0.5-real-render-3840-2",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "baseline",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "3840",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "1.025878",
+        "render_width": "3840",
+        "render_height": "2160",
+        "draws": "12",
+        "grid_cache_count": "0",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "ocean-0-0.5-real-render-3840-0",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "ocean",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "3840",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.942071",
+        "render_width": "3840",
+        "render_height": "2160",
+        "water_vertices": "37249",
+        "draws": "16",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "ocean-0-0.5-real-render-3840-1",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "ocean",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "3840",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.902727",
+        "render_width": "3840",
+        "render_height": "2160",
+        "water_vertices": "37249",
+        "draws": "16",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "ocean-0-0.5-real-render-3840-2",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "ocean",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "3840",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.942331",
+        "render_width": "3840",
+        "render_height": "2160",
+        "water_vertices": "37249",
+        "draws": "16",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "underwater-0-0.5-real-render-3840-0",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "underwater",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "3840",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.858143",
+        "render_width": "3840",
+        "render_height": "2160",
+        "water_vertices": "37249",
+        "draws": "18",
+        "visible_water": "1",
+        "underwater": "True",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "underwater-0-0.5-real-render-3840-1",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "underwater",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "3840",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.890103",
+        "render_width": "3840",
+        "render_height": "2160",
+        "water_vertices": "37249",
+        "draws": "18",
+        "visible_water": "1",
+        "underwater": "True",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "underwater-0-0.5-real-render-3840-2",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "underwater",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "3840",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.858132",
+        "render_width": "3840",
+        "render_height": "2160",
+        "water_vertices": "37249",
+        "draws": "18",
+        "visible_water": "1",
+        "underwater": "True",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "waterline-0-0.5-real-render-3840-0",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "waterline",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "3840",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.900893",
+        "render_width": "3840",
+        "render_height": "2160",
+        "water_vertices": "37249",
+        "draws": "18",
+        "visible_water": "1",
+        "underwater": "True",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "waterline-0-0.5-real-render-3840-1",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "waterline",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "3840",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.916633",
+        "render_width": "3840",
+        "render_height": "2160",
+        "water_vertices": "37249",
+        "draws": "18",
+        "visible_water": "1",
+        "underwater": "True",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "waterline-0-0.5-real-render-3840-2",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "waterline",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "3840",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.932954",
+        "render_width": "3840",
+        "render_height": "2160",
+        "water_vertices": "37249",
+        "draws": "18",
+        "visible_water": "1",
+        "underwater": "True",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "ocean-0-0.5-low-render-3840-0",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "ocean",
+        "0",
+        "0.5",
+        "low",
+        "render",
+        "3840",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.87265",
+        "render_width": "3840",
+        "render_height": "2160",
+        "water_vertices": "37249",
+        "draws": "16",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "ocean-0-0.5-low-render-3840-1",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "ocean",
+        "0",
+        "0.5",
+        "low",
+        "render",
+        "3840",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.849336",
+        "render_width": "3840",
+        "render_height": "2160",
+        "water_vertices": "37249",
+        "draws": "16",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "ocean-0-0.5-low-render-3840-2",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "ocean",
+        "0",
+        "0.5",
+        "low",
+        "render",
+        "3840",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.85687",
+        "render_width": "3840",
+        "render_height": "2160",
+        "water_vertices": "37249",
+        "draws": "16",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "underwater-0-0.5-low-render-3840-0",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "underwater",
+        "0",
+        "0.5",
+        "low",
+        "render",
+        "3840",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.846721",
+        "render_width": "3840",
+        "render_height": "2160",
+        "water_vertices": "37249",
+        "draws": "18",
+        "visible_water": "1",
+        "underwater": "True",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "underwater-0-0.5-low-render-3840-1",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "underwater",
+        "0",
+        "0.5",
+        "low",
+        "render",
+        "3840",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.853584",
+        "render_width": "3840",
+        "render_height": "2160",
+        "water_vertices": "37249",
+        "draws": "18",
+        "visible_water": "1",
+        "underwater": "True",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "underwater-0-0.5-low-render-3840-2",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "underwater",
+        "0",
+        "0.5",
+        "low",
+        "render",
+        "3840",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.879643",
+        "render_width": "3840",
+        "render_height": "2160",
+        "water_vertices": "37249",
+        "draws": "18",
+        "visible_water": "1",
+        "underwater": "True",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "waterline-0-0.5-low-render-3840-0",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "waterline",
+        "0",
+        "0.5",
+        "low",
+        "render",
+        "3840",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.943373",
+        "render_width": "3840",
+        "render_height": "2160",
+        "water_vertices": "37249",
+        "draws": "18",
+        "visible_water": "1",
+        "underwater": "True",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "waterline-0-0.5-low-render-3840-1",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "waterline",
+        "0",
+        "0.5",
+        "low",
+        "render",
+        "3840",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.847623",
+        "render_width": "3840",
+        "render_height": "2160",
+        "water_vertices": "37249",
+        "draws": "18",
+        "visible_water": "1",
+        "underwater": "True",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "waterline-0-0.5-low-render-3840-2",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "waterline",
+        "0",
+        "0.5",
+        "low",
+        "render",
+        "3840",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.898017",
+        "render_width": "3840",
+        "render_height": "2160",
+        "water_vertices": "37249",
+        "draws": "18",
+        "visible_water": "1",
+        "underwater": "True",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "lake-0-0.5-real-render-1920-0",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "lake",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.922214",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "25921",
+        "draws": "16",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "lake-0-0.5-real-render-1920-1",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "lake",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "1.044643",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "25921",
+        "draws": "16",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "lake-0-0.5-real-render-1920-2",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "lake",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "1.013936",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "25921",
+        "draws": "16",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "large-lake-0-0.5-real-render-1920-0",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "large-lake",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.858493",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "65536",
+        "draws": "16",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "large-lake-0-0.5-real-render-1920-1",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "large-lake",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.855077",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "65536",
+        "draws": "16",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "large-lake-0-0.5-real-render-1920-2",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "large-lake",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.933414",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "65536",
+        "draws": "16",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "no-ssr-0-0.5-real-render-1920-0",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "no-ssr",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.859235",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "16",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "no-ssr-0-0.5-real-render-1920-1",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "no-ssr",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.922473",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "16",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "no-ssr-0-0.5-real-render-1920-2",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "no-ssr",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.858092",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "16",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "travel-0-0.5-real-render-1920-0",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "travel",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.940247",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "10",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "travel-0-0.5-real-render-1920-1",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "travel",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.929527",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "10",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "travel-0-0.5-real-render-1920-2",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "travel",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.853805",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "10",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "far-0-0.5-real-render-1920-0",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "far",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "1.020838",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "10",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "far-0-0.5-real-render-1920-1",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "far",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.950386",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "10",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "far-0-0.5-real-render-1920-2",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "far",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.87266",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "10",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "travel-0-0.1-real-render-1920-0",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "travel",
+        "0",
+        "0.1",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.905381",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "10",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "travel-0-0.1-real-render-1920-1",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "travel",
+        "0",
+        "0.1",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.827054",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "10",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "travel-0-0.1-real-render-1920-2",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "travel",
+        "0",
+        "0.1",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.932553",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "10",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "travel-0-2-real-render-1920-0",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "travel",
+        "0",
+        "2",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.88332",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "10",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "travel-0-2-real-render-1920-1",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "travel",
+        "0",
+        "2",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.859004",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "10",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "travel-0-2-real-render-1920-2",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "travel",
+        "0",
+        "2",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.864465",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "10",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "travel-0-8-real-render-1920-0",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "travel",
+        "0",
+        "8",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.861489",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "10",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "travel-0-8-real-render-1920-1",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "travel",
+        "0",
+        "8",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.921892",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "10",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "travel-0-8-real-render-1920-2",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "travel",
+        "0",
+        "8",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.848736",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "10",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "travel-0-0.5-real-render-1920-0",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "travel",
+        "0",
+        "0.5",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "10000"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.900803",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "10",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "0",
+        "soft_max_span": "0",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "bodies-100-0.5-real-render-1920-0",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "bodies",
+        "100",
+        "0.5",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "1.224842",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "16",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "100",
+        "soft_max_span": "0",
+        "checksum": "-11.329618283547461",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "bodies-100-0.5-real-render-1920-1",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "bodies",
+        "100",
+        "0.5",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "1.336692",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "16",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "100",
+        "soft_max_span": "0",
+        "checksum": "-11.329618283547461",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "bodies-100-0.5-real-render-1920-2",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "bodies",
+        "100",
+        "0.5",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "1.237676",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "16",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "100",
+        "soft_max_span": "0",
+        "checksum": "-11.329618283547461",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "bodies-1000-0.5-real-render-1920-0",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "bodies",
+        "1000",
+        "0.5",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "3.991632",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "16",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "1000",
+        "soft_max_span": "0",
+        "checksum": "-122.95177222252823",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "bodies-1000-0.5-real-render-1920-1",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "bodies",
+        "1000",
+        "0.5",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "4.045303",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "16",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "1000",
+        "soft_max_span": "0",
+        "checksum": "-122.95177222252823",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "bodies-1000-0.5-real-render-1920-2",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "bodies",
+        "1000",
+        "0.5",
+        "real",
+        "render",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "4.228457",
+        "render_width": "1920",
+        "render_height": "1080",
+        "water_vertices": "37249",
+        "draws": "16",
+        "visible_water": "1",
+        "underwater": "False",
+        "grid_cache_count": "1",
+        "floating": "1000",
+        "soft_max_span": "0",
+        "checksum": "-122.95177222252823",
+        "valid": "True"
+      }
+    }
+  ],
+  "finished": "2026-10-30T09:59:48.657882"
+}

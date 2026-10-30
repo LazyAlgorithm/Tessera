@@ -1,0 +1,96 @@
+WARNING: BF4200: A variable named 'value' has already been declared in an outer scope at line 698:84 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Engine/src/Physics/SoftBody.bf
+   let last = dash < 0 ? first : (int.Parse(word.Substring(dash + 1)) case .Ok(let value) ? value : -1);
+                                                                                   ^
+  > Previous declaration at line 697:82 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Engine/src/Physics/SoftBody.bf
+    let first = int.Parse(dash < 0 ? word : word.Substring(0, dash)) case .Ok(let value) ? value : -1;
+                                                                                  ^^^^^
+WARNING(2): BF4200: A variable named 'parsed' has already been declared in this scope at line 38:67 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/ModelImport.bf
+   case "scale": scale = Math.Max(float.Parse(value) case .Ok(let parsed) ? parsed : 1, 0.0001f);
+                                                                  ^
+  > Previous declaration at line 38:67 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/ModelImport.bf
+    case "scale": scale = Math.Max(float.Parse(value) case .Ok(let parsed) ? parsed : 1, 0.0001f);
+                                                                   ^^^^^^
+WARNING(3): BF4200: A variable named 'sizeIndex' has already been declared in this scope at line 61:10 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/QualityTools.bf
+   int32 sizeIndex = v.reflectionSize >= 256 ? (v.reflectionSize >= 512 ? 4 : 3) : (v.reflectionSize >= 128 ? 2 : (v.reflectionSize >= 64 ? 1 : 0));
+         ^
+  > Previous declaration at line 37:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/QualityTools.bf
+    var sizeIndex = (float)Math.Round(Math.Log(v.shadowMapSize / 512.0) / Math.Log(2));
+        ^^^^^^^^^
+WARNING(4): BF4200: A variable named 'before' has already been declared in an outer scope at line 110:10 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+     let before = tipBone.Position;
+         ^
+  > Previous declaration at line 59:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+    let before = scope List<float>(mRig.weights);
+        ^^^^^^
+WARNING(5): BF4200: A variable named 'moved' has already been declared in an outer scope at line 123:11 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+      let moved = (tipBone.Position - before).Length;
+          ^
+  > Previous declaration at line 82:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+    var moved = false;
+        ^^^^^
+WARNING(6): BF0168: The variable 'resolved' is assigned but its value is never used at line 130:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Behavior/BehaviorTreeEditor.bf
+   let resolved = scope String();
+       ^
+PASS: a good dialogue reads with no problems ()
+PASS: a speaker has a shown name, a colour and an object
+PASS: nodes and their steps are read
+PASS: a line has its speaker, text and recording
+PASS: a choice has its answer, where it goes and its condition
+PASS: '-' is a narrator, and a line can have its own time
+PASS: a dialogue written out reads back the same
+PASS: mistakes are reported by line
+PASS: conditions compare, test and negate
+PASS: and / or join them
+PASS: variables are written out and read back
+PASS: starting shows the first line
+PASS: answers whose condition fails are left out
+PASS: an answer with nowhere to go carries on after the answers
+PASS: 'end' finishes the conversation
+PASS: an answer goes to its node, which sets variables on the way
+PASS: events reach the game with their number
+PASS: a line whose condition fails is skipped, and the node running out ends it
+PASS: the second visit takes the line the first one skipped
+PASS: an answer appears once its condition holds
+PASS: goto jumps back to another node
+PASS: choosing with no answers offered does nothing
+PASS: starting at a node that does not exist fails
+[warning] : node 'a' goes round without showing anything; the conversation ends.
+PASS: a loop of jumps with nothing to show ends instead of hanging
+PASS: a conversation can be put back at a node and step
+PASS: a subtitle file's times, speaker and text are read
+PASS: captions, minutes and lines that wrap
+PASS: the cue showing at a time is found
+PASS: a sound's subtitle file is the one beside it with the same name
+PASS: lines and captions are shown
+PASS: each stays up for its time
+PASS: and then goes
+PASS: only the newest few are kept
+[warning] Sound not found or not readable: Voice/halt.ogg (WAV, OGG, MP3 and FLAC are supported).
+PASS: Play starts at Start Node, with the speaker known
+PASS: the line is shown as a subtitle with its speaker
+PASS: a line's recording plays from the speaker's object
+PASS: answers take the line down
+PASS: the game hears each line, each event and the end
+PASS: a save keeps the variables and where the conversation was
+PASS: a line that moves on by itself stays up long enough to read
+[warning] Sound not found or not readable: Voice/halt.ogg (WAV, OGG, MP3 and FLAC are supported).
+PASS: and then moves on
+PASS: Stop ends it and takes the line down
+Server listening on port 48853.
+PASS: host starts
+Connecting to 127.0.0.1:48853...
+Client 1 connected.
+Connected as client 1.
+PASS: client connects over loopback
+PASS: a shared conversation's object is shared by itself
+[warning] Sound not found or not readable: Voice/halt.ogg (WAV, OGG, MP3 and FLAC are supported).
+[warning] Sound not found or not readable: Voice/halt.ogg (WAV, OGG, MP3 and FLAC are supported).
+PASS: the client shows the line the server started
+PASS: the client moves it on through the server, and both show the answers
+PASS: the client's answer is taken by the server
+PASS: events happen on the server; the end reaches the client
+[warning] Sound not found or not readable: Voice/halt.ogg (WAV, OGG, MP3 and FLAC are supported).
+[warning] Sound not found or not readable: Voice/halt.ogg (WAV, OGG, MP3 and FLAC are supported).
+PASS: a late request about an older line is ignored
+PASS: with Only Owner Chooses, a player who does not own it cannot answer
+All dialogue tests passed.

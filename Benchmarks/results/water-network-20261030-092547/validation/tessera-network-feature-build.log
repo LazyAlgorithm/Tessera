@@ -1,0 +1,51 @@
+[                              ]WARNING: Linux LLVM tools missing or incompatible: ld.lld. Building with the GNU toolset and LTO disabled for all projects. Install clang-22, lld-22, and llvm-22 to enable ThinLTO.
+*WARNING: BF4200: A variable named 'value' has already been declared in an outer scope at line 698:84 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Engine/src/Physics/SoftBody.bf
+   let last = dash < 0 ? first : (int.Parse(word.Substring(dash + 1)) case .Ok(let value) ? value : -1);
+                                                                                   ^
+  > Previous declaration at line 697:82 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Engine/src/Physics/SoftBody.bf
+    let first = int.Parse(dash < 0 ? word : word.Substring(0, dash)) case .Ok(let value) ? value : -1;
+                                                                                  ^^^^^
+WARNING(2): BF4200: A variable named 'before' has already been declared in an outer scope at line 760:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/features/src/Program.bf
+   let before = clientSparks.AliveCount;
+       ^
+  > Previous declaration at line 290:7 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/features/src/Program.bf
+   let before = hostCopy.Transform.Position;
+       ^^^^^^
+WARNING(3): BF4200: A variable named 'before' has already been declared in an outer scope at line 832:9 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/features/src/Program.bf
+    let before = host.Network.ClientCount;
+        ^
+  > Previous declaration at line 290:7 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/features/src/Program.bf
+   let before = hostCopy.Transform.Position;
+       ^^^^^^
+************WARNING(4): BF4200: A variable named 'parsed' has already been declared in this scope at line 38:67 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/ModelImport.bf
+   case "scale": scale = Math.Max(float.Parse(value) case .Ok(let parsed) ? parsed : 1, 0.0001f);
+                                                                  ^
+  > Previous declaration at line 38:67 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/ModelImport.bf
+    case "scale": scale = Math.Max(float.Parse(value) case .Ok(let parsed) ? parsed : 1, 0.0001f);
+                                                                   ^^^^^^
+WARNING(5): BF4200: A variable named 'sizeIndex' has already been declared in this scope at line 61:10 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/QualityTools.bf
+   int32 sizeIndex = v.reflectionSize >= 256 ? (v.reflectionSize >= 512 ? 4 : 3) : (v.reflectionSize >= 128 ? 2 : (v.reflectionSize >= 64 ? 1 : 0));
+         ^
+  > Previous declaration at line 37:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/QualityTools.bf
+    var sizeIndex = (float)Math.Round(Math.Log(v.shadowMapSize / 512.0) / Math.Log(2));
+        ^^^^^^^^^
+WARNING(6): BF4200: A variable named 'before' has already been declared in an outer scope at line 110:10 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+     let before = tipBone.Position;
+         ^
+  > Previous declaration at line 59:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+    let before = scope List<float>(mRig.weights);
+        ^^^^^^
+WARNING(7): BF4200: A variable named 'moved' has already been declared in an outer scope at line 123:11 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+      let moved = (tipBone.Position - before).Length;
+          ^
+  > Previous declaration at line 82:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+    var moved = false;
+        ^^^^^
+WARNING(8): BF0168: The variable 'resolved' is assigned but its value is never used at line 130:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Behavior/BehaviorTreeEditor.bf
+   let resolved = scope String();
+       ^
+*****************
+Beef compilation time: 1.67s
+Frontend time: 1.37s
+Comptime execution time: 0.09s
+Errors: 0. Warnings: 8.

@@ -1,0 +1,142 @@
+WARNING: BF4200: A variable named 'value' has already been declared in an outer scope at line 698:84 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Engine/src/Physics/SoftBody.bf
+   let last = dash < 0 ? first : (int.Parse(word.Substring(dash + 1)) case .Ok(let value) ? value : -1);
+                                                                                   ^
+  > Previous declaration at line 697:82 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Engine/src/Physics/SoftBody.bf
+    let first = int.Parse(dash < 0 ? word : word.Substring(0, dash)) case .Ok(let value) ? value : -1;
+                                                                                  ^^^^^
+WARNING(2): BF4200: A variable named 'before' has already been declared in an outer scope at line 736:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Tests/Network/src/Program.bf
+   let before = clientSparks.AliveCount;
+       ^
+  > Previous declaration at line 276:7 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Tests/Network/src/Program.bf
+   let before = hostCopy.Transform.Position;
+       ^^^^^^
+WARNING(3): BF4200: A variable named 'before' has already been declared in an outer scope at line 805:9 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Tests/Network/src/Program.bf
+    let before = host.Network.ClientCount;
+        ^
+  > Previous declaration at line 276:7 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Tests/Network/src/Program.bf
+   let before = hostCopy.Transform.Position;
+       ^^^^^^
+WARNING(4): BF4200: A variable named 'parsed' has already been declared in this scope at line 38:67 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/ModelImport.bf
+   case "scale": scale = Math.Max(float.Parse(value) case .Ok(let parsed) ? parsed : 1, 0.0001f);
+                                                                  ^
+  > Previous declaration at line 38:67 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/ModelImport.bf
+    case "scale": scale = Math.Max(float.Parse(value) case .Ok(let parsed) ? parsed : 1, 0.0001f);
+                                                                   ^^^^^^
+WARNING(5): BF4200: A variable named 'sizeIndex' has already been declared in this scope at line 61:10 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/QualityTools.bf
+   int32 sizeIndex = v.reflectionSize >= 256 ? (v.reflectionSize >= 512 ? 4 : 3) : (v.reflectionSize >= 128 ? 2 : (v.reflectionSize >= 64 ? 1 : 0));
+         ^
+  > Previous declaration at line 37:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/QualityTools.bf
+    var sizeIndex = (float)Math.Round(Math.Log(v.shadowMapSize / 512.0) / Math.Log(2));
+        ^^^^^^^^^
+WARNING(6): BF4200: A variable named 'before' has already been declared in an outer scope at line 110:10 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+     let before = tipBone.Position;
+         ^
+  > Previous declaration at line 59:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+    let before = scope List<float>(mRig.weights);
+        ^^^^^^
+WARNING(7): BF4200: A variable named 'moved' has already been declared in an outer scope at line 123:11 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+      let moved = (tipBone.Position - before).Length;
+          ^
+  > Previous declaration at line 82:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+    var moved = false;
+        ^^^^^
+WARNING(8): BF0168: The variable 'resolved' is assigned but its value is never used at line 130:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Behavior/BehaviorTreeEditor.bf
+   let resolved = scope String();
+       ^
+PASS: the engine's message ids are all different, and all 240 or above
+PASS: a body's motion record is small and keeps its position, turn and both velocities
+PASS: far out it carries exact floats, and a resting body's velocities take a byte each
+PASS: carving works with no session at all
+PASS: offline, prefabs are local and nothing is given a network identity
+Server listening on port 47894.
+PASS: host starts
+Connecting to 127.0.0.1:47894...
+Client 1 connected.
+Connected as client 1.
+PASS: client connects over loopback
+PASS: AI, controllers and bodies get an identity; plain scenery does not
+PASS: an object the server moves is moved on the client
+PASS: agents think on the server only
+PASS: [Sync] fields follow the server; other fields stay local
+PASS: each player has their object on both machines
+PASS: the host's player appears at its team's spawn point, facing its way
+PASS: the next player joins the other team, at that team's point
+PASS: every machine knows each player's team and place
+PASS: a tick script moves its player on the server from the client's controls
+PASS: and both machines agree where both players are
+PASS: a press counts once on each machine
+PASS: with nothing happening little is sent (340 bytes a second to the client, 1140 from it)
+PASS: other players moving does not make a client go back and run its ticks again
+PASS: another player moves evenly on a client, not in jumps at each snapshot (steps of 0.066 to 0.067; 0.067 on the server)
+PASS: with both players running, 2141 bytes a second go to the client and 1156 come from it
+PASS: and once they stop, the client has them where the server does to within the packing
+PASS: lag compensation shows the server a moving target where the shooter saw it (0.000 from it, 0.40 behind where it really was) and puts it back
+PASS: and does nothing for the host's own player, on a client, or outside a player's tick
+PASS: positions, rotations and controls survive being packed small (12 bytes for an object, 9 for a tick of controls, 1 for a repeat)
+PASS: on a lossy, uneven connection the client stays with the server (0.07 apart while running) and ends up agreeing with it
+PASS: a carve on the server happens on the client
+PASS: a carve on a client waits for the server
+PASS: then happens on both
+PASS: pieces that break off are the same objects and shapes on both, and the client predicts their fall (1 piece(s))
+PASS: a client carving a fragment changes the same fragment on the server
+PASS: terrain brushed on the server is identical on the client (6 chunk(s) edited)
+PASS: a client digging goes through the server and both end up identical
+PASS: strokes on chunks that are not loaded are remembered on every machine
+PASS: a sound started on the server plays on the client
+PASS: and stops there when the server stops it
+PASS: a client playing a sound on an object it does not control keeps it to itself
+PASS: an Animator's starting state is the same on the server and the client
+PASS: a parameter set on the server reaches the client, which follows the server into the new state
+PASS: a client setting parameters on an object it does not own changes nothing for anyone else, and does not change state itself
+PASS: a trigger on the server moves every machine to the same state
+PASS: a material given to an object on the server is used on the client
+PASS: values set on that object's own material follow, and the shared material is left alone
+PASS: a client changing the material of an object it does not own changes it for nobody else
+PASS: an event sent by the server runs on the server and on the client
+PASS: a client cannot raise events on an object it does not own
+PASS: but can on its own character, and everyone is told
+PASS: the server changes a character's shape
+PASS: and the client's copy becomes the same shape
+PASS: a client changes the shape of the character it controls
+PASS: and the server follows
+PASS: a client cannot reshape a character it does not control: the server puts it back
+PASS: a prefab with a network identity instantiated on the server appears on the client
+PASS: on a client such a prefab is left to the server; a plain prefab is created locally
+PASS: [Sync] fields work on spawned objects
+PASS: a client cannot destroy a shared object
+PASS: destroying on the server removes spawned and scene objects everywhere
+PASS: an object switched off and a component disabled on the server are off on the client
+PASS: a light changed on the server changes on the client
+PASS: a client cannot switch or change what it does not own
+PASS: a client changes a light on the object it owns, and the server's copy follows
+PASS: and switches it off
+PASS: something a machine adds under its player itself stays its own
+PASS: a client cannot switch off how its own player plays, only how it looks
+PASS: a particle system played on the server plays on the client (10 particles)
+PASS: a decal pressed on the server is pressed on the client
+PASS: one already pressed there by the game is not pressed twice (2 of 2)
+PASS: a client's own decals stay its own
+[warning] Sound not found or not readable: Sounds/bang.wav (WAV, OGG, MP3 and FLAC are supported).
+[warning] Sound not found or not readable: Sounds/bang.wav (WAV, OGG, MP3 and FLAC are supported).
+PASS: a sound played once on the server is played on the client
+Connecting to 127.0.0.1:47894...
+Client 2 connected.
+Connected as client 2.
+PASS: a late joiner does not get an object that was destroyed before they arrived
+PASS: a late joiner gets the objects switched off, the components disabled and the lights as they are now
+PASS: and is put on the smaller team
+PASS: sees the voxel edits made earlier
+PASS: and has the same terrain, though its chunks loaded after the edits were made
+PASS: a player who joins later gets the object's material and its values
+PASS: the current character shapes
+PASS: and the current [Sync] values
+PASS: Steam start-up gives a clear answer: libsteam_api.so was not found. Put the file from the Steamworks SDK in the project Libraries folder or beside the executable.
+Connecting to 127.0.0.1:47894...
+Client 3 connected.
+Connected as client 3.
+Client 3 disconnected.
+[warning] Disconnected from server.
+PASS: the host can remove a player: they are disconnected and their player goes
+[error] Steam transport: libsteam_api.so was not found. Put the file from the Steamworks SDK in the project Libraries folder or beside the executable.
+PASS: a Steam session starts only when Steam is available, and otherwise stays offline
+PASS: without Steam there are no friends, and presence and invitations do nothing

@@ -1,0 +1,130 @@
+WARNING: BF4200: A variable named 'value' has already been declared in an outer scope at line 698:84 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Engine/src/Physics/SoftBody.bf
+   let last = dash < 0 ? first : (int.Parse(word.Substring(dash + 1)) case .Ok(let value) ? value : -1);
+                                                                                   ^
+  > Previous declaration at line 697:82 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Engine/src/Physics/SoftBody.bf
+    let first = int.Parse(dash < 0 ? word : word.Substring(0, dash)) case .Ok(let value) ? value : -1;
+                                                                                  ^^^^^
+WARNING(2): BF4200: A variable named 'parsed' has already been declared in this scope at line 38:67 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/ModelImport.bf
+   case "scale": scale = Math.Max(float.Parse(value) case .Ok(let parsed) ? parsed : 1, 0.0001f);
+                                                                  ^
+  > Previous declaration at line 38:67 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/ModelImport.bf
+    case "scale": scale = Math.Max(float.Parse(value) case .Ok(let parsed) ? parsed : 1, 0.0001f);
+                                                                   ^^^^^^
+WARNING(3): BF4200: A variable named 'sizeIndex' has already been declared in this scope at line 61:10 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/QualityTools.bf
+   int32 sizeIndex = v.reflectionSize >= 256 ? (v.reflectionSize >= 512 ? 4 : 3) : (v.reflectionSize >= 128 ? 2 : (v.reflectionSize >= 64 ? 1 : 0));
+         ^
+  > Previous declaration at line 37:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/QualityTools.bf
+    var sizeIndex = (float)Math.Round(Math.Log(v.shadowMapSize / 512.0) / Math.Log(2));
+        ^^^^^^^^^
+WARNING(4): BF4200: A variable named 'before' has already been declared in an outer scope at line 110:10 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+     let before = tipBone.Position;
+         ^
+  > Previous declaration at line 59:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+    let before = scope List<float>(mRig.weights);
+        ^^^^^^
+WARNING(5): BF4200: A variable named 'moved' has already been declared in an outer scope at line 123:11 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+      let moved = (tipBone.Position - before).Length;
+          ^
+  > Previous declaration at line 82:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+    var moved = false;
+        ^^^^^
+WARNING(6): BF0168: The variable 'resolved' is assigned but its value is never used at line 130:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Behavior/BehaviorTreeEditor.bf
+   let resolved = scope String();
+       ^
+PASS: pins read from ranges and written back the same (0-3 7 9-10)
+PASS: a stiffness map read and written back (1=0.5 3=0.25)
+PASS: a sphere's vertices split at its seams are joined for the simulation (187 drawn, 146 simulated)
+PASS: a sheet becomes a soft body (169 vertices)
+PASS: its pinned edge stays where the object holds it ((-1, 5, 1))
+PASS: the rest swings down and hangs below it without stretching far (lowest (-0.5, 3.013, 0.773), 2 m of cloth)
+PASS: moving the object moves its pins, and the cloth follows (top x 2, middle x 3.0051012)
+PASS: the renderer draws a copy of the mesh that follows the simulation
+PASS: destroying the object takes its soft body out of the world
+PASS: a Wind Zone blows hanging cloth the way it faces (middle z 0.8957834 still, 1.9715105 in wind)
+PASS: From Impacts: something pushed into the side stops at the surface (-9.191036e-05 m from it) and leaves no dent (0)
+PASS: a 1 kg ball at 15 m/s leaves no dent (0); a 200 kg crate at 9 m/s dents the side it hits (0.09802747 m) and not the other (0 m)
+PASS: driven into a wall at 12 m/s, its front dents (0.14774561 m), its back does not (0 m), and the dent stays (0.14774561 m)
+PASS: a shell with no Rigidbody gets one (and a collider) and falls to the floor (at 0.4323826, its bottom dented 0.06761694 m)
+[warning] Rigidbody on 'Crate 2' has no Collider and will not simulate.
+PASS: a shell with a Rigidbody and no collider gets a collider and falls (at 0.43238258)
+PASS: the collider follows the dents: a ray meets the crumpled front 0.14774323 m in (dent 0.14774346 m)
+PASS: and a second crash dents it further (0.14774346 m, then 0.26025844 m)
+PASS: a 10 kg ball at 30 m/s dents a 100 kg shell cube (0.13520604 m)
+PASS: a flag streams out in the wind (1.9953105 m of 2 out from its pole) and flaps (1.044652 m from side to side)
+PASS: cloth dropped on a table comes to rest on it (63 vertices over it, lowest 1.12, average 1.1387273; top 1.1)
+PASS: and its corners hang over the edge (corner y 0.5695733)
+PASS: a jelly cube dropped 1 m keeps its shape (faces' middles 0.5183316 m out, a cube's 0.5) and hops once at most (0.14798999 m)
+PASS: a resting jelly goes to sleep (4.0 s after it was dropped)
+PASS: a crate landing on the sleeping jelly wakes it and is held up (lowest 0.80091155)
+PASS: a 16 x 16 cloth draped over a ball settles on it (0.58 m/s at the most after 4 s; 0.12 to 1.22 m high)
+PASS: a 32 x 32 cloth draped over a ball settles on it (0.43 m/s at the most after 4 s; 0.10 to 1.22 m high)
+PASS: a 48 x 48 cloth draped over a ball settles on it (0.50 m/s at the most after 4 s; 0.05 to 1.22 m high)
+PASS: a jelly cube dropped on another rests on it (its bottom 0.9950356, the other's top 1.030319)
+PASS: cloth dropped over a jelly cube drapes on it (cloth over it at 1.0699443, its top 1.030319)
+PASS: a jelly ball falls and rests on the floor (bottom 0.01999998)
+PASS: keeping its shape (height 1.0409127 of 1)
+PASS: a free soft body carries its object with it (object at (0.046, 0.518, 0.007), body's middle (0.046, 0.518, 0.007))
+PASS: moving its object moves the body with it (body's middle x 0.046073187 to 4.0459685)
+PASS: a crate dropped on it is caught on top, not let through (lowest 1.0014869)
+PASS: and squashes it (height 0.7756257 under it, 1.0409127 before)
+PASS: it reports the bodies it touches (2)
+PASS: a character walks through a hanging curtain and pushes it aside (curtain middle z 0.16338345 hanging, 0.91156554 at most; walker z 2.9999912)
+PASS: a parked car's shell goes to sleep (2.0 s)
+PASS: a shell rests on its car without denting or pushing it (386 vertices, deepest dent 0, car moved 0)
+PASS: slow knocks spring back: a 200 kg crate dropped on the roof (0 m) and backing into a wall at 1.5 m/s (0 m) leave no dent
+PASS: driven into a wall, its front dents and its back does not (front 0.38130906 m, back 0 m)
+PASS: the dent stays (0.38130906 m two seconds later)
+PASS: Repair takes the dents out (0)
+PASS: dents saved with GetDents come back with SetDents (0.38130906 of 0.38130906)
+PASS: a rope hangs straight down from a post (3 m of 3, 31 points)
+PASS: a rope between two posts sags in the middle (lowest 2.9613166, posts at 4)
+PASS: a rope holds up a crate, taut (2.2 m from the beam, rope 2.2)
+PASS: and reports the crate's weight as its pull (98.01825 N for 10 kg)
+PASS: it draws itself as a tube
+PASS: pushed, the crate swings on the rope (1.4115558 m out) without stretching it (at most 2.2579696 m)
+PASS: Release lets the crate fall (0.3)
+PASS: towing: a truck drags a crate behind it (5.4540033 m, 4.5503254 m apart middle to middle on a 4.2 m rope)
+PASS: lifting: a helicopter lifts a crate on a rope (crate at 5.3453217 m, pull 214.5424 N)
+PASS: a rope dropped on a box lies on it (lowest 1.02, box top 1)
+PASS: held only at its end, a rope hangs from that end (2 m of 2)
+PASS: AttachStart ties its other end to something else
+PASS: when what an end holds is destroyed, it lets go and hangs (lowest 2)
+PASS: Wraps Around: over a beam a rope is a pulley, the heavy crate on the floor holding the light one up (light crate at 2.7869885 m; 0.27999973 m without)
+PASS: Break Force: pulled harder, it snaps; the crate falls (0.27999976), half stays on the hook
+PASS: and the other half stays on the crate
+PASS: the rope ties onto the top of the crate ((0, 0.3, 0)), and spun, the crate settles hanging upright (spin 0.007123583, upright 0.99999714)
+PASS: a gale blows a hanging rope downwind (its end 1.7848549 m over)
+Server listening on port 47367.
+PASS: a host starts
+Connecting to 127.0.0.1:47367...
+Client 1 connected.
+Connected as client 1.
+PASS: the soft body is made on the client too
+PASS: the client's body follows where the server's is (0.004866306 m apart after it was moved 6.7 m)
+Server listening on port 47593.
+PASS: networked by default: a host starts
+Connecting to 127.0.0.1:47593...
+Client 1 connected.
+Connected as client 1.
+PASS: a client joins
+PASS: a free soft body in the scene gets a Network Identity when the session starts
+PASS: and the client's follows the server's (0.02257788 m apart)
+PASS: a hit only a client sees leaves no dent there (0 m)
+PASS: a crash on the server dents the client's car the same (0.09802747 m deep, 0.000121499135 m apart)
+PASS: a client cannot repair a car it does not own: the server's dents come back
+PASS: repaired on the server, it is repaired on the client
+PASS: dented again, the client follows (0.017098539 m deep)
+PASS: a rope tied on the server is tied between the same objects on the client
+PASS: a client cannot tie objects it does not own
+PASS: a client does not snap a rope by itself (the server decides)
+PASS: snapped on the server, it snaps on the client (3 ropes on each)
+PASS: a rope's end tied on the server is tied on the client
+PASS: a client cannot let go of a rope it does not own
+PASS: a client's tie to an object it controls goes to the server
+PASS: which ties it on every machine
+Connecting to 127.0.0.1:47593...
+Client 2 connected.
+Connected as client 2.
+PASS: a late joiner's car has the server's dents (0.00013573248 m apart; 0.017098539 m deep, connected True)
+PASS: and its ropes as they are now (4 of 4)
+ALL PASS

@@ -1,0 +1,12 @@
+[                              ]WARNING: Linux LLVM tools missing or incompatible: ld.lld. Building with the GNU toolset and LTO disabled for all projects. Install clang-22, lld-22, and llvm-22 to enable ThinLTO.
+**WARNING: BF4200: A variable named 'value' has already been declared in an outer scope at line 698:84 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Engine/src/Physics/SoftBody.bf
+   let last = dash < 0 ? first : (int.Parse(word.Substring(dash + 1)) case .Ok(let value) ? value : -1);
+                                                                                   ^
+  > Previous declaration at line 697:82 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Engine/src/Physics/SoftBody.bf
+    let first = int.Parse(dash < 0 ? word : word.Substring(0, dash)) case .Ok(let value) ? value : -1;
+                                                                                  ^^^^^
+****************************
+Beef compilation time: 1.39s
+Frontend time: 1.10s
+Comptime execution time: 0.07s
+Errors: 0. Warnings: 1.

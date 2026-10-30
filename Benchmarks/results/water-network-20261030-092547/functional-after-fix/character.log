@@ -1,0 +1,67 @@
+WARNING: BF4200: A variable named 'value' has already been declared in an outer scope at line 698:84 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Engine/src/Physics/SoftBody.bf
+   let last = dash < 0 ? first : (int.Parse(word.Substring(dash + 1)) case .Ok(let value) ? value : -1);
+                                                                                   ^
+  > Previous declaration at line 697:82 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Engine/src/Physics/SoftBody.bf
+    let first = int.Parse(dash < 0 ? word : word.Substring(0, dash)) case .Ok(let value) ? value : -1;
+                                                                                  ^^^^^
+WARNING(2): BF4200: A variable named 'parsed' has already been declared in this scope at line 38:67 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/ModelImport.bf
+   case "scale": scale = Math.Max(float.Parse(value) case .Ok(let parsed) ? parsed : 1, 0.0001f);
+                                                                  ^
+  > Previous declaration at line 38:67 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/ModelImport.bf
+    case "scale": scale = Math.Max(float.Parse(value) case .Ok(let parsed) ? parsed : 1, 0.0001f);
+                                                                   ^^^^^^
+WARNING(3): BF4200: A variable named 'sizeIndex' has already been declared in this scope at line 61:10 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/QualityTools.bf
+   int32 sizeIndex = v.reflectionSize >= 256 ? (v.reflectionSize >= 512 ? 4 : 3) : (v.reflectionSize >= 128 ? 2 : (v.reflectionSize >= 64 ? 1 : 0));
+         ^
+  > Previous declaration at line 37:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/QualityTools.bf
+    var sizeIndex = (float)Math.Round(Math.Log(v.shadowMapSize / 512.0) / Math.Log(2));
+        ^^^^^^^^^
+WARNING(4): BF4200: A variable named 'before' has already been declared in an outer scope at line 110:10 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+     let before = tipBone.Position;
+         ^
+  > Previous declaration at line 59:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+    let before = scope List<float>(mRig.weights);
+        ^^^^^^
+WARNING(5): BF4200: A variable named 'moved' has already been declared in an outer scope at line 123:11 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+      let moved = (tipBone.Position - before).Length;
+          ^
+  > Previous declaration at line 82:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+    var moved = false;
+        ^^^^^
+WARNING(6): BF0168: The variable 'resolved' is assigned but its value is never used at line 130:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Behavior/BehaviorTreeEditor.bf
+   let resolved = scope String();
+       ^
+PASS: capsule starts in the air above the floor
+PASS: capsule falls and stands on the floor
+PASS: capsule walks up a flight of 0.25 m steps
+PASS: capsule is on the ground for nearly all of the climb
+PASS: capsule follows the steps back down
+PASS: jump leaves the ground
+PASS: and lands again
+PASS: a ledge taller than the step height stops the capsule
+PASS: raising the step height lets it climb the ledge
+PASS: rounded box stands on the floor
+PASS: rounded box walks up the same steps
+PASS: box walks up a ramp and stays grounded
+PASS: a slope steeper than Max Slope is not standable
+PASS: raycast hits the character and reports its object
+PASS: a taller shape is refused under a low ceiling and nothing changes
+PASS: a smaller shape is accepted
+PASS: and keeps walking with the new shape
+PASS: the taller shape fits once clear of the ceiling
+PASS: captured state restores position and falling speed
+PASS: replaying from the restored state lands in the same place
+PASS: character motor walks and sprints through the controller
+PASS: character motor jumps from the ground
+PASS: character pushes a dynamic crate
+PASS: just past a ledge it is airborne but may still jump
+PASS: the late jump takes off and uses up the grace
+PASS: a second jump in the air is ignored
+PASS: a network rewind restores the grace
+PASS: after the grace has run out a jump in the air does nothing
+PASS: jump is available on every tick of a stair climb
+PASS: a walking character gets past a standing one and nudges it aside
+PASS: they overlap only briefly and end up apart
+PASS: a character with soft contact off blocks others and is not moved
+PASS: navigation bakes over the stepped floor
+PASS: navigation agent with a controller climbs two steps to its destination

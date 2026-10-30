@@ -1,0 +1,8 @@
+{
+  "engine_commit": "dfad1175ccf6a8bae0458f0aa1fb7c23b624604a",
+  "base_commit": "6cfa1faa568940e629b71d9999605319d55bc037",
+  "binaries": {
+    "water": "9aaf9a3af21c95f3f8f5132e0f5964b2b9f195880b6f1e0d0b83cb26c9c9f8c1",
+    "network": "a4153a4a13377baf5bcc9fcce77baf13a20577231b1232663539ff8b3412f20a"
+  }
+}

@@ -1,0 +1,101 @@
+WARNING: BF4200: A variable named 'value' has already been declared in an outer scope at line 698:84 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Engine/src/Physics/SoftBody.bf
+   let last = dash < 0 ? first : (int.Parse(word.Substring(dash + 1)) case .Ok(let value) ? value : -1);
+                                                                                   ^
+  > Previous declaration at line 697:82 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Engine/src/Physics/SoftBody.bf
+    let first = int.Parse(dash < 0 ? word : word.Substring(0, dash)) case .Ok(let value) ? value : -1;
+                                                                                  ^^^^^
+WARNING(2): BF4200: A variable named 'parsed' has already been declared in this scope at line 38:67 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/ModelImport.bf
+   case "scale": scale = Math.Max(float.Parse(value) case .Ok(let parsed) ? parsed : 1, 0.0001f);
+                                                                  ^
+  > Previous declaration at line 38:67 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/ModelImport.bf
+    case "scale": scale = Math.Max(float.Parse(value) case .Ok(let parsed) ? parsed : 1, 0.0001f);
+                                                                   ^^^^^^
+WARNING(3): BF4200: A variable named 'sizeIndex' has already been declared in this scope at line 61:10 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/QualityTools.bf
+   int32 sizeIndex = v.reflectionSize >= 256 ? (v.reflectionSize >= 512 ? 4 : 3) : (v.reflectionSize >= 128 ? 2 : (v.reflectionSize >= 64 ? 1 : 0));
+         ^
+  > Previous declaration at line 37:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/QualityTools.bf
+    var sizeIndex = (float)Math.Round(Math.Log(v.shadowMapSize / 512.0) / Math.Log(2));
+        ^^^^^^^^^
+WARNING(4): BF4200: A variable named 'before' has already been declared in an outer scope at line 110:10 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+     let before = tipBone.Position;
+         ^
+  > Previous declaration at line 59:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+    let before = scope List<float>(mRig.weights);
+        ^^^^^^
+WARNING(5): BF4200: A variable named 'moved' has already been declared in an outer scope at line 123:11 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+      let moved = (tipBone.Position - before).Length;
+          ^
+  > Previous declaration at line 82:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+    var moved = false;
+        ^^^^^
+WARNING(6): BF0168: The variable 'resolved' is assigned but its value is never used at line 130:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Behavior/BehaviorTreeEditor.bf
+   let resolved = scope String();
+       ^
+PASS: a good sequence reads with no problems ()
+PASS: its length, frame rate and tracks are read
+PASS: a transform track's keys have position, rotation and scale
+PASS: a camera shot has its object, blend and field of view
+PASS: show/hide, subtitle, event and sound keys are read
+PASS: a fade track has its colour and each key its ease
+PASS: a sequence written out reads back the same
+PASS: mistakes are reported by line:
+line 1: 'key' comes before the first track
+line 2: there is no 'wobble' track (transform, camera, animation, audio, active, event, subtitle or fade)
+line 4: a transform track's keys are 'key <time> ...'
+line 6: 'colour' is not something a event key has
+line 6: '3' is not something a event key has
+
+PASS: linear keys go evenly
+PASS: smooth keys start slowly
+PASS: step keys hold until the next
+PASS: before the first key and after the last, the end keys hold
+PASS: a fade eases between its keys
+PASS: a sequence lasts its length, or to its last key if later
+PASS: a name is looked for under the player first, then by path in the scene
+PASS: a path's parents must match
+PASS: before it plays, the game is seen through its own camera
+PASS: Play starts it
+PASS: the first shot is shown, with the shot camera's field of view
+PASS: a show key at the start shows its object at once
+[warning] Sound not found or not readable: Sounds/creak.wav (WAV, OGG, MP3 and FLAC are supported).
+PASS: the gate moves along its keys
+PASS: a subtitle key shows its line
+PASS: an event key tells the game, with its number
+PASS: a shot with a blend moves the camera there from the shot before
+PASS: and the gate ends turned and grown
+PASS: Pause holds it
+PASS: a hide key hides its object
+PASS: at the end it finishes, and the game is seen through its own camera again
+PASS: what it moved stays where it ended
+PASS: (the subtitle is up again)
+PASS: Skip jumps to the end: events still happen, subtitles go, objects end in place
+PASS: Seek moves it to a time without its events
+PASS: Stop ends it and gives the camera back
+[warning] Sound not found or not readable: Sounds/creak.wav (WAV, OGG, MP3 and FLAC are supported).
+PASS: (it moves the gate)
+PASS: with Restore When Done, what it moved and showed goes back
+[warning] Sound not found or not readable: Sounds/creak.wav (WAV, OGG, MP3 and FLAC are supported).
+[warning] Sound not found or not readable: Sounds/creak.wav (WAV, OGG, MP3 and FLAC are supported).
+PASS: a looping sequence starts again, with its events each time
+PASS: a fade track covers the screen as far as its keys say
+[warning] Sound not found or not readable: Sounds/creak.wav (WAV, OGG, MP3 and FLAC are supported).
+PASS: and clears it
+[warning] Sound not found or not readable: Sounds/creak.wav (WAV, OGG, MP3 and FLAC are supported).
+PASS: a save keeps where it was and carries on from there
+PASS: no sequence is left counted as playing
+Server listening on port 49876.
+PASS: host starts
+Connecting to 127.0.0.1:49876...
+Client 1 connected.
+Connected as client 1.
+PASS: client connects over loopback
+PASS: a shared sequence's object is shared by itself
+[warning] Sound not found or not readable: Sounds/creak.wav (WAV, OGG, MP3 and FLAC are supported).
+PASS: the client plays it in time with the server (1.02 / 1.00)
+PASS: and sees its shots
+[warning] Sound not found or not readable: Sounds/creak.wav (WAV, OGG, MP3 and FLAC are supported).
+PASS: the client pauses it through the server
+PASS: and skips it, for everyone
+PASS: events happen on the server only
+PASS: with Only Owner Controls, a player who does not own it cannot start it
+All sequencer tests passed.

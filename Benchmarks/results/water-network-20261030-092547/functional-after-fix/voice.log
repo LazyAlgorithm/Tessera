@@ -1,0 +1,69 @@
+WARNING: BF4200: A variable named 'value' has already been declared in an outer scope at line 698:84 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Engine/src/Physics/SoftBody.bf
+   let last = dash < 0 ? first : (int.Parse(word.Substring(dash + 1)) case .Ok(let value) ? value : -1);
+                                                                                   ^
+  > Previous declaration at line 697:82 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Engine/src/Physics/SoftBody.bf
+    let first = int.Parse(dash < 0 ? word : word.Substring(0, dash)) case .Ok(let value) ? value : -1;
+                                                                                  ^^^^^
+WARNING(2): BF4200: A variable named 'parsed' has already been declared in this scope at line 38:67 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/ModelImport.bf
+   case "scale": scale = Math.Max(float.Parse(value) case .Ok(let parsed) ? parsed : 1, 0.0001f);
+                                                                  ^
+  > Previous declaration at line 38:67 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/ModelImport.bf
+    case "scale": scale = Math.Max(float.Parse(value) case .Ok(let parsed) ? parsed : 1, 0.0001f);
+                                                                   ^^^^^^
+WARNING(3): BF4200: A variable named 'sizeIndex' has already been declared in this scope at line 61:10 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/QualityTools.bf
+   int32 sizeIndex = v.reflectionSize >= 256 ? (v.reflectionSize >= 512 ? 4 : 3) : (v.reflectionSize >= 128 ? 2 : (v.reflectionSize >= 64 ? 1 : 0));
+         ^
+  > Previous declaration at line 37:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/QualityTools.bf
+    var sizeIndex = (float)Math.Round(Math.Log(v.shadowMapSize / 512.0) / Math.Log(2));
+        ^^^^^^^^^
+WARNING(4): BF4200: A variable named 'before' has already been declared in an outer scope at line 110:10 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+     let before = tipBone.Position;
+         ^
+  > Previous declaration at line 59:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+    let before = scope List<float>(mRig.weights);
+        ^^^^^^
+WARNING(5): BF4200: A variable named 'moved' has already been declared in an outer scope at line 123:11 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+      let moved = (tipBone.Position - before).Length;
+          ^
+  > Previous declaration at line 82:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+    var moved = false;
+        ^^^^^
+WARNING(6): BF0168: The variable 'resolved' is assigned but its value is never used at line 130:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Behavior/BehaviorTreeEditor.bf
+   let resolved = scope String();
+       ^
+PASS: voice chat is off until the game turns it on
+Server listening on port 48595.
+Connecting to 127.0.0.1:48595...
+Client 1 connected.
+Connected as client 1.
+Connecting to 127.0.0.1:48595...
+Client 2 connected.
+Connected as client 2.
+PASS: three machines are in the session, each with a character
+PASS: while it is off nothing is sent and no microphone is opened
+PASS: a client's speech reaches the host and the other client (50 frames sent, 50 and 50 heard)
+PASS: and is not played back to the speaker
+PASS: compressed to about 63 bytes a frame (3.1 KB/s; uncompressed would be 94 KB/s)
+PASS: the listener can tell who is speaking
+PASS: what is played is the tone that was spoken, without gaps (level 0.424, pitch 450 Hz for 440 spoken)
+PASS: speaking starts and stops are reported
+PASS: an open microphone sends nothing while the room is quieter than the activation level
+PASS: the host's own voice reaches the clients
+PASS: with push to talk on, speech is not sent until the key is held
+PASS: and is sent while it is held
+PASS: and stops the moment it is let go
+PASS: muting yourself stops your microphone being sent
+PASS: muting one player silences them on your machine only
+PASS: the host and the second client share a team; the first client is on the other (teams 1, 2, 1)
+PASS: team only: the other team hears nothing
+PASS: and a teammate hears every word
+PASS: proximity: a player 5 m away hears (30 frames), one 500 m away is sent nothing
+PASS: and nobody hears a speaker who is out of range
+PASS: with a fifth of packets lost each way, speech carries on (58 of 100 frames arrived, the gaps filled in)
+PASS: a client flooding the server is cut off (75 of 400 frames passed on)
+PASS: malformed and garbage packets are survived, and speech continues after them
+PASS: deafen stops other voices being played
+PASS: turning voice chat off mid-game stops it and frees the voices
+PASS: the microphone test plays your own voice back with no session
+PASS: and ends when it is switched off
+INFO: this machine reports a microphone: True (counted, not opened)

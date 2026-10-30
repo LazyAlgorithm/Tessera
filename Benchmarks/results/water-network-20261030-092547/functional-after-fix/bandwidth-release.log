@@ -1,0 +1,39 @@
+WARNING: Linux LLVM tools missing or incompatible: ld.lld. Building with the GNU toolset and LTO disabled for all projects. Install clang-22, lld-22, and llvm-22 to enable ThinLTO.
+WARNING: BF4200: A variable named 'value' has already been declared in an outer scope at line 698:84 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Engine/src/Physics/SoftBody.bf
+   let last = dash < 0 ? first : (int.Parse(word.Substring(dash + 1)) case .Ok(let value) ? value : -1);
+                                                                                   ^
+  > Previous declaration at line 697:82 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Engine/src/Physics/SoftBody.bf
+    let first = int.Parse(dash < 0 ? word : word.Substring(0, dash)) case .Ok(let value) ? value : -1;
+                                                                                  ^^^^^
+PASS: 1000 fine transforms stay within 0.12mm and rotation bounds
+PASS: out-of-range quantization falls back to exact floats
+PASS: all truncated transform records are rejected
+PASS: transport-independent compression preserves every float and NaN payload bit exactly
+PASS: compressed message output is bounded before allocation
+PASS: small messages keep their original representation
+PASS: Steam-configured manager sends compressed application frames without ENet transport compression
+PASS: shared transport frame restores the complete original message
+PASS: batched exact transform reaches client
+PASS: snapshot packets fit configured MTU limit
+PASS: delayed object key survives a newer global packet tick
+PASS: owner keeps exact BodyState despite remote transform option
+PASS: remote rate limit sends only heartbeat before due tick
+PASS: pending changed transform is delivered once rate permits
+PASS: unchanged record repeats recover a dropped update
+PASS: out-of-radius state is removed from delivery history
+PASS: re-entering relevance forces a fresh transform
+PASS: destroy removes per-client delivery state
+PASS: sleeping final transform uses reliable delivery
+PASS: sleeping objects need only session heartbeats across refresh periods
+PASS: late join gets sleeping transforms reliably even after refresh suppression
+PASS: wake resumes transform delivery
+PASS: all same-tick chunks arrive independently within MTU
+PASS: budget caps every snapshot and oldest-first scheduling eventually delivers every prop
+PASS: reliable sleep key stops extrapolation exactly
+PASS: large ownership groups stay in one coherent correction instead of replaying once per chunk
+PASS: full remote keys preserve real post-impact linear and angular velocities
+PASS: remote body extrapolation follows authoritative velocity and spin
+PASS: stale body keys cannot replace authoritative impact velocities
+PASS: sleeping body keys stop both translation and spin
+PASS: non-body motor metadata is never interpreted as physical angular velocity
+NETWORK BANDWIDTH TESTS PASSED

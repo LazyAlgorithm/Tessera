@@ -1,0 +1,187 @@
+{
+  "jobs": [
+    {
+      "name": "water-debug",
+      "args": [
+        "BeefBuild",
+        "-workspace=Tests/Water",
+        "-config=Debug",
+        "-run"
+      ],
+      "exit": 0,
+      "pass": true,
+      "pass_checks": 53,
+      "failures": [],
+      "seconds": 6.989041958004236
+    },
+    {
+      "name": "water-release",
+      "args": [
+        "BeefBuild",
+        "-workspace=Tests/Water",
+        "-config=Release",
+        "-run"
+      ],
+      "exit": 0,
+      "pass": true,
+      "pass_checks": 53,
+      "failures": [],
+      "seconds": 5.504482556018047
+    },
+    {
+      "name": "maps",
+      "args": [
+        "BeefBuild",
+        "-workspace=/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Tests/Maps",
+        "-config=Debug",
+        "-run"
+      ],
+      "exit": 0,
+      "pass": true,
+      "pass_checks": 49,
+      "failures": [],
+      "seconds": 3.3720600809901953,
+      "previous_attempt": "maps-initial-wrong-cwd.log",
+      "cwd": "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Tests/Maps"
+    },
+    {
+      "name": "dialogue",
+      "args": [
+        "BeefBuild",
+        "-workspace=Tests/Dialogue",
+        "-config=Debug",
+        "-run"
+      ],
+      "exit": 0,
+      "pass": true,
+      "pass_checks": 51,
+      "failures": [],
+      "seconds": 2.700092012004461
+    },
+    {
+      "name": "sequencer",
+      "args": [
+        "BeefBuild",
+        "-workspace=Tests/Sequencer",
+        "-config=Debug",
+        "-run"
+      ],
+      "exit": 0,
+      "pass": true,
+      "pass_checks": 49,
+      "failures": [],
+      "seconds": 2.6767021529958583
+    },
+    {
+      "name": "network",
+      "args": [
+        "BeefBuild",
+        "-workspace=Tests/Network",
+        "-config=Debug",
+        "-run"
+      ],
+      "exit": 0,
+      "pass": true,
+      "pass_checks": 82,
+      "failures": [],
+      "seconds": 8.128913036023732
+    },
+    {
+      "name": "bandwidth-debug",
+      "args": [
+        "BeefBuild",
+        "-workspace=Tests/NetworkBandwidth",
+        "-config=Debug",
+        "-run"
+      ],
+      "exit": 0,
+      "pass": true,
+      "pass_checks": 31,
+      "failures": [],
+      "seconds": 2.3337913950090297
+    },
+    {
+      "name": "bandwidth-release",
+      "args": [
+        "/usr/bin/python3",
+        "tools/run_network_bandwidth_tests.py",
+        "--engine",
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa"
+      ],
+      "exit": 0,
+      "pass": true,
+      "pass_checks": 31,
+      "failures": [],
+      "seconds": 2.340569971012883
+    },
+    {
+      "name": "prediction",
+      "args": [
+        "BeefBuild",
+        "-workspace=Tests/PhysicsPrediction",
+        "-config=Debug",
+        "-run"
+      ],
+      "exit": 0,
+      "pass": true,
+      "pass_checks": 22,
+      "failures": [],
+      "seconds": 30.109485174005385
+    },
+    {
+      "name": "voice",
+      "args": [
+        "BeefBuild",
+        "-workspace=Tests/Voice",
+        "-config=Debug",
+        "-run"
+      ],
+      "exit": 0,
+      "pass": true,
+      "pass_checks": 28,
+      "failures": [],
+      "seconds": 3.5757324359728955
+    },
+    {
+      "name": "softbody",
+      "args": [
+        "BeefBuild",
+        "-workspace=Tests/SoftBodies",
+        "-config=Debug",
+        "-run"
+      ],
+      "exit": 0,
+      "pass": true,
+      "pass_checks": 84,
+      "failures": [],
+      "seconds": 10.154713488998823
+    },
+    {
+      "name": "character",
+      "args": [
+        "BeefBuild",
+        "-workspace=Tests/CharacterController",
+        "-config=Debug",
+        "-run"
+      ],
+      "exit": 0,
+      "pass": true,
+      "pass_checks": 34,
+      "failures": [],
+      "seconds": 2.2680749490391463
+    },
+    {
+      "name": "anti-cheat",
+      "args": [
+        "/usr/bin/python3",
+        "Tests/AntiCheat/run.py"
+      ],
+      "exit": 0,
+      "pass": true,
+      "pass_checks": 26,
+      "failures": [],
+      "seconds": 8.86307838500943
+    }
+  ],
+  "updated": "2026-10-30T10:12:37.575373"
+}

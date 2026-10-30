@@ -1,0 +1,11 @@
+DONE shell 1 4 real cpu 1920 water95 0.001 frame95 0
+DONE shell 10 4 real cpu 1920 water95 0.007 frame95 0
+DONE shell 50 4 real cpu 1920 water95 0.043 frame95 0
+DONE shell 100 4 real cpu 1920 water95 0.081 frame95 0
+DONE shell 250 4 real cpu 1920 water95 0.198 frame95 0
+DONE shell 1 8 real cpu 1920 water95 0.001 frame95 0
+DONE shell 10 8 real cpu 1920 water95 0.008 frame95 0
+DONE shell 50 8 real cpu 1920 water95 0.036 frame95 0
+DONE shell 100 8 real cpu 1920 water95 0.085 frame95 0
+DONE shell 250 8 real cpu 1920 water95 0.222 frame95 0
+WATER COMPLETE 30

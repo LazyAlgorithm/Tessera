@@ -1,0 +1,108 @@
+PASS: a guarded number adds, subtracts and reads like a number
+PASS: it is not stored as itself, a write from outside is noticed, and the real value survives
+PASS: a guarded number with a fraction works the same way
+PASS: players can be banned and unbanned by whatever the game knows them by
+PASS: and the list is saved and loaded as text
+PASS: a game run from loose files has no fingerprint
+PASS: the same assets packed twice (with different engine files, in another folder) match; one changed asset does not
+Server listening on port 48473.
+PASS: host starts
+Connecting to 127.0.0.1:48473...
+Client 1 connected.
+Connected as client 1.
+Client 1 disconnected.
+PASS: with the anti-cheat off nothing is watched and nobody is asked anything
+Connecting to 127.0.0.1:48473...
+Client 2 connected.
+Connected as client 2.
+PASS: an honest player plays for ten seconds, is asked and answers, and nothing is found
+Client 2 disconnected.
+Connecting to 127.0.0.1:48473...
+Client 3 connected.
+Connected as client 3.
+[warning] Anti-cheat: client 3: controls no unmodified game sends (a view angle out of range). Removing them.
+[warning] Removed by anti-cheat: controls no unmodified game sends.
+Client 3 disconnected.
+[warning] Disconnected from server.
+PASS: an impossible view angle is caught: the player is told why and removed
+Connecting to 127.0.0.1:48473...
+Client 4 connected.
+Connected as client 4.
+[warning] Anti-cheat: client 4: the game is running faster than it should (a speed hack) (running at 200% speed). Removing them.
+[warning] Removed by anti-cheat: the game is running faster than it should (a speed hack).
+Client 4 disconnected.
+[warning] Disconnected from server.
+PASS: a game running at double speed moves its player no faster on the server
+PASS: and is caught as a speed hack and removed
+Connecting to 127.0.0.1:48473...
+Client 5 connected.
+Connected as client 5.
+[warning] Anti-cheat: client 5: a flood of messages (361 messages in a second). Removing them.
+[warning] Removed by anti-cheat: a flood of messages.
+Client 5 disconnected.
+[warning] Disconnected from server.
+PASS: hundreds of messages in a second are caught as a flood
+Connecting to 127.0.0.1:48473...
+Client 6 connected.
+Connected as client 6.
+[warning] Anti-cheat: client 6: the game did not answer the anti-cheat. Removing them.
+[warning] Removed by anti-cheat: the game did not answer the anti-cheat.
+Client 6 disconnected.
+[warning] Disconnected from server.
+PASS: a game that does not answer the anti-cheat's question is removed
+Connecting to 127.0.0.1:48473...
+Client 7 connected.
+Connected as client 7.
+[warning] Anti-cheat: client 7: a debugger is attached to the game.
+[warning] Anti-cheat: client 7: a library has been forced into the game.
+PASS: a debugger and a forced-in library are reported to the server and logged, and the player stays
+Client 7 disconnected.
+Connecting to 127.0.0.1:48473...
+Client 8 connected.
+Connected as client 8.
+[warning] Anti-cheat: client 8: a debugger is attached to the game. Removing them.
+[warning] Removed by anti-cheat: a debugger is attached to the game.
+Client 8 disconnected.
+[warning] Disconnected from server.
+PASS: unless the game chooses to remove players for it
+Connecting to 127.0.0.1:48473...
+Client 9 connected.
+Connected as client 9.
+PASS: a player with the server's files is let be
+Client 9 disconnected.
+Connecting to 127.0.0.1:48473...
+Client 10 connected.
+Connected as client 10.
+[warning] Anti-cheat: client 10: the game's files are not the host's. Removing them.
+[warning] Removed by anti-cheat: the game's files are not the host's.
+Client 10 disconnected.
+[warning] Disconnected from server.
+PASS: a player whose files differ is removed
+Connecting to 127.0.0.1:48473...
+Client 11 connected.
+Connected as client 11.
+PASS: thirty hits from an aim that sweeps onto its targets raise nothing
+Client 11 disconnected.
+Connecting to 127.0.0.1:48473...
+Client 12 connected.
+Connected as client 12.
+[warning] Anti-cheat: client 12: aim that looks automated (20 hits from 20 shots, 20 to the head, 20 straight after an instant turn).
+PASS: thirty hits each straight after an instant quarter turn are flagged, and by default only logged
+[warning] Anti-cheat: client 12: the game's memory was changed from outside (bought something with no money). Removing them.
+[warning] Removed by anti-cheat: the game's memory was changed from outside.
+Client 12 disconnected.
+[warning] Disconnected from server.
+PASS: the game can report what it catches itself, and the same rules apply
+PASS: hardening closes the game's memory to other programs of the same user
+Connecting to 127.0.0.1:48473...
+Client 13 connected.
+Connected as client 13.
+[warning] Anti-cheat: client 13: a library has been forced into the game (injected.so was loaded into the game).
+PASS: a library loaded into the running game from outside is reported (and by default logged)
+[warning] Anti-cheat: client 13: the game's memory was changed from outside (the game's own code was changed in memory). Removing them.
+[warning] Removed by anti-cheat: the game's memory was changed from outside.
+Client 13 disconnected.
+[warning] Disconnected from server.
+PASS: a change to the game's own code in memory is caught, and the player removed
+PASS: everything found is kept for the game to show
+ALL PASSED

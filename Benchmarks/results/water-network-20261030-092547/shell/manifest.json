@@ -1,0 +1,697 @@
+{
+  "commit": "dfad1175ccf6a8bae0458f0aa1fb7c23b624604a",
+  "binary_sha256": "9aaf9a3af21c95f3f8f5132e0f5964b2b9f195880b6f1e0d0b83cb26c9c9f8c1",
+  "jobs": [
+    {
+      "name": "shell-1-4-real-cpu-1920-0",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "shell",
+        "1",
+        "4",
+        "real",
+        "cpu",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "1.047388",
+        "floating": "1",
+        "soft_max_span": "1.695039",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shell-1-4-real-cpu-1920-1",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "shell",
+        "1",
+        "4",
+        "real",
+        "cpu",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "1.078757",
+        "floating": "1",
+        "soft_max_span": "1.695039",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shell-1-4-real-cpu-1920-2",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "shell",
+        "1",
+        "4",
+        "real",
+        "cpu",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "0.922144",
+        "floating": "1",
+        "soft_max_span": "1.695039",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shell-10-4-real-cpu-1920-0",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "shell",
+        "10",
+        "4",
+        "real",
+        "cpu",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.326202",
+        "floating": "10",
+        "soft_max_span": "1.7313347",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shell-10-4-real-cpu-1920-1",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "shell",
+        "10",
+        "4",
+        "real",
+        "cpu",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.414087",
+        "floating": "10",
+        "soft_max_span": "1.7313347",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shell-10-4-real-cpu-1920-2",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "shell",
+        "10",
+        "4",
+        "real",
+        "cpu",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "2.361238",
+        "floating": "10",
+        "soft_max_span": "1.7313347",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shell-50-4-real-cpu-1920-0",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "shell",
+        "50",
+        "4",
+        "real",
+        "cpu",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "7.379029",
+        "floating": "50",
+        "soft_max_span": "1.7313347",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shell-50-4-real-cpu-1920-1",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "shell",
+        "50",
+        "4",
+        "real",
+        "cpu",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "7.367096",
+        "floating": "50",
+        "soft_max_span": "1.7313347",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shell-50-4-real-cpu-1920-2",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "shell",
+        "50",
+        "4",
+        "real",
+        "cpu",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "7.571009",
+        "floating": "50",
+        "soft_max_span": "1.7313347",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shell-100-4-real-cpu-1920-0",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "shell",
+        "100",
+        "4",
+        "real",
+        "cpu",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "14.112244",
+        "floating": "100",
+        "soft_max_span": "1.7320242",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shell-100-4-real-cpu-1920-1",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "shell",
+        "100",
+        "4",
+        "real",
+        "cpu",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "13.750543",
+        "floating": "100",
+        "soft_max_span": "1.7320242",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shell-100-4-real-cpu-1920-2",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "shell",
+        "100",
+        "4",
+        "real",
+        "cpu",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "13.895486",
+        "floating": "100",
+        "soft_max_span": "1.7320242",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shell-250-4-real-cpu-1920-0",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "shell",
+        "250",
+        "4",
+        "real",
+        "cpu",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "34.013938",
+        "floating": "250",
+        "soft_max_span": "1.7320242",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shell-250-4-real-cpu-1920-1",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "shell",
+        "250",
+        "4",
+        "real",
+        "cpu",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "32.912638",
+        "floating": "250",
+        "soft_max_span": "1.7320242",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shell-250-4-real-cpu-1920-2",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "shell",
+        "250",
+        "4",
+        "real",
+        "cpu",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "31.795658",
+        "floating": "250",
+        "soft_max_span": "1.7320242",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shell-1-8-real-cpu-1920-0",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "shell",
+        "1",
+        "8",
+        "real",
+        "cpu",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "1.944565",
+        "floating": "1",
+        "soft_max_span": "1.6950392",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shell-1-8-real-cpu-1920-1",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "shell",
+        "1",
+        "8",
+        "real",
+        "cpu",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "1.850297",
+        "floating": "1",
+        "soft_max_span": "1.6950392",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shell-1-8-real-cpu-1920-2",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "shell",
+        "1",
+        "8",
+        "real",
+        "cpu",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "1.491413",
+        "floating": "1",
+        "soft_max_span": "1.6950392",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shell-10-8-real-cpu-1920-0",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "shell",
+        "10",
+        "8",
+        "real",
+        "cpu",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "7.522899",
+        "floating": "10",
+        "soft_max_span": "1.7313347",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shell-10-8-real-cpu-1920-1",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "shell",
+        "10",
+        "8",
+        "real",
+        "cpu",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "7.595315",
+        "floating": "10",
+        "soft_max_span": "1.7313347",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shell-10-8-real-cpu-1920-2",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "shell",
+        "10",
+        "8",
+        "real",
+        "cpu",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "7.472003",
+        "floating": "10",
+        "soft_max_span": "1.7313347",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shell-50-8-real-cpu-1920-0",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "shell",
+        "50",
+        "8",
+        "real",
+        "cpu",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "34.115989",
+        "floating": "50",
+        "soft_max_span": "1.7313347",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shell-50-8-real-cpu-1920-1",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "shell",
+        "50",
+        "8",
+        "real",
+        "cpu",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "34.603716",
+        "floating": "50",
+        "soft_max_span": "1.7313347",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shell-50-8-real-cpu-1920-2",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "shell",
+        "50",
+        "8",
+        "real",
+        "cpu",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "35.035347",
+        "floating": "50",
+        "soft_max_span": "1.7313347",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shell-100-8-real-cpu-1920-0",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "shell",
+        "100",
+        "8",
+        "real",
+        "cpu",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "68.89209",
+        "floating": "100",
+        "soft_max_span": "1.7320242",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shell-100-8-real-cpu-1920-1",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "shell",
+        "100",
+        "8",
+        "real",
+        "cpu",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "68.856753",
+        "floating": "100",
+        "soft_max_span": "1.7320242",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shell-100-8-real-cpu-1920-2",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "shell",
+        "100",
+        "8",
+        "real",
+        "cpu",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "68.620098",
+        "floating": "100",
+        "soft_max_span": "1.7320242",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shell-250-8-real-cpu-1920-0",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "shell",
+        "250",
+        "8",
+        "real",
+        "cpu",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "173.207546",
+        "floating": "250",
+        "soft_max_span": "1.7320242",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shell-250-8-real-cpu-1920-1",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "shell",
+        "250",
+        "8",
+        "real",
+        "cpu",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "173.814778",
+        "floating": "250",
+        "soft_max_span": "1.7320242",
+        "checksum": "0",
+        "valid": "True"
+      }
+    },
+    {
+      "name": "shell-250-8-real-cpu-1920-2",
+      "args": [
+        "/home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Benchmarks/water-network/water/build/Release_Linux64/Benchmark/Benchmark",
+        "shell",
+        "250",
+        "8",
+        "real",
+        "cpu",
+        "1920",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "valid": true,
+      "checks": {
+        "setup_ms": "170.425176",
+        "floating": "250",
+        "soft_max_span": "1.7320242",
+        "checksum": "0",
+        "valid": "True"
+      }
+    }
+  ],
+  "finished": "2026-10-30T10:13:09.326411"
+}

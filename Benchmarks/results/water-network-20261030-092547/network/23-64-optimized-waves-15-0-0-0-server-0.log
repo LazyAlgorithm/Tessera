@@ -1,0 +1,33 @@
+Server listening on port 19823.
+Client 1 connected.
+Client 2 connected.
+Client 3 connected.
+Client 4 connected.
+Client 5 connected.
+Client 6 connected.
+Client 7 connected.
+Client 8 connected.
+Client 9 connected.
+Client 10 connected.
+Client 11 connected.
+Client 12 connected.
+Client 13 connected.
+Client 14 connected.
+Client 15 connected.
+TRAFFIC,0,377791,17271,377791,333510.75,22183.877,240
+TRAFFIC,0,378433,16986,378433,334481.47,21824.635,300
+TRAFFIC,0,377700,17214,377700,335009.88,22826.273,360
+TRAFFIC,0,377895,17062,377895,337302.94,23016.96,420
+TRAFFIC,1,317523,17100,317523,306310.12,21198.375,540
+TRAFFIC,1,320253,17119,320253,307601.44,21655.514,600
+TRAFFIC,1,317523,17100,317523,306119.62,22050.389,660
+CHECK,max_body_correction,0
+CHECK,max_player_correction,0
+CHECK,peak_floating,64
+CHECK,wave_error,0
+CHECK,effective_tick_hz,59.99998
+METRICS,server,64,optimized,waves,15,322905.17410714284,22108.003348214286,352445,17121,352445,0.4351474629629629,1.395673,0,0,0,0.196071888,0,True
+CHECK,elapsed,11.05
+CHECK,connected,True
+CHECK,truth,True
+CHECK,valid,True

@@ -1,0 +1,65 @@
+WARNING: BF4200: A variable named 'value' has already been declared in an outer scope at line 698:84 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Engine/src/Physics/SoftBody.bf
+   let last = dash < 0 ? first : (int.Parse(word.Substring(dash + 1)) case .Ok(let value) ? value : -1);
+                                                                                   ^
+  > Previous declaration at line 697:82 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Engine/src/Physics/SoftBody.bf
+    let first = int.Parse(dash < 0 ? word : word.Substring(0, dash)) case .Ok(let value) ? value : -1;
+                                                                                  ^^^^^
+WARNING(2): BF4200: A variable named 'parsed' has already been declared in this scope at line 38:67 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/ModelImport.bf
+   case "scale": scale = Math.Max(float.Parse(value) case .Ok(let parsed) ? parsed : 1, 0.0001f);
+                                                                  ^
+  > Previous declaration at line 38:67 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/ModelImport.bf
+    case "scale": scale = Math.Max(float.Parse(value) case .Ok(let parsed) ? parsed : 1, 0.0001f);
+                                                                   ^^^^^^
+WARNING(3): BF4200: A variable named 'sizeIndex' has already been declared in this scope at line 61:10 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/QualityTools.bf
+   int32 sizeIndex = v.reflectionSize >= 256 ? (v.reflectionSize >= 512 ? 4 : 3) : (v.reflectionSize >= 128 ? 2 : (v.reflectionSize >= 64 ? 1 : 0));
+         ^
+  > Previous declaration at line 37:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Tools/QualityTools.bf
+    var sizeIndex = (float)Math.Round(Math.Log(v.shadowMapSize / 512.0) / Math.Log(2));
+        ^^^^^^^^^
+WARNING(4): BF4200: A variable named 'before' has already been declared in an outer scope at line 110:10 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+     let before = tipBone.Position;
+         ^
+  > Previous declaration at line 59:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+    let before = scope List<float>(mRig.weights);
+        ^^^^^^
+WARNING(5): BF4200: A variable named 'moved' has already been declared in an outer scope at line 123:11 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+      let moved = (tipBone.Position - before).Length;
+          ^
+  > Previous declaration at line 82:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Animation/RigEditorTest.bf
+    var moved = false;
+        ^^^^^
+WARNING(6): BF0168: The variable 'resolved' is assigned but its value is never used at line 130:8 in /home/zerker24/GitWorktrees/tessera-water-network-6cfa1faa/Editor/src/Behavior/BehaviorTreeEditor.bf
+   let resolved = scope String();
+       ^
+PASS: 1000 fine transforms stay within 0.12mm and rotation bounds
+PASS: out-of-range quantization falls back to exact floats
+PASS: all truncated transform records are rejected
+PASS: transport-independent compression preserves every float and NaN payload bit exactly
+PASS: compressed message output is bounded before allocation
+PASS: small messages keep their original representation
+PASS: Steam-configured manager sends compressed application frames without ENet transport compression
+PASS: shared transport frame restores the complete original message
+PASS: batched exact transform reaches client
+PASS: snapshot packets fit configured MTU limit
+PASS: delayed object key survives a newer global packet tick
+PASS: owner keeps exact BodyState despite remote transform option
+PASS: remote rate limit sends only heartbeat before due tick
+PASS: pending changed transform is delivered once rate permits
+PASS: unchanged record repeats recover a dropped update
+PASS: out-of-radius state is removed from delivery history
+PASS: re-entering relevance forces a fresh transform
+PASS: destroy removes per-client delivery state
+PASS: sleeping final transform uses reliable delivery
+PASS: sleeping objects need only session heartbeats across refresh periods
+PASS: late join gets sleeping transforms reliably even after refresh suppression
+PASS: wake resumes transform delivery
+PASS: all same-tick chunks arrive independently within MTU
+PASS: budget caps every snapshot and oldest-first scheduling eventually delivers every prop
+PASS: reliable sleep key stops extrapolation exactly
+PASS: large ownership groups stay in one coherent correction instead of replaying once per chunk
+PASS: full remote keys preserve real post-impact linear and angular velocities
+PASS: remote body extrapolation follows authoritative velocity and spin
+PASS: stale body keys cannot replace authoritative impact velocities
+PASS: sleeping body keys stop both translation and spin
+PASS: non-body motor metadata is never interpreted as physical angular velocity
+NETWORK BANDWIDTH TESTS PASSED
