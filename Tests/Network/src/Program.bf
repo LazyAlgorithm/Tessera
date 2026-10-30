@@ -177,7 +177,7 @@ class Program
 		// ---- the engine's own message ids: each kind of message has one to itself ----
 		{
 			uint8[?] ids = .(NetworkSync.MsgTerrainBrush, NetworkSync.MsgVoxelCarve, NetworkSync.MsgCharacterShape, NetworkSync.MsgAnimation, NetworkSync.MsgField, NetworkSync.MsgAudio,
-				NetworkSync.MsgEvent, NetworkSync.MsgAnimator, NetworkSync.MsgMaterial, NetworkSync.MsgDialogue, NetworkSync.MsgSequence, AntiCheat.MsgAntiCheat, VoiceChat.MsgVoice, MapSharing.MsgMap);
+				NetworkSync.MsgEvent, NetworkSync.MsgAnimator, NetworkSync.MsgMaterial, NetworkSync.MsgDialogue, NetworkSync.MsgSequence, AntiCheat.MsgAntiCheat, VoiceChat.MsgVoice, MapSharing.MsgMap, NetworkSync.MsgRope, NetworkSync.MsgSoftBody);
 			bool distinct = true;
 			for (int i < ids.Count)
 			{

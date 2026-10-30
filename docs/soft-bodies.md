@@ -162,11 +162,18 @@ Scene.Active.Destroy(tow.GameObject);               // or let go of both
 
 `Points` has where each point of the rope is now, from start to end. When an object an end is tied to is destroyed, that end lets go.
 
-The pull acts along the straight line between the two ends, unless **Wraps Around** is on: then it runs through the first and last places where the rope presses on something (the rope on top of a beam, not one lying along the floor), so lifting one end lowers the other. What it wraps round must hold still (static, or kinematic); a body it lies over is pressed by the rope but not pulled by the pulley. A rope is local to each machine like other soft bodies: in multiplayer, tie it to the same networked objects everywhere (the objects are synced, so the rope looks the same).
+The pull acts along the straight line between the two ends, unless **Wraps Around** is on: then it runs through the first and last places where the rope presses on something (the rope on top of a beam, not one lying along the floor), so lifting one end lowers the other. What it wraps round must hold still (static, or kinematic); a body it lies over is pressed by the rope but not pulled by the pulley. In multiplayer ropes are shared without code: see Networking below.
 
 ## Networking
 
-Each machine simulates its own soft bodies. Pinned cloth follows its object, so when the object is networked (a player, a ship, a door), the cloth looks the same everywhere without sending anything about it. A free soft body on an object with a Network Identity is simulated on clients too, and each step it is drawn towards where the server has the object, or jumps there if it is more than 2 m away. Its shape is each machine's own, so squashing and wobbling can differ in detail.
+Everything here works in a network session without code. Each machine simulates its own soft bodies and ropes, and what has to agree comes from the server:
+
+| What | In a session |
+|---|---|
+| Pinned cloth (flags, capes) | Follows its object, so when the object is networked (a player, a ship, a door) it looks the same everywhere without sending anything about it. |
+| A free soft body (a jelly, loose cloth) | Its object gets a Network Identity when the session starts, like a Rigidbody's. Clients simulate it too, and each step it is drawn towards where the server has the object (or jumps there when more than 2 m away). Squashing and wobbling are each machine's own, so they can differ in detail. |
+| A shell's dents | Made on the server: a crash there dents the shell on every machine once it settles (a fifth of a second), a quarter of a millimetre apart at most. A client's shell does not dent by itself, so a hit only one player sees leaves no dent. `SetDents` and `Repair` on the server reach every machine; on a client they go to the server, for an object that player controls. Players who join later get the dents as they are. |
+| Ropes | `Rope.Attach`, `AttachStart`, `AttachEnd` (and `Release`), `LayAlong` and `Snap` on the server happen on every machine, and Break Force snaps a rope when the server's pulls past it. On a client they go to the server, for a rope, or an object it is tied to, that player controls (`Attach` and `Snap` return null there: the server's rope arrives). Players who join later get the ropes as they are. Tie ropes to networked objects (a Rigidbody, a player): the rope follows them on every machine. |
 
 ## Limits
 

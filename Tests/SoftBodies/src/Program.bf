@@ -1073,6 +1073,158 @@ class Program
 			host.Network.Stop();
 		}
 
+		// ---- networked by default: scene soft bodies, dents and ropes on a host, a client and a late joiner ----
+		{
+			let shellMesh = Box(.(0.9f, 0.6f, 2), 8);
+			defer delete shellMesh;
+			// The same scene on every machine, as if loaded from one file.
+			void Build(Scene scene)
+			{
+				Floor(scene);
+				let ball = scene.CreateGameObject("Ball");
+				ball.Transform.Position = .(0, 1, -8);
+				ball.AddComponent<MeshRenderer>().mesh.Set("builtin:sphere");
+				ball.AddComponent<SoftBody>().kind = .Jelly;
+				let car = scene.CreateGameObject("Car");
+				car.Transform.Position = .(10, 0.6f, 0);
+				car.AddComponent<BoxCollider>().size = .(1.8f, 1.2f, 4);
+				car.AddComponent<Rigidbody>().mass = 1000;
+				car.AddComponent<MeshRenderer>().RuntimeMesh = shellMesh;
+				car.AddComponent<SoftBody>().kind = .Shell;
+				let hook = scene.CreateGameObject("Hook");
+				hook.Transform.Position = .(-10, 5, 0);
+				let load = scene.CreateGameObject("Load");
+				load.Transform.Position = .(-10, 3.5f, 0);
+				load.AddComponent<BoxCollider>().size = .(0.6f, 0.6f, 0.6f);
+				load.AddComponent<Rigidbody>().mass = 10;
+				let post = scene.CreateGameObject("Post");
+				post.Transform.Position = .(-14, 5, 0);
+				post.AddComponent<Rope>().length = 2;
+				scene.StartPlay();
+			}
+			int Ropes(Scene scene) => scene.FindComponents<Rope>(.. scope .()).Count;
+			Rope RopeOn(Scene scene, StringView from)
+			{
+				for (let rope in scene.FindComponents<Rope>(.. scope .()))
+				{
+					if (rope.startAttachedTo != null && rope.startAttachedTo.GameObject.Name == from)
+						return rope;
+				}
+				return null;
+			}
+			float DentGap(SoftBody a, SoftBody b)
+			{
+				let da = scope List<Vector3>(), db = scope List<Vector3>();
+				a.GetDents(da);
+				b.GetDents(db);
+				if (da.Count != db.Count)
+					return 99;
+				float gap = 0;
+				for (int i < da.Count)
+					gap = Math.Max(gap, (da[i] - db[i]).Length);
+				return gap;
+			}
+			void Hit(Scene scene, Vector3 at, Vector3 velocity)
+			{
+				let thrown = scene.CreateGameObject("Thrown");
+				thrown.Transform.Position = at;
+				thrown.AddComponent<BoxCollider>().size = .(0.6f, 0.6f, 0.6f);
+				let rigid = thrown.AddComponent<Rigidbody>();
+				rigid.mass = 200;
+				rigid.EnsureBody();
+				rigid.Velocity = velocity;
+			}
+
+			let port = (uint16)(47000 + (DateTime.Now.Ticks / 10000 + 450) % 900);
+			let host = scope Scene();
+			Build(host);
+			host.Network = new NetworkManager(host);
+			ok &= Check(host.Network.StartServer(port, true), "networked by default: a host starts");
+			let client = scope Scene();
+			Build(client);
+			client.Network = new NetworkManager(client);
+			client.Network.StartClient("127.0.0.1", port);
+			Pump(host, client, 90);
+			ok &= Check(client.Network.IsConnected, "a client joins");
+
+			// A free soft body in the scene is shared without a Network Identity set up by hand.
+			let hostBall = host.Find("Ball"), clientBall = client.Find("Ball");
+			ok &= Check(hostBall.GetComponent<NetworkIdentity>() != null && clientBall.GetComponent<NetworkIdentity>() != null, "a free soft body in the scene gets a Network Identity when the session starts");
+			hostBall.Transform.Position = hostBall.Transform.Position + Vector3(5, 0, 0);
+			Pump(host, client, 120);
+			let ballGap = (Average(hostBall.GetComponent<SoftBody>().Positions) - Average(clientBall.GetComponent<SoftBody>().Positions)).Length;
+			ok &= Check(ballGap < 0.3f, scope $"and the client's follows the server's ({ballGap} m apart)");
+
+			// Dents are the server's: a crash there dents the client's car the same; a hit only the client sees does not.
+			let hostShell = host.Find("Car").GetComponent<SoftBody>(), clientShell = client.Find("Car").GetComponent<SoftBody>();
+			Hit(client, .(13, 0.9f, 0), .(-9, 0, 0));
+			Pump(host, client, 60);
+			ok &= Check(clientShell.DeepestDent() < 0.002f, scope $"a hit only a client sees leaves no dent there ({clientShell.DeepestDent()} m)");
+			Hit(host, .(7, 0.9f, 0), .(9, 0, 0));
+			Pump(host, client, 90);
+			let dentGap = DentGap(hostShell, clientShell);
+			ok &= Check(hostShell.DeepestDent() > 0.02f && dentGap < 0.003f, scope $"a crash on the server dents the client's car the same ({hostShell.DeepestDent()} m deep, {dentGap} m apart)");
+			clientShell.Repair();
+			Pump(host, client, 30);
+			ok &= Check(hostShell.DeepestDent() > 0.02f && DentGap(hostShell, clientShell) < 0.003f, "a client cannot repair a car it does not own: the server's dents come back");
+			hostShell.Repair();
+			Pump(host, client, 30);
+			ok &= Check(clientShell.DeepestDent() < 0.002f, "repaired on the server, it is repaired on the client");
+			Hit(host, host.Find("Car").Transform.Position + Vector3(-3, 0.3f, 0), .(9, 0, 0));
+			Pump(host, client, 90);
+			ok &= Check(hostShell.DeepestDent() > 0.005f && DentGap(hostShell, clientShell) < 0.003f, scope $"dented again, the client follows ({hostShell.DeepestDent()} m deep)");
+
+			// Ropes tied, let go and snapped on the server are tied, let go and snapped everywhere.
+			let tied = Rope.Attach(host.Find("Hook"), host.Find("Load"), .Zero, .(0, 0.3f, 0), 1.2f);
+			Pump(host, client, 30);
+			let clientTied = RopeOn(client, "Hook");
+			ok &= Check(tied != null && clientTied != null && clientTied.endAttachedTo == client.Find("Load").Transform && clientTied.HasBody, "a rope tied on the server is tied between the same objects on the client");
+			ok &= Check(Rope.Attach(client.Find("Post"), client.Find("Load")) == null && Ropes(client) == Ropes(host), "a client cannot tie objects it does not own");
+			if (clientTied != null)
+				clientTied.breakForce = 1;
+			Pump(host, client, 60);
+			ok &= Check(clientTied != null && clientTied.SnappedOff == null && clientTied.endAttachedTo != null, "a client does not snap a rope by itself (the server decides)");
+			let snapped = tied.Snap();
+			Pump(host, client, 30);
+			ok &= Check(snapped != null && Ropes(client) == Ropes(host) && clientTied.endAttachedTo == null && RopeOn(client, "Load") != null, scope $"snapped on the server, it snaps on the client ({Ropes(host)} ropes on each)");
+			let postRope = host.Find("Post").GetComponent<Rope>();
+			postRope.AttachEnd(host.Find("Load").Transform);
+			Pump(host, client, 30);
+			ok &= Check(client.Find("Post").GetComponent<Rope>().endAttachedTo == client.Find("Load").Transform, "a rope's end tied on the server is tied on the client");
+			client.Find("Post").GetComponent<Rope>().Release();
+			Pump(host, client, 30);
+			ok &= Check(postRope.endAttachedTo != null && client.Find("Post").GetComponent<Rope>().endAttachedTo != null, "a client cannot let go of a rope it does not own");
+			host.Network.Spawn("Jelly", .(-12, 1, 3), .Identity, client.Network.LocalClientId);
+			Pump(host, client, 60);
+			let mine = client.Find("Jelly");
+			let ropesBefore = Ropes(host);
+			ok &= Check(mine != null && Rope.Attach(client.Find("Post"), mine, .Zero, .Zero, 3) == null, "a client's tie to an object it controls goes to the server");
+			Pump(host, client, 30);
+			let tiedToMine = RopeOn(host, "Post");
+			ok &= Check(Ropes(host) == ropesBefore + 1 && Ropes(client) == Ropes(host) && tiedToMine != null && tiedToMine.endAttachedTo == host.Find("Jelly").Transform && RopeOn(client, "Post")?.endAttachedTo == mine.Transform, "which ties it on every machine");
+
+			// A player who joins late gets the dents and the ropes as they are now.
+			let late = scope Scene();
+			Build(late);
+			late.Network = new NetworkManager(late);
+			late.Network.StartClient("127.0.0.1", port);
+			for (int i < 150)
+			{
+				for (let scene in Scene[?](host, client, late))
+				{
+					scene.FixedUpdate();
+					scene.Update();
+				}
+				System.Threading.Thread.Sleep(4);
+			}
+			let lateShell = late.Find("Car").GetComponent<SoftBody>();
+			ok &= Check(late.Network.IsConnected && hostShell.DeepestDent() > 0.005f && DentGap(hostShell, lateShell) < 0.003f, scope $"a late joiner's car has the server's dents ({DentGap(hostShell, lateShell)} m apart; {hostShell.DeepestDent()} m deep, connected {late.Network.IsConnected})");
+			ok &= Check(Ropes(late) == Ropes(host) && RopeOn(late, "Load") != null && late.Find("Post").GetComponent<Rope>().endAttachedTo == late.Find("Load").Transform, scope $"and its ropes as they are now ({Ropes(late)} of {Ropes(host)})");
+			late.Network.Stop();
+			client.Network.Stop();
+			host.Network.Stop();
+		}
+
 		Console.WriteLine(ok ? "ALL PASS" : "SOME FAILED");
 		return ok ? 0 : 1;
 	}

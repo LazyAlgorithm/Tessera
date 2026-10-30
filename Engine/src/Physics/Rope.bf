@@ -15,6 +15,10 @@ namespace Tessera;
 /// it snaps in two when pulled harder than that.
 ///
 /// The rope draws itself as a tube with the Mesh Renderer on this object (added if there is none).
+///
+/// In a network session the server ties, changes and snaps ropes (Attach, AttachStart, AttachEnd, LayAlong, Snap
+/// and Break Force) on every machine; a client's call goes to the server, for a rope or object that player controls.
+/// Each machine simulates the rope itself, between the shared objects.
 [Component]
 class Rope : Component
 {
@@ -158,8 +162,21 @@ class Rope : Component
 
 	/// Ties a new rope between two objects: towing (a truck and a trailer) or lifting (a helicopter and a crate). The
 	/// offsets are where on each it is tied, relative to it. Length below zero: as far apart as they are now, plus a
-	/// little slack. The rope is an object of its own; destroy it (or call Release) to let go.
+	/// little slack. The rope is an object of its own; destroy it (or call Release) to let go. On a client of a
+	/// session it returns null: the server ties it (when this player controls one of the two), on every machine.
 	public static Rope Attach(GameObject from, GameObject to, Vector3 fromOffset = .Zero, Vector3 toOffset = .Zero, float length = -1, float thickness = 0.04f)
+	{
+		let apart = (to.Transform.TransformPoint(toOffset) - from.Transform.TransformPoint(fromOffset)).Length;
+		let tied = length >= 0 ? length : Math.Max(apart * 1.05f, 0.1f);
+		if (NetworkSync.RopeTieRequest(from, to, fromOffset, toOffset, tied, thickness))
+			return null;
+		let rope = Tie(from, to, fromOffset, toOffset, tied, thickness);
+		NetworkSync.RopeChanged(rope, .Tie);
+		return rope;
+	}
+
+	/// Attach on this machine alone.
+	static Rope Tie(GameObject from, GameObject to, Vector3 fromOffset, Vector3 toOffset, float length, float thickness)
 	{
 		let holder = from.Scene.CreateGameObject("Rope");
 		let rope = holder.AddComponent<Rope>();
@@ -168,8 +185,7 @@ class Rope : Component
 		rope.endAttachedTo = to.Transform;
 		rope.endOffset = toOffset;
 		rope.thickness = thickness;
-		let apart = (to.Transform.TransformPoint(toOffset) - from.Transform.TransformPoint(fromOffset)).Length;
-		rope.length = length >= 0 ? length : Math.Max(apart * 1.05f, 0.1f);
+		rope.length = length;
 		if (from.Scene.IsPlaying)
 			rope.Start();
 		return rope;
@@ -179,6 +195,9 @@ class Rope : Component
 	/// that end hangs free. Keeps its length.
 	public void AttachStart(Transform to, Vector3 offset = .Zero)
 	{
+		if (NetworkSync.RopeRequest(this, .TieStart, to, offset))
+			return;
+		NetworkSync.RopeChanged(this, .TieStart, to, offset);
 		startAttachedTo = to;
 		startOffset = offset;
 		holdStart = to != null;
@@ -189,6 +208,9 @@ class Rope : Component
 	/// Ties its other end to an object, or to nothing (it lets go and that end hangs free). Keeps its length.
 	public void AttachEnd(Transform to, Vector3 offset = .Zero)
 	{
+		if (NetworkSync.RopeRequest(this, .TieEnd, to, offset))
+			return;
+		NetworkSync.RopeChanged(this, .TieEnd, to, offset);
 		endAttachedTo = to;
 		endOffset = offset;
 		if (HasBody)
@@ -202,8 +224,9 @@ class Rope : Component
 	/// beam, round a post, along a wall. The ends stay tied as they are; it is made again there now if it runs.
 	public void LayAlong(Span<Vector3> path)
 	{
-		if (path.Length < 2)
+		if (path.Length < 2 || NetworkSync.RopeRequest(this, .LayAlong, null, .Zero, path))
 			return;
+		NetworkSync.RopeChanged(this, .LayAlong, null, .Zero, path);
 		float total = 0;
 		for (int i = 1; i < path.Length; i++)
 			total += (path[i] - path[i - 1]).Length;
@@ -231,12 +254,22 @@ class Rope : Component
 	}
 
 	/// Snaps it in two in the middle, as Break Force does: this rope keeps its first end, and a new one (returned,
-	/// and in SnappedOff) keeps the other. Both halves hang from what held them, or fall if nothing did.
+	/// and in SnappedOff) keeps the other. Both halves hang from what held them, or fall if nothing did. In a session
+	/// the server snaps it on every machine; on a client it returns null.
 	public Rope Snap()
 	{
 		mSnapping = false;
-		if (!HasBody)
+		if (!HasBody || NetworkSync.RopeRequest(this, .Snap))
 			return null;
+		let other = SnapHere();
+		if (other != null)
+			NetworkSync.RopeChanged(this, .Snap);
+		return other;
+	}
+
+	/// Snap on this machine alone.
+	Rope SnapHere()
+	{
 		let count = mPositions.Count;
 		if (tn_soft_read(mWorld.[Friend]mSystem, mBody, (float*)mPositions.Ptr, null, (uint32)count) != (uint32)count || count < 5)
 			return null;
@@ -562,7 +595,8 @@ class Rope : Component
 		mPull = mTie != null ? tn_rope_pull(mTie, step) : 0;
 		// The pull the knots go by: it drops out for a step whenever the tie is made again, so it is held a moment.
 		mKnotPull = Math.Max(mPull, mKnotPull * Math.Max(1 - step * 8, 0));
-		if (breakForce > 0 && mPull > breakForce)
+		// In a session the server decides when it breaks.
+		if (breakForce > 0 && mPull > breakForce && !NetworkSync.IsClientOf(Scene))
 			mSnapping = true;
 		if (windDrag > 0)
 		{

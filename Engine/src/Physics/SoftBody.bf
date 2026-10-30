@@ -37,7 +37,8 @@ enum ShellDentMode : int32
 /// ship goes with it. Wind Zones blow on cloth and jelly. A stiffness map, painted the same way, makes parts of it softer.
 ///
 /// The simulation runs on every machine by itself. Pinned cloth follows its object, so it looks the same everywhere
-/// when the object is shared; a free soft body on a networked object is drawn towards where the server has it
+/// when the object is shared; a free soft body's object is shared when a session starts, and on clients the body is
+/// drawn towards where the server has it; a shell's dents are made on the server and sent to every client
 /// (see docs/soft-bodies.md).
 [Component]
 class SoftBody : Component
@@ -151,6 +152,8 @@ class SoftBody : Component
 	uint32 mHullRevision;
 	int mHullWait;
 	Mesh mHull ~ delete _;
+	// Made on a client of a session: a shell that does not dent by itself, taking the server's dents instead.
+	bool mDentsFromServer;
 
 	/// The body's id in the physics world, or uint32.MaxValue before it is made.
 	public uint32 BodyId => mBody;
@@ -297,7 +300,8 @@ class SoftBody : Component
 		config.vertexRadius = Math.Max(thickness, 0);
 		config.dentDepth = Math.Max(dentDepth, 0.001f);
 		config.dentYield = Math.Max(springBack, 0);
-		config.dentSpeed = Math.Max(dentSpeed, 0);
+		mDentsFromServer = shell && NetworkSync.IsClientOf(Scene);
+		config.dentSpeed = mDentsFromServer ? 1.0e9f : Math.Max(dentSpeed, 0);
 		config.shell = shell ? 1 : 0;
 		config.impacts = (shell && dentMode == .FromImpacts) ? 1 : 0;
 		config.iterations = Math.Clamp(iterations, 1, 32);
@@ -382,6 +386,25 @@ class SoftBody : Component
 
 	/// A body with nothing holding it to its object, which carries its object instead.
 	bool Free => mPinned.IsEmpty && kind != .Shell;
+
+	/// Whether it moves its object by itself (cloth or jelly with nothing pinned): such an object is shared when a
+	/// network session starts, like a Rigidbody's.
+	public bool MovesByItself
+	{
+		get
+		{
+			if (kind == .Shell)
+				return false;
+			if (mBody != uint32.MaxValue)
+				return mPinned.IsEmpty;
+			for (let c in pins.RawChars)
+			{
+				if (c.IsDigit)
+					return false;
+			}
+			return true;
+		}
+	}
 
 	/// The middle of the simulated vertices, as last read.
 	Vector3 Middle()
@@ -500,6 +523,14 @@ class SoftBody : Component
 
 	public override void FixedUpdate()
 	{
+		// A session started or ended since the shell was made: made again to dent by itself or not, keeping its dents.
+		if (kind == .Shell && mBody != uint32.MaxValue && NetworkSync.IsClientOf(Scene) != mDentsFromServer)
+		{
+			let dents = scope List<Vector3>();
+			GetDents(dents);
+			Rebuild();
+			ApplyDents(dents);
+		}
 		FollowDents();
 	}
 
@@ -518,6 +549,7 @@ class SoftBody : Component
 		}
 		if (mHullWait == 0 || --mHullWait > 0)
 			return;
+		NetworkSync.DentsSettled(this);
 		let convex = GetComponent<ConvexCollider>();
 		let rigid = GetComponent<Rigidbody>();
 		if (convex == null || rigid == null || mRest.Count < 4)
@@ -609,23 +641,26 @@ class SoftBody : Component
 		output.Resize(count);
 	}
 
-	/// Dents a shell as GetDents gave them (one for each simulated vertex).
+	/// Dents a shell as GetDents gave them (one for each simulated vertex). In a session the server's dents are
+	/// everyone's: there it dents every machine's shell, and a client's call goes to the server, for an object that
+	/// player controls.
 	public void SetDents(Span<Vector3> dents)
 	{
-		if (kind != .Shell || mBody == uint32.MaxValue || mWorld == null)
+		if (kind != .Shell || mBody == uint32.MaxValue || mWorld == null || NetworkSync.DentsRequest(this, dents))
 			return;
-		var objectMatrix = Transform.LocalToWorld;
-		tn_soft_set_dents(mWorld.[Friend]mSystem, mBody, (float*)dents.Ptr, (uint32)dents.Length, &objectMatrix.m[0]);
-		ReadBack();
+		ApplyDents(dents);
 	}
 
-	/// Takes every dent out of a shell.
-	public void Repair()
+	/// Takes every dent out of a shell (in a session, as SetDents).
+	public void Repair() => SetDents(default);
+
+	/// SetDents on this machine alone.
+	void ApplyDents(Span<Vector3> dents)
 	{
 		if (kind != .Shell || mBody == uint32.MaxValue || mWorld == null)
 			return;
 		var objectMatrix = Transform.LocalToWorld;
-		tn_soft_set_dents(mWorld.[Friend]mSystem, mBody, null, 0, &objectMatrix.m[0]);
+		tn_soft_set_dents(mWorld.[Friend]mSystem, mBody, dents.IsEmpty ? null : (float*)dents.Ptr, (uint32)dents.Length, &objectMatrix.m[0]);
 		ReadBack();
 	}
 
