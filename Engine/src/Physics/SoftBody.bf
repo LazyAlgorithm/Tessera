@@ -118,7 +118,7 @@ class SoftBody : Component
 	[CRepr]
 	struct NativeConfig
 	{
-		public float mass, stretch, shear, bend, pressure, damping, friction, restitution, gravityFactor, vertexRadius, dentDepth, dentYield, dentSpeed;
+		public float mass, stretch, shear, bend, pressure, damping, friction, restitution, gravityFactor, vertexRadius, dentDepth, dentYield, dentSpeed, stepTime;
 		public int32 iterations, doubleSided, longRange, dihedral, shell, impacts;
 		public uint32 layer;
 		public uint64 userData;
@@ -287,7 +287,8 @@ class SoftBody : Component
 		config.stretch = Compliance(stiffness);
 		config.shear = Compliance(stiffness * 0.9f);
 		// A shell's shape comes from its object; bending would only fight its dents.
-		config.bend = (bendStiffness <= 0 || shell) ? -1 : Compliance(bendStiffness) * 100;
+		// Cloth bends by distance (an edge across each pair of faces), jelly by angle, which needs the larger figure.
+		config.bend = (bendStiffness <= 0 || shell) ? -1 : Compliance(bendStiffness) * (cloth ? 1 : 100);
 		// Jolt's pressure is the amount of gas (pressure times volume), so the same setting holds any size alike.
 		mAir = kind != .Jelly ? 0 : Math.Max(pressure, 0) * Volume(positions, mTriangles);
 		mAge = 0;
@@ -305,10 +306,13 @@ class SoftBody : Component
 		config.shell = shell ? 1 : 0;
 		config.impacts = (shell && dentMode == .FromImpacts) ? 1 : 0;
 		config.iterations = Math.Clamp(iterations, 1, 32);
+		config.stepTime = Time.FixedDeltaTime;
 		config.doubleSided = (cloth || shell) ? 1 : 0;
 		config.longRange = cloth ? 1 : 0;
-		// By the angle between faces: by distance, many thin faces meeting at a point (a sphere's poles) shiver.
-		config.dihedral = 1;
+		// Jelly bends by the angle between faces: by distance, many thin faces meeting at a point (a sphere's poles)
+		// shiver. Cloth bends by distance: by angle, a cloth folded sharply (draped over something) gains speed at
+		// the folds and flails.
+		config.dihedral = cloth ? 0 : 1;
 		config.layer = PhysicsWorld.[Friend]ObjectLayer(PhysicsWorld.[Friend]LayerMoving, Transform);
 		config.userData = (uint64)GameObject.Id;
 		var objectMatrix = toWorld;

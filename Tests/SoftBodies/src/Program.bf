@@ -580,6 +580,46 @@ class Program
 			ok &= Check(woke && caught > 0.6f, scope $"a crate landing on the sleeping jelly wakes it and is held up (lowest {caught})");
 		}
 
+		// ---- fine cloth folded and squeezed stays calm ----
+		// A 1 kg cloth of 1,089 vertices (a gram each) at the default settings was effectively rigid everywhere and
+		// blew apart once it folded: draped over a ball, or a coarser one at the default bending.
+		for (let cells in int[?](16, 32, 48))
+		{
+			let scene = scope Scene();
+			Scene.Active = scene;
+			scene.StartPlay();
+			Floor(scene);
+			let ball = scene.CreateGameObject("Ball");
+			ball.Transform.Position = .(0, 0.6f, 0);
+			ball.AddComponent<SphereCollider>().radius = 0.6f;
+			let made = Sheet(cells, 2);
+			defer delete made;
+			let cloth = scene.CreateGameObject("Drape");
+			cloth.Transform.Position = .(0, 1.6f, 0);
+			cloth.AddComponent<MeshRenderer>().RuntimeMesh = made;
+			let soft = cloth.AddComponent<SoftBody>();
+			float fastest = 0;
+			var lo = Vector3(float.MaxValue), hi = Vector3(float.MinValue);
+			let before = scope List<Vector3>();
+			for (int i < 600)
+			{
+				before.Clear();
+				before.AddRange(soft.Positions);
+				scene.FixedUpdate();
+				soft.[Friend]ReadBack();
+				if (i < 240 || before.Count != soft.Positions.Count)
+					continue;
+				for (int v < before.Count)
+				{
+					fastest = Math.Max(fastest, (soft.Positions[v] - before[v]).Length / Time.FixedDeltaTime);
+					lo = Vector3.Min(lo, soft.Positions[v]);
+					hi = Vector3.Max(hi, soft.Positions[v]);
+				}
+			}
+			ok &= Check(fastest < 2 && lo.y > -0.1f && hi.y < 1.3f && hi.x < 1.5f && lo.x > -1.5f,
+scope $"a {cells} x {cells} cloth draped over a ball settles on it ({fastest:0.00} m/s at the most after 4 s; {lo.y:0.00} to {hi.y:0.00} m high)");
+		}
+
 		// ---- soft bodies meet each other: a jelly cube on another, and cloth over one ----
 		{
 			let scene = scope Scene();

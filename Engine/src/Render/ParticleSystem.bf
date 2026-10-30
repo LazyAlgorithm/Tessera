@@ -73,6 +73,7 @@ class ParticleSystem : Component
 	/// Restarts the system, including its burst.
 	public void Play()
 	{
+		NetworkSync.ParticlesPlayed(this);
 		mParticles.Clear();
 		mBurstDone = false;
 		mEmitAccumulator = 0;

@@ -44,6 +44,8 @@ class Light : Component
 	/// How dark the light's shadows are: 1 is fully dark, 0 none.
 	[Range(0, 1)]
 	public float shadowStrength = 1.0f;
+	// What NetworkSync last saw of these settings (0: not looked at yet).
+	uint64 mSharedHash;
 
 	public override void OnRegister() => Scene.Lights.Add(this);
 	public override void OnUnregister() => Scene.Lights.Remove(this);

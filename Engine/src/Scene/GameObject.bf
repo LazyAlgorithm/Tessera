@@ -191,6 +191,8 @@ class GameObject
 		let isActive = ActiveInHierarchy;
 		if (wasActive != isActive && mScene != null && mScene.IsPlaying)
 			NotifyActiveChanged(isActive);
+		if (mScene?.Network != null)
+			NetworkSync.ActiveChanged(this);
 	}
 
 	void NotifyActiveChanged(bool active)

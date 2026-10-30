@@ -89,6 +89,7 @@ static class NetworkSync
 		NetworkManager.RegisterMessage(MsgSequence, new => OnSequence);
 		NetworkManager.RegisterMessage(MsgRope, new => OnRope);
 		NetworkManager.RegisterMessage(MsgSoftBody, new => OnSoftBody);
+		RegisterStateMessages();
 	}
 
 	/// Called when a session starts. Scene objects that move by themselves get a Network Identity if they lack one,
@@ -97,6 +98,9 @@ static class NetworkSync
 	public static void Prepare(NetworkManager network)
 	{
 		EnsureRegistered();
+		// Objects in the scene now are on every machine; ones a machine makes for itself later are its own.
+		network.SceneIdLimit = network.Scene.NextId;
+		network.ForgetStates();
 		if (!network.AutoReplicate)
 			return;
 		List<GameObject> wanted = scope .();
@@ -1225,6 +1229,7 @@ static class NetworkSync
 				network.SendToClient(clientId, MsgField, payload);
 			}
 		}
+		network.ReplayStates(clientId);
 		for (let component in network.Scene.Components)
 		{
 			// A shell's dents as they are now.

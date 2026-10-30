@@ -99,6 +99,16 @@ class Program
 		let blue = scene.CreateGameObject("BlueSpawn");
 		blue.Transform.Position = .(-40, 0, 0);
 		blue.AddComponent<SpawnPoint>().team = 2;
+		// Switched on and off, lit and puffed while playing.
+		scene.CreateGameObject("Sign");
+		scene.CreateGameObject("Door").AddComponent<BoxCollider>();
+		let lamp = scene.CreateGameObject("Lamp").AddComponent<Light>();
+		lamp.type = .Point;
+		let sparks = scene.CreateGameObject("Sparks").AddComponent<ParticleSystem>();
+		sparks.looping = false;
+		sparks.rate = 0;
+		sparks.burst = 10;
+		sparks.lifetime = 0.2f;
 		scene.StartPlay();
 	}
 
@@ -108,6 +118,9 @@ class Program
 		player.AddComponent<NetworkIdentity>();
 		let walker = player.AddComponent<Walker>();
 		walker.mouseLook = false;
+		// A torch, part of the player as it is spawned.
+		let torch = scene.CreateGameObject("Torch", player.Transform);
+		torch.AddComponent<Light>().type = .Spot;
 		return player;
 	}
 
@@ -674,6 +687,76 @@ class Program
 		Pump(20);
 		ok &= Check(client.Find("Pickup") == null && client.Find("Crate") == null && host.Find("Crate") == null, "destroying on the server removes spawned and scene objects everywhere");
 
+		// ---- switches, lights and effects, shared without code ----
+		{
+			host.Find("Sign").SetActive(false);
+			host.Find("Door").GetComponent<BoxCollider>().Enabled = false;
+			let hostLamp = host.Find("Lamp").GetComponent<Light>();
+			hostLamp.color = .(1, 0.2f, 0.1f);
+			hostLamp.intensity = 4;
+			hostLamp.range = 25;
+			Pump(20);
+			let clientLamp = client.Find("Lamp").GetComponent<Light>();
+			ok &= Check(!client.Find("Sign").ActiveSelf && !client.Find("Door").GetComponent<BoxCollider>().Enabled, "an object switched off and a component disabled on the server are off on the client");
+			ok &= Check(clientLamp.color == Color(1, 0.2f, 0.1f) && clientLamp.intensity == 4 && clientLamp.range == 25, "a light changed on the server changes on the client");
+			client.Find("Door").GetComponent<BoxCollider>().Enabled = true;
+			clientLamp.intensity = 9;
+			Pump(20);
+			ok &= Check(!host.Find("Door").GetComponent<BoxCollider>().Enabled && hostLamp.intensity == 4, "a client cannot switch or change what it does not own");
+			client.Find("Door").GetComponent<BoxCollider>().Enabled = false;
+			clientLamp.intensity = 4;
+
+			// A client's own: a light on its player (a torch) is its to change.
+			let torch = ownCopy.Transform.Children[0].GameObject.GetComponent<Light>();
+			let serverTorch = hostCopy.Transform.Children[0].GameObject.GetComponent<Light>();
+			// Something the client adds to its player for itself (a first-person body) stays its own.
+			let ownBody = client.CreateGameObject("First Person Body", ownCopy.Transform);
+			let hostBody = host.CreateGameObject("Body", hostCopy.Transform);
+			ownBody.SetActive(false);
+			torch.intensity = 3;
+			torch.color = .(0.2f, 1, 0.2f);
+			Pump(20);
+			ok &= Check(serverTorch.intensity == 3 && serverTorch.color == Color(0.2f, 1, 0.2f), "a client changes a light on the object it owns, and the server's copy follows");
+			torch.Enabled = false;
+			Pump(20);
+			ok &= Check(!serverTorch.Enabled, "and switches it off");
+			ok &= Check(hostBody.ActiveSelf, "something a machine adds under its player itself stays its own");
+			let ownWalker = ownCopy.GetComponent<Walker>();
+			ownWalker.Enabled = false;
+			Pump(20);
+			ok &= Check(hostCopy.GetComponent<Walker>().Enabled, "a client cannot switch off how its own player plays, only how it looks");
+			ownWalker.Enabled = true;
+
+			// Effects started on the server.
+			Pump(30);
+			let clientSparks = client.Find("Sparks").GetComponent<ParticleSystem>();
+			// Its burst over and its particles gone, as they would be by now in a game.
+			clientSparks.[Friend]mParticles.Clear();
+			clientSparks.[Friend]mBurstDone = true;
+			let before = clientSparks.AliveCount;
+			host.Find("Sparks").GetComponent<ParticleSystem>().Play();
+			Pump(3);
+			ok &= Check(before == 0 && clientSparks.AliveCount > 0, scope $"a particle system played on the server plays on the client ({clientSparks.AliveCount} particles)");
+			let decals = client.SpawnedDecals.Count;
+			Decals.Spawn(host, .(1, 0, 1), .Up, "Textures/hole.png", 0.5f);
+			Pump(10);
+			ok &= Check(client.SpawnedDecals.Count == decals + 1, "a decal pressed on the server is pressed on the client");
+			// A game that shares its impacts itself as well: the client presses it too, and gets one, not two.
+			Decals.Spawn(client, .(5, 0, 5), .Up, "Textures/hole.png", 0.5f);
+			Decals.Spawn(host, .(5, 0, 5), .Up, "Textures/hole.png", 0.5f);
+			Pump(10);
+			ok &= Check(client.SpawnedDecals.Count == decals + 2, scope $"one already pressed there by the game is not pressed twice ({client.SpawnedDecals.Count - decals} of 2)");
+			Decals.Spawn(client, .(-5, 0, -5), .Up, "Textures/hole.png", 0.5f);
+			ok &= Check(client.SpawnedDecals.Count == decals + 3 && host.SpawnedDecals.Count == 2, "a client's own decals stay its own");
+			Scene.Active = host;
+			Audio.PlayOneShot("Sounds/bang.wav", .(2, 0, 2));
+			Pump(10);
+			bool heard = false;
+			for (let effect in client.Network.RecentEffects)
+				heard |= effect.fromServer && (effect.position - Vector3(2, 0, 2)).Length < 0.01f;
+			ok &= Check(heard, "a sound played once on the server is played on the client");
+		}
+
 		// ---- a player who joins late gets all of it ----
 		let late = scope Scene();
 		Build(late);
@@ -683,6 +766,11 @@ class Program
 		Join(late, port);
 		Pump(150);
 		ok &= Check(late.Network.IsConnected && late.Find("Crate") == null, "a late joiner does not get an object that was destroyed before they arrived");
+		{
+			let lateLamp = late.Find("Lamp").GetComponent<Light>();
+			ok &= Check(!late.Find("Sign").ActiveSelf && !late.Find("Door").GetComponent<BoxCollider>().Enabled && lateLamp.color == Color(1, 0.2f, 0.1f) && lateLamp.intensity == 4,
+				"a late joiner gets the objects switched off, the components disabled and the lights as they are now");
+		}
 		let latePlayer = PlayerOf(host, late.Network.LocalClientId);
 		ok &= Check(latePlayer != null && latePlayer.GetComponent<NetworkIdentity>().team == 1 && PlayerOf(late, late.Network.LocalClientId).GetComponent<NetworkIdentity>().team == 1, "and is put on the smaller team");
 		ok &= Check(Solid(late.Find("Boulder").GetComponent<VoxelObject>()) == Solid(hostBoulder), "sees the voxel edits made earlier");
