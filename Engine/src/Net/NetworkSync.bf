@@ -19,6 +19,8 @@ struct SyncAttribute : Attribute
 ///   SkinnedMeshRenderer.Play, Animator.Play                  a clip started on the server or by an object's owner plays everywhere
 ///   Prefab.Instantiate, Scene.Destroy                        for objects with a Network Identity, on the server
 ///   NavigationAgent, BehaviorTreeRunner                      think on the server only; clients see the movement
+///   Soft bodies                                              a free one's object is shared; a shell's dents are the server's
+///   Rope.Attach, AttachStart / AttachEnd, LayAlong, Snap     tied, changed and snapped on every machine by the server
 ///   [Sync] fields                                            copied from the server when they change
 ///
 /// Players that join later are brought up to date with all of it.
@@ -36,6 +38,8 @@ static class NetworkSync
 	public const uint8 MsgMaterial = 245;
 	public const uint8 MsgDialogue = 244;
 	public const uint8 MsgSequence = 241;
+	public const uint8 MsgRope = 240;
+	public const uint8 MsgSoftBody = 255;
 
 	static bool sRegistered;
 	/// True while a change that arrived from the network is being applied, so it is not sent out again.
@@ -82,6 +86,8 @@ static class NetworkSync
 		NetworkManager.RegisterMessage(MsgMaterial, new => OnMaterial);
 		NetworkManager.RegisterMessage(MsgDialogue, new => OnDialogue);
 		NetworkManager.RegisterMessage(MsgSequence, new => OnSequence);
+		NetworkManager.RegisterMessage(MsgRope, new => OnRope);
+		NetworkManager.RegisterMessage(MsgSoftBody, new => OnSoftBody);
 	}
 
 	/// Called when a session starts. Scene objects that move by themselves get a Network Identity if they lack one,
@@ -101,7 +107,8 @@ static class NetworkSync
 			let body = object.GetComponent<Rigidbody>();
 			if ((body != null && !body.isKinematic) || object.GetComponent<CharacterController>() != null
 				|| object.GetComponent<AIMovementDriver>() != null || object.GetComponent<BehaviorTreeRunner>() != null
-				|| object.GetComponent<NetworkBehaviour>() != null || (object.GetComponent<DialogueRunner>()?.shared ?? false) || (object.GetComponent<SequencePlayer>()?.shared ?? false))
+				|| object.GetComponent<NetworkBehaviour>() != null || (object.GetComponent<DialogueRunner>()?.shared ?? false) || (object.GetComponent<SequencePlayer>()?.shared ?? false)
+				|| (object.GetComponent<SoftBody>()?.MovesByItself ?? false))
 				wanted.Add(object);
 		}
 		for (let object in wanted)
@@ -184,6 +191,55 @@ static class NetworkSync
 		Collect<T>(anchor, all);
 		WriteObject(writer, anchor);
 		writer.Write<uint16>((uint16)Math.Max(all.IndexOf(component), 0));
+	}
+
+	/// Writes an object every machine can find, a child of a spawned one too: its nearest ancestor with a Network
+	/// Identity (itself when there is none) and the way down from there, child by child. Null is written as such.
+	static void WriteTransform(NetWriter writer, Transform transform)
+	{
+		writer.Write<bool>(transform != null);
+		if (transform == null)
+			return;
+		var anchor = transform;
+		while (anchor != null && anchor.GameObject.GetComponent<NetworkIdentity>() == null)
+			anchor = anchor.Parent;
+		if (anchor == null)
+			anchor = transform;
+		WriteObject(writer, anchor.GameObject);
+		List<uint16> path = scope .();
+		for (var at = transform; at != anchor; at = at.Parent)
+			path.Add((uint16)at.Parent.Children.IndexOf(at));
+		writer.Write<uint8>((uint8)Math.Min(path.Count, 255));
+		for (int i = Math.Min(path.Count, 255) - 1; i >= 0; i--)
+			writer.Write<uint16>(path[i]);
+	}
+
+	/// Reads what WriteTransform wrote. False when it named an object this machine does not have.
+	static bool ReadTransform(ref NetReader reader, NetworkManager network, out Transform transform)
+	{
+		transform = null;
+		if (!reader.Read<bool>())
+			return reader.Ok;
+		var at = ReadObject(ref reader, network)?.Transform;
+		let depth = reader.Read<uint8>();
+		for (int i < depth)
+		{
+			let index = (int)reader.Read<uint16>();
+			at = (at != null && index < at.Children.Count) ? at.Children[index] : null;
+		}
+		transform = at;
+		return reader.Ok && at != null;
+	}
+
+	/// Whether a client controls an object: it owns the object, or the nearest one above it with a Network Identity.
+	static bool Owns(int32 sender, Transform transform)
+	{
+		for (var at = transform; at != null; at = at.Parent)
+		{
+			if (let identity = at.GameObject.GetComponent<NetworkIdentity>())
+				return sender != 0 && identity.ownerId == sender;
+		}
+		return false;
 	}
 
 	static T ReadComponent<T>(ref NetReader reader, NetworkManager network) where T : Component
@@ -890,6 +946,260 @@ static class NetworkSync
 			Internal.MemCpy(slot.ptr, &data[0], length);
 	}
 
+	// ---- soft bodies ----
+
+	/// Dents are sent in steps of a quarter of a millimetre (up to 8 m).
+	const float DentStep = 1 / 4000.0f;
+
+	/// Writes a shell's dents: the ones deeper than half a millimetre, by vertex.
+	static void WriteDents(NetWriter payload, SoftBody shell, Span<Vector3> dents)
+	{
+		WriteComponent<SoftBody>(payload, shell);
+		payload.Write<uint32>((uint32)shell.SimulatedVertexCount);
+		List<int> kept = scope .();
+		for (int i < Math.Min(dents.Length, shell.SimulatedVertexCount))
+		{
+			if (dents[i].LengthSquared > 0.0005f * 0.0005f && Finite(dents[i]))
+				kept.Add(i);
+		}
+		payload.Write<uint32>((uint32)kept.Count);
+		for (let i in kept)
+		{
+			payload.Write<uint32>((uint32)i);
+			for (int axis < 3)
+				payload.Write<int16>((int16)Math.Clamp(Math.Round(dents[i][axis] / DentStep), -32767, 32767));
+		}
+	}
+
+	/// A client's SetDents or Repair on a shell in a session: sent to the server when the client controls the object
+	/// (the server dents it on every machine), dropped otherwise. Returns true when the caller must not dent it here.
+	public static bool DentsRequest(SoftBody shell, Span<Vector3> dents)
+	{
+		let network = Active(shell.Scene);
+		if (network == null || sApplying || network.IsServer)
+			return false;
+		if (IsMine(shell))
+		{
+			let payload = scope NetWriter();
+			WriteDents(payload, shell, dents);
+			network.SendToServer(MsgSoftBody, payload);
+		}
+		return true;
+	}
+
+	/// Server: a shell's dents have settled (after a crash, SetDents or Repair): every client gets them.
+	public static void DentsSettled(SoftBody shell)
+	{
+		let network = Active(shell.Scene);
+		if (network == null || sApplying || !network.IsServer)
+			return;
+		let dents = scope List<Vector3>();
+		shell.GetDents(dents);
+		let payload = scope NetWriter();
+		WriteDents(payload, shell, dents);
+		network.SendToAll(MsgSoftBody, payload);
+	}
+
+	static void OnSoftBody(int32 sender, ref NetReader reader)
+	{
+		let network = Active(Scene.Active);
+		if (network == null)
+			return;
+		let shell = ReadComponent<SoftBody>(ref reader, network);
+		let total = (int)reader.Read<uint32>();
+		let count = (int)reader.Read<uint32>();
+		if (!reader.Ok || shell == null || shell.kind != .Shell || total != shell.SimulatedVertexCount || count > total)
+			return;
+		let dents = scope List<Vector3>();
+		dents.Resize(total);
+		for (int i < count)
+		{
+			let index = (int)reader.Read<uint32>();
+			Vector3 dent = default;
+			for (int axis < 3)
+				dent[axis] = reader.Read<int16>() * DentStep;
+			if (!reader.Ok || index >= total)
+				return;
+			dents[index] = dent;
+		}
+		if (network.IsServer)
+		{
+			// Only the player who controls it may dent or repair it.
+			if (Owns(sender, shell.Transform))
+				shell.SetDents(dents);
+			return;
+		}
+		sApplying = true;
+		shell.SetDents(dents);
+		sApplying = false;
+	}
+
+	// ---- ropes ----
+
+	/// What a rope message does.
+	public enum RopeChange : uint8
+	{
+		Tie,
+		TieStart,
+		TieEnd,
+		LayAlong,
+		Snap
+	}
+
+	/// The most points a LayAlong path sends.
+	const int MaxRopePath = 512;
+
+	static void WriteTie(NetWriter payload, Transform from, Transform to, Vector3 fromOffset, Vector3 toOffset, float length, float thickness)
+	{
+		payload.Write<uint8>((uint8)RopeChange.Tie);
+		WriteTransform(payload, from);
+		WriteTransform(payload, to);
+		payload.Write(fromOffset);
+		payload.Write(toOffset);
+		payload.Write(length);
+		payload.Write(thickness);
+	}
+
+	static void WriteRopeChange(NetWriter payload, Rope rope, RopeChange change, Transform target, Vector3 offset, Span<Vector3> path)
+	{
+		payload.Write<uint8>((uint8)change);
+		WriteComponent<Rope>(payload, rope);
+		if (change == .TieStart || change == .TieEnd)
+		{
+			WriteTransform(payload, target);
+			payload.Write(offset);
+		}
+		else if (change == .LayAlong)
+		{
+			let count = Math.Min(path.Length, MaxRopePath);
+			payload.Write<uint16>((uint16)count);
+			for (int i < count)
+				payload.Write(path[i]);
+		}
+	}
+
+	/// A client's Rope.Attach in a session: asked of the server, which ties the rope on every machine when the client
+	/// controls one of the two objects. Returns true when the caller must not tie it here.
+	public static bool RopeTieRequest(GameObject from, GameObject to, Vector3 fromOffset, Vector3 toOffset, float length, float thickness)
+	{
+		let network = Active(from.Scene);
+		if (network == null || sApplying || network.IsServer)
+			return false;
+		let payload = scope NetWriter();
+		WriteTie(payload, from.Transform, to.Transform, fromOffset, toOffset, length, thickness);
+		network.SendToServer(MsgRope, payload);
+		return true;
+	}
+
+	/// A client's change to a rope in a session: sent to the server, which makes it on every machine when the client
+	/// controls the rope or what it is tied to. Returns true when the caller must not change it here.
+	public static bool RopeRequest(Rope rope, RopeChange change, Transform target = null, Vector3 offset = .Zero, Span<Vector3> path = default)
+	{
+		let network = Active(rope.Scene);
+		if (network == null || sApplying || network.IsServer)
+			return false;
+		let payload = scope NetWriter();
+		WriteRopeChange(payload, rope, change, target, offset, path);
+		network.SendToServer(MsgRope, payload);
+		return true;
+	}
+
+	/// Server: a rope was tied or changed here, so every machine does the same, players who join later too. A tied
+	/// rope, and the half a snap leaves, become objects every machine names alike.
+	public static void RopeChanged(Rope rope, RopeChange change, Transform target = null, Vector3 offset = .Zero, Span<Vector3> path = default)
+	{
+		let network = Active(rope.Scene);
+		if (network == null || sApplying || !network.IsServer)
+			return;
+		let payload = scope NetWriter();
+		if (change == .Tie)
+		{
+			ShareFragment(rope.GameObject);
+			WriteTie(payload, rope.startAttachedTo, rope.endAttachedTo, rope.startOffset, rope.endOffset, rope.length, rope.thickness);
+		}
+		else
+		{
+			WriteRopeChange(payload, rope, change, target, offset, path);
+			if (change == .Snap && rope.SnappedOff != null)
+				ShareFragment(rope.SnappedOff.GameObject);
+		}
+		Broadcast(network, MsgRope, payload, true);
+	}
+
+	static void OnRope(int32 sender, ref NetReader reader)
+	{
+		let network = Active(Scene.Active);
+		if (network == null)
+			return;
+		let change = (RopeChange)reader.Read<uint8>();
+		if (change == .Tie)
+		{
+			Transform from, to;
+			let found = ReadTransform(ref reader, network, out from) & ReadTransform(ref reader, network, out to);
+			let fromOffset = reader.Read<Vector3>();
+			let toOffset = reader.Read<Vector3>();
+			let length = reader.Read<float>();
+			let thickness = reader.Read<float>();
+			if (!reader.Ok || !found || from == null || to == null || !Finite(fromOffset) || !Finite(toOffset) || !(length > 0 && length < 10000) || !(thickness > 0 && thickness < 100))
+				return;
+			if (network.IsServer)
+			{
+				if (Owns(sender, from) || Owns(sender, to))
+					Rope.Attach(from.GameObject, to.GameObject, fromOffset, toOffset, length, thickness);
+				return;
+			}
+			sApplying = true;
+			let rope = Rope.[Friend]Tie(from.GameObject, to.GameObject, fromOffset, toOffset, length, thickness);
+			ShareFragment(rope.GameObject);
+			sApplying = false;
+			return;
+		}
+		let rope = ReadComponent<Rope>(ref reader, network);
+		Transform target = null;
+		var offset = Vector3.Zero;
+		var found = true;
+		List<Vector3> path = scope .();
+		if (change == .TieStart || change == .TieEnd)
+		{
+			found = ReadTransform(ref reader, network, out target);
+			offset = reader.Read<Vector3>();
+		}
+		else if (change == .LayAlong)
+		{
+			let count = (int)reader.Read<uint16>();
+			if (count > MaxRopePath)
+				return;
+			for (int i < count)
+			{
+				let point = reader.Read<Vector3>();
+				if (!Finite(point))
+					return;
+				path.Add(point);
+			}
+		}
+		else if (change != .Snap)
+			return;
+		if (!reader.Ok || rope == null || !found || !Finite(offset))
+			return;
+		// Only a player who controls the rope, or something it is tied to, may change it.
+		if (network.IsServer && !Owns(sender, rope.Transform) && !Owns(sender, rope.startAttachedTo) && !Owns(sender, rope.endAttachedTo))
+			return;
+		let wasApplying = sApplying;
+		sApplying = !network.IsServer;
+		switch (change)
+		{
+		case .TieStart: rope.AttachStart(target, offset);
+		case .TieEnd: rope.AttachEnd(target, offset);
+		case .LayAlong: rope.LayAlong(path);
+		case .Snap:
+			let other = rope.Snap();
+			if (!network.IsServer && other != null)
+				ShareFragment(other.GameObject);
+		default:
+		}
+		sApplying = wasApplying;
+	}
+
 	// ---- late joiners ----
 
 	/// Server: brings a player who has just connected up to date with everything above.
@@ -916,6 +1226,19 @@ static class NetworkSync
 		}
 		for (let component in network.Scene.Components)
 		{
+			// A shell's dents as they are now.
+			if (let shell = component as SoftBody)
+			{
+				if (shell.kind == .Shell && shell.DeepestDent() > 0)
+				{
+					let dents = scope List<Vector3>();
+					shell.GetDents(dents);
+					payload.Clear();
+					WriteDents(payload, shell, dents);
+					network.SendToClient(clientId, MsgSoftBody, payload);
+				}
+				continue;
+			}
 			StringView clip = "";
 			if (let skinned = component as SkinnedMeshRenderer)
 				clip = skinned.CurrentClip;

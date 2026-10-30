@@ -22,6 +22,9 @@ Add a **Network Session** component (Add Component > Networking) to an object in
 | Visual scripting graphs | Everything above applies to graphs as it does to code. **On Tick** makes a graph a Network Script. |
 | `Prefab.Instantiate` | A prefab whose root has a Network Identity, created on the server, appears on every machine. On a client the call returns null, because the server's copy is the one that arrives. Prefabs without an identity stay local, which is right for effects. |
 | `Scene.Destroy` | Destroying a shared object on the server removes it everywhere. A client cannot destroy one. |
+| Soft bodies (`SoftBody`) | A free jelly or cloth is shared like a physics body. A shell's dents are made on the server and reach every machine, `Repair` and `SetDents` too. See [Soft bodies](soft-bodies). |
+| Ropes (`Rope.Attach`, `AttachStart`, `AttachEnd`, `Release`, `LayAlong`, `Snap`, Break Force) | Tied, changed and snapped by the server on every machine; a client's call goes to the server for a rope or object it controls. |
+| Light and reflection probes, baked lighting | Nothing to send: every machine draws the same scene files. A dedicated server draws nothing, so it never captures or reads them. |
 | Fields marked `[Sync]`, and graph variables ticked **Networked** | The server's value is copied to every client when it changes. |
 
 A player who joins late receives all of it: the terrain and voxel edits so far, objects created and destroyed, current shapes, clips and synced values.
@@ -172,7 +175,7 @@ The session's **Transport** chooses how machines reach each other: **Direct** (U
 - Particles and UI are local, and so is `Audio.PlayOneShot` (sounds with no Audio Source). Trigger them from a message or a synced value when everyone should see or hear them.
 - Animation on an object nobody owns is shared only when the server starts it.
 
-CPU tests run a host, a client and a late joiner in one process over real UDP and check each row of the table above except animation, that a client is not corrected when others move, that others move evenly, the packing, lag compensation and a lossy, uneven connection, plus a session over the Steam transport when Steam is running. `Tests/PhysicsPrediction` checks predicted bodies over a lagging connection: a crate falling onto a stack with no corrections, a crate the client shoves moving on the client first with the server agreeing, one the host shoves corrected and ending up exactly where the server has it, a stack knocked over on a lossy connection, a crate a server script carries shown in the past after a few corrections and predicted again afterwards, sleeping, lag compensation, the cost of a still scene, and turning it off on either side.
+CPU tests run a host, a client and a late joiner in one process over real UDP and check each row of the table above except animation, that a client is not corrected when others move, that others move evenly, the packing, lag compensation and a lossy, uneven connection, plus a session over the Steam transport when Steam is running. `Tests/SoftBodies` checks soft bodies, dents and ropes on a host, a client and a late joiner. `Tests/PhysicsPrediction` checks predicted bodies over a lagging connection: a crate falling onto a stack with no corrections, a crate the client shoves moving on the client first with the server agreeing, one the host shoves corrected and ending up exactly where the server has it, a stack knocked over on a lossy connection, a crate a server script carries shown in the past after a few corrections and predicted again afterwards, sleeping, lag compensation, the cost of a still scene, and turning it off on either side.
 
 ## Deciding who may play
 
