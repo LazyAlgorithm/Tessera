@@ -59,6 +59,9 @@ class NetworkIdentity : Component
 
 	[NonSerialized]
 	public uint32 NetId;
+	// Objects below this one made before this id were part of it when it joined the session (its prefab), so every
+	// machine has them; ones a machine adds later are its own (NetworkSync's switches and lights).
+	uint32 mPartsIdLimit;
 	[NonSerialized]
 	public BodyState[HistorySize] History;
 	[NonSerialized]

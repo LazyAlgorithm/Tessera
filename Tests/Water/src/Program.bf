@@ -377,18 +377,23 @@ class Program
 			}
 			ok &= Check(top - bottom > 0.1f && top < 1, scope $"waves lift and drop the cloth ({bottom:0.00} to {top:0.00} m)");
 
-			// What floating costs: a 1089-point cloth as well as the rest, timed (with a step too short to move them).
-			// The water is calm for it: a cloth this fine at the default Mass and Iterations is unsteady when squeezed
-			// together, waves or not (docs/soft-bodies.md).
-			water.waveHeight = 0;
+			// A fine cloth (1,089 points, a gram each) crumpled by the waves stays on the water.
 			let big = Sheet(32, 4);
 			defer delete big;
 			let bigCloth = scene.CreateGameObject("Big Cloth");
 			bigCloth.Transform.Position = .(-12, 0.5f, -10);
 			bigCloth.AddComponent<MeshRenderer>().RuntimeMesh = big;
-			bigCloth.AddComponent<SoftBody>();
-			Frames(scene, 120);
-			water.waveHeight = 0.6f;
+			let bigBody = bigCloth.AddComponent<SoftBody>();
+			Frames(scene, 600);
+			var lo = Vector3(float.MaxValue), hi = Vector3(float.MinValue);
+			for (let p in bigBody.Positions)
+			{
+				lo = Vector3.Min(lo, p);
+				hi = Vector3.Max(hi, p);
+			}
+			ok &= Check(lo.y > -1.5f && hi.y < 1 && hi.x - lo.x < 6 && water.IsFloating(bigBody), scope $"a fine cloth rides the waves without coming apart ({lo.y:0.00} to {hi.y:0.00} m high, {hi.x - lo.x:0.0} m across)");
+
+			// What floating costs: that cloth as well as the rest, timed (with a step too short to move them).
 			let watch = scope System.Diagnostics.Stopwatch()..Start();
 			for (int i < 200)
 				Water.Simulate(scene, 1.0e-6f);

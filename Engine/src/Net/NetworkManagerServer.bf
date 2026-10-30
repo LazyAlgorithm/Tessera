@@ -251,6 +251,9 @@ extension NetworkManager
 				}
 			}
 		}
+		// Lights changed this tick, by the server or by the client that owns them.
+		if (IsServer || (mConnected && LocalClientId > 0))
+			NetworkSync.WatchLights(this);
 		// Objects this machine does not move itself change once a tick; they are drawn gliding between ticks.
 		for (let identity in mIdentities)
 		{

@@ -58,10 +58,11 @@ struct Config
 	float dentDepth;      // shell: how far a vertex can be pushed from its place on the object in one impact
 	float dentYield;      // shell: how far it springs back from; pushed further, the rest stays dented
 	float dentSpeed;      // shell: how fast (m/s) a vertex must be pushed in for it to dent
+	float stepTime;       // the physics step (s): with iterations, how stiff a constraint can be and still settle
 	int32_t iterations;   // solver passes per step
 	int32_t doubleSided;  // faces collide from both sides (cloth)
 	int32_t longRange;    // keep free vertices within reach of the pins (stops cloth stretching under its weight)
-	int32_t dihedral;     // bend by the angle between faces (cloth) rather than by distance (volumes)
+	int32_t dihedral;     // bend by the angle between faces (jelly) rather than by distance (cloth)
 	int32_t shell;        // every vertex is held near its place on the object (skinned to it), which dents
 	int32_t impacts;      // shell: held exactly in place, dented by its object's collider's hits instead of its own
 	uint32_t layer;
@@ -339,13 +340,23 @@ TN_API uint32_t tn_soft_create(JPH_PhysicsSystem* world, const Config* config, c
 		return 0xFFFFFFFFu;
 
 	// Per vertex: softer where the stiffness map is low. A pinned vertex's edges keep the default.
+	// Each constraint is also kept no stiffer than one solver pass can settle for vertices as light as its own: Jolt's
+	// compliance is absolute, so a light or finely meshed body (a 1 kg cloth of 1,000 vertices weighs a gram a
+	// vertex) is otherwise effectively rigid everywhere, and rigid edges and shear fight each other as soon as it
+	// folds or is squeezed (draped over a ball, crumpled by waves), throwing vertices about until it blows apart.
+	// The floor is the compliance at which a pass corrects about two thirds of an edge's error. A shell is held by
+	// its object instead.
+	const float pass = std::max(config->stepTime, 1.0e-4f) / (float)std::clamp(config->iterations, 1, 64);
+	const float averageMass = std::max(config->mass, 1.0e-6f) / float(std::max(free, 1u));
 	std::vector<JPH::SoftBodySharedSettings::VertexAttributes> attributes(vertexCount);
 	const auto longRange = (config->longRange != 0 && free < vertexCount) ? JPH::SoftBodySharedSettings::ELRAType::EuclideanDistance : JPH::SoftBodySharedSettings::ELRAType::None;
 	for (uint32_t i = 0; i < vertexCount; i++)
 	{
 		const float scale = stiffness ? std::max(stiffness[i], 0.02f) : 1.0f;
-		attributes[i] = JPH::SoftBodySharedSettings::VertexAttributes(std::max(config->stretch, 0.0f) / scale, std::max(config->shear, 0.0f) / scale,
-			config->bend < 0 ? FLT_MAX : config->bend / scale, longRange);
+		const float vertexMass = shared->mVertices[i].mInvMass > 0 ? 1.0f / shared->mVertices[i].mInvMass : averageMass;
+		const float floor = shell ? 0.0f : pass * pass * 2.0f / vertexMass;
+		attributes[i] = JPH::SoftBodySharedSettings::VertexAttributes(std::max(std::max(config->stretch, 0.0f) / scale, floor),
+			std::max(std::max(config->shear, 0.0f) / scale, floor), config->bend < 0 ? FLT_MAX : std::max(config->bend / scale, floor), longRange);
 	}
 	if (shell)
 	{

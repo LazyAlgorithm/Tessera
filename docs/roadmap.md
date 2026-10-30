@@ -366,6 +366,11 @@ Work agreed and queued, in order (see *How to use this page* above for what "don
   waves on the session tick, settings and level `[Sync]`. `Tests/Water`.
   Then (2026-10-30): jelly, cloth and ropes float vertex by vertex (`tn_soft_float`, the surface sampled at most 8 x 8
   per body), Floater on soft bodies and ropes.
+- [x] Networked by default, the rest (2026-10-30; docs/networking.md): SetActive, component Enabled, Light settings
+  (watched each tick), ParticleSystem.Play, Decals.Spawn and Audio.PlayOneShot shared from the server (switches,
+  lights and particles also from the owning client); the latest of each switch and light kept for late joiners; an
+  effect a game already shares itself matched and played once. Soft bodies: constraint stiffness floored by vertex
+  mass and solver pass, cloth bends by distance (fine cloth no longer blows apart when folded).
 - [ ] Flowing water: rivers that bend and run downhill (a flow map or spline painted over the water, the surface
   sloping with the river bed), foam and speed following the flow, waterfalls; floating things and swimmers carried
   along it. Networked: the flow is part of the scene, so nothing extra to send.

@@ -72,6 +72,65 @@ class NetworkManager
 
 	const int MaxRemembered = 100000;
 
+	/// Objects with an id below this were in the scene when the session started, so every machine has them.
+	public uint32 SceneIdLimit;
+	/// Server: the latest of each switch and setting shared by NetworkSync (an object switched off, a light's
+	/// colour), by what it is about, for players who join later.
+	Dictionary<String, (uint8 id, List<uint8> data)> mStates = new .() ~
+		{
+			for (let (key, entry) in _)
+			{
+				delete key;
+				delete entry.data;
+			}
+			delete _;
+		};
+	/// Effects played lately on this client and arriving from the server, to play each only once (NetworkSync).
+	public List<NetworkSync.RecentEffect> RecentEffects = new .() ~ delete _;
+
+	/// Server: keeps a state message under a key, in place of the one before with that key.
+	public void RememberState(StringView key, uint8 id, NetWriter payload)
+	{
+		if (mStates.TryGetAlt(key, let existing, let entry))
+		{
+			entry.data.Clear();
+			entry.data.AddRange(payload.Data);
+			return;
+		}
+		let copy = new List<uint8>();
+		copy.AddRange(payload.Data);
+		mStates[new String(key)] = (id, copy);
+	}
+
+	public void ForgetStates()
+	{
+		for (let (key, entry) in mStates)
+		{
+			delete key;
+			delete entry.data;
+		}
+		mStates.Clear();
+		RecentEffects.Clear();
+	}
+
+	/// Server: sends a newcomer the latest of each kept state.
+	public void ReplayStates(int32 clientId)
+	{
+		for (let client in mClients)
+		{
+			if (client.id != clientId)
+				continue;
+			for (let entry in mStates.Values)
+			{
+				mWriter.Clear();
+				mWriter.Write(MsgCustom);
+				mWriter.Write(entry.id);
+				mWriter.Data.AddRange(entry.data);
+				Send(client.peer, true);
+			}
+		}
+	}
+
 	/// Server: keeps a world edit (a message) to replay to players who join later, so that their world matches.
 	public void Remember(uint8 id, NetWriter payload)
 	{
@@ -595,6 +654,8 @@ class NetworkManager
 			return;
 		mIdentities.Add(identity);
 		mByNetId[identity.NetId] = identity;
+		if (identity.[Friend]mPartsIdLimit == 0)
+			identity.[Friend]mPartsIdLimit = Scene.NextId;
 	}
 
 	void Unregister(NetworkIdentity identity)
@@ -696,6 +757,8 @@ class NetworkManager
 		identity.NetId = netId;
 		identity.ownerId = ownerId;
 		identity.PrefabName.Set(prefab);
+		// Everything the prefab made is part of it on every machine.
+		identity.[Friend]mPartsIdLimit = mScene.NextId;
 		Register(identity);
 		return gameObject;
 	}

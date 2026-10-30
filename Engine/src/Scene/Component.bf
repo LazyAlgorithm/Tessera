@@ -96,6 +96,8 @@ abstract class Component
 				else
 					OnDisable();
 			}
+			if (mGameObject?.Scene?.Network != null)
+				NetworkSync.EnabledChanged(this);
 		}
 	}
 

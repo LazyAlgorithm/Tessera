@@ -59,6 +59,9 @@ struct NetReader
 	int mOffset;
 	/// False once a read went past the end: what was read since then is not to be trusted.
 	public bool Ok = true;
+	/// The bytes being read, and how far into them the next read starts (to pass a message on as it came).
+	public uint8* Start => mData;
+	public int Position => mOffset;
 
 	/// A reader over some received bytes.
 	public this(uint8* data, int length)
