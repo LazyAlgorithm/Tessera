@@ -9,6 +9,9 @@ namespace Tessera.Editor;
 /// The Hierarchy panel.
 extension EditorApp
 {
+	// The row pressed with the left button, selected when the button is let go over it (0: none, or it became a drag).
+	uint32 mHierarchyPressed;
+
 	void DrawHierarchy()
 	{
 		if (ImGui.Begin("Hierarchy"))
@@ -104,10 +107,19 @@ extension EditorApp
 		if (gameObject.IsFolder && !inactive)
 			ImGui.PushStyleColor(ImGui.Col.Text, Icons.FolderColor);
 		let open = ImGui.TreeNode(nodeLabel.CStr(), flags);
+		NoteTestRect(scope $"row:{gameObject.Id}");
 		if (inactive || gameObject.IsFolder)
 			ImGui.PopStyleColor();
+		// Selected when the click is let go, not when it is pressed: dragging the row (into an Inspector field, or onto
+		// another object) leaves the selection, and so the Inspector, as it was.
 		if (ImGui.IsItemClicked(0) && !ImGui.IsItemToggledOpen() && mVisibilityDrag == .None)
-			mSelectedId = gameObject.Id;
+			mHierarchyPressed = gameObject.Id;
+		if (mHierarchyPressed == gameObject.Id && ImGui.IsMouseReleased(0))
+		{
+			if (ImGui.IsItemHovered())
+				mSelectedId = gameObject.Id;
+			mHierarchyPressed = 0;
+		}
 		if (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(0))
 		{
 			mSelectedId = gameObject.Id;
@@ -130,6 +142,7 @@ extension EditorApp
 		}
 		if (ImGui.BeginDragDropSource())
 		{
+			mHierarchyPressed = 0;
 			var id = gameObject.Id;
 			ImGui.SetDragDropPayload("GAMEOBJECT", &id, sizeof(uint32));
 			ImGui.Text(gameObject.Name);

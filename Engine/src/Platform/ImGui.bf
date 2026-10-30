@@ -54,6 +54,16 @@ static class ImGui
 	}
 
 	[CRepr]
+	public static class DragDropFlags
+	{
+		/// A drag started by code rather than by an item (the Scene view's objects): call BeginDragDropSource with it
+		/// every frame the drag lasts.
+		public const int32 SourceExtern = 1 << 4;
+		/// Hands the payload to a target while the mouse is still held over it (for a preview), as well as on release.
+		public const int32 AcceptBeforeDelivery = 1 << 10;
+		public const int32 AcceptNoDrawDefaultRect = 1 << 11;
+	}
+
 	public struct Payload
 	{
 		public void* data;
@@ -401,6 +411,11 @@ static class ImGui
 	[CLink] static extern bool igIsMouseDoubleClicked_Nil(int32 button);
 	[CLink] static extern bool igIsMouseDragging(int32 button, float threshold);
 	[CLink] static extern Vec2 igGetMousePos();
+	[CLink] static extern Vec2 igGetItemRectMin();
+	[CLink] static extern Vec2 igGetItemRectMax();
+	[CLink] static extern void* igGetIO_Nil();
+	[CLink] static extern void ImGuiIO_AddMousePosEvent(void* io, float x, float y);
+	[CLink] static extern void ImGuiIO_AddMouseButtonEvent(void* io, int32 button, bool down);
 	[CLink] static extern bool igIsKeyPressed_Bool(int32 key, bool repeat_);
 	[CLink] static extern bool igIsKeyDown_Nil(int32 key);
 	[CLink] static extern void igPushID_Str(char8* id);
@@ -656,6 +671,13 @@ static class ImGui
 
 	public static Vec2 GetContentRegionAvail() => igGetContentRegionAvail();
 	public static Vec2 GetCursorScreenPos() => igGetCursorScreenPos();
+	/// The last item drawn: its top left and bottom right corners on the screen.
+	public static Vec2 GetItemRectMin() => igGetItemRectMin();
+	public static Vec2 GetItemRectMax() => igGetItemRectMax();
+	/// Queues the mouse moving to a point, as the mouse itself would (editor self-tests drive the interface with it).
+	public static void QueueMousePos(float x, float y) => ImGuiIO_AddMousePosEvent(igGetIO_Nil(), x, y);
+	/// Queues a mouse button going down or up.
+	public static void QueueMouseButton(int32 button, bool down) => ImGuiIO_AddMouseButtonEvent(igGetIO_Nil(), button, down);
 	public static void SetCursorScreenPos(Vec2 pos) => igSetCursorScreenPos(pos);
 	public static void SetCursorPosX(float x) => igSetCursorPosX(x);
 	public static void SetCursorPosY(float y) => igSetCursorPosY(y);
@@ -756,6 +778,7 @@ static class ImGui
 	public static bool BeginDragDropTarget() => igBeginDragDropTarget();
 	public static void EndDragDropTarget() => igEndDragDropTarget();
 	public static Payload* AcceptDragDropPayload(char8* type) => igAcceptDragDropPayload(type, 0);
+	public static Payload* AcceptDragDropPayload(char8* type, int32 flags) => igAcceptDragDropPayload(type, flags);
 	public static void ShowDemoWindow(bool* open = null) => igShowDemoWindow(open);
 	public static void SetScrollHereY(float ratio = 0.5f) => igSetScrollHereY(ratio);
 	public static float GetScrollY() => igGetScrollY();

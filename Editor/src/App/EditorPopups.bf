@@ -117,10 +117,9 @@ extension EditorApp
 				mGizmoOperation = 3;
 			if (ImGui.IsKeyPressed(ImGui.Key.End) && Selected != null)
 				DropToSurface(Selected);
-			// While placing, [ and ] turn the next object instead (see UpdatePlacement).
-			if (!mPlacing && ImGui.IsKeyPressed(ImGui.Key.LeftBracket, true))
+			if (ImGui.IsKeyPressed(ImGui.Key.LeftBracket, true))
 				TurnSelected(-mSnapRotate);
-			if (!mPlacing && ImGui.IsKeyPressed(ImGui.Key.RightBracket, true))
+			if (ImGui.IsKeyPressed(ImGui.Key.RightBracket, true))
 				TurnSelected(mSnapRotate);
 			// F frames in the view the pointer is over (a Model View, or else the Scene view).
 			if (ImGui.IsKeyPressed(ImGui.Key.F) && !modelling && !FrameKeyModelView())

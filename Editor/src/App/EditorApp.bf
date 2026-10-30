@@ -131,7 +131,7 @@ class EditorApp : Application
 		GetArg("--scene", sceneArg);
 		EditorMain.LoadStartScene(mScene, sceneArg);
 		Log.Info(scope $"Opened project {project.Name} ({project.Path})");
-		LoadMapBuilderSettings();
+		LoadSceneToolSettings();
 		AlignSceneCameraToGameCamera();
 		// A streamed world: only the cells round the view (docs/world-streaming.md).
 		LoadStreamedCellsAroundView();
@@ -174,9 +174,6 @@ class EditorApp : Application
 			mShowAchievements = true;
 		if (HasArg("--input-actions"))
 			mShowInputActions = true;
-		if (HasArg("--map-builder"))
-			mShowMapBuilder = true;
-		GetArg("--map-builder-search", mPaletteSearch);
 		if (HasArg("--build-window"))
 			ApplyBuildSwitches();
 		if (AssetArg("--animator", full..Clear()))
@@ -267,6 +264,8 @@ class EditorApp : Application
 			RunThemeTest();
 		if (HasArg("--visibility-test"))
 			RunVisibilityTest();
+		if (HasArg("--drag-test"))
+			StartDragTest();
 		if (HasArg("--model-import-test"))
 			RunModelImportTest();
 		if (HasArg("--world-streaming-test"))
@@ -295,8 +294,6 @@ class EditorApp : Application
 		ApplyRigSwitches();
 		ApplyModelSwitches();
 		ApplySoftBodySwitches();
-		if (HasArg("--map-builder-test"))
-			RunMapBuilderTest();
 		// Test switch: saves the opened scene as Ctrl+S does, with the map warning, once the layout has settled
 		// (the first frames bring the Scene tab forward, which would close the warning).
 		if (HasArg("--save-scene"))
@@ -484,6 +481,7 @@ class EditorApp : Application
 
 	protected override void OnUpdate()
 	{
+		TickDragTest();
 		if (mStopPlayRequested)
 		{
 			mStopPlayRequested = false;

@@ -273,13 +273,22 @@ extension EditorApp
 		bool activate = false;
 		let tileMin = ImGui.GetCursorScreenPos();
 		ImGui.InvisibleButton("tile", .(mTileSize + 8, mTileSize + labelHeight));
+		NoteTestRect(scope $"asset:{entry.path}");
 		let hovered = ImGui.IsItemHovered();
 		let selected = mSelectedAsset == entry.path;
+		// Selected when the click is let go over it, so dragging a material into an object's field leaves the
+		// Inspector on the object.
 		if (ImGui.IsItemClicked(0))
+			mProjectPressed.Set(entry.path);
+		if (mProjectPressed == entry.path && ImGui.IsMouseReleased(0))
 		{
-			mSelectedAsset.Set(entry.path);
-			// A material clicked here is what the Inspector shows, until an object is selected again.
-			mInspectAsset = entry.name.EndsWith(".tmat") || entry.name.EndsWith(".tdata");
+			if (hovered)
+			{
+				mSelectedAsset.Set(entry.path);
+				// A material clicked here is what the Inspector shows, until an object is selected again.
+				mInspectAsset = entry.name.EndsWith(".tmat") || entry.name.EndsWith(".tdata");
+			}
+			mProjectPressed.Clear();
 		}
 		if (hovered && ImGui.IsMouseDoubleClicked(0))
 			activate = true;
@@ -290,6 +299,7 @@ extension EditorApp
 
 		if (ImGui.BeginDragDropSource())
 		{
+			mProjectPressed.Clear();
 			let relative = scope String();
 			ToRelative(entry.path, relative);
 			ImGui.SetDragDropPayload("ASSET", relative.Ptr, relative.Length);
@@ -906,6 +916,95 @@ extension EditorApp
 	}
 
 	/// Handles an asset dragged from Project onto the Scene view or the Hierarchy.
+	/// Whether dragging an asset over the Scene view shows it there before it is dropped: prefabs, models and map pieces.
+	static bool PreviewsInScene(StringView relative) => MapPieces.IsPiece(relative) || HasExtension(relative, ".tprefab") || IsModelFile(relative);
+
+	/// While a prefab or model is dragged over the Scene view: makes it (once), and stands it where the mouse points.
+	/// It is an ordinary object already, so what is seen is what is dropped; nothing is selected until it is.
+	void ShowDropPreview(StringView relative, float u, float v)
+	{
+		if (mPlay != .Edit || !PreviewsInScene(relative))
+			return;
+		mDropPreviewSeen = true;
+		if (mDropPreview != null && mDropPreview.IsDestroyed)
+			mDropPreview = null;
+		if (mDropPreview == null || mDropPreviewAsset != relative)
+		{
+			ClearDropPreview();
+			mDropPreviewSeen = true;
+			let selected = mSelectedId;
+			mDropPreview = MakeDroppedAsset(relative);
+			mSelectedId = selected;
+			if (mDropPreview == null)
+				return;
+			mDropPreviewAsset.Set(relative);
+		}
+		StandAtViewportPoint(mDropPreview, u, v);
+	}
+
+	/// Drops the previewed object where it is, and selects it.
+	void KeepDropPreview(float u, float v)
+	{
+		StandAtViewportPoint(mDropPreview, u, v);
+		mSelectedId = mDropPreview.Id;
+		mDropPreview = null;
+		mDropPreviewAsset.Clear();
+		MarkDirty();
+	}
+
+	void ClearDropPreview()
+	{
+		if (mDropPreview != null && !mDropPreview.IsDestroyed)
+			mScene.DestroyImmediate(mDropPreview);
+		mDropPreview = null;
+		mDropPreviewAsset.Clear();
+	}
+
+	/// Stands an object on whatever surface a point of the Scene view shows (scenery, terrain or the ground plane).
+	void StandAtViewportPoint(GameObject gameObject, float u, float v)
+	{
+		let ray = mSceneCamera.ViewportPointToRay(u, v);
+		Vector3 point, normal;
+		if (RaycastScene(ray, out point, out normal, gameObject, true, 500))
+			PlaceOnSurface(gameObject, point, normal, false);
+		else
+			gameObject.Transform.Position = ray.GetPoint(10);
+	}
+
+	/// Makes the object a prefab, model or map piece becomes in the scene (not yet placed).
+	GameObject MakeDroppedAsset(StringView relative)
+	{
+		if (MapPieces.IsPiece(relative))
+		{
+			mSelectedId = 0;
+			return InstantiateAsset(relative);
+		}
+		if (HasExtension(relative, ".tprefab"))
+		{
+			Prefab.ClearCache();
+			let made = Prefab.Instantiate(mScene, relative);
+			if (made != null)
+				mSelectedId = made.Id;
+			return made;
+		}
+		if (!IsModelFile(relative))
+			return null;
+		let name = scope String();
+		Path.GetFileNameWithoutExtension(relative, name);
+		mSelectedId = 0;
+		if (SkinnedModel.Load(relative) == null)
+			return CreateObject(name, relative);
+		// Rigged models get a skinned renderer so their skeleton and clips work straight away.
+		let made = CreateObject(name);
+		let skinned = made.AddComponent<SkinnedMeshRenderer>();
+		skinned.model.Set(relative);
+		skinned.OnValidate();
+		return made;
+	}
+
+	// The asset tile pressed with the left button, selected when it is let go over it (empty: none, or a drag).
+	String mProjectPressed = new .() ~ delete _;
+
 	void DropAssetIntoScene(StringView relative, bool useViewportPoint, float u, float v)
 	{
 		if (relative.EndsWith(".tscene"))
@@ -926,12 +1025,12 @@ extension EditorApp
 			return;
 		}
 		GameObject gameObject = null;
-		if (MapPieces.IsPiece(relative))
+		if (PreviewsInScene(relative))
 		{
-			mSelectedId = 0;
-			gameObject = InstantiateAsset(relative);
+			gameObject = MakeDroppedAsset(relative);
 			if (gameObject == null)
 				return;
+			MarkDirty();
 		}
 		else if (HasExtension(relative, ".tui"))
 		{
@@ -942,42 +1041,9 @@ extension EditorApp
 			gameObject.AddComponent<UIDocument>().document.Set(relative);
 			MarkDirty();
 		}
-		else if (HasExtension(relative, ".tprefab"))
-		{
-			Prefab.ClearCache();
-			gameObject = Prefab.Instantiate(mScene, relative);
-			if (gameObject == null)
-				return;
-			mSelectedId = gameObject.Id;
-			MarkDirty();
-		}
-		else if (IsModelFile(relative))
-		{
-			let name = scope String();
-			Path.GetFileNameWithoutExtension(relative, name);
-			mSelectedId = 0;
-			if (SkinnedModel.Load(relative) != null)
-			{
-				// Rigged models get a skinned renderer so their skeleton and clips work straight away.
-				gameObject = CreateObject(name);
-				let skinned = gameObject.AddComponent<SkinnedMeshRenderer>();
-				skinned.model.Set(relative);
-				skinned.OnValidate();
-			}
-			else
-				gameObject = CreateObject(name, relative);
-		}
 		else
 			return;
 		if (useViewportPoint)
-		{
-			// Stand it on whatever surface the mouse points at (scenery, terrain or the ground plane).
-			let ray = mSceneCamera.ViewportPointToRay(u, v);
-			Vector3 point, normal;
-			if (RaycastScene(ray, out point, out normal, gameObject, true, 500))
-				PlaceOnSurface(gameObject, point, normal, false);
-			else
-				gameObject.Transform.Position = ray.GetPoint(10);
-		}
+			StandAtViewportPoint(gameObject, u, v);
 	}
 }
