@@ -1078,21 +1078,13 @@ Quality.Save();                    // applied by itself at the next start</code>
       <p>Nothing extra is sent in multiplayer: retargeting happens on each machine as models load, and the Animator sends clip and state. Full details in <code>docs/retargeting.md</code>.</p>
 
       <h2 id="manual-mapbuilder">Building maps</h2>
-      <p><strong>Window &gt; Map Builder</strong> (or the toolbar button) lists the project's prefabs and models as thumbnails, with a search box and a folder filter. Click one, then click in the Scene view: each click places one, standing on whatever is under the mouse. <strong>[</strong> and <strong>]</strong> turn the next one, <strong>Esc</strong> stops. Random turn, turning to the surface's slope and random scale apply as you place.</p>
-      <div class="tbl-wrap"><table>
-        <thead><tr><th>Built-in folder</th><th>Pieces</th></tr></thead>
-        <tbody>
-          <tr><td>Primitives</td><td>Cube, Sphere, Capsule, Cylinder, Cone, Plane, Quad</td></tr>
-          <tr><td>Walls</td><td>Wall 4, 2 and 1 m, Half Wall, Doorway, Window Wall, Pillar (3 m tall, 0.2 m thick)</td></tr>
-          <tr><td>Floors</td><td>Floor 1&times;1, 2&times;2, 4&times;4 and 8&times;8, Ramp, Stairs, Platform</td></tr>
-        </tbody>
-      </table></div>
-      <p>Walls and floors are grey boxes with colliders for blocking a level out, sized in whole and half metres so they meet on the move step, with their origin at their foot. A model that a prefab already places is listed once, as the prefab, with its materials and collision.</p>
+      <p>Drag a prefab or model from the Project panel over the Scene view: it is shown there, standing on whatever is under the mouse, and stays where you let go (one undo step). Drag it back out and it is gone. <strong>Space</strong> over the Scene view searches everything that can be added (built-in objects, prefabs, models, components, and grey block-out pieces: walls, doorways, floors, ramps, stairs), placed on the surface under the mouse.</p>
       <ul>
-        <li><strong>Snap</strong> in the toolbar moves, turns and scales in steps (set with <strong>v</strong>); Ctrl does the opposite while dragging. <strong>End</strong> drops the selection onto the surface below it.</li>
-        <li><strong>Array</strong> makes evenly spaced copies (fences, shelves, rows of desks); <strong>Scatter copies</strong> drops copies onto the surfaces around the selection (rocks, clutter).</li>
-        <li><strong>Space</strong> over the Scene view searches everything that can be added: built-in objects, prefabs, models and components.</li>
+        <li><strong>Snap</strong> in the toolbar moves, turns and scales in steps (set with <strong>v</strong>); Ctrl does the opposite while dragging. <strong>End</strong> drops the selection onto the surface below it; <strong>[</strong> and <strong>]</strong> turn it.</li>
+        <li>Drag Hierarchy rows, objects in the Scene view and Project tiles into Inspector fields: pressing on them no longer selects them until the click is let go. The <strong>lock</strong> beside an object's name keeps the Inspector on it while you select other things.</li>
+        <li>Maps that players make belong in the game's own map editor, which can use the engine's built-in pieces (<code>MapPieces</code>).</li>
       </ul>
+      <p><a href="https://github.com/LazyAlgorithm/Tessera/blob/main/docs/drag-and-drop.md">Read the full dragging guide →</a></p>
 
       <h2 id="manual-terrain">Terrain</h2>
       <p>A Voxel Terrain is a grid of tiles, flat until sculpted with Raise, Lower, Smooth, Flatten and Paint. While a brush is picked the Scene view shows a <strong>preview</strong> under the mouse: the brush's edge lying on the ground, and a see-through mesh of the shape it is about to make. Generating ground is the game's own business, done from code with a <code>[TerrainGenerator]</code> class; the editor has no generation settings.</p>
