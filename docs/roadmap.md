@@ -357,4 +357,18 @@ Work agreed and queued, in order (see *How to use this page* above for what "don
   Speed or faster and the shell is pressed in around them by speed and mass; characters and kinematic bodies never
   dent) or From Surface (the earlier behaviour); a Convex Collider is wrapped round the dented shape once denting
   settles; shells add a Convex Collider and Rigidbody when missing; Sandbox Ball Launcher (F).
-- [ ] Real-time water simulation (not started: to be described and agreed before work begins).
+- [x] Water (2026-10-29; docs/water.md): the Water component, Realistic and Low Poly looks (GameObject > Water,
+  Water (Low Poly), Ocean, Ocean (Low Poly)); four Gerstner waves from the settings and a seed, phases in double
+  precision; refraction, clarity, screen-space and probe reflections, caustics, shore and crest foam, low-poly facets,
+  bands and sparkle; endless water on a camera-following grid; underwater fog and caustics with a per-pixel cut at
+  the waterline; Jolt buoyancy for Rigidbodies (Floater for one object's own), Flow currents, water drag that does
+  not depend on the body's density; Character Controller swimming (Swim, IsSwimming, Can Swim). Networked by default:
+  waves on the session tick, settings and level `[Sync]`. `Tests/Water`.
+- [ ] Flowing water: rivers that bend and run downhill (a flow map or spline painted over the water, the surface
+  sloping with the river bed), foam and speed following the flow, waterfalls; floating things and swimmers carried
+  along it. Networked: the flow is part of the scene, so nothing extra to send.
+- [ ] Water physics: objects make ripples, wakes and splashes (a height field simulated around the camera and
+  around moving bodies, added to the Gerstner waves), splash particles and sounds on entry, and floating that samples
+  several points along long objects. Ripples are cosmetic and local; anything that changes play stays on the
+  server's waves.
+- [ ] Real-time water simulation beyond the above (not started: to be described and agreed before work begins).

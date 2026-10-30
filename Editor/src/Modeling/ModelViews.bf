@@ -145,7 +145,8 @@ extension EditorApp
 			let viewport = new ModelViewport();
 			viewport.kind = kinds[i];
 			// After the Scene and Game views and the asset previews, before the reflection captures.
-			viewport.view = new RenderView((uint16)(10 + RenderView.ViewCount * (3 + i)));
+			// After the Scene and Game views (2) and the asset previews (one view's worth and a copy view).
+			viewport.view = new RenderView((uint16)(10 + RenderView.ViewCount * (4 + i)));
 			viewport.view.DrawGizmos = true;
 			viewport.view.drawEditorOnly = true;
 			viewport.view.ShowDepthOfField = false;

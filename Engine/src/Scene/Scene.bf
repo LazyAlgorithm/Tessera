@@ -846,7 +846,10 @@ class Scene
 		}
 		Profiler.End();
 		using (sPhysicsMarker.Sample())
+		{
+			Water.Simulate(this, Time.FixedDeltaTime);
 			Physics.Step(Time.FixedDeltaTime);
+		}
 		using (sPostTickMarker.Sample())
 			Network?.PostTick();
 		Time.Tick++;

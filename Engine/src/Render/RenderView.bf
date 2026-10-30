@@ -56,22 +56,27 @@ class RenderView
 	}
 
 	/// How many bgfx view ids one RenderView uses, from ViewBase. Give each RenderView a ViewBase this far apart.
-	public const int ViewCount = 19;
-	// Each pass's view id, from ViewBase (the four shadow cascades are ShadowView to ShadowView + 3).
+	public const int ViewCount = 23;
+	// Each pass's view id, from ViewBase (the four shadow cascades are ShadowView to ShadowView + 3). bgfx draws
+	// views in the order of their ids.
 	const int ShadowView = 0;
 	const int LocalShadowView = 4;
 	const int SceneView = 5;
 	const int DepthView = 6;
 	const int DecalView = 7;
-	const int TransparentView = 8;
-	const int ViewmodelView = 9;
-	const int AoView = 10;
-	const int AoApplyView = 11;
-	const int DofBlurView = 12;
-	const int DofCombineView = 13;
-	const int MotionView = 14;
-	const int BloomView = 15;
-	const int TonemapView = 18;
+	const int WaterCopyView = 8;
+	const int WaterView = 9;
+	const int TransparentView = 10;
+	const int UnderwaterCopyView = 11;
+	const int UnderwaterView = 12;
+	const int ViewmodelView = 13;
+	const int AoView = 14;
+	const int AoApplyView = 15;
+	const int DofBlurView = 16;
+	const int DofCombineView = 17;
+	const int MotionView = 18;
+	const int BloomView = 19;
+	const int TonemapView = 22;
 
 	/// What the scene target is cleared to (RGBA): opaque black, under the sky.
 	const uint32 SceneClearColor = 0x000000ff;
@@ -160,6 +165,7 @@ class RenderView
 	static ProfilerMarker sOpaqueMarker = .("Opaque", .Rendering);
 	static ProfilerMarker sDecalMarker = .("Decals", .Rendering);
 	static ProfilerMarker sTransparentMarker = .("Transparent", .Rendering);
+	static ProfilerMarker sWaterMarker = .("Water", .Rendering);
 	static ProfilerMarker sEffectsMarker = .("Screen Effects", .Rendering);
 	public int32 DrawCalls;
 	public int32 Instances;
@@ -278,6 +284,7 @@ class RenderView
 			mBloomFb[i].idx = uint16.MaxValue;
 		}
 		ReleaseEffectTargets();
+		ReleaseWaterTargets();
 	}
 
 	public void Resize(int32 width, int32 height)
@@ -409,10 +416,14 @@ class RenderView
 		mDepthDrawn = false;
 		using (sDecalMarker.Sample())
 			DrawDecals(scene, camera, frustum);
+		using (sWaterMarker.Sample())
+			DrawWater(scene, camera, frustum);
 		using (sTransparentMarker.Sample())
 			DrawTransparent(camera);
 		if (Capture)
 			return;
+		using (sWaterMarker.Sample())
+			DrawUnderwater(scene, camera);
 		DrawViewmodel(camera);
 		sEffectsMarker.Begin();
 		defer Profiler.End();

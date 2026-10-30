@@ -1,0 +1,476 @@
+using System;
+using System.Collections;
+
+namespace Tessera;
+
+/// How a Water surface is drawn (docs/water.md).
+[Reflect(.All)]
+enum WaterLook : int32
+{
+	/// Rolling waves with fine ripples, refraction, reflections of the sky and the scene, foam and caustics.
+	Realistic,
+	/// Faceted waves in flat colours, with crisp bands of foam: for stylized low-poly games.
+	LowPoly
+}
+
+/// A body of water: a lake, a pool, a river or (Endless) the sea. Its surface is at the object's height and covers
+/// Size (X by Z, scaled and turned with the object); the water reaches Depth below it.
+///
+/// - Waves are Gerstner waves worked out from the settings below and a clock every machine in a network session
+///   shares (the server's tick), so every player sees the same waves without anything being sent for them. The
+///   settings are [Sync] and the object is shared by default, so changes made on the server (and the water level, by
+///   moving the object) reach everyone.
+/// - Rigidbodies float in it with Jolt's buoyancy: by default all of them (Float Rigidbodies), with the water's
+///   Buoyancy; a Floater component sets an object's own. Flow is the current: it carries floating things and swimmers.
+/// - Characters swim (CharacterController.canSwim).
+/// - Drawn with refraction, absorption by depth, reflections, foam at the shore and on crests, and caustics; a camera
+///   under the surface sees through the water's colour, cut off exactly at the waterline.
+///
+///   let water = Water.At(Scene, point);
+///   if (water != null && water.SurfaceAt(point, let height, let normal, let velocity)) ...
+[Component]
+class Water : Component
+{
+	/// Gerstner waves summed for the surface.
+	public const int WaveCount = 4;
+
+	/// How it is drawn. Choosing one in the GameObject menu also sets the colours and grid to suit it (UseLook).
+	[Sync]
+	public WaterLook look = .Realistic;
+	/// The surface's width (X) and length (Z) in metres, before the object's scale.
+	[Sync]
+	public Vector2 size = .(40, 40);
+	/// How far below the surface the water reaches, in metres: the bottom of what floats things and of the
+	/// underwater view.
+	[Sync]
+	public float depth = 10;
+	/// Water to the horizon in every direction (the sea): Size is not used, and the surface follows the camera.
+	[Sync]
+	public bool endless = false;
+
+	/// Height of the waves from trough to crest, in metres, where all of them meet. 0 is still water.
+	[Sync, Range(0, 20)]
+	public float waveHeight = 0.4f;
+	/// Distance between the crests of the longest waves, in metres; the others are shorter.
+	[Sync]
+	public float waveLength = 14;
+	/// The way the waves travel, in degrees round from +X towards +Z.
+	[Sync, Range(0, 360)]
+	public float waveDirection = 30;
+	/// How far the shorter waves turn away from Wave Direction, in degrees: 0 is a swell all one way, more is choppier.
+	[Sync, Range(0, 180)]
+	public float waveSpread = 50;
+	/// Sharpens crests and widens troughs (0: rounded swells, 1: as sharp as they go).
+	[Sync, Range(0, 1)]
+	public float choppiness = 0.5f;
+	/// Multiplies how fast the waves move (1: as deep water waves of their length do).
+	[Sync]
+	public float waveSpeed = 1;
+	/// Picks another arrangement of the waves.
+	[Sync]
+	public int32 waveSeed = 1;
+	/// The current, in metres a second along X and Z of the world: rivers. It moves the ripples and foam and carries
+	/// floating things and swimmers.
+	[Sync]
+	public Vector2 flow = .Zero;
+
+	/// Colour of the water where it is shallow (and of its lit surface).
+	[Sync]
+	public Color shallowColor = .(0.12f, 0.52f, 0.55f, 1);
+	/// Colour of the water where it is deep.
+	[Sync]
+	public Color deepColor = .(0.02f, 0.10f, 0.17f, 1);
+	/// How far you can see through it, in metres: past this the bottom is lost in Deep Color.
+	[Sync]
+	public float clarity = 6;
+	/// How much what is under the surface is bent by the waves.
+	[Sync, Range(0, 0.3f)]
+	public float refraction = 0.04f;
+	/// How rough the surface is: 0 is a mirror.
+	[Sync, Range(0, 1)]
+	public float roughness = 0.05f;
+	/// How much foam: at the shore, round things standing in the water and on the sharpest crests. 0 is none.
+	[Sync, Range(0, 2)]
+	public float foam = 1;
+	/// How far out from the shore foam reaches, in metres of water depth.
+	[Sync]
+	public float shoreFoam = 0.6f;
+	[Sync]
+	public Color foamColor = .White;
+	/// The bright lines that light makes through moving water, on what is under it.
+	[Sync]
+	public bool caustics = true;
+	/// The scene mirrored in the water, found on the screen (the sky and reflection probes are mirrored anyway).
+	[Sync]
+	public bool screenReflections = true;
+	/// Metres between the surface's points near the camera. Smaller is smoother and slower; Low Poly looks best
+	/// with large facets.
+	[Sync]
+	public float gridSpacing = 0.5f;
+
+	/// Colour of the water round a camera under the surface.
+	[Sync]
+	public Color underwaterColor = .(0.10f, 0.36f, 0.40f, 1);
+	/// How far a camera under the surface can see, in metres.
+	[Sync]
+	public float underwaterVisibility = 22;
+
+	/// Every Rigidbody in the water floats (or sinks) by Buoyancy; off, only those with a Floater do.
+	[Sync]
+	public bool floatRigidbodies = true;
+	/// How strongly things float: 1 neither floats nor sinks, more floats higher, less sinks. A Floater sets an
+	/// object's own.
+	[Sync]
+	public float buoyancy = 1.6f;
+	/// How quickly the water slows things moving through it (and brings them to Flow's speed): about this many times
+	/// a second for something all under. More settles bobbing sooner.
+	[Sync]
+	public float waterDrag = 1;
+	/// How quickly the water stops things turning in it, likewise.
+	[Sync]
+	public float waterAngularDrag = 1;
+
+	/// One wave of the sum: travelling along direction (x, z), wavenumber k = 2 pi / length, amplitude (half its
+	/// height), steepness (how far points swing along it) and angular speed.
+	public struct Wave
+	{
+		public Vector2 direction;
+		public float k;
+		public float amplitude;
+		public float steepness;
+		public float omega;
+	}
+
+	Wave[WaveCount] mWaves;
+	// The settings the waves were made from: they are made again when one changes.
+	float[8] mWaveKey = .(-1, -1, -1, -1, -1, -1, -1, -1);
+	// Bodies in the water at the last step (for Floater.InWater).
+	HashSet<uint32> mFloating = new .() ~ delete _;
+
+	// The relative lengths and heights of the four waves, and how far each turns from the main direction (times
+	// Wave Spread). The seed nudges the turns.
+	static readonly float[WaveCount] sLengths = .(1.0f, 0.62f, 0.38f, 0.24f);
+	static readonly float[WaveCount] sHeights = .(1.0f, 0.55f, 0.32f, 0.18f);
+	static readonly float[WaveCount] sTurns = .(0.0f, 0.55f, -0.75f, 0.3f);
+
+	/// The surface's height when still, in the world.
+	public float Level => Transform.Position.y;
+	/// The lowest the water reaches.
+	public float Bottom => Level - Math.Max(depth, 0);
+
+	/// The waves as they are now set.
+	public Span<Wave> Waves
+	{
+		get
+		{
+			UpdateWaves();
+			return .(&mWaves[0], WaveCount);
+		}
+	}
+
+	void UpdateWaves()
+	{
+		float[8] key = .(waveHeight, waveLength, waveDirection, waveSpread, choppiness, waveSpeed, (float)waveSeed, 0);
+		bool same = true;
+		for (int i < key.Count)
+			same &= key[i] == mWaveKey[i];
+		if (same)
+			return;
+		mWaveKey = key;
+		float heightSum = 0;
+		for (int i < WaveCount)
+			heightSum += sHeights[i];
+		// A small generator every machine runs the same way: the seed's arrangement is the same everywhere.
+		uint32 state = (uint32)waveSeed * 747796405u + 2891336453u;
+		for (int i < WaveCount)
+		{
+			state = state * 1664525u + 1013904223u;
+			let jitter = (float)((state >> 8) & 0xffff) / 65535.0f * 2 - 1;
+			let turn = i == 0 ? 0 : (sTurns[i] + jitter * 0.25f);
+			let angle = (waveDirection + turn * waveSpread) * Mathf.Deg2Rad;
+			var wave = ref mWaves[i];
+			wave.direction = .(Math.Cos(angle), Math.Sin(angle));
+			let length = Math.Max(waveLength * sLengths[i], 0.05f);
+			wave.k = Math.PI_f * 2 / length;
+			wave.amplitude = Math.Max(waveHeight, 0) * 0.5f * sHeights[i] / heightSum;
+			// Summed over the waves, steepness times k times amplitude stays below 1, where crests would fold over.
+			wave.steepness = wave.amplitude > 0 ? Math.Clamp(choppiness, 0, 1) * 0.95f / (wave.k * wave.amplitude * WaveCount) : 0;
+			wave.omega = Math.Sqrt(9.81f * wave.k) * waveSpeed;
+		}
+	}
+
+	/// Each wave's phase at a time, worked out in double precision so that waves stay smooth however long a session
+	/// runs: the angle the wave has travelled, kept to one turn.
+	public void Phases(double time, ref float[WaveCount] phases)
+	{
+		UpdateWaves();
+		for (int i < WaveCount)
+			phases[i] = (float)Math.IEEERemainder((double)mWaves[i].omega * time, Math.PI_d * 2);
+	}
+
+	// ------------------------------------------------------------------ the shared clock
+
+	/// The waves' time for the simulation (buoyancy, swimming, game code): in a network session the session's tick,
+	/// so the server and a client predicting the same tick agree; playing alone, the scene's tick; in the editor,
+	/// the time since the program started.
+	public static double SimulationTime(Scene scene)
+	{
+		let network = scene?.Network;
+		if (network != null && network.Mode != .Offline)
+			return network.Tick / (double)Time.TickRate;
+		if (scene != null && scene.IsPlaying)
+			return Time.Tick / (double)Time.TickRate;
+		return Time.RealTime;
+	}
+
+	/// The waves' time for drawing: the same clock, smoothly between ticks, and on a client the server's.
+	public static double ViewTime(Scene scene)
+	{
+		let network = scene?.Network;
+		if (network != null && network.Mode != .Offline)
+			return (network.ServerTick - 1 + Time.InterpolationAlpha) / (double)Time.TickRate;
+		if (scene != null && scene.IsPlaying)
+			return (Time.Tick - 1 + Time.InterpolationAlpha) / (double)Time.TickRate;
+		return Time.RealTime;
+	}
+
+	// ------------------------------------------------------------------ the surface
+
+	/// Whether a point's X and Z are over this water (Endless water is everywhere).
+	public bool Covers(Vector3 point)
+	{
+		if (endless)
+			return true;
+		let local = Transform.WorldToLocal.TransformPoint(point);
+		return Math.Abs(local.x) <= size.x * 0.5f && Math.Abs(local.z) <= size.y * 0.5f;
+	}
+
+	/// Where the surface is over a point, at the simulation's time: its height, which way it faces and how fast the
+	/// water there moves (the current, and the waves' swing). False when the point is not over this water.
+	public bool SurfaceAt(Vector3 point, out float height, out Vector3 normal, out Vector3 velocity)
+	{
+		return SurfaceAt(point, SimulationTime(Scene), out height, out normal, out velocity);
+	}
+
+	/// The surface over a point at a given time on the waves' clock (SimulationTime or ViewTime).
+	public bool SurfaceAt(Vector3 point, double time, out float height, out Vector3 normal, out Vector3 velocity)
+	{
+		height = Level;
+		normal = .Up;
+		velocity = .(flow.x, 0, flow.y);
+		if (!Covers(point))
+			return false;
+		UpdateWaves();
+		float[WaveCount] phases = default;
+		Phases(time, ref phases);
+		// The waves swing points sideways as well as up: find the point of still water that ends up over this one.
+		var origin = Vector2(point.x, point.z);
+		let target = origin;
+		for (int iteration < 4)
+		{
+			var shift = Vector2.Zero;
+			for (int i < WaveCount)
+			{
+				let wave = mWaves[i];
+				let theta = wave.k * (wave.direction.x * origin.x + wave.direction.y * origin.y) - phases[i];
+				shift += wave.direction * (wave.steepness * wave.amplitude * Math.Cos(theta));
+			}
+			origin = target - shift;
+		}
+		float up = 0;
+		Vector3 n = .(0, 1, 0);
+		for (int i < WaveCount)
+		{
+			let wave = mWaves[i];
+			let theta = wave.k * (wave.direction.x * origin.x + wave.direction.y * origin.y) - phases[i];
+			let s = Math.Sin(theta);
+			let c = Math.Cos(theta);
+			up += wave.amplitude * s;
+			let ka = wave.k * wave.amplitude;
+			n.x -= wave.direction.x * ka * c;
+			n.z -= wave.direction.y * ka * c;
+			n.y -= wave.steepness * ka * s;
+			// The swing's speed: the water at a crest moves with the wave, in a trough against it.
+			velocity.x += wave.direction.x * wave.steepness * wave.amplitude * wave.omega * s;
+			velocity.z += wave.direction.y * wave.steepness * wave.amplitude * wave.omega * s;
+			velocity.y -= wave.amplitude * wave.omega * c;
+		}
+		height = Level + up;
+		normal = n.Normalized;
+		return true;
+	}
+
+	/// The surface's height over a point (the still level where the point is not over this water).
+	public float HeightAt(Vector3 point)
+	{
+		SurfaceAt(point, let height, ?, ?);
+		return height;
+	}
+
+	/// How far below the surface a point is (negative above it). Not over this water: float.MinValue.
+	public float DepthOf(Vector3 point)
+	{
+		if (!SurfaceAt(point, let height, ?, ?))
+			return float.MinValue;
+		return height - point.y;
+	}
+
+	/// Whether a point is in the water: over it, below the surface and above the bottom.
+	public bool Contains(Vector3 point)
+	{
+		if (point.y < Bottom)
+			return false;
+		if (!SurfaceAt(point, let height, ?, ?))
+			return false;
+		return point.y <= height;
+	}
+
+	/// The water over a point that a thing there would be in: over it, with the point above its bottom and no more
+	/// than reach above its still level (things above the surface can still have their lower parts in it). Of
+	/// several, the one with the highest level.
+	public static Water At(Scene scene, Vector3 point, float reach = 0)
+	{
+		if (scene == null)
+			return null;
+		Water best = null;
+		for (let component in scene.ComponentsOfType(typeof(Water)))
+		{
+			let water = (Water)component;
+			if (!water.IsActiveAndEnabled || !water.GameObject.InActiveWorld)
+				continue;
+			let level = water.Level;
+			let top = level + Math.Max(water.waveHeight, 0) + reach;
+			if (point.y > top || point.y < water.Bottom - reach || !water.Covers(point))
+				continue;
+			if (best == null || level > best.Level)
+				best = water;
+		}
+		return best;
+	}
+
+	/// Sets the colours, grid and waves that suit a look, and the look.
+	public void UseLook(WaterLook newLook)
+	{
+		look = newLook;
+		switch (newLook)
+		{
+		case .Realistic:
+			shallowColor = .(0.12f, 0.52f, 0.55f, 1);
+			deepColor = .(0.02f, 0.10f, 0.17f, 1);
+			underwaterColor = .(0.10f, 0.36f, 0.40f, 1);
+			foamColor = .White;
+			clarity = 6;
+			refraction = 0.04f;
+			roughness = 0.05f;
+			choppiness = 0.5f;
+			gridSpacing = 0.5f;
+			caustics = true;
+			screenReflections = true;
+		case .LowPoly:
+			shallowColor = .(0.36f, 0.86f, 0.84f, 1);
+			deepColor = .(0.10f, 0.42f, 0.72f, 1);
+			underwaterColor = .(0.16f, 0.50f, 0.70f, 1);
+			foamColor = .(0.95f, 1.0f, 1.0f, 1);
+			clarity = 2.5f;
+			refraction = 0.0f;
+			roughness = 0.3f;
+			choppiness = 0.25f;
+			gridSpacing = 1.6f;
+			caustics = false;
+			screenReflections = false;
+		}
+	}
+
+	// ------------------------------------------------------------------ floating
+
+	/// Before each physics step (Scene): floats the scene's dynamic Rigidbodies in the water they are in, with Jolt's
+	/// buoyancy against the surface under each one's middle.
+	public static void Simulate(Scene scene, float deltaTime)
+	{
+		let waters = scene.ComponentsOfType(typeof(Water));
+		if (waters.Count == 0)
+			return;
+		let time = SimulationTime(scene);
+		for (let component in waters)
+			((Water)component).mFloating.Clear();
+		for (let component in scene.ComponentsOfType(typeof(Rigidbody)))
+		{
+			let body = (Rigidbody)component;
+			if (!body.IsActiveAndEnabled || body.isKinematic || !body.HasBody || !body.GameObject.InActiveWorld)
+				continue;
+			let floater = body.GameObject.GetComponent<Floater>();
+			if (floater != null && !floater.IsActiveAndEnabled)
+				continue;
+			let position = body.Transform.Position;
+			// Things as tall as a few metres can reach the water from above its surface.
+			let water = At(scene, position, 4);
+			if (water == null || (floater == null && !water.floatRigidbodies))
+				continue;
+			if (!water.SurfaceAt(position, time, let height, let normal, let velocity))
+				continue;
+			let factor = floater?.buoyancy ?? water.buoyancy;
+			let drag = floater?.drag ?? water.waterDrag;
+			let angularDrag = floater?.angularDrag ?? water.waterAngularDrag;
+			// Under the bottom there is no water to push up: the surface is the bottom there.
+			let surface = position.y < water.Bottom ? Vector3(position.x, water.Bottom, position.z) : Vector3(position.x, height, position.z);
+			if (scene.Physics.ApplyBuoyancy(body.BodyId, surface, normal, factor, drag, angularDrag, velocity, deltaTime))
+				water.mFloating.Add(body.BodyId);
+		}
+	}
+
+	/// Whether a Rigidbody was in this water at the last physics step.
+	public bool IsFloating(Rigidbody body) => body != null && body.HasBody && mFloating.Contains(body.BodyId);
+
+	public override void OnDrawGizmos(bool selected)
+	{
+		let tint = selected ? Color(0.3f, 0.8f, 1.0f, 1) : Color(0.3f, 0.7f, 1.0f, 0.4f);
+		if (endless)
+		{
+			let at = Transform.Position;
+			Gizmos.Lines.Circle(at, .Up, 4, tint);
+			Gizmos.Lines.Line(at, at - Vector3(0, Math.Max(depth, 0), 0), tint);
+			return;
+		}
+		// The surface's rectangle, and when selected the box the water fills.
+		let model = Transform.LocalToWorld;
+		let half = Vector3(size.x * 0.5f, 0, size.y * 0.5f);
+		Gizmos.Lines.Box(.(-half, half), model, tint);
+		if (selected)
+		{
+			let scale = Math.Max(model.TransformDirection(.Up).Length, 0.0001f);
+			let down = Math.Max(depth, 0) / scale;
+			Gizmos.Lines.Box(.(Vector3(-half.x, -down, -half.z), half), model, Color(0.3f, 0.7f, 1.0f, 0.35f));
+		}
+	}
+}
+
+/// Sets how one Rigidbody floats in Water, in place of the water's own settings; disabled, it does not float at all.
+/// Floating needs Water's Float Rigidbodies only for objects without one.
+[Component]
+class Floater : Component
+{
+	/// How strongly it floats: 1 neither floats nor sinks, more floats higher (a cork), less sinks (a stone).
+	public float buoyancy = 1.6f;
+	/// How quickly the water slows it moving (and brings it to the water's flow): about this many times a second
+	/// when it is all under.
+	public float drag = 1;
+	/// How quickly the water stops it turning, likewise.
+	public float angularDrag = 1;
+
+	/// Whether it was in water at the last physics step.
+	public bool InWater
+	{
+		get
+		{
+			let body = GameObject.GetComponent<Rigidbody>();
+			if (body == null)
+				return false;
+			for (let component in Scene.ComponentsOfType(typeof(Water)))
+			{
+				if (((Water)component).IsFloating(body))
+					return true;
+			}
+			return false;
+		}
+	}
+}

@@ -53,6 +53,14 @@ class CharacterController : Component
 	public bool softCharacterContact = true;
 	/// How quickly overlapping soft characters are separated, in metres per second for each metre of overlap.
 	public float separationSpeed = 8;
+	/// Swims in Water deeper than Swim Depth instead of walking on the bottom: SimpleMove floats it with its head out
+	/// of the water, slows it and lets the current carry it, and a jump swims up (and out, at an edge).
+	public bool canSwim = true;
+	/// How deep the water has to be over its feet for it to swim, in metres.
+	public float swimDepth = 1.2f;
+	/// Swimming speed as a share of the speed SimpleMove or Swim is given.
+	[Range(0, 2)]
+	public float swimSpeed = 0.6f;
 
 	void* mCharacter;
 	Jolt.CharacterState mState;
@@ -66,6 +74,10 @@ class CharacterController : Component
 	Vector3 mShapeCenter;
 	bool mSoft;
 	float mAirTime;
+	bool mSwimming;
+	int32 mSwimTick = int32.MinValue / 2;
+	// How far below the surface the feet float, worked out when swimming begins.
+	float mFloatDepth;
 
 	/// False in edit mode and while disabled; Move then just shifts the transform.
 	public bool HasCharacter => mCharacter != null && Scene.Physics.HasCharacter(mCharacter);
@@ -82,6 +94,24 @@ class CharacterController : Component
 	public Vector3 GroundNormal => mState.groundNormal;
 	/// Velocity of whatever it stands on, for example a moving platform.
 	public Vector3 GroundVelocity => mState.groundVelocity;
+	/// Swimming: as of the last SimpleMove or Swim, or, for a character nothing moves here (another player's, in a
+	/// network session), whether it is in water deeper than swimDepth. For animations.
+	public bool IsSwimming => (Time.Tick - mSwimTick <= 2) ? mSwimming : InDeepWater(0);
+
+	/// Whether the water over the feet is deeper than swimDepth less slack.
+	bool InDeepWater(float slack)
+	{
+		if (!canSwim || Scene == null)
+			return false;
+		let middle = Transform.Position + center;
+		let half = shape == .Capsule ? height * 0.5f : boxSize.y * 0.5f;
+		let water = Water.At(Scene, middle, half);
+		if (water == null)
+			return false;
+		float surface;
+		Vector3 current;
+		return water.SurfaceAt(middle, out surface, ?, out current) && surface - (middle.y - half) >= swimDepth - slack;
+	}
 
 	public override void Start()
 	{
@@ -250,6 +280,8 @@ class CharacterController : Component
 	/// rides whatever it stands on, and a jumpSpeed above zero jumps if it is on the ground.
 	public void SimpleMove(Vector3 horizontalVelocity, float deltaTime, float jumpSpeed = 0)
 	{
+		if (UpdateSwimming(horizontalVelocity, deltaTime, jumpSpeed, false))
+			return;
 		Vector3 velocity;
 		// "Moving towards the ground" keeps a character that has just jumped from being glued back down.
 		if (IsGrounded && mState.velocity.y - mState.groundVelocity.y < 0.1f)
@@ -273,6 +305,62 @@ class CharacterController : Component
 		velocity.x += horizontalVelocity.x;
 		velocity.z += horizontalVelocity.z;
 		Move(velocity, deltaTime);
+	}
+
+	/// Swims at a velocity in any direction, for diving and coming up (towards where the player looks, say); with no
+	/// up or down in it the character floats to the surface. Out of deep water it walks as SimpleMove does, with the
+	/// level part of the velocity.
+	public void Swim(Vector3 velocity, float deltaTime, float jumpSpeed = 0)
+	{
+		if (!UpdateSwimming(velocity, deltaTime, jumpSpeed, true))
+			SimpleMove(.(velocity.x, 0, velocity.z), deltaTime, jumpSpeed);
+	}
+
+	/// In water deeper than swimDepth over the feet (or nearly, once swimming): moves for one step as a swimmer and
+	/// returns true. The water is found by the waves' simulation clock, so a predicting client and the server agree.
+	bool UpdateSwimming(Vector3 wanted, float deltaTime, float jumpSpeed, bool dive)
+	{
+		let wasSwimming = mSwimming;
+		mSwimming = false;
+		mSwimTick = Time.Tick;
+		if (!canSwim || !HasCharacter)
+			return false;
+		let middle = Transform.Position + center;
+		let half = shape == .Capsule ? height * 0.5f : boxSize.y * 0.5f;
+		let water = Water.At(Scene, middle, half);
+		if (water == null)
+			return false;
+		float surface;
+		Vector3 current;
+		if (!water.SurfaceAt(middle, out surface, ?, out current))
+			return false;
+		let deep = surface - (middle.y - half);
+		// Once swimming it keeps on while touching bottom a little shallower, so it does not flick between the two.
+		if (deep < (wasSwimming ? swimDepth - 0.25f : swimDepth))
+			return false;
+		mSwimming = true;
+		// Floating: the feet hang this far down, leaving the head out of the water.
+		mFloatDepth = Math.Max(half * 2 * 0.78f, swimDepth + 0.1f);
+		var velocity = mState.velocity;
+		var target = Vector3(wanted.x * swimSpeed + current.x, 0, wanted.z * swimSpeed + current.z);
+		if (dive && Math.Abs(wanted.y) > 0.01f)
+			target.y = wanted.y * swimSpeed;
+		else
+		{
+			// Rises when deeper than floating and settles when not: the waves lift and drop it with them.
+			target.y = Math.Clamp((deep - mFloatDepth) * 2.5f, -1.5f, 2.0f) + current.y * 0.5f;
+			if (jumpSpeed > 0)
+				target.y = deep < mFloatDepth + 0.4f ? jumpSpeed * 0.8f : Math.Max(target.y, 2.0f);
+		}
+		// The water holds it back: velocity eases towards what is wanted instead of jumping to it.
+		let ease = 1 - Math.Exp(-4.0f * deltaTime);
+		velocity += (target - velocity) * ease;
+		if (dive && Math.Abs(wanted.y) <= 0.01f && deep > mFloatDepth + 0.5f)
+			velocity.y = Math.Max(velocity.y, 0.6f);
+		Move(velocity, deltaTime);
+		// Leaving the water is not standing on ground: no jump comes free with it.
+		mAirTime = jumpGrace + 0.01f;
+		return true;
 	}
 
 	/// Puts the character somewhere with a given velocity, for respawns and for network corrections.
