@@ -1,0 +1,14 @@
+{
+  "completed": "2026-10-28T09:16:37.055335",
+  "diagnostic_native_profiling": false,
+  "navigation_before": "20261028-085315-999319",
+  "navigation_after": "20261028-091322-308349",
+  "test_suites_passed": 6,
+  "artifacts_sha256": {
+    "build/native/libtessera_native.a": "c41234b511561589a4140ff0a4f50f09fd3cc6012a8a0c4c2d85a2b58cb1c6e4",
+    "build/native/_deps/joltphysics-build/libJolt.a": "a9c731b63895247e6ee7aad4a38de587c4be56bf8eeb44ae34523e10e7ac1331",
+    "Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark": "a1d4f373313702d54f026c7d246bea78f6d4079a9c026b3d0712f7bb822fb4ab",
+    "Benchmarks/full-engine/tessera/build/Release_Linux64/Benchmark/Benchmark": "3fe526a50cb7b8c38c45a9a6a05ea2155b5a2f67aa1951f7e2ba531ee2bef694",
+    "build/native/_deps/joltphysics-src/Jolt/Physics/Collision/CollisionDispatch.h": "2c258234f95e7bee33cf979f13122291955dd5c23dd3d6f33856fa321645088e"
+  }
+}

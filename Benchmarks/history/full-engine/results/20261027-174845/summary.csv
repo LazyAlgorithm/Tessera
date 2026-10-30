@@ -1,0 +1,14 @@
+engine,scenario,count,repeat,metric,mean_ms,median_ms,p95_ms,p99_ms
+tessera,model-object-cube,1,0,feature_batch,0.069451,0.069451,0.069451,0.069451
+tessera,model-object-extrude,1,0,feature_batch,0.108744,0.108744,0.108744,0.108744
+tessera,model-object-subdivide,1,0,feature_batch,0.087294,0.087294,0.087294,0.087294
+tessera,model-object-bevel,1,0,feature_batch,0.115076,0.115076,0.115076,0.115076
+tessera,model-object-weld,1,0,feature_batch,0.044644,0.044644,0.044644,0.044644
+tessera,rig-autoweights,1,0,feature_batch,25.410919,25.410919,25.410919,25.410919
+tessera,rig-weight-brush,1,0,feature_batch,0.059212,0.059212,0.059212,0.059212
+tessera,rig-pose,1,0,feature_batch,0.371558,0.371558,0.371558,0.371558
+tessera,texture-paint,1,0,feature_batch,0.528944,0.528944,0.528944,0.528944
+tessera,texture-mips-color,1,0,feature_batch,2.939865,2.939865,2.939865,2.939865
+tessera,texture-mips-normal,1,0,feature_batch,1.843605,1.843605,1.843605,1.843605
+tessera,asset-async-cold,1,0,feature_batch,1.664779,1.664779,1.664779,1.664779
+tessera,terrain-mesh,1,0,feature_batch,1.918525,1.918525,1.918525,1.918525

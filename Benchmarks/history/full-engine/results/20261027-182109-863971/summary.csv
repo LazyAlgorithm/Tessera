@@ -1,0 +1,7 @@
+engine,scenario,count,repeat,metric,mean_ms,median_ms,p95_ms,p99_ms
+tessera,model-primitives,12,0,feature_batch,0.39284205,0.3913105,0.405913,0.421863
+tessera,model-primitives,12,1,feature_batch,0.40620118,0.3994455,0.464363,0.538763
+tessera,model-primitives,12,2,feature_batch,0.39752841,0.395493,0.414849,0.443914
+tessera,model-primitives,120,0,feature_batch,3.92039871,3.9216404999999996,3.941427,3.946056
+tessera,model-primitives,120,1,feature_batch,3.94426892,3.940471,3.988777,4.013353
+tessera,model-primitives,120,2,feature_batch,3.97021001,3.970778,4.019995,4.029383

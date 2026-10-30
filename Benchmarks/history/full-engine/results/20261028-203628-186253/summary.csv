@@ -1,0 +1,4 @@
+engine,scenario,count,repeat,metric,mean_ms,median_ms,p95_ms,p99_ms
+tessera,render-skinning-gpu,1000,0,frame_interval,12.099383346666666,10.0461665,20.225563,20.400622
+tessera,render-skinning-gpu,1000,1,frame_interval,10.667069446666666,9.9952805,19.977637,20.492334
+tessera,render-skinning-gpu,1000,2,frame_interval,12.2991851,10.024631,20.48982,21.201407

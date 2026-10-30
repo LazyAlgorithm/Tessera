@@ -1,0 +1,7 @@
+engine,scenario,count,repeat,metric,mean_ms,median_ms,p95_ms,p99_ms
+tessera,model-large-subdivide,1,0,feature_batch,73.46304943,73.304337,75.000079,75.701888
+tessera,model-large-subdivide,1,1,feature_batch,71.83518012,71.601898,73.374935,73.858944
+tessera,model-large-subdivide,1,2,feature_batch,73.1810442,73.1569155,74.413877,74.853363
+tessera,model-large-uv-smart,1,0,feature_batch,19.61284426,19.602992999999998,19.722928,19.78734
+tessera,model-large-uv-smart,1,1,feature_batch,19.76430549,19.768108,19.910932,19.936059
+tessera,model-large-uv-smart,1,2,feature_batch,19.60345991,19.5863865,19.731946,19.817316

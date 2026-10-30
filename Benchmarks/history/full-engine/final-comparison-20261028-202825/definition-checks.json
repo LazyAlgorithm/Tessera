@@ -1,0 +1,730 @@
+[
+  {
+    "case": "physics-free",
+    "count": 100,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "physics-free",
+    "count": 1000,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "physics-pile",
+    "count": 100,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "physics-pile",
+    "count": 1000,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "physics-mixed-shapes",
+    "count": 100,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "physics-mixed-shapes",
+    "count": 1000,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "physics-mesh",
+    "count": 100,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "physics-mesh",
+    "count": 1000,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "physics-raycast",
+    "count": 100,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "physics-raycast",
+    "count": 1000,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "physics-mesh-raycast",
+    "count": 100,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "physics-mesh-raycast",
+    "count": 1000,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "physics-spherecast",
+    "count": 100,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "physics-spherecast",
+    "count": 1000,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "physics-capsulecast",
+    "count": 100,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "physics-capsulecast",
+    "count": 1000,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "physics-boxcast",
+    "count": 100,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "physics-boxcast",
+    "count": 1000,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "physics-overlap-sphere",
+    "count": 100,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "physics-overlap-sphere",
+    "count": 1000,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "physics-overlap-capsule",
+    "count": 100,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "physics-overlap-capsule",
+    "count": 1000,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "physics-overlap-box",
+    "count": 100,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "physics-overlap-box",
+    "count": 1000,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "physics-discrete",
+    "count": 100,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "physics-discrete",
+    "count": 1000,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "physics-ccd",
+    "count": 100,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "physics-ccd",
+    "count": 1000,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "physics-characters-flat",
+    "count": 100,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "physics-characters-flat",
+    "count": 1000,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "physics-characters-steps",
+    "count": 100,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "physics-characters-steps",
+    "count": 1000,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "render-shared",
+    "count": 100,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "render-shared",
+    "count": 1000,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "render-materials",
+    "count": 100,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "render-materials",
+    "count": 1000,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "render-moving",
+    "count": 100,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "render-moving",
+    "count": 1000,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "render-culling",
+    "count": 100,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "render-culling",
+    "count": 1000,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "render-shadows",
+    "count": 100,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "render-shadows",
+    "count": 1000,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "render-spheres",
+    "count": 100,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "render-spheres",
+    "count": 1000,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "render-lights",
+    "count": 100,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "render-lights",
+    "count": 1000,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "render-physics",
+    "count": 100,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "render-physics",
+    "count": 1000,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "render-particles",
+    "count": 100,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "render-particles",
+    "count": 1000,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "scene-empty",
+    "count": 100,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "scene-scripts",
+    "count": 100,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "scene-scripts",
+    "count": 1000,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "scene-transforms",
+    "count": 100,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "scene-transforms",
+    "count": 1000,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "scene-hierarchy",
+    "count": 100,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "scene-hierarchy",
+    "count": 1000,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "scene-churn",
+    "count": 100,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "scene-churn",
+    "count": 1000,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "76e48946d1ac042384d64c1c277eb78256f8a34b51c16eed289b736ca6c41546",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "render-shared",
+    "count": 10000,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "3cb9111d171ad8da68398eda195efe9efa4262520c093458e9929898cd1a2a83",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "render-materials",
+    "count": 10000,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "3cb9111d171ad8da68398eda195efe9efa4262520c093458e9929898cd1a2a83",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "render-culling",
+    "count": 10000,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "3cb9111d171ad8da68398eda195efe9efa4262520c093458e9929898cd1a2a83",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "render-moving",
+    "count": 10000,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "3cb9111d171ad8da68398eda195efe9efa4262520c093458e9929898cd1a2a83",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "render-shadows",
+    "count": 10000,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "3cb9111d171ad8da68398eda195efe9efa4262520c093458e9929898cd1a2a83",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "render-lights",
+    "count": 10000,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "3cb9111d171ad8da68398eda195efe9efa4262520c093458e9929898cd1a2a83",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "render-particles",
+    "count": 10000,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "3cb9111d171ad8da68398eda195efe9efa4262520c093458e9929898cd1a2a83",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "ai-navmesh-path",
+    "count": 1,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "2148f0aa5c2e4ec6288a02be1ca505a0abb50153b8a473814a548bb8e9889abd",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "ai-navmesh-path",
+    "count": 1,
+    "file": "unity/Assets/FeatureWorkloads.cs",
+    "saved_sha256": "e64578c7d5c40c377974bda3ec9df5e7f6127c483a18e7595710d68384e1f64e",
+    "current_sha256": "e64578c7d5c40c377974bda3ec9df5e7f6127c483a18e7595710d68384e1f64e",
+    "identical": true
+  },
+  {
+    "case": "ai-navmesh-path",
+    "count": 10,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "2148f0aa5c2e4ec6288a02be1ca505a0abb50153b8a473814a548bb8e9889abd",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "ai-navmesh-path",
+    "count": 10,
+    "file": "unity/Assets/FeatureWorkloads.cs",
+    "saved_sha256": "e64578c7d5c40c377974bda3ec9df5e7f6127c483a18e7595710d68384e1f64e",
+    "current_sha256": "e64578c7d5c40c377974bda3ec9df5e7f6127c483a18e7595710d68384e1f64e",
+    "identical": true
+  },
+  {
+    "case": "ai-navmesh-path",
+    "count": 100,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "2148f0aa5c2e4ec6288a02be1ca505a0abb50153b8a473814a548bb8e9889abd",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "ai-navmesh-path",
+    "count": 100,
+    "file": "unity/Assets/FeatureWorkloads.cs",
+    "saved_sha256": "e64578c7d5c40c377974bda3ec9df5e7f6127c483a18e7595710d68384e1f64e",
+    "current_sha256": "e64578c7d5c40c377974bda3ec9df5e7f6127c483a18e7595710d68384e1f64e",
+    "identical": true
+  },
+  {
+    "case": "ai-nav-path",
+    "count": 100,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "2148f0aa5c2e4ec6288a02be1ca505a0abb50153b8a473814a548bb8e9889abd",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "ai-nav-path",
+    "count": 100,
+    "file": "unity/Assets/FeatureWorkloads.cs",
+    "saved_sha256": "e64578c7d5c40c377974bda3ec9df5e7f6127c483a18e7595710d68384e1f64e",
+    "current_sha256": "e64578c7d5c40c377974bda3ec9df5e7f6127c483a18e7595710d68384e1f64e",
+    "identical": true
+  },
+  {
+    "case": "ai-navmesh-bake",
+    "count": 1,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "2148f0aa5c2e4ec6288a02be1ca505a0abb50153b8a473814a548bb8e9889abd",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "ai-navmesh-bake",
+    "count": 1,
+    "file": "unity/Assets/FeatureWorkloads.cs",
+    "saved_sha256": "e64578c7d5c40c377974bda3ec9df5e7f6127c483a18e7595710d68384e1f64e",
+    "current_sha256": "e64578c7d5c40c377974bda3ec9df5e7f6127c483a18e7595710d68384e1f64e",
+    "identical": true
+  },
+  {
+    "case": "ai-nav-bake",
+    "count": 1,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "2148f0aa5c2e4ec6288a02be1ca505a0abb50153b8a473814a548bb8e9889abd",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "ai-nav-bake",
+    "count": 1,
+    "file": "unity/Assets/FeatureWorkloads.cs",
+    "saved_sha256": "e64578c7d5c40c377974bda3ec9df5e7f6127c483a18e7595710d68384e1f64e",
+    "current_sha256": "e64578c7d5c40c377974bda3ec9df5e7f6127c483a18e7595710d68384e1f64e",
+    "identical": true
+  },
+  {
+    "case": "render-skinning-cpu",
+    "count": 100,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "d8c07880fbf01b9891e99c6730fc59dc7e4fc8311741715344e7ef807165b5db",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "render-skinning-cpu",
+    "count": 100,
+    "file": "unity/Assets/FeatureWorkloads.cs",
+    "saved_sha256": "0a4f306fef6f7f25bf3525d350d1c628f41638b485214e2f50c5d79def48fe75",
+    "current_sha256": "e64578c7d5c40c377974bda3ec9df5e7f6127c483a18e7595710d68384e1f64e",
+    "identical": false
+  },
+  {
+    "case": "render-skinning-gpu",
+    "count": 100,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "d8c07880fbf01b9891e99c6730fc59dc7e4fc8311741715344e7ef807165b5db",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "render-skinning-gpu",
+    "count": 100,
+    "file": "unity/Assets/FeatureWorkloads.cs",
+    "saved_sha256": "0a4f306fef6f7f25bf3525d350d1c628f41638b485214e2f50c5d79def48fe75",
+    "current_sha256": "e64578c7d5c40c377974bda3ec9df5e7f6127c483a18e7595710d68384e1f64e",
+    "identical": false
+  },
+  {
+    "case": "render-skinning-gpu",
+    "count": 1000,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "ee02a92352b3aeb8dc9677d4a250e344268c8680e31a18152e50ca63c7b6a5c1",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "render-skinning-gpu",
+    "count": 1000,
+    "file": "unity/Assets/FeatureWorkloads.cs",
+    "saved_sha256": "e64578c7d5c40c377974bda3ec9df5e7f6127c483a18e7595710d68384e1f64e",
+    "current_sha256": "e64578c7d5c40c377974bda3ec9df5e7f6127c483a18e7595710d68384e1f64e",
+    "identical": true
+  },
+  {
+    "case": "render-transparency",
+    "count": 1000,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "62c6f7dc0b92163f03590444539f372c853368e0d99536ed27cdc90d025bf5a6",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "animator-clips",
+    "count": 100,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "ef72c83835e117481e974f5b0ca43e0a8326d27e91a35373b261823a4b65b651",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "animator-clips",
+    "count": 1000,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "ef72c83835e117481e974f5b0ca43e0a8326d27e91a35373b261823a4b65b651",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "animator-layered",
+    "count": 100,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "ef72c83835e117481e974f5b0ca43e0a8326d27e91a35373b261823a4b65b651",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "animator-layered",
+    "count": 1000,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "ef72c83835e117481e974f5b0ca43e0a8326d27e91a35373b261823a4b65b651",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "audio-mix",
+    "count": 100,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "3cb9111d171ad8da68398eda195efe9efa4262520c093458e9929898cd1a2a83",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  },
+  {
+    "case": "asset-image-decode",
+    "count": 100,
+    "file": "unity/Assets/EngineBenchmark.cs",
+    "saved_sha256": "62c6f7dc0b92163f03590444539f372c853368e0d99536ed27cdc90d025bf5a6",
+    "current_sha256": "b52efe890d8a3b56c60e77625c67b622988d579ea48f03cb7d85669d7f0d3059",
+    "identical": false
+  }
+]

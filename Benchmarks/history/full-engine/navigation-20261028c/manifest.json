@@ -1,0 +1,16 @@
+{
+  "date": "2026-10-28T10:06:39.714627",
+  "navigation_before": "20261028-093231-738500",
+  "navigation_final": "20261028-095838-224079",
+  "physics_interleaved_manifest": "../box-overlap-20261028d/contact-manifest.json",
+  "test_suites_passed": 7,
+  "gpu_navigation_benchmarked": false,
+  "native_diagnostic_profiling": false,
+  "artifacts_sha256": {
+    "Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark": "fde6c9039004c4ab6301942e8c14df58b5071de1f4a857d96720ef46005d7f92",
+    "Benchmarks/full-engine/tessera/build/Release_Linux64/Benchmark/Benchmark": "c12555b2cf0e8602d03c928e67dc7a7573eb25037eb071358021d4e2e49b1186",
+    "build/native/libtessera_native.a": "807e6f115718fc168cc5b9abf9eb3513f10188e6e21551e3f63443c9ea00a30a",
+    "build/native/_deps/joltphysics-build/libJolt.a": "7e5df16a7c42ceb00218abcf106a686b672df76ca646024c73335210f55b1507",
+    "build/Debug_Linux64/TesseraLauncher/TesseraLauncher": "f2e1d8515f826efe711ff79fdbf1bc95fd105afa9867eafe09c94d38a97f37fe"
+  }
+}

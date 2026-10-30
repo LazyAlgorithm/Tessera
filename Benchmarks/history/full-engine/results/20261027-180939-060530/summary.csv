@@ -1,0 +1,7 @@
+engine,scenario,count,repeat,metric,mean_ms,median_ms,p95_ms,p99_ms
+tessera,editor-code-index,10,0,editor_algorithm_batch,0.00975042,0.009468,0.011642,0.014537
+tessera,editor-code-index,10,1,editor_algorithm_batch,0.00962179,0.009548,0.009638,0.010329
+tessera,editor-code-index,10,2,editor_algorithm_batch,0.00944658,0.009397,0.009488,0.01025
+tessera,editor-code-index,100,0,editor_algorithm_batch,0.09568475,0.095624,0.099186,0.099467
+tessera,editor-code-index,100,1,editor_algorithm_batch,0.09693532,0.09629599999999999,0.100129,0.106821
+tessera,editor-code-index,100,2,editor_algorithm_batch,0.098596,0.0979395,0.101751,0.107793

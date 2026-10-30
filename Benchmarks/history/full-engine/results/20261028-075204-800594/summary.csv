@@ -1,0 +1,10 @@
+engine,scenario,count,repeat,metric,mean_ms,median_ms,p95_ms,p99_ms
+tessera,physics-overlap-sphere,1000,0,query_batch_1000,6.461538423333334,6.462145,6.481342,6.487924
+tessera,physics-overlap-sphere,1000,1,query_batch_1000,6.739390283333333,6.748718500000001,6.759034,6.767279
+tessera,physics-overlap-sphere,1000,2,query_batch_1000,6.85788339,6.856396,6.872216,6.885601
+tessera,physics-overlap-capsule,1000,0,query_batch_1000,2.623933233333333,2.625399,2.649239,2.657405
+tessera,physics-overlap-capsule,1000,1,query_batch_1000,2.60116445,2.5961040000000004,2.626918,2.642286
+tessera,physics-overlap-capsule,1000,2,query_batch_1000,2.5914226466666666,2.589622,2.614614,2.624101
+tessera,physics-overlap-box,1000,0,query_batch_1000,1.3051555266666666,1.302578,1.322906,1.339928
+tessera,physics-overlap-box,1000,1,query_batch_1000,1.30271648,1.300344,1.321303,1.333356
+tessera,physics-overlap-box,1000,2,query_batch_1000,1.3061931333333334,1.307176,1.313949,1.317937

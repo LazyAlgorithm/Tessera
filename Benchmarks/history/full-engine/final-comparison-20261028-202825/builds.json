@@ -1,0 +1,27 @@
+[
+  {
+    "project": "tessera",
+    "exit": 0,
+    "binary_sha256": "86aa05002bb0432f2ac9cf5e5ed4152eec89d055b6077232a3c21dbc5742c36f"
+  },
+  {
+    "project": "features",
+    "exit": 0,
+    "binary_sha256": "6f5f9d7e7c5cace9e5110bae1ef0a6de627ebab704539f1a5ab82f037d6c4971"
+  },
+  {
+    "project": "navigation-load",
+    "exit": 0,
+    "binary_sha256": "358311a6a159ed80fceae18a196170ffea0895cf95cb8dff553f3fc11c3dd17b"
+  },
+  {
+    "project": "extended",
+    "exit": 0,
+    "binary_sha256": "180584e6195562cd9972c38c8822c65904c87249ac0941f808aa1fc54a2ca61f"
+  },
+  {
+    "project": "animation",
+    "exit": 0,
+    "binary_sha256": "ebf574e757618b1ad8e97783e1c386c5f69039ac36fa6b1b8ac95f52e912ed77"
+  }
+]

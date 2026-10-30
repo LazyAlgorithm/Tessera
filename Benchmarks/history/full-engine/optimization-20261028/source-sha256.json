@@ -1,0 +1,7 @@
+{
+  "Engine/src/AI/NavigationNodes.bf": "de50fdb4d407a2e4332ca547e391985248260ddfea1e3c112c96fa7fbc414571",
+  "Engine/src/AI/NavigationData.bf": "7eb12d5c9b141f812cf5c647b54baae05a92ccb8925a158d00fda8e999bd6b36",
+  "native/tessera_physics.cpp": "520aad662de661504cb6949845a1f16910ac025805a6b83872f1bc7963badfbd",
+  "Tests/Navigation/src/Program.bf": "15f6476174cc47a2b221355315af9d12d54b15d26895ab444ac4c43c752300ac",
+  "docs/navigation.md": "75be053cc91471b9a0b846e9f644d4efd12b5a9158bfaa5309c2d40f4849916d"
+}

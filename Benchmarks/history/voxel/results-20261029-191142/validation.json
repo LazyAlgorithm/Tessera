@@ -1,0 +1,96 @@
+{
+  "completed": "2026-10-29T19:22:10.301240",
+  "processes": 254,
+  "passed": 249,
+  "source_hash_count": 352,
+  "source_hash_mismatches": [],
+  "rejected": [
+    {
+      "name": "shots-1-8-1-none-cpu-0",
+      "checks": {
+        "setup_ms": "2.074198",
+        "base_objects": "2",
+        "density_hash": "14284047962491632173",
+        "vertices": "600",
+        "triangles": "296",
+        "grid_samples": "729",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "False"
+      }
+    },
+    {
+      "name": "shots-1-8-1-mesh-cpu-0",
+      "checks": {
+        "setup_ms": "1.860927",
+        "base_objects": "2",
+        "density_hash": "14284047962491632173",
+        "vertices": "600",
+        "triangles": "296",
+        "grid_samples": "729",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "False"
+      }
+    },
+    {
+      "name": "shots-1-8-1-dynamic-cpu-0",
+      "checks": {
+        "setup_ms": "2.212869",
+        "base_objects": "2",
+        "density_hash": "14284047962491632173",
+        "vertices": "600",
+        "triangles": "296",
+        "grid_samples": "729",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "2",
+        "checksum": "0",
+        "valid": "False"
+      }
+    },
+    {
+      "name": "shots-1-8-1-mesh-render-0",
+      "checks": {
+        "setup_ms": "1.796496",
+        "base_objects": "2",
+        "density_hash": "14284047962491632173",
+        "draws": "4",
+        "vertices": "600",
+        "triangles": "296",
+        "grid_samples": "729",
+        "changed_carves": "48",
+        "spawned_fragments": "0",
+        "peak_objects": "4",
+        "checksum": "0",
+        "valid": "False"
+      }
+    },
+    {
+      "name": "split-1-16-1-mesh-cpu-0",
+      "checks": {
+        "setup_ms": "2.076212",
+        "base_objects": "2",
+        "density_hash": "7573317531150672587",
+        "vertices": "600",
+        "triangles": "296",
+        "grid_samples": "4913",
+        "changed_carves": "4",
+        "spawned_fragments": "4",
+        "peak_objects": "3",
+        "checksum": "0",
+        "valid": "False"
+      }
+    }
+  ],
+  "visual_checks": [
+    "idle.png",
+    "blast.png",
+    "slab.png"
+  ],
+  "coalesced_equivalence": "All paired final density FNV hashes, vertex counts and triangle counts match; asserts passed in run.py."
+}

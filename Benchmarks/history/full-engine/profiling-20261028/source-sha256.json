@@ -1,0 +1,7 @@
+{
+  "Engine/src/AI/NavigationData.bf": "05e89fcbb78f15f12db3956f8651a449dafac664abdaaf859a8fe1831e8901a2",
+  "Engine/src/AI/NavigationNodes.bf": "702bd09a50dd4612ce2be0401d647e40a23d9fdf428adfa98ddd979a180f5bc3",
+  "Engine/src/Physics/PhysicsWorld.bf": "7e8ce74df0dae3b4d89b28f44a9b0f8d5e8bc046b11308c28bf5c366e41a66f6",
+  "Benchmarks/full-engine/features/src/Program.bf": "efe0f191fd0da704e8ce34075f49518ba55ac4a9b17b1ee8b9567c4bec4029b9",
+  "Benchmarks/full-engine/tessera/src/Program.bf": "9b9a6088a23bfc8259fb37650b339b96b23ce4caf6013a14c2d887170d8df2e4"
+}

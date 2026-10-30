@@ -1,0 +1,6 @@
+[
+  {
+    "run": "unity-audio-mix-1-0",
+    "error": "Command '['/usr/bin/time', '-f', 'RESOURCE,peak_rss_kib,%M', '/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/builds/unity-extras/Benchmark', '-batchmode', '-nographics', '-screen-fullscreen', '0', '-screen-width', '1280', '-screen-height', '720', '--scenario', 'audio-mix', '--count', '1', '--warmup', '10', '--samples', '20', '--output', '/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/results/20261027-173621/unity-audio-mix-1-0.raw.csv', '-logFile', '/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/results/20261027-173621/unity-audio-mix-1-0.log']' timed out after 20 seconds"
+  }
+]

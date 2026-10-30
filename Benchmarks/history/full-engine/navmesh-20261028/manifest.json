@@ -1,0 +1,637 @@
+{
+  "started": "2026-10-28T19:14:30.789399",
+  "binary_sha256": "6d8e1dd5cbf0858746a28f6865e6607381d75e9f892979a14f5b89a6a099ba2b",
+  "runs": [
+    {
+      "case": "ai-navmesh-path",
+      "count": 100,
+      "repeat": 0,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark",
+        "ai-navmesh-path",
+        "100",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "checks": {
+        "setup_ms": "5.889249",
+        "objects": "100",
+        "path_waypoints": "8",
+        "path_length": "54.03532177209854",
+        "job_threads": "16",
+        "checksum": "315000"
+      }
+    },
+    {
+      "case": "ai-navmesh-path-batch",
+      "count": 1000,
+      "repeat": 3,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark",
+        "ai-navmesh-path-batch",
+        "1000",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "checks": {
+        "setup_ms": "5.658034",
+        "objects": "1000",
+        "path_waypoints": "8",
+        "path_length": "54.03532177209854",
+        "job_threads": "16",
+        "checksum": "3150000"
+      }
+    },
+    {
+      "case": "ai-nav-path-batch",
+      "count": 100,
+      "repeat": 2,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark",
+        "ai-nav-path-batch",
+        "100",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "checks": {
+        "setup_ms": "7.666278",
+        "objects": "100",
+        "path_waypoints": "11",
+        "path_length": "55.65269273519516",
+        "job_threads": "16",
+        "checksum": "462000"
+      }
+    },
+    {
+      "case": "ai-nav-path",
+      "count": 100,
+      "repeat": 0,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark",
+        "ai-nav-path",
+        "100",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "checks": {
+        "setup_ms": "7.242932",
+        "objects": "100",
+        "path_waypoints": "11",
+        "path_length": "55.65269273519516",
+        "job_threads": "16",
+        "checksum": "462000"
+      }
+    },
+    {
+      "case": "ai-navmesh-path",
+      "count": 100,
+      "repeat": 3,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark",
+        "ai-navmesh-path",
+        "100",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "checks": {
+        "setup_ms": "6.035313",
+        "objects": "100",
+        "path_waypoints": "8",
+        "path_length": "54.03532177209854",
+        "job_threads": "16",
+        "checksum": "315000"
+      }
+    },
+    {
+      "case": "ai-navmesh-path",
+      "count": 100,
+      "repeat": 1,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark",
+        "ai-navmesh-path",
+        "100",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "checks": {
+        "setup_ms": "6.415507",
+        "objects": "100",
+        "path_waypoints": "8",
+        "path_length": "54.03532177209854",
+        "job_threads": "16",
+        "checksum": "315000"
+      }
+    },
+    {
+      "case": "ai-navmesh-path-batch",
+      "count": 1000,
+      "repeat": 2,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark",
+        "ai-navmesh-path-batch",
+        "1000",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "checks": {
+        "setup_ms": "5.748925",
+        "objects": "1000",
+        "path_waypoints": "8",
+        "path_length": "54.03532177209854",
+        "job_threads": "16",
+        "checksum": "3150000"
+      }
+    },
+    {
+      "case": "ai-nav-path-batch",
+      "count": 1000,
+      "repeat": 3,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark",
+        "ai-nav-path-batch",
+        "1000",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "checks": {
+        "setup_ms": "7.956685",
+        "objects": "1000",
+        "path_waypoints": "11",
+        "path_length": "55.65269273519516",
+        "job_threads": "16",
+        "checksum": "4620000"
+      }
+    },
+    {
+      "case": "ai-nav-path-batch",
+      "count": 100,
+      "repeat": 3,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark",
+        "ai-nav-path-batch",
+        "100",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "checks": {
+        "setup_ms": "7.494706",
+        "objects": "100",
+        "path_waypoints": "11",
+        "path_length": "55.65269273519516",
+        "job_threads": "16",
+        "checksum": "462000"
+      }
+    },
+    {
+      "case": "ai-navmesh-path",
+      "count": 100,
+      "repeat": 4,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark",
+        "ai-navmesh-path",
+        "100",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "checks": {
+        "setup_ms": "6.064508",
+        "objects": "100",
+        "path_waypoints": "8",
+        "path_length": "54.03532177209854",
+        "job_threads": "16",
+        "checksum": "315000"
+      }
+    },
+    {
+      "case": "ai-nav-path-batch",
+      "count": 1000,
+      "repeat": 2,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark",
+        "ai-nav-path-batch",
+        "1000",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "checks": {
+        "setup_ms": "7.669665",
+        "objects": "1000",
+        "path_waypoints": "11",
+        "path_length": "55.65269273519516",
+        "job_threads": "16",
+        "checksum": "4620000"
+      }
+    },
+    {
+      "case": "ai-navmesh-path-batch",
+      "count": 100,
+      "repeat": 0,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark",
+        "ai-navmesh-path-batch",
+        "100",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "checks": {
+        "setup_ms": "5.874952",
+        "objects": "100",
+        "path_waypoints": "8",
+        "path_length": "54.03532177209854",
+        "job_threads": "16",
+        "checksum": "315000"
+      }
+    },
+    {
+      "case": "ai-navmesh-path",
+      "count": 100,
+      "repeat": 2,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark",
+        "ai-navmesh-path",
+        "100",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "checks": {
+        "setup_ms": "6.427981",
+        "objects": "100",
+        "path_waypoints": "8",
+        "path_length": "54.03532177209854",
+        "job_threads": "16",
+        "checksum": "315000"
+      }
+    },
+    {
+      "case": "ai-nav-path-batch",
+      "count": 1000,
+      "repeat": 0,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark",
+        "ai-nav-path-batch",
+        "1000",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "checks": {
+        "setup_ms": "7.564407",
+        "objects": "1000",
+        "path_waypoints": "11",
+        "path_length": "55.65269273519516",
+        "job_threads": "16",
+        "checksum": "4620000"
+      }
+    },
+    {
+      "case": "ai-navmesh-path-batch",
+      "count": 1000,
+      "repeat": 4,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark",
+        "ai-navmesh-path-batch",
+        "1000",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "checks": {
+        "setup_ms": "6.021237",
+        "objects": "1000",
+        "path_waypoints": "8",
+        "path_length": "54.03532177209854",
+        "job_threads": "16",
+        "checksum": "3150000"
+      }
+    },
+    {
+      "case": "ai-navmesh-path-batch",
+      "count": 1000,
+      "repeat": 1,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark",
+        "ai-navmesh-path-batch",
+        "1000",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "checks": {
+        "setup_ms": "5.84735",
+        "objects": "1000",
+        "path_waypoints": "8",
+        "path_length": "54.03532177209854",
+        "job_threads": "16",
+        "checksum": "3150000"
+      }
+    },
+    {
+      "case": "ai-nav-path",
+      "count": 100,
+      "repeat": 4,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark",
+        "ai-nav-path",
+        "100",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "checks": {
+        "setup_ms": "7.755727",
+        "objects": "100",
+        "path_waypoints": "11",
+        "path_length": "55.65269273519516",
+        "job_threads": "16",
+        "checksum": "462000"
+      }
+    },
+    {
+      "case": "ai-nav-path",
+      "count": 100,
+      "repeat": 1,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark",
+        "ai-nav-path",
+        "100",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "checks": {
+        "setup_ms": "7.344704",
+        "objects": "100",
+        "path_waypoints": "11",
+        "path_length": "55.65269273519516",
+        "job_threads": "16",
+        "checksum": "462000"
+      }
+    },
+    {
+      "case": "ai-nav-path-batch",
+      "count": 100,
+      "repeat": 4,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark",
+        "ai-nav-path-batch",
+        "100",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "checks": {
+        "setup_ms": "7.153715",
+        "objects": "100",
+        "path_waypoints": "11",
+        "path_length": "55.65269273519516",
+        "job_threads": "16",
+        "checksum": "462000"
+      }
+    },
+    {
+      "case": "ai-navmesh-path-batch",
+      "count": 100,
+      "repeat": 3,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark",
+        "ai-navmesh-path-batch",
+        "100",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "checks": {
+        "setup_ms": "6.017449",
+        "objects": "100",
+        "path_waypoints": "8",
+        "path_length": "54.03532177209854",
+        "job_threads": "16",
+        "checksum": "315000"
+      }
+    },
+    {
+      "case": "ai-navmesh-path-batch",
+      "count": 1000,
+      "repeat": 0,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark",
+        "ai-navmesh-path-batch",
+        "1000",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "checks": {
+        "setup_ms": "5.780865",
+        "objects": "1000",
+        "path_waypoints": "8",
+        "path_length": "54.03532177209854",
+        "job_threads": "16",
+        "checksum": "3150000"
+      }
+    },
+    {
+      "case": "ai-nav-path-batch",
+      "count": 1000,
+      "repeat": 4,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark",
+        "ai-nav-path-batch",
+        "1000",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "checks": {
+        "setup_ms": "7.367838",
+        "objects": "1000",
+        "path_waypoints": "11",
+        "path_length": "55.65269273519516",
+        "job_threads": "16",
+        "checksum": "4620000"
+      }
+    },
+    {
+      "case": "ai-nav-path",
+      "count": 100,
+      "repeat": 3,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark",
+        "ai-nav-path",
+        "100",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "checks": {
+        "setup_ms": "7.441657",
+        "objects": "100",
+        "path_waypoints": "11",
+        "path_length": "55.65269273519516",
+        "job_threads": "16",
+        "checksum": "462000"
+      }
+    },
+    {
+      "case": "ai-navmesh-path-batch",
+      "count": 100,
+      "repeat": 1,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark",
+        "ai-navmesh-path-batch",
+        "100",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "checks": {
+        "setup_ms": "5.652634",
+        "objects": "100",
+        "path_waypoints": "8",
+        "path_length": "54.03532177209854",
+        "job_threads": "16",
+        "checksum": "315000"
+      }
+    },
+    {
+      "case": "ai-navmesh-path-batch",
+      "count": 100,
+      "repeat": 4,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark",
+        "ai-navmesh-path-batch",
+        "100",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "checks": {
+        "setup_ms": "5.775165",
+        "objects": "100",
+        "path_waypoints": "8",
+        "path_length": "54.03532177209854",
+        "job_threads": "16",
+        "checksum": "315000"
+      }
+    },
+    {
+      "case": "ai-navmesh-path-batch",
+      "count": 100,
+      "repeat": 2,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark",
+        "ai-navmesh-path-batch",
+        "100",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "checks": {
+        "setup_ms": "5.772769",
+        "objects": "100",
+        "path_waypoints": "8",
+        "path_length": "54.03532177209854",
+        "job_threads": "16",
+        "checksum": "315000"
+      }
+    },
+    {
+      "case": "ai-nav-path-batch",
+      "count": 1000,
+      "repeat": 1,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark",
+        "ai-nav-path-batch",
+        "1000",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "checks": {
+        "setup_ms": "7.267449",
+        "objects": "1000",
+        "path_waypoints": "11",
+        "path_length": "55.65269273519516",
+        "job_threads": "16",
+        "checksum": "4620000"
+      }
+    },
+    {
+      "case": "ai-nav-path-batch",
+      "count": 100,
+      "repeat": 1,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark",
+        "ai-nav-path-batch",
+        "100",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "checks": {
+        "setup_ms": "7.677179",
+        "objects": "100",
+        "path_waypoints": "11",
+        "path_length": "55.65269273519516",
+        "job_threads": "16",
+        "checksum": "462000"
+      }
+    },
+    {
+      "case": "ai-nav-path",
+      "count": 100,
+      "repeat": 2,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark",
+        "ai-nav-path",
+        "100",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "checks": {
+        "setup_ms": "7.751448",
+        "objects": "100",
+        "path_waypoints": "11",
+        "path_length": "55.65269273519516",
+        "job_threads": "16",
+        "checksum": "462000"
+      }
+    },
+    {
+      "case": "ai-nav-path-batch",
+      "count": 100,
+      "repeat": 0,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark",
+        "ai-nav-path-batch",
+        "100",
+        "120",
+        "300"
+      ],
+      "exit": 0,
+      "checks": {
+        "setup_ms": "7.317323",
+        "objects": "100",
+        "path_waypoints": "11",
+        "path_length": "55.65269273519516",
+        "job_threads": "16",
+        "checksum": "462000"
+      }
+    }
+  ],
+  "completed": "2026-10-28T19:14:34.605992"
+}

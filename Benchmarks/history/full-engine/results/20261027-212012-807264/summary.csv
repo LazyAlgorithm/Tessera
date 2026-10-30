@@ -1,0 +1,11 @@
+engine,scenario,count,repeat,metric,mean_ms,median_ms,p95_ms,p99_ms
+tessera,render-skinning-cpu,100,0,frame_interval,4.229393086666667,4.184775500000001,4.46927,5.380222
+tessera,render-skinning-cpu,100,1,frame_interval,4.30952202,4.3030574999999995,4.521879,4.661231
+tessera,render-skinning-cpu,100,2,frame_interval,4.352334083333333,4.338614,4.526758,4.643838
+tessera,render-skinning-cpu,100,3,frame_interval,4.27878565,4.267735999999999,4.498916,4.705093
+tessera,render-skinning-cpu,100,4,frame_interval,4.326645603333334,4.307,4.585067,4.845347
+tessera,render-skinning-gpu,100,0,frame_interval,0.94878049,0.876713,1.451368,1.792068
+tessera,render-skinning-gpu,100,1,frame_interval,0.94528806,0.927303,1.119755,1.299131
+tessera,render-skinning-gpu,100,2,frame_interval,0.9368502,0.8767175,1.430639,1.550484
+tessera,render-skinning-gpu,100,3,frame_interval,0.93749331,0.8738520000000001,1.295746,1.508215
+tessera,render-skinning-gpu,100,4,frame_interval,0.93886205,0.897818,1.253807,1.36237

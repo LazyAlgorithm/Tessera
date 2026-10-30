@@ -1,0 +1,11 @@
+engine,scenario,count,repeat,metric,mean_ms,median_ms,p95_ms,p99_ms
+tessera,ai-nav-path,1,0,feature_batch,0.01164924,0.011592,0.011843,0.014838
+tessera,ai-nav-path,1,1,feature_batch,0.011907193333333333,0.011772,0.011922,0.01589
+tessera,ai-nav-path,1,2,feature_batch,0.011695436666666666,0.011652,0.011812,0.015249
+tessera,ai-nav-path,1,3,feature_batch,0.012598043333333333,0.0116465,0.014678,0.017042
+tessera,ai-nav-path,1,4,feature_batch,0.011877236666666667,0.0118575,0.012032,0.01576
+tessera,ai-nav-path,100,0,feature_batch,1.1832899233333334,1.1833745,1.19189,1.19704
+tessera,ai-nav-path,100,1,feature_batch,1.13982638,1.1403235,1.145964,1.150071
+tessera,ai-nav-path,100,2,feature_batch,1.19004637,1.1909285,1.200687,1.288772
+tessera,ai-nav-path,100,3,feature_batch,1.1428224466666668,1.1412550000000001,1.148989,1.152677
+tessera,ai-nav-path,100,4,feature_batch,1.1761134266666666,1.176426,1.183474,1.186861

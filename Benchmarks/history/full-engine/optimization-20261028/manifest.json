@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-28T07:59:11.332462",
+  "before": {
+    "navigation": "20261028-074911-208749",
+    "physics": "20261028-075021-111695"
+  },
+  "after": {
+    "navigation": "20261028-075808-392164",
+    "physics": "20261028-075811-227522"
+  },
+  "failures": {
+    "20261028-075808-392164": [],
+    "20261028-075811-227522": []
+  },
+  "statistics": "median of process medians",
+  "unity": "frozen CONFIRMATION.md values, not rerun"
+}

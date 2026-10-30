@@ -1,0 +1,17 @@
+{
+  "Engine/src/AI/NavigationCrowdIndex.bf": "98f2591f036b24ef185a300a958142ff4d8435dd38c5f78315645d0607f90950",
+  "Engine/src/AI/NavigationAgent.bf": "34934658b17b80ff3dee198658e72727936f385f877d50ed0cd0ba3a7efe1b92",
+  "Engine/src/AI/NavigationData.bf": "7e8c50c87f5b4d60dc6c7ad42696e4f75c3a13a42566fedb41fa6f3e9930d2cd",
+  "Engine/src/AI/NavigationSurface.bf": "f808e72d2e122b50f367b496f4e9186f6e01c96cf26a78a3775286248f240587",
+  "Engine/src/Scene/Transform.bf": "fca1fa8f640732da6d87cc56d4a84b5f3e6b7cf7133898a9e9ac996c4d98e630",
+  "Engine/src/Scene/Scene.bf": "ab239c8e8235d046921e77d3df6423ae057fa8e17b1830742a07b3411c5bc4b8",
+  "Engine/src/Physics/PhysicsWorld.bf": "6c7834a0077af9deed714828926c102222007ac4cc787eb210e7bcbddf75e88e",
+  "Tests/Navigation/src/Program.bf": "983a4088411b4c78022d12e01254008bd3e6e0a9e3844102a8e0ab941d32c717",
+  "Tests/ShapeQueries/src/Program.bf": "eee64c9119bf98ba1d1fffaa591596d6d7d1731d401e7680b67865d2a26ec8a4",
+  "Benchmarks/full-engine/navigation-load/src/Program.bf": "d2f1a0f14d55554f73a7622c1bb658af123f1c1c0bd5e24f4cfcc40270680a2e",
+  "Benchmarks/full-engine/navigation-load/BeefProj.toml": "3d60dcacfff5622f085c47ac719350185271d392b3ab6754ebece9cc4e2f50a8",
+  "Benchmarks/full-engine/navigation-load/BeefSpace.toml": "ffb7330a22d72260e38a5a85a813d8fbef4a38027253156c6efdab3e62fbe059",
+  "Benchmarks/full-engine/features/src/Program.bf": "838c90864b0ef8c3c90afb7ffddbc545098c48298ded9d988ce45c6489ea2b1f",
+  "docs/navigation.md": "3b3c97e816bc66566b24f333c841beddaf5d2df177eb0f53943530fe047393b5",
+  "docs/physics-queries.md": "fce3c3f09e62a5b834807bd4832ac27ac6a9075f8d56c6ccd73fbe9b4d38db66"
+}

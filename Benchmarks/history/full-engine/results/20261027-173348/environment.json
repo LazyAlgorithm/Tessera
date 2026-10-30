@@ -1,0 +1,71 @@
+{
+  "utc": "2026-10-27T22:33:48Z",
+  "arguments": {
+    "features": true,
+    "native_project": "extras",
+    "unity_variant": "unity-extras",
+    "suite": "all",
+    "scenarios": [
+      "model-cube",
+      "model-extrude",
+      "model-subdivide",
+      "model-bevel",
+      "model-weld",
+      "asset-image-decode",
+      "save-json-encode",
+      "save-json-decode",
+      "physics-joints",
+      "audio-mix",
+      "render-ao",
+      "render-dof",
+      "render-bloom",
+      "render-motion-blur",
+      "render-grading",
+      "render-transparency",
+      "render-reflections"
+    ],
+    "counts": [
+      1
+    ],
+    "warmup": 10,
+    "samples": 20,
+    "repeats": 1,
+    "timeout": 20,
+    "engines": [
+      "tessera",
+      "unity"
+    ],
+    "screenshots": false
+  },
+  "platform": "Linux-7.2.11-200.nobara.fc44.x86_64-x86_64-with-glibc2.43",
+  "cpu": "Architecture:                            x86_64\nCPU op-mode(s):                          32-bit, 64-bit\nAddress sizes:                           48 bits physical, 48 bits virtual\nByte Order:                              Little Endian\nCPU(s):                                  24\nOn-line CPU(s) list:                     0-23\nVendor ID:                               AuthenticAMD\nModel name:                              AMD Ryzen 9 7900X 12-Core Processor\nCPU family:                              25\nModel:                                   97\nThread(s) per core:                      2\nCore(s) per socket:                      12\nSocket(s):                               1\nStepping:                                2\nFrequency boost:                         enabled\nCPU(s) scaling MHz:                      69%\nCPU max MHz:                             5737.9858\nCPU min MHz:                             414.7950\nBogoMIPS:                                9381.84\nFlags:                                   fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good amd_lbr_v2 nopl xtopology nonstop_tsc cpuid extd_apicid aperfmperf rapl pni pclmulqdq monitor ssse3 fma cx16 sse4_1 sse4_2 movbe popcnt aes xsave avx f16c rdrand lahf_lm cmp_legacy svm extapic cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw ibs skinit wdt tce topoext perfctr_core perfctr_nb bpext perfctr_llc mwaitx cpuid_fault cpb cat_l3 cdp_l3 hw_pstate ssbd mba perfmon_v2 ibrs ibpb stibp ibrs_enhanced vmmcall fsgsbase bmi1 avx2 smep bmi2 erms invpcid cqm rdt_a avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves cqm_llc cqm_occup_llc cqm_mbm_total cqm_mbm_local user_shstk avx512_bf16 clzero irperf xsaveerptr rdpru wbnoinvd cppc arat npt lbrv svm_lock nrip_save tsc_scale vmcb_clean flushbyasid decodeassists pausefilter pfthreshold avic vgif x2avic v_spec_ctrl vnmi avx512vbmi umip pku ospke avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid overflow_recov succor smca fsrm flush_l1d amd_lbr_pmc_freeze\nVirtualization:                          AMD-V\nL1d cache:                               384 KiB (12 instances)\nL1i cache:                               384 KiB (12 instances)\nL2 cache:                                12 MiB (12 instances)\nL3 cache:                                64 MiB (2 instances)\nNUMA node(s):                            1\nNUMA node0 CPU(s):                       0-23\nVulnerability Gather data sampling:      Not affected\nVulnerability Ghostwrite:                Not affected\nVulnerability Indirect target selection: Not affected\nVulnerability Itlb multihit:             Not affected\nVulnerability L1tf:                      Not affected\nVulnerability Mds:                       Not affected\nVulnerability Meltdown:                  Not affected\nVulnerability Mmio stale data:           Not affected\nVulnerability Old microcode:             Not affected\nVulnerability Reg file data sampling:    Not affected\nVulnerability Retbleed:                  Not affected\nVulnerability Spec rstack overflow:      Mitigation; Safe RET\nVulnerability Spec store bypass:         Mitigation; Speculative Store Bypass disabled via prctl\nVulnerability Spectre v1:                Mitigation; usercopy/swapgs barriers and __user pointer sanitization\nVulnerability Spectre v2:                Mitigation; Enhanced / Automatic IBRS; IBPB conditional; STIBP always-on; PBRSB-eIBRS Not affected; BHI Not affected\nVulnerability Srbds:                     Not affected\nVulnerability Tsa:                       Mitigation; Clear CPU buffers\nVulnerability Tsx async abort:           Not affected\nVulnerability Vmscape:                   Mitigation; IBPB before exit to userspace\n",
+  "gpu": "Tue Oct 27 17:33:48 2026       \n+-----------------------------------------------------------------------------------------+\n| NVIDIA-SMI 595.104.02             Driver Version: 595.104.02     CUDA Version: 13.2     |\n+-----------------------------------------+------------------------+----------------------+\n| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |\n| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |\n|                                         |                        |               MIG M. |\n|=========================================+========================+======================|\n|   0  NVIDIA GeForce RTX 3070        Off |   00000000:01:00.0  On |                  N/A |\n|  0%   48C    P8             21W /  270W |    1262MiB /   8192MiB |     12%      Default |\n|                                         |                        |                  N/A |\n+-----------------------------------------+------------------------+----------------------+\n\n+-----------------------------------------------------------------------------------------+\n| Processes:                                                                              |\n|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |\n|        ID   ID                                                               Usage      |\n|=========================================================================================|\n|    0   N/A  N/A            2123    C+G   /usr/bin/kwin_wayland                   108MiB |\n|    0   N/A  N/A            2236      G   /usr/bin/plasma-keyboard                 50MiB |\n|    0   N/A  N/A            2244      G   /usr/bin/Xwayland                         4MiB |\n|    0   N/A  N/A            2298      G   /usr/bin/plasmashell                     52MiB |\n|    0   N/A  N/A            2319      G   ...it-kde-authentication-agent-1          3MiB |\n|    0   N/A  N/A          119032    C+G   ...Debug_Linux64/Sandbox/Sandbox        620MiB |\n|    0   N/A  N/A          119830      G   /app/lib/firefox/firefox                 42MiB |\n|    0   N/A  N/A          132817      G   /usr/bin/kdeconnect-app                  21MiB |\n|    0   N/A  N/A          141380      G   ...rack-uuid=3190708988185955192         35MiB |\n|    0   N/A  N/A          142052      G   /usr/bin/systemsettings                  26MiB |\n|    0   N/A  N/A          147362    C+G   /usr/bin/python3                         31MiB |\n+-----------------------------------------------------------------------------------------+\n",
+  "glxinfo": "name of display: :0\ndisplay: :0  screen: 0\ndirect rendering: Yes\nMemory info (GL_NVX_gpu_memory_info):\n    Dedicated video memory: 8192 MB\n    Total available memory: 8192 MB\n    Currently available dedicated video memory: 6565 MB\nOpenGL vendor string: NVIDIA Corporation\nOpenGL renderer string: NVIDIA GeForce RTX 3070/PCIe/SSE2\nOpenGL core profile version string: 4.6.0 NVIDIA 595.104.02\nOpenGL core profile shading language version string: 4.60 NVIDIA\nOpenGL core profile context flags: (none)\nOpenGL core profile profile mask: core profile\n\nOpenGL version string: 4.6.0 NVIDIA 595.104.02\nOpenGL shading language version string: 4.60 NVIDIA\nOpenGL context flags: (none)\nOpenGL profile mask: (none)\n\nOpenGL ES profile version string: OpenGL ES 3.2 NVIDIA 595.104.02\nOpenGL ES profile shading language version string: OpenGL ES GLSL ES 3.20\n\n",
+  "display": {
+    "DISPLAY": ":0",
+    "WAYLAND_DISPLAY": "wayland-0",
+    "XDG_SESSION_TYPE": "wayland"
+  },
+  "engine_source_git": "?? .github/\n?? .gitignore\n?? BeefSpace.toml\n?? Benchmarks/\n?? Editor/\n?? Engine/\n?? Launcher/\n?? README.md\n?? RELEASE_NOTES.md\n?? Samples/\n?? THIRD_PARTY_LICENSES.txt\n?? Tests/\n?? build.sh\n?? docs/\n?? icon.png\n?? icon.svg\n?? native/\n?? tessera\n?? third_party/\n?? tools/\n",
+  "native_build_type": "Release (-O3 -DNDEBUG)",
+  "tessera_build": "Beef Release; GNU linker; ThinLTO unavailable",
+  "unity_build": "6000.3.27f1 Mono standalone, BuildOptions.None, development=false, Vulkan, linear color, no MSAA, vsync=0",
+  "sources": {
+    "tessera/src/Program.bf": "c8137833676622fe92464b398630b404962eb9099a1ab93f8a009f8965deacb5",
+    "features/src/Program.bf": "dff524c981b87ef2a5385c6fa833c096b811d67809cc195d4b110499d7a88207",
+    "extras/src/Program.bf": "6972d73e49c719449c8b56d30a2348e8c7023dcf10ab8fd52e71cdf09da82956",
+    "unity/Assets/ExtraWorkloads.cs": "d703642562d5384da44eeb807344dfebb258903c457420e1e7acea61d1c9c8b8",
+    "unity/Assets/FeatureWorkloads.cs": "e64578c7d5c40c377974bda3ec9df5e7f6127c483a18e7595710d68384e1f64e",
+    "unity/Assets/EngineBenchmark.cs": "ab96ea56fbaae3514919f0584b7f7cb437b9b737b542579027ef5cefbaeaef0d",
+    "unity/Assets/BenchScript.cs": "9ffe657c6f133dbfdb4f6d6965849f38b72af1c52a5ae3d190de4603fb7ab508",
+    "unity/Assets/Editor/BenchmarkBuild.cs": "50e47e348b4e9a968b990aa83d48a4dd54dc672d33a1957d1907c76b9a32dcd2",
+    "update_status.py": "78d92d18bf2ce63e7c76644668feb43a25bb15efd7cfe3ef1f0d73b6dcb1fc01",
+    "run.py": "caf9936db72b3e2425530b2e28adc4d77fd10daea14812f9650f330b93a53d47",
+    "make_benchmark_rig.py": "cdf790216998cfb8963ad52ae3f50a8adb91b6925449f8e98292dbc993e0f527",
+    "summarize.py": "97c9c68f8f91380ac1f031bd3adeccbd19caf7f194e255f0808db6b7af420267"
+  },
+  "binary_sha256": {
+    "tessera": "5710188f42e904460d0f6157f061b25c138286a217aabf36e80521c9cf33268e",
+    "unity": "8027f7d1f9ae7dacfc826fb218adcc1ae7464af098a8a59397e7531c0f7ec0bc"
+  }
+}

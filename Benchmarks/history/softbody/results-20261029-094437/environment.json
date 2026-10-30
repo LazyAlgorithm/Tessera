@@ -1,0 +1,25 @@
+{
+  "fixed_tick_hz": 60,
+  "physics_job_workers": 3,
+  "render_resolution": [
+    1280,
+    720
+  ],
+  "vsync": false,
+  "shadows": false,
+  "antialias": false,
+  "render_scale": 1,
+  "cpu_mode": "one Scene.FixedUpdate plus Scene.Update, includes LateUpdate readback/normals/tubes, no GPU device",
+  "render_mode": "one fixed tick plus one Update and rendered frame per sample, uncapped; one physics tick per rendered frame intentionally stresses high FPS",
+  "warmup": "60 or 120; per-command manifest",
+  "samples": "120,180,240; per-command manifest",
+  "repeats": "1 for CPU exploration,3 for rendered confirmation and sensitivity/resting; initial CPU sweep3",
+  "rest_prestep_ticks": 900,
+  "native_build_type": "Release",
+  "beef_build_config": "Release",
+  "benchmark_profile_recordings": "separate runs, excluded from capacity timings",
+  "desktop_load": "normal desktop; sequential unpinned runs, uncontrolled clocks/thermals",
+  "display": ":0",
+  "session_type": "wayland",
+  "sampling_strategy": "Initial sweeps: 3 processes,120 warmup,240 samples. Remaining exploratory CPU sweeps:1 process,60 warmup,120 samples. Rendered confirmation:3 processes,60 warmup,180 samples. Settings for each process are exact in manifest args."
+}

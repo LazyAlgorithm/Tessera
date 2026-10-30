@@ -1,0 +1,6 @@
+engine,scenario,count,repeat,metric,mean_ms,median_ms,p95_ms,p99_ms
+tessera,render-skinning-gpu,1000,0,frame_interval,11.46543594,10.018644,20.157595,20.357271
+tessera,render-skinning-gpu,1000,1,frame_interval,11.732574783333334,9.999473,20.175188,20.49033
+tessera,render-skinning-gpu,1000,2,frame_interval,11.599388263333333,10.0112205,20.148228,20.315732
+tessera,render-skinning-gpu,1000,3,frame_interval,13.132282570000001,10.032275,20.243486,20.392928
+tessera,render-skinning-gpu,1000,4,frame_interval,12.400179016666666,10.007975,20.120355,20.202209

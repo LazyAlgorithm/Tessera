@@ -1,0 +1,47 @@
+{
+  "primary_timing_processes": 829,
+  "primary_finite_passes": 825,
+  "primary_nonfinite_rejections": [
+    "cloth-32-5-1-active-cpu-0",
+    "cloth-32-5-1-active-render-0",
+    "cloth-contact-32-5-1-active-cpu-0",
+    "cloth-contact-32-5-1-active-render-0"
+  ],
+  "diagnostic_processes": 69,
+  "snapshot_hash_mismatches": [],
+  "finished": "2026-10-29T10:28:36.846892",
+  "geometry_exclusions": [
+    {
+      "case": "jelly",
+      "resolution": "16",
+      "iterations": "5",
+      "count": "1",
+      "span_m": "229.18704",
+      "max_edge_ratio": "3748.9998"
+    },
+    {
+      "case": "jelly",
+      "resolution": "16",
+      "iterations": "5",
+      "count": "10",
+      "span_m": "540.0182",
+      "max_edge_ratio": "7802.766"
+    },
+    {
+      "case": "jelly-ball",
+      "resolution": "16",
+      "iterations": "5",
+      "count": "10",
+      "span_m": "474.73572",
+      "max_edge_ratio": "14504.502"
+    },
+    {
+      "case": "jelly-contact",
+      "resolution": "16",
+      "iterations": "5",
+      "count": "1",
+      "span_m": "330.8228",
+      "max_edge_ratio": "5697.625"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "Engine/src/AI/NavigationData.bf": "ea36cf3a956f5cec2cbe84bfe0e65daa05af4791b7597ff1480305ee93c7d345",
+  "Engine/src/Physics/PhysicsWorld.bf": "a47f8a7adadcff70fb10affc45eb6faae8263016119d8437a95282f00d9e61ae",
+  "Engine/src/Platform/Jolt.bf": "474a345b0b98b1446fc897f160a149d79d5429ca0c65f7d84c0ee149823b0cc0",
+  "native/CMakeLists.txt": "6d9f7cac744946461eaec57003aa84730e5c9f52e0d1c6393cec14858af89ca1",
+  "native/tessera_physics.cpp": "f59e9683f4c1c62df45722185f34305e64c55358b16fc67eb58faa99db362f67",
+  "native/tessera_collision_profile.cpp": "ecf8d4ae233b3a62519caf43a381c586f57e71a8605f24c67d037165b439b12a",
+  "native/tessera_overlap_contacts.cpp": "90f03ef415b9c43c8f2738f5937fa27bde168e27b05d4c632d7c83dd9454b509",
+  "Tests/Navigation/src/Program.bf": "256450dbc260aed72b518ee430f2b985bf53f264fa904d7c2cc5001a6c2e02f6",
+  "Tests/ShapeQueries/src/Program.bf": "0b8cfc76beff7cad159fb4db4c9215388f5e2a96a05dfdde5dc68a2712b246a3",
+  "Benchmarks/full-engine/tessera/src/Program.bf": "5b833d9125c513db487b2e98855271b5733eeef58777a38a6cc3187a3a4d1e41",
+  "docs/navigation.md": "61b07fc3863617cc70a4a5519523b6b8f4d1db78c6b96c5d243c02d73649029a",
+  "docs/physics-queries.md": "9966f7e9026bbd4e061ffde299bebd28fbd386546de5ccc5267789d0e363ee08",
+  "docs/profiler.md": "310639a9f1a3d2ed440adb9d936668a2d5bd98aae19f97834c45a0cf980c438c"
+}

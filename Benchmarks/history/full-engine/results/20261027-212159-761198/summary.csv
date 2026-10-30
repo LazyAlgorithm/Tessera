@@ -1,0 +1,11 @@
+engine,scenario,count,repeat,metric,mean_ms,median_ms,p95_ms,p99_ms
+tessera,audio-mix,100,0,feature_batch,0.47722958,0.44908400000000004,0.587414,0.828858
+tessera,audio-mix,100,1,feature_batch,0.4863289,0.44917949999999995,0.712399,1.018855
+tessera,audio-mix,100,2,feature_batch,0.4624239,0.458371,0.467709,0.607492
+tessera,audio-mix,100,3,feature_batch,0.44904794,0.447025,0.465245,0.486925
+tessera,audio-mix,100,4,feature_batch,0.4601834,0.45986899999999997,0.465425,0.466506
+tessera,asset-image-decode,100,0,feature_batch,108.11380956,108.1478435,108.55789,109.481626
+tessera,asset-image-decode,100,1,feature_batch,107.60894642,107.3979195,108.577557,108.71787
+tessera,asset-image-decode,100,2,feature_batch,106.44084628,106.308592,107.040367,108.171964
+tessera,asset-image-decode,100,3,feature_batch,107.11934691,107.585632,108.077397,108.429779
+tessera,asset-image-decode,100,4,feature_batch,106.44532726999999,106.41425100000001,106.706621,107.065945

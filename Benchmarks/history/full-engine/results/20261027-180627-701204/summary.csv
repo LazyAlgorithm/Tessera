@@ -1,0 +1,4 @@
+engine,scenario,count,repeat,metric,mean_ms,median_ms,p95_ms,p99_ms
+tessera,editor-api-index,1,0,editor_algorithm_batch,23.08725422,23.075309,23.360826,23.563487
+tessera,editor-api-index,1,1,editor_algorithm_batch,22.87826808,22.8780685,22.917532,22.949663
+tessera,editor-api-index,1,2,editor_algorithm_batch,22.96855991,22.943967,23.257782,23.401162

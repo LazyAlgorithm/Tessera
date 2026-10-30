@@ -1,0 +1,13 @@
+engine,scenario,count,repeat,metric,mean_ms,median_ms,p95_ms,p99_ms
+tessera,animator-clips,100,0,feature_batch,0.2814493533333333,0.28487,0.293552,0.296497
+tessera,animator-clips,100,1,feature_batch,0.28303347,0.286975,0.294875,0.297669
+tessera,animator-clips,100,2,feature_batch,0.28050054,0.284319,0.29284,0.297298
+tessera,animator-clips,1000,0,feature_batch,2.8372379166666666,2.879953,2.940125,2.969852
+tessera,animator-clips,1000,1,feature_batch,2.84761283,2.8737215,3.019876,3.135002
+tessera,animator-clips,1000,2,feature_batch,2.8400054733333335,2.8840399999999997,2.964281,2.985922
+tessera,animator-layered,100,0,feature_batch,1.4234844033333334,1.4395205,1.453442,1.459493
+tessera,animator-layered,100,1,feature_batch,1.4222963733333334,1.436986,1.4576,1.465384
+tessera,animator-layered,100,2,feature_batch,1.4177103266666666,1.4296470000000001,1.45272,1.462408
+tessera,animator-layered,1000,0,feature_batch,14.63777157,14.766583,14.978241,15.384745
+tessera,animator-layered,1000,1,feature_batch,14.63943348,14.752346500000002,15.106632,15.553472
+tessera,animator-layered,1000,2,feature_batch,14.800139296666666,14.90563,15.235795,15.365469

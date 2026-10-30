@@ -1,0 +1,7 @@
+engine,scenario,count,repeat,metric,mean_ms,median_ms,p95_ms,p99_ms
+tessera,animation-retarget,1,0,feature_batch,0.827576,0.827576,0.827576,0.827576
+tessera,model-csg-subtract,1,0,feature_batch,0.059923,0.059923,0.059923,0.059923
+tessera,model-uv-smart,1,0,feature_batch,0.038823,0.038823,0.038823,0.038823
+tessera,model-large-subdivide,1,0,feature_batch,72.795636,72.795636,72.795636,72.795636
+tessera,model-large-uv-smart,1,0,feature_batch,20.330891,20.330891,20.330891,20.330891
+tessera,anti-cheat-process-scan,1,0,feature_batch,0.023925,0.023925,0.023925,0.023925

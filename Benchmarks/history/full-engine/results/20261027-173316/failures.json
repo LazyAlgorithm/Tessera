@@ -1,0 +1,10 @@
+[
+  {
+    "run": "tessera-audio-mix-1-0",
+    "error": "exit 1"
+  },
+  {
+    "run": "tessera-audio-hrtf-1-0",
+    "error": "exit 1"
+  }
+]

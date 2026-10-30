@@ -1,0 +1,11 @@
+{
+  "CPU": "Ryzen 9 7900X",
+  "GPU": "RTX 3070 8 GB",
+  "build": "Beef Release, GNU linker, ThinLTO unavailable; native Release",
+  "timesteps": "one fixed 60 Hz physics tick per sample/frame",
+  "graphics": "Vulkan; render=1280x720 no AA/shadows; hq=1920x1080 AA+shadows",
+  "sampling": "Exact warmup/samples/repeats in manifest commands; summary contains medians and worst-process p95",
+  "scheduling": "Sequential unpinned processes, ordinary desktop, uncontrolled background load/clocks",
+  "scope": "Single-player processes; no live network, no production queue or compute implementation",
+  "timing_warning": "SAMPLE timings exclude reset/validation; full FRAME intervals include that benchmark housekeeping."
+}

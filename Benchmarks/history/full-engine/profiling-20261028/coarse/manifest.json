@@ -1,0 +1,486 @@
+{
+  "started": "2026-10-28T08:34:47.567490",
+  "jobs": [
+    {
+      "case": "physics-overlap-sphere",
+      "count": 1000,
+      "mode": "off",
+      "repeat": 0,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/tessera/build/Release_Linux64/Benchmark/Benchmark",
+        "physics-overlap-sphere",
+        "1000",
+        "120",
+        "64"
+      ],
+      "exit": 0,
+      "binary_sha256": "f4afc90194de6a30e848d0b7ceb9e9beb42b5959e27ae9a3f48bbcf9101cbc82"
+    },
+    {
+      "case": "physics-overlap-sphere",
+      "count": 1000,
+      "mode": "off",
+      "repeat": 1,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/tessera/build/Release_Linux64/Benchmark/Benchmark",
+        "physics-overlap-sphere",
+        "1000",
+        "120",
+        "64"
+      ],
+      "exit": 0,
+      "binary_sha256": "f4afc90194de6a30e848d0b7ceb9e9beb42b5959e27ae9a3f48bbcf9101cbc82"
+    },
+    {
+      "case": "physics-overlap-sphere",
+      "count": 1000,
+      "mode": "off",
+      "repeat": 2,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/tessera/build/Release_Linux64/Benchmark/Benchmark",
+        "physics-overlap-sphere",
+        "1000",
+        "120",
+        "64"
+      ],
+      "exit": 0,
+      "binary_sha256": "f4afc90194de6a30e848d0b7ceb9e9beb42b5959e27ae9a3f48bbcf9101cbc82"
+    },
+    {
+      "case": "physics-overlap-sphere",
+      "count": 1000,
+      "mode": "on",
+      "repeat": 0,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/tessera/build/Release_Linux64/Benchmark/Benchmark",
+        "physics-overlap-sphere",
+        "1000",
+        "120",
+        "64",
+        "--capture",
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/profiling-20261028/physics-overlap-sphere-1000-on-0.tprofile"
+      ],
+      "exit": 0,
+      "binary_sha256": "f4afc90194de6a30e848d0b7ceb9e9beb42b5959e27ae9a3f48bbcf9101cbc82"
+    },
+    {
+      "case": "physics-overlap-sphere",
+      "count": 1000,
+      "mode": "on",
+      "repeat": 1,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/tessera/build/Release_Linux64/Benchmark/Benchmark",
+        "physics-overlap-sphere",
+        "1000",
+        "120",
+        "64",
+        "--capture",
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/profiling-20261028/physics-overlap-sphere-1000-on-1.tprofile"
+      ],
+      "exit": 0,
+      "binary_sha256": "f4afc90194de6a30e848d0b7ceb9e9beb42b5959e27ae9a3f48bbcf9101cbc82"
+    },
+    {
+      "case": "physics-overlap-sphere",
+      "count": 1000,
+      "mode": "on",
+      "repeat": 2,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/tessera/build/Release_Linux64/Benchmark/Benchmark",
+        "physics-overlap-sphere",
+        "1000",
+        "120",
+        "64",
+        "--capture",
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/profiling-20261028/physics-overlap-sphere-1000-on-2.tprofile"
+      ],
+      "exit": 0,
+      "binary_sha256": "f4afc90194de6a30e848d0b7ceb9e9beb42b5959e27ae9a3f48bbcf9101cbc82"
+    },
+    {
+      "case": "physics-overlap-capsule",
+      "count": 1000,
+      "mode": "off",
+      "repeat": 0,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/tessera/build/Release_Linux64/Benchmark/Benchmark",
+        "physics-overlap-capsule",
+        "1000",
+        "120",
+        "64"
+      ],
+      "exit": 0,
+      "binary_sha256": "f4afc90194de6a30e848d0b7ceb9e9beb42b5959e27ae9a3f48bbcf9101cbc82"
+    },
+    {
+      "case": "physics-overlap-capsule",
+      "count": 1000,
+      "mode": "off",
+      "repeat": 1,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/tessera/build/Release_Linux64/Benchmark/Benchmark",
+        "physics-overlap-capsule",
+        "1000",
+        "120",
+        "64"
+      ],
+      "exit": 0,
+      "binary_sha256": "f4afc90194de6a30e848d0b7ceb9e9beb42b5959e27ae9a3f48bbcf9101cbc82"
+    },
+    {
+      "case": "physics-overlap-capsule",
+      "count": 1000,
+      "mode": "off",
+      "repeat": 2,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/tessera/build/Release_Linux64/Benchmark/Benchmark",
+        "physics-overlap-capsule",
+        "1000",
+        "120",
+        "64"
+      ],
+      "exit": 0,
+      "binary_sha256": "f4afc90194de6a30e848d0b7ceb9e9beb42b5959e27ae9a3f48bbcf9101cbc82"
+    },
+    {
+      "case": "physics-overlap-capsule",
+      "count": 1000,
+      "mode": "on",
+      "repeat": 0,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/tessera/build/Release_Linux64/Benchmark/Benchmark",
+        "physics-overlap-capsule",
+        "1000",
+        "120",
+        "64",
+        "--capture",
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/profiling-20261028/physics-overlap-capsule-1000-on-0.tprofile"
+      ],
+      "exit": 0,
+      "binary_sha256": "f4afc90194de6a30e848d0b7ceb9e9beb42b5959e27ae9a3f48bbcf9101cbc82"
+    },
+    {
+      "case": "physics-overlap-capsule",
+      "count": 1000,
+      "mode": "on",
+      "repeat": 1,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/tessera/build/Release_Linux64/Benchmark/Benchmark",
+        "physics-overlap-capsule",
+        "1000",
+        "120",
+        "64",
+        "--capture",
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/profiling-20261028/physics-overlap-capsule-1000-on-1.tprofile"
+      ],
+      "exit": 0,
+      "binary_sha256": "f4afc90194de6a30e848d0b7ceb9e9beb42b5959e27ae9a3f48bbcf9101cbc82"
+    },
+    {
+      "case": "physics-overlap-capsule",
+      "count": 1000,
+      "mode": "on",
+      "repeat": 2,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/tessera/build/Release_Linux64/Benchmark/Benchmark",
+        "physics-overlap-capsule",
+        "1000",
+        "120",
+        "64",
+        "--capture",
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/profiling-20261028/physics-overlap-capsule-1000-on-2.tprofile"
+      ],
+      "exit": 0,
+      "binary_sha256": "f4afc90194de6a30e848d0b7ceb9e9beb42b5959e27ae9a3f48bbcf9101cbc82"
+    },
+    {
+      "case": "physics-overlap-box",
+      "count": 1000,
+      "mode": "off",
+      "repeat": 0,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/tessera/build/Release_Linux64/Benchmark/Benchmark",
+        "physics-overlap-box",
+        "1000",
+        "120",
+        "64"
+      ],
+      "exit": 0,
+      "binary_sha256": "f4afc90194de6a30e848d0b7ceb9e9beb42b5959e27ae9a3f48bbcf9101cbc82"
+    },
+    {
+      "case": "physics-overlap-box",
+      "count": 1000,
+      "mode": "off",
+      "repeat": 1,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/tessera/build/Release_Linux64/Benchmark/Benchmark",
+        "physics-overlap-box",
+        "1000",
+        "120",
+        "64"
+      ],
+      "exit": 0,
+      "binary_sha256": "f4afc90194de6a30e848d0b7ceb9e9beb42b5959e27ae9a3f48bbcf9101cbc82"
+    },
+    {
+      "case": "physics-overlap-box",
+      "count": 1000,
+      "mode": "off",
+      "repeat": 2,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/tessera/build/Release_Linux64/Benchmark/Benchmark",
+        "physics-overlap-box",
+        "1000",
+        "120",
+        "64"
+      ],
+      "exit": 0,
+      "binary_sha256": "f4afc90194de6a30e848d0b7ceb9e9beb42b5959e27ae9a3f48bbcf9101cbc82"
+    },
+    {
+      "case": "physics-overlap-box",
+      "count": 1000,
+      "mode": "on",
+      "repeat": 0,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/tessera/build/Release_Linux64/Benchmark/Benchmark",
+        "physics-overlap-box",
+        "1000",
+        "120",
+        "64",
+        "--capture",
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/profiling-20261028/physics-overlap-box-1000-on-0.tprofile"
+      ],
+      "exit": 0,
+      "binary_sha256": "f4afc90194de6a30e848d0b7ceb9e9beb42b5959e27ae9a3f48bbcf9101cbc82"
+    },
+    {
+      "case": "physics-overlap-box",
+      "count": 1000,
+      "mode": "on",
+      "repeat": 1,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/tessera/build/Release_Linux64/Benchmark/Benchmark",
+        "physics-overlap-box",
+        "1000",
+        "120",
+        "64",
+        "--capture",
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/profiling-20261028/physics-overlap-box-1000-on-1.tprofile"
+      ],
+      "exit": 0,
+      "binary_sha256": "f4afc90194de6a30e848d0b7ceb9e9beb42b5959e27ae9a3f48bbcf9101cbc82"
+    },
+    {
+      "case": "physics-overlap-box",
+      "count": 1000,
+      "mode": "on",
+      "repeat": 2,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/tessera/build/Release_Linux64/Benchmark/Benchmark",
+        "physics-overlap-box",
+        "1000",
+        "120",
+        "64",
+        "--capture",
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/profiling-20261028/physics-overlap-box-1000-on-2.tprofile"
+      ],
+      "exit": 0,
+      "binary_sha256": "f4afc90194de6a30e848d0b7ceb9e9beb42b5959e27ae9a3f48bbcf9101cbc82"
+    },
+    {
+      "case": "ai-nav-path",
+      "count": 1,
+      "mode": "off",
+      "repeat": 0,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark",
+        "ai-nav-path",
+        "1",
+        "120",
+        "64"
+      ],
+      "exit": 0,
+      "binary_sha256": "6f58cf968720600abc120fc6da35b43c2119890edff9580d43f18e2a90d838c6"
+    },
+    {
+      "case": "ai-nav-path",
+      "count": 1,
+      "mode": "off",
+      "repeat": 1,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark",
+        "ai-nav-path",
+        "1",
+        "120",
+        "64"
+      ],
+      "exit": 0,
+      "binary_sha256": "6f58cf968720600abc120fc6da35b43c2119890edff9580d43f18e2a90d838c6"
+    },
+    {
+      "case": "ai-nav-path",
+      "count": 1,
+      "mode": "off",
+      "repeat": 2,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark",
+        "ai-nav-path",
+        "1",
+        "120",
+        "64"
+      ],
+      "exit": 0,
+      "binary_sha256": "6f58cf968720600abc120fc6da35b43c2119890edff9580d43f18e2a90d838c6"
+    },
+    {
+      "case": "ai-nav-path",
+      "count": 1,
+      "mode": "on",
+      "repeat": 0,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark",
+        "ai-nav-path",
+        "1",
+        "120",
+        "64",
+        "--capture",
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/profiling-20261028/ai-nav-path-1-on-0.tprofile"
+      ],
+      "exit": 0,
+      "binary_sha256": "6f58cf968720600abc120fc6da35b43c2119890edff9580d43f18e2a90d838c6"
+    },
+    {
+      "case": "ai-nav-path",
+      "count": 1,
+      "mode": "on",
+      "repeat": 1,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark",
+        "ai-nav-path",
+        "1",
+        "120",
+        "64",
+        "--capture",
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/profiling-20261028/ai-nav-path-1-on-1.tprofile"
+      ],
+      "exit": 0,
+      "binary_sha256": "6f58cf968720600abc120fc6da35b43c2119890edff9580d43f18e2a90d838c6"
+    },
+    {
+      "case": "ai-nav-path",
+      "count": 1,
+      "mode": "on",
+      "repeat": 2,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark",
+        "ai-nav-path",
+        "1",
+        "120",
+        "64",
+        "--capture",
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/profiling-20261028/ai-nav-path-1-on-2.tprofile"
+      ],
+      "exit": 0,
+      "binary_sha256": "6f58cf968720600abc120fc6da35b43c2119890edff9580d43f18e2a90d838c6"
+    },
+    {
+      "case": "ai-nav-path",
+      "count": 100,
+      "mode": "off",
+      "repeat": 0,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark",
+        "ai-nav-path",
+        "100",
+        "120",
+        "64"
+      ],
+      "exit": 0,
+      "binary_sha256": "6f58cf968720600abc120fc6da35b43c2119890edff9580d43f18e2a90d838c6"
+    },
+    {
+      "case": "ai-nav-path",
+      "count": 100,
+      "mode": "off",
+      "repeat": 1,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark",
+        "ai-nav-path",
+        "100",
+        "120",
+        "64"
+      ],
+      "exit": 0,
+      "binary_sha256": "6f58cf968720600abc120fc6da35b43c2119890edff9580d43f18e2a90d838c6"
+    },
+    {
+      "case": "ai-nav-path",
+      "count": 100,
+      "mode": "off",
+      "repeat": 2,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark",
+        "ai-nav-path",
+        "100",
+        "120",
+        "64"
+      ],
+      "exit": 0,
+      "binary_sha256": "6f58cf968720600abc120fc6da35b43c2119890edff9580d43f18e2a90d838c6"
+    },
+    {
+      "case": "ai-nav-path",
+      "count": 100,
+      "mode": "on",
+      "repeat": 0,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark",
+        "ai-nav-path",
+        "100",
+        "120",
+        "64",
+        "--capture",
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/profiling-20261028/ai-nav-path-100-on-0.tprofile"
+      ],
+      "exit": 0,
+      "binary_sha256": "6f58cf968720600abc120fc6da35b43c2119890edff9580d43f18e2a90d838c6"
+    },
+    {
+      "case": "ai-nav-path",
+      "count": 100,
+      "mode": "on",
+      "repeat": 1,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark",
+        "ai-nav-path",
+        "100",
+        "120",
+        "64",
+        "--capture",
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/profiling-20261028/ai-nav-path-100-on-1.tprofile"
+      ],
+      "exit": 0,
+      "binary_sha256": "6f58cf968720600abc120fc6da35b43c2119890edff9580d43f18e2a90d838c6"
+    },
+    {
+      "case": "ai-nav-path",
+      "count": 100,
+      "mode": "on",
+      "repeat": 2,
+      "args": [
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/features/build/Release_Linux64/Benchmark/Benchmark",
+        "ai-nav-path",
+        "100",
+        "120",
+        "64",
+        "--capture",
+        "/home/zerker24/BeefProjects/Tessera/Benchmarks/full-engine/profiling-20261028/ai-nav-path-100-on-2.tprofile"
+      ],
+      "exit": 0,
+      "binary_sha256": "6f58cf968720600abc120fc6da35b43c2119890edff9580d43f18e2a90d838c6"
+    }
+  ],
+  "completed": "2026-10-28T08:35:01.715594"
+}

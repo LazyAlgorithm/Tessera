@@ -1,0 +1,5 @@
+engine,scenario,count,repeat,metric,mean_ms,median_ms,p95_ms,p99_ms
+tessera,animator-clips,1,0,feature_batch,0.0246997,0.02361,0.031269,0.031269
+unity,animator-clips,1,0,physics_tick,0.011129999160766601,0.010200001299381256,0.02279999852180481,0.02279999852180481
+tessera,animator-layered,1,0,feature_batch,0.0460125,0.04533,0.049904,0.049904
+unity,animator-layered,1,0,physics_tick,0.013250005245208741,0.01170000433921814,0.01940000057220459,0.01940000057220459

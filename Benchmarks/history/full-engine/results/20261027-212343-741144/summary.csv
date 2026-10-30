@@ -1,0 +1,16 @@
+engine,scenario,count,repeat,metric,mean_ms,median_ms,p95_ms,p99_ms
+tessera,physics-check-sphere,1000,0,query_batch_1000,0.6149342,0.6008089999999999,0.629123,1.092252
+tessera,physics-check-sphere,1000,1,query_batch_1000,0.62937221,0.6300545,0.633481,0.634613
+tessera,physics-check-sphere,1000,2,query_batch_1000,0.6015495066666666,0.597493,0.645012,0.650924
+tessera,physics-check-sphere,1000,3,query_batch_1000,0.6019950266666667,0.5981345,0.641686,0.667665
+tessera,physics-check-sphere,1000,4,query_batch_1000,0.60502723,0.5956995,0.625305,0.794403
+tessera,physics-check-capsule,1000,0,query_batch_1000,0.70328703,0.6968845,0.711878,0.832104
+tessera,physics-check-capsule,1000,1,query_batch_1000,0.69074009,0.6876675,0.704985,0.717037
+tessera,physics-check-capsule,1000,2,query_batch_1000,0.6893767233333333,0.683655,0.699475,0.71826
+tessera,physics-check-capsule,1000,3,query_batch_1000,0.7031369633333333,0.6970405,0.752595,0.780758
+tessera,physics-check-capsule,1000,4,query_batch_1000,0.6949391733333333,0.687963,0.743627,0.764637
+tessera,physics-check-box,1000,0,query_batch_1000,1.3047478133333335,1.300073,1.321854,1.348545
+tessera,physics-check-box,1000,1,query_batch_1000,1.34356248,1.3433445000000002,1.348234,1.353073
+tessera,physics-check-box,1000,2,query_batch_1000,1.30024236,1.2973835,1.315523,1.332063
+tessera,physics-check-box,1000,3,query_batch_1000,1.2987628533333333,1.2961565,1.316134,1.333266
+tessera,physics-check-box,1000,4,query_batch_1000,1.2945532933333332,1.292234,1.312497,1.321824

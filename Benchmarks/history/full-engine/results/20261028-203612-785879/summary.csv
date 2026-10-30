@@ -1,0 +1,4 @@
+engine,scenario,count,repeat,metric,mean_ms,median_ms,p95_ms,p99_ms
+tessera,ai-nav-path,100,0,feature_batch,0.65445069,0.652822,0.665732,0.675851
+tessera,ai-nav-path,100,1,feature_batch,0.6733384166666667,0.6740014999999999,0.676882,0.680359
+tessera,ai-nav-path,100,2,feature_batch,0.6492705933333334,0.6499265,0.653519,0.65441

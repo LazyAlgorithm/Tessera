@@ -1,0 +1,4 @@
+engine,scenario,count,repeat,metric,mean_ms,median_ms,p95_ms,p99_ms
+tessera,render-transparency,1000,0,frame_interval,0.30057238000000003,0.292715,0.30316,0.522141
+tessera,render-transparency,1000,1,frame_interval,0.31861051333333335,0.31391,0.333437,0.395102
+tessera,render-transparency,1000,2,frame_interval,0.30989359666666666,0.30609,0.318899,0.330341

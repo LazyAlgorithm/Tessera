@@ -1,0 +1,1 @@
+Shared workspace was undergoing navigation API refactoring during capture. Four snapshot-only call sites were adapted to the captured NavigationMesh parameter API, preserving their existing values and behavior. No live engine files were changed by this adaptation. See snapshot-adapters.patch. Benchmark workloads and settings are unchanged.
