@@ -821,7 +821,9 @@ class RenderView
 		bgfx.alloc_instance_data_buffer(&buffer, (uint32)drawCount, stride);
 		FillInstances((InstanceData*)buffer.data, items, start, drawCount);
 		// The editor's own objects (reference images) keep their look in every shading.
-		let shaded = shading != .Rendered && !EditorOnlyObjects.Contains(items[start].renderer.GameObject.Id);
+		// Foliage/particle batches use proxy renderers without a GameObject.
+		let owner = items[start].renderer.GameObject;
+		let shaded = shading != .Rendered && (owner == null || !EditorOnlyObjects.Contains(owner.Id));
 		let wire = !shadowPass && shaded && shading == .Wireframe;
 		if (wire)
 		{
