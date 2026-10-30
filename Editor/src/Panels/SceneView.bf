@@ -326,6 +326,7 @@ extension EditorApp
 				Gizmos.Lines.Box(renderer.ActiveMesh.Bounds, selected.Transform.LocalToWorld, .(1.0f, 0.62f, 0.15f, 1));
 		}
 		BuildMapBuilderGizmos();
+		BuildProbePlacementGizmos();
 		BuildBoneGizmos();
 		BuildModelGizmos();
 	}

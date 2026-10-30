@@ -58,6 +58,9 @@ class Program
 		Check(Reflections.Pick(.(10, 1, 0), 0.3f) == 2, "in the hall, the hall");
 		Check(Reflections.Pick(.(0, 1, 40), 0.5f) == -1, "far from every probe, the sky alone (-1)");
 		Check(Reflections.Pick(.(0, 1, 5.5f), 0.2f) == -1 && Reflections.Pick(.(0, 1, 5.5f), 1.0f) == 0, "a big thing reaching into a box's blend distance gets it, a small one beside it does not");
+		cupboard.importance = 2;
+		Check(Reflections.Pick(.(-2, 1, -2), 6) == 0, "a big thing in the room keeps the room's probe, though it reaches a more important one beside it");
+		cupboard.importance = 0;
 		Reflections.Ready.Clear();
 
 		// ---- capturing again ----

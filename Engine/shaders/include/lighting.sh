@@ -38,9 +38,11 @@ uniform vec4 u_probeMin;      // the probe's box, xyz: its lowest corner, w: 1 t
 uniform vec4 u_probeMax;      // xyz: its highest corner, w: how far outside it its reflections fade out
 uniform vec4 u_probePos;      // xyz: where the probe saw from, w: its cube's last level
 uniform vec4 u_ambientParams; // x: 1 to take ambient light from the reflection cubes, y: the scene's ambient intensity
-uniform vec4 u_lightProbeMin;   // xyz: the first probe, w: 1 with baked light probes
-uniform vec4 u_lightProbeScale; // xyz: 1 / (last probe - first probe)
-uniform vec4 u_lightProbeCount; // xyz: probes along each axis
+// Baked light probes: two grids from one 3D texture, the draw's own (0 to 3) and, when that is a Light Probe Volume,
+// the scene's grid round it (4 to 7). Each grid: [0] xyz its first probe, w 1 when in use; [1] xyz 1 / (last probe
+// - first probe), w 1 / how far inside its box it fades in; [2] xyz probes along each axis; [3] xyz where its block
+// starts in the texture, in texels. [8] xyz the texture's size in texels; [9] xyz the draw's grid's last probe.
+uniform vec4 u_lightProbe[10];
 
 vec3 toLinear3(vec3 c)
 {
@@ -243,16 +245,31 @@ vec3 hemisphereAmbient(vec3 n)
 	return mix(u_ambientGround.rgb, u_ambientSky.rgb, n.y * 0.5 + 0.5);
 }
 
-// The baked light probes' ambient light at a point for a surface facing n, blended between the eight probes round it.
+// One grid's ambient light at a point for a surface facing n, blended between the eight probes round it. A grid's
+// block holds red, then green, then blue, each count.z deep.
+vec3 probeGridAmbient(vec4 lo, vec4 scale, vec4 count, vec4 offset, vec3 wpos, vec3 n)
+{
+	vec3 t = clamp((wpos - lo.xyz) * scale.xyz, 0.0, 1.0);
+	vec3 size = u_lightProbe[8].xyz;
+	vec3 uvw = (offset.xyz + t * (count.xyz - 1.0) + 0.5) / size;
+	float block = count.z / size.z;
+	vec4 r = texture3D(s_lightProbes, uvw);
+	vec4 g = texture3D(s_lightProbes, uvw + vec3(0.0, 0.0, block));
+	vec4 b = texture3D(s_lightProbes, uvw + vec3(0.0, 0.0, 2.0 * block));
+	return max(vec3(r.x + dot(r.yzw, n), g.x + dot(g.yzw, n), b.x + dot(b.yzw, n)), vec3_splat(0.0));
+}
+
+// The baked light probes' ambient light at a point for a surface facing n: the draw's grid, fading into the scene's
+// grid towards the edges of a Light Probe Volume's box.
 vec3 probeAmbient(vec3 wpos, vec3 n)
 {
-	vec3 t = clamp((wpos - u_lightProbeMin.xyz) * u_lightProbeScale.xyz, 0.0, 1.0);
-	vec3 count = u_lightProbeCount.xyz;
-	vec3 uvw = (t * (count - 1.0) + 0.5) / vec3(count.x, count.y, count.z * 3.0);
-	vec4 r = texture3D(s_lightProbes, uvw);
-	vec4 g = texture3D(s_lightProbes, uvw + vec3(0.0, 0.0, 1.0 / 3.0));
-	vec4 b = texture3D(s_lightProbes, uvw + vec3(0.0, 0.0, 2.0 / 3.0));
-	return max(vec3(r.x + dot(r.yzw, n), g.x + dot(g.yzw, n), b.x + dot(b.yzw, n)), vec3_splat(0.0));
+	vec3 inner = probeGridAmbient(u_lightProbe[0], u_lightProbe[1], u_lightProbe[2], u_lightProbe[3], wpos, n);
+	if (u_lightProbe[4].w < 0.5)
+		return inner;
+	vec3 outer = probeGridAmbient(u_lightProbe[4], u_lightProbe[5], u_lightProbe[6], u_lightProbe[7], wpos, n);
+	vec3 inside = min(wpos - u_lightProbe[0].xyz, u_lightProbe[9].xyz - wpos);
+	float weight = clamp(min(min(inside.x, inside.y), inside.z) * u_lightProbe[1].w, 0.0, 1.0);
+	return mix(outer, inner, weight);
 }
 
 // Where a reflection probe's cube is looked up for a ray from wpos along dir: with box projection, the direction from
@@ -321,7 +338,7 @@ vec3 shadeSurface(vec3 wpos, vec3 n, vec3 v, float viewDepth, vec3 albedo, float
 	vec3 f0 = mix(vec3_splat(0.04 * specularLevel), albedo, metallic);
 	vec3 color;
 	// Without a lightmap, baked light probes give the light bounced round the scene (docs/baked-lighting.md).
-	bool probed = !lightmapped && u_lightProbeMin.w > 0.5;
+	bool probed = !lightmapped && u_lightProbe[0].w > 0.5;
 	if (probed)
 		ambient = probeAmbient(wpos, n);
 	if (u_reflection.x > 0.5)

@@ -6,6 +6,7 @@ namespace Tessera.Editor;
 
 /// Window > Lighting: bakes the scene's lighting (docs/baked-lighting.md) on the machine's spare cores while the editor
 /// keeps running, then points the scene at the lightmaps and light probes it made (save the scene to keep them).
+/// It also places probes (ProbePlacementTools.bf).
 /// Switches: --lighting-window opens it, --bake-lighting bakes the scene at start-up and logs BAKE: and the result.
 extension EditorApp
 {
@@ -44,7 +45,7 @@ extension EditorApp
 
 	void StartBake()
 	{
-		if (Baking || mPlay != .Edit)
+		if (Baking || Placing || mPlay != .Edit)
 			return;
 		let settings = scope BakeSettings();
 		settings.FromScene(mScene.Environment);
@@ -107,12 +108,13 @@ extension EditorApp
 
 	void DrawLightingWindow()
 	{
+		TickPlacement();
 		TickBake();
 		if (!mShowLighting)
 			return;
 		let viewport = ImGui.GetMainViewport();
 		ImGui.SetNextWindowPos(.(viewport.workPos.x + viewport.workSize.x - 760, viewport.workPos.y + 80), 4);
-		ImGui.SetNextWindowSize(.(380, 520), 4);
+		ImGui.SetNextWindowSize(.(380, 720), 4);
 		if (ImGui.Begin("Lighting", &mShowLighting))
 		{
 			let env = mScene.Environment;
@@ -172,6 +174,8 @@ extension EditorApp
 			}
 			if (!mBakeReport.IsEmpty)
 				ImGui.TextColored(mBakeReportBad ? EditorTheme.Error : EditorTheme.Good, mBakeReport.CStr());
+
+			DrawProbePlacement();
 
 			ImGui.SeparatorText("View");
 			ImGui.Checkbox("Show Baked Lighting", ref RenderView.UseBakedLighting);

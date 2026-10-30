@@ -544,7 +544,7 @@ extension EditorApp
 	static StringView ComponentCategory(StringView fullName, StringView name)
 	{
 		if (!fullName.StartsWith("Tessera.")) return "Scripts";
-		if (name == "Camera" || name == "Light" || name == "MeshRenderer" || name == "Decal" || name == "LODGroup" || name == "ReflectionProbe") return "Rendering";
+		if (name == "Camera" || name == "Light" || name == "MeshRenderer" || name == "Decal" || name == "LODGroup" || name == "ReflectionProbe" || name == "LightProbeVolume") return "Rendering";
 		if (name == "Rigidbody" || name == "SoftBody" || name == "Rope" || name.EndsWith("Collider") || name == "CharacterController") return "Physics";
 		if (name == "SkinnedMeshRenderer" || name == "Animator" || name == "SequencePlayer") return "Animation";
 		if (name == "UIDocument") return "UI";

@@ -388,7 +388,7 @@ extension EditorApp
 			}
 			ImGui.EndMenu();
 		}
-		for (let kind in StringView[?]("Camera", "Decal", "Reflection Probe", "Particle System", "Destructible Voxel Object", "Voxel Terrain", "Network Session"))
+		for (let kind in StringView[?]("Camera", "Decal", "Reflection Probe", "Light Probe Volume", "Particle System", "Destructible Voxel Object", "Voxel Terrain", "Network Session"))
 		{
 			if (ImGui.MenuItem(scope String(kind).CStr()))
 				CreateBuiltin(kind);

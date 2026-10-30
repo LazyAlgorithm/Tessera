@@ -92,6 +92,13 @@ class LightBaker
 		public bool flat;
 	}
 
+	struct ProbeVolume
+	{
+		public Bounds area;
+		public int32 x, y, z;
+		public float fade;
+	}
+
 	struct Texel
 	{
 		public int32 atlas, x, y, triangle;
@@ -118,7 +125,9 @@ class LightBaker
 	public BakeSettings Settings = new .() ~ delete _;
 	public List<BakeObject> Objects = new .() ~ DeleteContainerAndItems!(_);
 	public List<Atlas> Atlases = new .() ~ DeleteContainerAndItems!(_);
-	public LightProbeGrid Probes ~ delete _;
+	public LightProbeSet Probes ~ delete _;
+	/// The Light Probe Volumes' boxes, probe counts and blend distances, copied from the scene.
+	List<ProbeVolume> mVolumes = new .() ~ delete _;
 
 	public Stage CurrentStage;
 	/// How far through the current stage, 0 to 1.
@@ -170,6 +179,13 @@ class LightBaker
 		mSky = Linear(env.ambientSky, env.ambientIntensity);
 		mGround = Linear(env.ambientGround, env.ambientIntensity);
 		GatherLights(scene);
+		for (let volume in scene.FindComponents<LightProbeVolume>(.. scope .()))
+		{
+			if (!volume.IsActiveAndEnabled || !volume.GameObject.InActiveWorld)
+				continue;
+			volume.Counts(let x, let y, let z);
+			mVolumes.Add(.() { area = volume.WorldBox, x = x, y = y, z = z, fade = Math.Max(volume.blendDistance, 0.01f) });
+		}
 		for (let renderer in scene.Renderers)
 		{
 			if (!renderer.bakedLighting || !renderer.IsActiveAndEnabled || !renderer.GameObject.InActiveWorld || renderer.shadowOnly || renderer.color.a < 0.999f)
@@ -958,7 +974,10 @@ class LightBaker
 
 	void BakeProbes()
 	{
-		Probes = new LightProbeGrid();
+		Probes = new LightProbeSet();
+		// The scene's grid, over everything baked.
+		let whole = new LightProbeGrid();
+		Probes.grids.Add(whole);
 		var bounds = mBounds;
 		if (mTris.Count == 0)
 			bounds = .(.(0, 0, 0), .(1, 1, 1));
@@ -969,16 +988,39 @@ class LightBaker
 		int32 Count(float extent) => (int32)Math.Clamp(Math.Round(extent / spacing) + 1, 2, 48);
 		while (Count(size.x) * Count(size.y) * Count(size.z) > 16384)
 			spacing *= 1.25f;
-		Probes.min = lo;
-		Probes.max = hi;
-		Probes.countX = Count(size.x);
-		Probes.countY = Count(size.y);
-		Probes.countZ = Count(size.z);
-		let total = Probes.Count;
+		whole.min = lo;
+		whole.max = hi;
+		whole.countX = Count(size.x);
+		whole.countY = Count(size.y);
+		whole.countZ = Count(size.z);
+		// Then a finer one for each volume.
+		for (let volume in mVolumes)
+		{
+			let grid = new LightProbeGrid();
+			grid.min = volume.area.min;
+			grid.max = volume.area.max;
+			grid.countX = volume.x;
+			grid.countY = volume.y;
+			grid.countZ = volume.z;
+			grid.fade = volume.fade;
+			Probes.grids.Add(grid);
+		}
+		for (let grid in Probes.grids)
+		{
+			if (Cancel)
+				return;
+			BakeGrid(grid);
+		}
+	}
+
+	void BakeGrid(LightProbeGrid grid)
+	{
+		let total = grid.Count;
 		for (int i < total * LightProbeGrid.Coefficients)
-			Probes.values.Add(0);
+			grid.values.Add(0);
 		let valid = scope bool[total];
 		mProbeValid = valid;
+		mProbeGrid = grid;
 		ParallelFor(total, scope => ProbeAt);
 		Rays += (int64)total * Math.Max(Settings.probeSamples, 16);
 		// Probes inside walls: their neighbours' light.
@@ -987,13 +1029,13 @@ class LightBaker
 			var changed = false;
 			let next = scope bool[total];
 			valid.CopyTo(next);
-			for (int32 z < Probes.countZ)
+			for (int32 z < grid.countZ)
 			{
-				for (int32 y < Probes.countY)
+				for (int32 y < grid.countY)
 				{
-					for (int32 x < Probes.countX)
+					for (int32 x < grid.countX)
 					{
-						let p = Probes.Index(x, y, z);
+						let p = grid.Index(x, y, z);
 						if (valid[p])
 							continue;
 						float[LightProbeGrid.Coefficients] sum = default;
@@ -1001,19 +1043,19 @@ class LightBaker
 						for (int k < 6)
 						{
 							let nx = x + (k == 0 ? -1 : (k == 1 ? 1 : 0)), ny = y + (k == 2 ? -1 : (k == 3 ? 1 : 0)), nz = z + (k == 4 ? -1 : (k == 5 ? 1 : 0));
-							if (nx < 0 || ny < 0 || nz < 0 || nx >= Probes.countX || ny >= Probes.countY || nz >= Probes.countZ)
+							if (nx < 0 || ny < 0 || nz < 0 || nx >= grid.countX || ny >= grid.countY || nz >= grid.countZ)
 								continue;
-							let q = Probes.Index(nx, ny, nz);
+							let q = grid.Index(nx, ny, nz);
 							if (!valid[q])
 								continue;
 							for (int c < LightProbeGrid.Coefficients)
-								sum[c] += Probes.values[q * LightProbeGrid.Coefficients + c];
+								sum[c] += grid.values[q * LightProbeGrid.Coefficients + c];
 							count++;
 						}
 						if (count == 0)
 							continue;
 						for (int c < LightProbeGrid.Coefficients)
-							Probes.values[p * LightProbeGrid.Coefficients + c] = sum[c] / count;
+							grid.values[p * LightProbeGrid.Coefficients + c] = sum[c] / count;
 						next[p] = true;
 						changed = true;
 					}
@@ -1024,15 +1066,17 @@ class LightBaker
 				break;
 		}
 		mProbeValid = null;
+		mProbeGrid = null;
 	}
 
+	LightProbeGrid mProbeGrid;
 	bool[] mProbeValid;
 
 	/// One probe: rays all round (a Fibonacci sphere), what they see, as the constant and direction terms.
 	void ProbeAt(int p)
 	{
-		let x = p % Probes.countX, y = (p / Probes.countX) % Probes.countY, z = p / (Probes.countX * Probes.countY);
-		let position = Probes.Position(x, y, z);
+		let x = p % mProbeGrid.countX, y = (p / mProbeGrid.countX) % mProbeGrid.countY, z = p / (mProbeGrid.countX * mProbeGrid.countY);
+		let position = mProbeGrid.Position(x, y, z);
 		let count = (int32)Math.Max(Settings.probeSamples, 16);
 		let rays = scope float[count * 7];
 		let hitTriangles = scope int32[count];
@@ -1089,10 +1133,10 @@ class LightBaker
 		let start = p * LightProbeGrid.Coefficients;
 		for (int channel < 3)
 		{
-			Probes.values[start + channel * 4] = c0[channel] * scale0;
-			Probes.values[start + channel * 4 + 1] = cx[channel] * scale1;
-			Probes.values[start + channel * 4 + 2] = cy[channel] * scale1;
-			Probes.values[start + channel * 4 + 3] = cz[channel] * scale1;
+			mProbeGrid.values[start + channel * 4] = c0[channel] * scale0;
+			mProbeGrid.values[start + channel * 4 + 1] = cx[channel] * scale1;
+			mProbeGrid.values[start + channel * 4 + 2] = cy[channel] * scale1;
+			mProbeGrid.values[start + channel * 4 + 3] = cz[channel] * scale1;
 		}
 		mProbeValid[p] = backs < count / 4;
 	}
@@ -1188,7 +1232,7 @@ class LightBaker
 		else if (scene.Environment.lightProbes.StartsWith(folder))
 			scene.Environment.lightProbes.Clear();
 		LightProbes.Forget(probesPath);
-		report.AppendF("Baked {0} objects into {1} lightmap{2} ({3} texels), {4} light probes, {5:0.0} million rays in {6:0.0} s.", Objects.Count, Atlases.Count, Atlases.Count == 1 ? "" : "s", mTexels.Count, Probes?.Count ?? 0, Rays / 1e6, Seconds);
+		report.AppendF("Baked {0} objects into {1} lightmap{2} ({3} texels), {4} light probes{7}, {5:0.0} million rays in {6:0.0} s.", Objects.Count, Atlases.Count, Atlases.Count == 1 ? "" : "s", mTexels.Count, Probes?.Count ?? 0, Rays / 1e6, Seconds, mVolumes.Count > 0 ? scope $" ({mVolumes.Count} volume{mVolumes.Count == 1 ? "" : "s"})" : "");
 		return good;
 	}
 

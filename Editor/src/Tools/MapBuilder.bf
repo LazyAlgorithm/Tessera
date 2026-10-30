@@ -64,7 +64,7 @@ extension EditorApp
 	Vector3 mQuickNormal;
 
 	static readonly StringView[?] BuiltinObjects = .("Create Empty", "Folder", "Cube", "Sphere", "Capsule", "Cylinder", "Cone", "Plane", "Quad",
-		"Directional Light", "Point Light", "Spot Light", "Camera", "Decal", "Reflection Probe", "Spawn Point", "Audio Source", "Particle System", "Destructible Voxel Object",
+		"Directional Light", "Point Light", "Spot Light", "Camera", "Decal", "Reflection Probe", "Light Probe Volume", "Spawn Point", "Audio Source", "Particle System", "Destructible Voxel Object",
 		"Voxel Terrain", "Network Session");
 
 	bool SnapActive => mSnap != ImGui.IsKeyDown(ImGui.Key.LeftCtrl);
@@ -408,6 +408,11 @@ extension EditorApp
 			made.AddComponent<ReflectionProbe>();
 			// At eye height: a probe sees from where it stands.
 			made.Transform.Position = made.Transform.Position + .(0, 1.5f, 0);
+		case "Light Probe Volume":
+			made = CreateObject("Light Probe Volume");
+			made.AddComponent<LightProbeVolume>();
+			// Standing on the ground: its box reaches up from where it was put.
+			made.Transform.Position = made.Transform.Position + .(0, 2, 0);
 		case "Particle System": made = CreateObject("Particles");
 			made.AddComponent<ParticleSystem>();
 		case "Destructible Voxel Object":
