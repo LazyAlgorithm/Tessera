@@ -341,7 +341,7 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
       <div class="feature"><span class="chip" style="background:var(--brick)"></span><h3>Shipping</h3><p>One executable and one packed asset file for Linux and Windows, or a web page with join codes for the browser.</p></div>
       <div class="feature"><span class="chip" style="background:var(--cobalt)"></span><h3>Modelling</h3><p>Draw shapes in the scene, edit vertices, edges and faces, unwrap UVs, paint textures and export GLB models.</p></div>
       <div class="feature"><span class="chip" style="background:var(--jade)"></span><h3>Rigging</h3><p>Humanoid, quadruped and custom skeletons, automatic weights, weight painting and pose previews, in the editor.</p></div>
-      <div class="feature"><span class="chip" style="background:var(--saffron)"></span><h3>Lighting</h3><p>Bake bounced light into lightmaps and probes while you work. Moving objects take their ambient light from nearby probes.</p></div>
+      <div class="feature"><span class="chip" style="background:var(--saffron)"></span><h3>Lighting</h3><p>Bake bounced light into lightmaps and probes while you work. Moving objects take their ambient light from nearby probes, and one button places light and reflection probes where the scene needs them.</p></div>
       <div class="feature"><span class="chip" style="background:var(--brick)"></span><h3>Editor themes</h3><p>Seven built-in themes, live colour editing, separate code colours, and theme import and export.</p></div>
     </div>
   </div>
@@ -756,6 +756,7 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
       <a href="#manual" data-sec="manual-render">Rendering and materials</a>
       <a href="#manual" data-sec="manual-lighting">Lights and shadows</a>
       <a href="#manual" data-sec="manual-baked-lighting">Baked lighting</a>
+      <a href="#manual" data-sec="manual-probe-placement">Placing probes</a>
       <a href="#manual" data-sec="manual-modeling">Modelling</a>
       <a href="#manual" data-sec="manual-rigging">Rigging and weight painting</a>
       <a href="#manual" data-sec="manual-themes">Editor themes</a>
@@ -929,6 +930,15 @@ footer .inner { max-width: 1200px; margin: 0 auto; display: flex; justify-conten
       <p>Mark static Mesh Renderers with <strong>Baked Lighting</strong>, open <strong>Window &gt; Lighting</strong> and press <strong>Bake</strong>. Lightmaps store bounced light on static surfaces; light probes light moving objects. Baking runs in the background with progress and cancellation. Save the scene after baking, and bake again after moving static objects or changing lights.</p>
       <p><a href="https://github.com/LazyAlgorithm/Tessera/blob/main/docs/baked-lighting.md">Read the full baked lighting guide →</a></p>
 
+      <h2 id="manual-probe-placement">Placing light and reflection probes</h2>
+      <p>Under <strong>Place Probes</strong> in <strong>Window &gt; Lighting</strong>, press <strong>Preview Placement</strong>. The editor looks at the scene in the background and draws what it would place in the Scene view: reflection probes as blue boxes, light probe volumes as amber ones. Press <strong>Place</strong> (one undo step), then <strong>Bake</strong>.</p>
+      <ul>
+        <li><strong>Reflection probes</strong>: one per room, boxed to its walls with box projection; one under each open-sided roof; small ones across doorways; one over a shiny floor in the open; one per square of open ground with something standing on it. Places with nothing shiny get none.</li>
+        <li><strong>Light Probe Volumes</strong>: boxes of closer baked light probes over rooms and covered places and wherever light changes over a short way (by walls, shadow edges, lamps). Open space keeps the scene's Probe Spacing. Add your own with <strong>GameObject &gt; Light Probe Volume</strong>.</li>
+      </ul>
+      <p>Placed probes are ordinary objects under <strong>Placed Probes</strong>, tagged <strong>Placed Probe</strong>: placing again replaces only those, and places your own probes already cover are left alone. Take the tag off one to keep it. <code>--place-probes</code> does the same from the command line (with <code>--bake-lighting</code> and <code>--save-scene</code> to bake and save). The Sandbox's <code>Scenes/ProbePlacement.tscene</code> is a room to try it on.</p>
+      <p><a href="https://github.com/LazyAlgorithm/Tessera/blob/main/docs/probe-placement.md">Read the full probe placement guide →</a></p>
+
       <h2 id="manual-modeling">Modelling</h2>
       <p>Open <strong>Window &gt; Model</strong> to draw shapes into the Scene view. Press <strong>Tab</strong> to edit vertices, edges and faces; extrude, bevel, cut, bridge or use booleans. The UV Editor unwraps and packs islands; vertex and texture painting finish the surface. <strong>Window &gt; Model Views</strong> provides four views. Models save with the scene, as <code>.tmesh</code>, or export as <code>.glb</code>.</p>
       <p><a href="https://github.com/LazyAlgorithm/Tessera/blob/main/docs/modeling.md">Read the full modelling guide →</a></p>
@@ -1028,7 +1038,7 @@ Quality.Save();                    // applied by itself at the next start</code>
       <h2 id="manual-reflections">Reflections and image-based lighting</h2>
       <p>Shiny surfaces mirror what is around them: a smooth metal shows a sharp picture, a rough one a soft blur, and a polished floor the walls beside it. Outdoors they mirror the <strong>sky</strong>, from a cube the engine makes from the scene's sky colours and sun.</p>
       <p>Indoors, add a <strong>Reflection Probe</strong> to each room (GameObject &gt; Reflection Probe) and size its box to the walls. It captures what it sees into a cube a few frames after the scene starts, and surfaces in the box mirror the room instead of the sky. Box Projection lines the reflections up with the walls, and Blend Distance fades them out past the box. <strong>Capture Now</strong> in its inspector captures it again after the room changes.</p>
-      <p><strong>Ambient From Surroundings</strong> in the scene's Lighting settings takes ambient light from the same cubes (image-based lighting): the sky's light outdoors, and the room's own light inside a probe's box. The quality presets add <strong>Reflection Probes</strong> (off at Low) and <strong>Reflection Size</strong>. See <code>docs/reflections.md</code>; the Sandbox's <code>Scenes/Reflections.tscene</code> shows them all.</p>
+      <p><strong>Ambient From Surroundings</strong> in the scene's Lighting settings takes ambient light from the same cubes (image-based lighting): the sky's light outdoors, and the room's own light inside a probe's box. <strong>Place Probes</strong> in Window &gt; Lighting places them for you (see <strong>Placing light and reflection probes</strong> above). The quality presets add <strong>Reflection Probes</strong> (off at Low) and <strong>Reflection Size</strong>. See <code>docs/reflections.md</code>; the Sandbox's <code>Scenes/Reflections.tscene</code> shows them all.</p>
 
       <h2 id="manual-skinned-materials">Materials on skinned meshes</h2>
       <p>A rigged model with several materials (skin, cloth, armour) or any textures is drawn in parts, one per material in the file, each with the material saved there: base colour, normal, metallic-roughness, occlusion and emissive textures (inside a <code>.glb</code>, as <code>data:</code> addresses or as files beside the model), metallic, roughness, alpha mode and double sides. A model with one plain material is drawn as before, with its Mesh Renderer's settings.</p>
