@@ -369,7 +369,10 @@ extension NetworkManager
 				CaptureOtherBodies(others);
 			}
 			if (stepPhysics)
+			{
+				Water.[Friend]SimulateAt(mScene, Time.FixedDeltaTime, tick / (double)Time.TickRate);
 				mScene.Physics.Step(Time.FixedDeltaTime);
+			}
 			for (let entry in owned)
 				entry.identity.History[tick % NetworkIdentity.HistorySize] = entry.identity.CaptureState();
 			for (let identity in mIdentities)
