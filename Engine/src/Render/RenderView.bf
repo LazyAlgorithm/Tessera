@@ -44,6 +44,8 @@ class RenderView
 		public Color tint;
 		/// The reflection probe it mirrors (an index into Reflections.Ready, -1: the sky alone).
 		public int32 probe;
+		/// The baked light probe grid it takes ambient light from (LightProbeSet.Pick; 0: the scene's grid).
+		public int32 lightGrid;
 	}
 
 	[CRepr]
@@ -131,7 +133,7 @@ class RenderView
 	/// Whether this view leaves the object out by hiddenHere.
 	public bool HidesHere(GameObject gameObject) => hiddenHere != null && hiddenHere.Count > 0 && hiddenHere.Contains(gameObject.Id);
 	// The scene's baked light probes, if any.
-	LightProbeGrid mProbeGrid;
+	LightProbeSet mProbeGrid;
 	List<Mesh> mLightmapMeshes = new .() ~ delete _;
 	public bool DrawGizmos;
 	public bool DrawShadows = true;
@@ -559,7 +561,8 @@ class RenderView
 				if (!drawn && !shadow)
 					continue;
 				item.probe = Reflections.Pick(item.center, item.radius);
-				item.key = ProbeKey(MakeKey(renderer, mesh, item.material), item.probe) * 2 + (Mirrored(item.world) ? 1u : 0u);
+				item.lightGrid = LightGridAt(item.center);
+				item.key = ProbeKey(MakeKey(renderer, mesh, item.material), item.probe, item.lightGrid) * 2 + (Mirrored(item.world) ? 1u : 0u);
 				if (drawn)
 				{
 					if (viewmodel)
@@ -625,7 +628,8 @@ class RenderView
 				item.center = .(item.world.m[12], item.world.m[13] + mesh.Bounds.Center.y * scale, item.world.m[14]);
 				item.radius = meshRadius * scale;
 				item.probe = Reflections.Pick(item.center, item.radius);
-				item.key = ProbeKey(key, item.probe) * 2 + (Mirrored(item.world) ? 1u : 0u);
+				item.lightGrid = LightGridAt(item.center);
+				item.key = ProbeKey(key, item.probe, item.lightGrid) * 2 + (Mirrored(item.world) ? 1u : 0u);
 				mFoliageItems.Add(item);
 				if (shadows && InShadowRange(item, camera, shadowRange))
 					mShadowItems.Add(item);
@@ -723,13 +727,19 @@ class RenderView
 
 	public static bool Mirrored(Matrix4 world) => Vector3.Dot(world.Right, Vector3.Cross(world.Up, world.Forward)) < 0;
 
-	/// Draws lit by different probes cannot share a batch.
-	static uint64 ProbeKey(uint64 key, int32 probe)
+	/// Draws lit by different probes (reflection probes or light probe volumes) cannot share a batch.
+	static uint64 ProbeKey(uint64 key, int32 probe, int32 lightGrid)
 	{
-		if (probe < 0)
-			return key;
-		return key * 1099511628211 ^ (uint64)(probe + 1);
+		var key;
+		if (probe >= 0)
+			key = key * 1099511628211 ^ (uint64)(probe + 1);
+		if (lightGrid > 0)
+			key = key * 1099511628211 ^ ((uint64)lightGrid << 32);
+		return key;
 	}
+
+	/// The baked light probe grid for a thing whose middle is here (0: the scene's grid, or no probes).
+	int32 LightGridAt(Vector3 center) => mProbeGrid != null && mProbeGrid.grids.Count > 1 ? mProbeGrid.Pick(center) : 0;
 
 	static uint64 MakeKey(MeshRenderer renderer, Mesh mesh, Material material)
 	{
@@ -839,6 +849,8 @@ class RenderView
 		let renderer = first.renderer;
 		SetFrameUniforms();
 		Reflections.Bind(first.probe, mReflectionIntensity, mCubeAmbient);
+		if (first.lightGrid > 0)
+			LightProbes.Bind(mProbeGrid, first.lightGrid);
 		var surface = ResolveSurface(renderer, first.material, first.world);
 		if (shaded)
 			ApplyShading(ref surface);
@@ -1010,6 +1022,9 @@ class RenderView
 			bgfx.set_index_buffer(mesh.IndexBuffer, 0, (uint32)mesh.IndexCount);
 			bgfx.set_instance_data_buffer(&buffer, 0, (uint32)count);
 			SetFrameUniforms();
+			let lightGrid = LightGridAt(system.WorldBounds.Center);
+			if (lightGrid > 0)
+				LightProbes.Bind(mProbeGrid, lightGrid);
 			Vector4 material = .(0, 0.9f, 1, system.unlit ? 1 : 0);
 			Vector4 emissive = .(0, 0, 0, 0);
 			Vector4 bakedTransform = .(1, 1, 0, 0), bakedDecode = .(1, 0, 0, 0);

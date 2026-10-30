@@ -367,13 +367,38 @@ class Program
 			for (int c < LightProbeGrid.Coefficients)
 				grid.values.Add((c % 4 == 0) ? (float)(p & 1) : ((c == 2) ? 0.5f : 0));
 		}
+		let set = scope LightProbeSet();
+		set.grids.Add(grid);
+		defer set.grids.Remove(grid);
+		// A volume's grid: brighter, fading in over half a metre inside its box.
+		let volume = new LightProbeGrid();
+		volume.min = .(0.5f, 0.5f, 0.5f);
+		volume.max = .(1.5f, 1.5f, 1.5f);
+		volume.countX = volume.countY = volume.countZ = 2;
+		volume.fade = 0.5f;
+		for (int p < 8)
+		{
+			for (int c < LightProbeGrid.Coefficients)
+				volume.values.Add((c % 4 == 0) ? 4.0f : 0);
+		}
+		set.grids.Add(volume);
 		let text = scope String();
-		grid.Write(text);
-		let read = scope LightProbeGrid();
-		Check(read.Parse(text) && read.Count == 8 && read.values.Count == 96 && read.max == grid.max, "a probe file reads back");
-		let middle = read.Sample(.(1, 1, 1), .(0, 0, 1));
+		set.Write(text);
+		let read = scope LightProbeSet();
+		Check(read.Parse(text) && read.Count == 16 && read.grids.Count == 2 && read.grids[0].max == grid.max && read.grids[1].fade == 0.5f, "a probe file reads back, with its volume");
+		let middle = read.Sample(.(1, 1, 1), .(0, 0, 1), 0);
 		let side = read.Sample(.(2, 0, 0), .(0, 1, 0));
 		Check(Near(middle.x, 0.5f, 1e-4f) && Near(side.x, 1.5f, 1e-4f) && Near(side.y, 1, 1e-4f), "probes blend between their neighbours, with a direction term");
+		Check(read.Pick(.(1, 1, 1)) == 1 && read.Pick(.(0.2f, 1, 1)) == 0, "a thing in the volume's box is lit by the volume, one outside it by the scene's grid");
+		let deep = read.Sample(.(1, 1, 1), .(0, 0, 1));
+		let edge = read.Sample(.(0.75f, 1, 1), .(0, 0, 1));
+		Check(Near(deep.x, 4, 1e-4f) && Near(edge.x, 0.375f + (4 - 0.375f) * 0.5f, 1e-3f), scope $"the volume's light fades in from the scene's over its blend distance ({deep.x:0.000}, {edge.x:0.000})");
+		read.Layout();
+		Check(read.grids[0].offsetX == 0 && read.grids[1].offsetX == 2 && read.grids[1].offsetZ == 0 && read.TextureSize == .(4, 2, 6), "the grids share one texture, side by side");
+		let old = scope LightProbeSet();
+		let first = scope String("tprobes 1\n");
+		grid.Write(first);
+		Check(old.Parse(first) && old.grids.Count == 1 && old.Count == 8, "a probe file from before volumes still reads");
 		Check(!read.Parse("tprobes 1\nmin 0 0 0\nmax 1 1 1\ncount 2 2 2\n1 2 3\n"), "a cut-short probe file is refused");
 	}
 

@@ -548,22 +548,33 @@ static class Reflections
 	static Vector4 Linear(Color c) => .(Math.Pow(Math.Max(c.r, 0), 2.2f), Math.Pow(Math.Max(c.g, 0), 2.2f), Math.Pow(Math.Max(c.b, 0), 2.2f), c.a);
 
 	/// The probe for a thing at center, radius across (-1: none, the sky alone): of those whose box (and blend
-	/// distance) it reaches, the most important, then the smallest. The shaders fade it in for each pixel.
+	/// distance) it reaches, one whose light reaches its middle before one it only reaches into (a big floor stays
+	/// with its room's probe, not a doorway's beside it); then the most important; then the smallest. The shaders fade it
+	/// in for each pixel.
 	public static int32 Pick(Vector3 center, float radius)
 	{
 		int32 best = -1;
 		float bestVolume = 0;
+		bool bestHolds = false;
 		for (int32 i < (int32)Ready.Count)
 		{
 			let probe = Ready[i];
-			if (probe.Outside(center) - radius >= Math.Max(probe.blendDistance, 0.001f))
+			let outside = probe.Outside(center);
+			let blend = Math.Max(probe.blendDistance, 0.001f);
+			if (outside - radius >= blend)
 				continue;
+			// Its light reaches the middle (a floor whose top is the box's bottom is in the room).
+			let holds = outside < blend;
 			let extents = probe.WorldBox.Extents;
 			let volume = extents.x * extents.y * extents.z;
-			if (best < 0 || probe.importance > Ready[best].importance || (probe.importance == Ready[best].importance && volume < bestVolume))
+			var better = best < 0 || (holds && !bestHolds);
+			if (!better && holds == bestHolds)
+				better = probe.importance > Ready[best].importance || (probe.importance == Ready[best].importance && volume < bestVolume);
+			if (better)
 			{
 				best = i;
 				bestVolume = volume;
+				bestHolds = holds;
 			}
 		}
 		return best;

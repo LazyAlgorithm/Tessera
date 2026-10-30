@@ -35,8 +35,8 @@ static class RenderResources
 	public static bgfx.UniformHandle uCamPos, uSunDir, uSunColor, uAmbientSky, uAmbientGround, uFogColor;
 	public static bgfx.UniformHandle uMaterial, uEmissive, uUvTransform, uSurface, uParams, uPbr, sTexture1, sTexture2, sNormalMap, sMetalRoughMap, sOcclusionMap, sEmissiveMap;
 	public static bgfx.UniformHandle sLightmap, sLightmapDirection, sLightmapShadowmask, uLightmapTransform, uLightmapDecode;
-	/// Baked light probes (LightProbes): the grid's 3D texture and where it is.
-	public static bgfx.UniformHandle sLightProbes, uLightProbeMin, uLightProbeScale, uLightProbeCount;
+	/// Baked light probes (LightProbes): the grids' 3D texture and where the draw's two grids are in it.
+	public static bgfx.UniformHandle sLightProbes, uLightProbe;
 	// Lights by cluster (LightClusters, docs/lighting.md).
 	public static bgfx.UniformHandle sLightData, uLightCount, uClusterViewProj, uClusterForward, uClusterParams;
 	public static bgfx.UniformHandle uShadowMtx, uCascadeSplits, uShadowParams, uShadowViewProj;
@@ -121,9 +121,7 @@ static class RenderResources
 		uLightmapTransform = bgfx.create_uniform("u_lightmapTransform", .Vec4, 1);
 		uLightmapDecode = bgfx.create_uniform("u_lightmapDecode", .Vec4, 1);
 		sLightProbes = bgfx.create_uniform("s_lightProbes", .Sampler, 1);
-		uLightProbeMin = bgfx.create_uniform("u_lightProbeMin", .Vec4, 1);
-		uLightProbeScale = bgfx.create_uniform("u_lightProbeScale", .Vec4, 1);
-		uLightProbeCount = bgfx.create_uniform("u_lightProbeCount", .Vec4, 1);
+		uLightProbe = bgfx.create_uniform("u_lightProbe", .Vec4, 10);
 		sNormalMap = bgfx.create_uniform("s_normalMap", .Sampler, 1);
 		sMetalRoughMap = bgfx.create_uniform("s_metalRoughMap", .Sampler, 1);
 		sOcclusionMap = bgfx.create_uniform("s_occlusionMap", .Sampler, 1);
@@ -193,9 +191,7 @@ static class RenderResources
 		bgfx.destroy_uniform(uLightmapTransform);
 		bgfx.destroy_uniform(uLightmapDecode);
 		bgfx.destroy_uniform(sLightProbes);
-		bgfx.destroy_uniform(uLightProbeMin);
-		bgfx.destroy_uniform(uLightProbeScale);
-		bgfx.destroy_uniform(uLightProbeCount);
+		bgfx.destroy_uniform(uLightProbe);
 		LightProbes.Release();
 		bgfx.destroy_program(MeshProgram);
 		bgfx.destroy_program(ShadowProgram);

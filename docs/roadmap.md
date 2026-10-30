@@ -199,14 +199,18 @@ Work agreed and queued, in order (see *How to use this page* above for what "don
    objects stretched unevenly); the editor's Window > Lighting (bakes in the background, settings saved with the
    scene), `--bake-lighting`, `--lighting-window`, `--no-baked-lighting`. `docs/baked-lighting.md`, `Tests/Baking`
    (with `run.py`), Sandbox `Scenes/BakedLighting.tscene` (baked).
-5. [ ] Automatic light and reflection probe placement (asked for 2026-10-29, next): one action (editor and
-   `--place-probes`) that looks at the scene and places probes where they make sense, for the user to keep, move or
-   delete. Reflection Probes per room or open area, boxed to its walls (box projection), with extra ones where the
-   surroundings change sharply (a doorway, under a roof, by a shiny floor) and none where nothing reflective would
-   use them; the light probe grid denser where light changes (near walls, openings, under cover, where baked
-   lights fall off) and sparse in open or empty space, skipping points inside geometry. Placed probes are ordinary
-   scene objects (tagged as placed, so placing again replaces only those), with a preview before committing and an
-   undo step.
+5. [x] Automatic light and reflection probe placement (2026-10-29): **Place Probes** in Window > Lighting (and
+   `--place-probes`) looks at the scene on a grid of cells with rays (`ProbePlacer`) and places Reflection Probes per
+   room or covered place, boxed to its walls (a watershed over the distance to the walls splits places at doorways;
+   box projection for rooms), with small ones across doorways and openings, over shiny floors in the open and per
+   square of open ground with something standing on it, and none where nothing shiny would mirror them; and **Light
+   Probe Volumes** (a new component: a box of closer baked light probes, baked beside the scene's grid into the same
+   `.tprobes` file, one 3D texture, blended per pixel into the scene's grid) over rooms and covered places and
+   wherever light changes over a short way (sky seen and lamps in reach), with the scene's Probe Spacing for open
+   space. Placed probes are ordinary objects under Placed Probes, tagged Placed Probe (placing again replaces only
+   those; places the user's own probes cover are left alone), previewed in the Scene view before Place, one undo
+   step. A draw now takes a reflection probe whose light reaches its middle before one it only reaches into.
+   `docs/probe-placement.md`, `Tests/ProbePlacement` (with `run.py`), Sandbox `Scenes/ProbePlacement.tscene`.
 
 ## Editor
 

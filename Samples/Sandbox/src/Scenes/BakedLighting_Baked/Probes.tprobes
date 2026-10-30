@@ -1,4 +1,5 @@
-tprobes 1
+tprobes 2
+grid
 min -16.5 -2 -16.5
 max 16.5 5.8 16.5
 count 12 4 12

@@ -261,6 +261,7 @@ class EditorApp : Application
 		if (HasArg("--reset-layout"))
 			mResetLayout = true;
 		ApplyLightingSwitches();
+		ApplyPlacementSwitches();
 		ApplyRiggerSwitches();
 		if (HasArg("--theme-test"))
 			RunThemeTest();
