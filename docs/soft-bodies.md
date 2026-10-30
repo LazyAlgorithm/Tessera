@@ -164,6 +164,10 @@ Scene.Active.Destroy(tow.GameObject);               // or let go of both
 
 The pull acts along the straight line between the two ends, unless **Wraps Around** is on: then it runs through the first and last places where the rope presses on something (the rope on top of a beam, not one lying along the floor), so lifting one end lowers the other. What it wraps round must hold still (static, or kinematic); a body it lies over is pressed by the rope but not pulled by the pulley. In multiplayer ropes are shared without code: see Networking below.
 
+## In water
+
+Jelly, cloth and ropes float in Water vertex by vertex: each point under the surface is pushed up by the water's Buoyancy and slowed and carried by its drag and Flow, so a jelly bobs and squashes on the waves, cloth lies on the surface and drifts, and a rope floats along it. A **Floater** on the object sets its own Buoyancy and drag (0.5 sinks it) or, disabled, stops it floating. A shell floats on its object's Rigidbody, like any Rigidbody. The surface is sampled on a small grid over each body (at most 8 by 8), so the cost hardly grows with the vertex count: well under a millisecond a step for a scene of several floating soft bodies in a Debug build. See [Water](water.md).
+
 ## Networking
 
 Everything here works in a network session without code. Each machine simulates its own soft bodies and ropes, and what has to agree comes from the server:
@@ -181,6 +185,7 @@ Everything here works in a network session without code. Each machine simulates 
 - A wrapped rope's pull is worked out from where it touches each step. Something swung hard into what it wraps round can knock it off, as with a real rope.
 - Pins hold vertices to their object, not to a bone directly. Put the soft body on an object parented to the bone.
 - Soft bodies meet each other through a proxy: a closed body (jelly, shell) near another soft body gets a copy of its surface, rebuilt each step, that other soft bodies collide with (rays, shape queries, rigid bodies and characters ignore it). Of two closed bodies, only one is pushed by the other: the one underneath does not feel the weight of one resting on it. Cloth does not meet cloth.
+- A fine cloth (about 1,000 points or more) at the default Mass (1 kg) and Iterations (5) can blow up when it is squeezed together: draped over a ball, or crumpled by waves. Give it more Iterations (20) or more Mass. Hanging and lying flat are fine.
 - A sphere with poles (many thin faces meeting at a point) shivers at very high pressures (300 and more); more Iterations calm it, or use an evenly meshed sphere.
 - A soft body is one mesh: a Mesh Renderer's own mesh, a builtin or a model's. Big meshes cost more. Keep cloth to a few hundred vertices, and use a low-poly copy for something that only needs to wobble.
 - A soft body at rest goes to sleep like a Rigidbody (`IsSleeping`), and is woken when something touches it or, for a shell, when its object moves.

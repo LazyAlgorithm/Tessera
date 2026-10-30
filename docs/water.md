@@ -56,6 +56,8 @@ Every Rigidbody in the water floats with Jolt's buoyancy. Each physics step, Jol
 
 Kinematic bodies, characters and objects outside the rectangle are left alone. Below the water's Depth there is no water to push up.
 
+**Soft bodies and ropes** float too. Jelly, cloth and ropes float vertex by vertex: every point under the surface is pushed up by Buoyancy and slowed and carried by Water Drag and Flow, so a jelly bobs and squashes on the waves, cloth lies on the surface and drifts, and a rope floats along it. A Floater sets their own Buoyancy and drag in the same way (its Angular Drag is only for Rigidbodies). A shell floats on its object's Rigidbody. The surface is sampled on a grid of at most 8 x 8 points over each body and the vertices are worked out natively, so a 1,000-point cloth costs little more than a small one. `water.IsFloating(softBody)` and `water.IsFloating(rope)` tell whether any of it was in the water. Do not add a Rigidbody to a jelly or cloth to float it: the two would fight over the object.
+
 ## Swimming
 
 A **Character Controller** swims in water deeper than its **Swim Depth** (1.2 m over the feet by default). `SimpleMove` then floats it with its head out of the water, moves it at **Swim Speed** (0.6 of the speed it is given), and lets the current carry it. A jump swims up, and out at an edge. In shallower water it wades on the bottom.
@@ -110,7 +112,6 @@ Waves too short for a grid's spacing fade out of the drawing. On endless water, 
 
 - One water at a time is used for the underwater view: the highest one the camera is in.
 - Things float by their middle's spot on the surface. A long ship is tilted by the slope under its middle, not by the waves along its length. Give a long ship several Floater objects, or a script that samples `SurfaceAt` at its ends.
-- Soft bodies and ropes do not float.
 - A lake's grid has at most 255 points along a side, so on a very large lake the points are further apart than Grid Spacing, and its shortest waves are not drawn (they still move things).
 - Flow is one current for the whole water. Rivers that bend and run downhill are on the roadmap (flowing water).
 - Objects do not make waves or ripples yet (water physics, on the roadmap).
@@ -122,6 +123,7 @@ Waves too short for a grid's spacing fade out of the drawing. On endless water, 
   - the clock a day into a session, still water, the rectangle turned and scaled, endless water, `Contains`, `DepthOf` and `At`;
   - a crate floating about 1 / Buoyancy under and settling, a cork with a Floater floating higher, a stone sinking, a disabled Floater, a crate beside the water, and Float Rigidbodies off;
   - the current carrying a floating crate, and waves rocking it;
+  - a jelly floating about 1 / Buoyancy under, a heavy jelly (Floater 0.5) sinking, cloth lying on the surface, a rope floating, a shell floating on its Rigidbody, the current carrying cloth and jelly, waves lifting cloth, what floating costs for a 1,089-point cloth and the rest, and Float Rigidbodies off;
   - a character swimming with its head out, one wading in shallow water, jumping up, swimming speed, the current carrying a swimmer, diving with `Swim` and floating back up, and Can Swim off;
   - in a network session: the water's identity, the client's waves matching the server's, a crate floating in the same place on both, the server's settings and level reaching the client (and winning over the client's), and a late joiner.
 - The Sandbox's `Scenes/Water.tscene` has both looks side by side, with crates, rocks, a pillar, a beach and a sinking stone ball. `Scenes/Ocean.tscene` has the sea with an island and floating barrels.

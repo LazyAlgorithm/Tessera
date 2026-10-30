@@ -62,6 +62,53 @@ class Program
 		return body;
 	}
 
+	/// A square sheet in the object's XZ plane, `cells` squares across, `size` metres wide.
+	static Mesh Sheet(int cells, float size)
+	{
+		let mesh = new Mesh();
+		for (int z <= cells)
+		{
+			for (int x <= cells)
+				mesh.AddVertex(.((x / (float)cells - 0.5f) * size, 0, (z / (float)cells - 0.5f) * size), .Up, .White, .(x / (float)cells, z / (float)cells));
+		}
+		for (int z < cells)
+		{
+			for (int x < cells)
+			{
+				let a = (uint32)(z * (cells + 1) + x);
+				mesh.AddTriangle(a, a + (uint32)cells + 1, a + 1);
+				mesh.AddTriangle(a + 1, a + (uint32)cells + 1, a + (uint32)cells + 2);
+			}
+		}
+		return mesh;
+	}
+
+	/// Steps and draws (soft bodies read their vertices back as a frame ends).
+	static void Frames(Scene scene, int ticks)
+	{
+		for (int i < ticks)
+		{
+			scene.FixedUpdate();
+			scene.Update();
+		}
+	}
+
+	static float Lowest(List<Vector3> points)
+	{
+		var lowest = float.MaxValue;
+		for (let p in points)
+			lowest = Math.Min(lowest, p.y);
+		return lowest;
+	}
+
+	static Vector3 Average(List<Vector3> points)
+	{
+		var sum = Vector3.Zero;
+		for (let p in points)
+			sum = sum + p;
+		return points.IsEmpty ? sum : sum / points.Count;
+	}
+
 	/// Where the still point (x, z) of the water is carried by its waves at a time: the sums of Water.bf written out
 	/// again, to check SurfaceAt against.
 	static Vector3 Displaced(Water water, Vector2 still, double time)
@@ -257,6 +304,102 @@ class Program
 			controller.canSwim = false;
 			Step(240);
 			ok &= Check(!controller.IsSwimming && controller.IsGrounded && swimmer.Transform.Position.y < -9, "with Can Swim off it walks on the bottom");
+		}
+
+		// ---- soft bodies and ropes ----
+		{
+			let scene = scope Scene();
+			Ground(scene, "Floor", .(0, -10.5f, 0), .(80, 1, 80));
+			let water = MakeWater(scene, 0);
+			GameObject Jelly(StringView name, Vector3 at)
+			{
+				let ball = scene.CreateGameObject(name);
+				ball.Transform.Position = at;
+				ball.AddComponent<MeshRenderer>().mesh.Set("builtin:sphere");
+				ball.AddComponent<SoftBody>().kind = .Jelly;
+				return ball;
+			}
+			let jelly = Jelly("Jelly", .(-6, 1.5f, 0));
+			let heavy = Jelly("Heavy Jelly", .(-6, 1.5f, 6));
+			heavy.AddComponent<Floater>().buoyancy = 0.5f;
+			let sheet = Sheet(16, 2);
+			defer delete sheet;
+			let cloth = scene.CreateGameObject("Cloth");
+			cloth.Transform.Position = .(0, 1, 0);
+			cloth.AddComponent<MeshRenderer>().RuntimeMesh = sheet;
+			let clothBody = cloth.AddComponent<SoftBody>();
+			let ropeObject = scene.CreateGameObject("Rope");
+			ropeObject.Transform.Position = .(6, 1, 0);
+			let rope = ropeObject.AddComponent<Rope>();
+			rope.length = 3;
+			rope.holdStart = false;
+
+			let shellMesh = Sheet(1, 1);
+			defer delete shellMesh;
+			let crate = scene.CreateGameObject("Shell Crate");
+			crate.Transform.Position = .(0, 1.5f, 8);
+			crate.AddComponent<MeshRenderer>().mesh.Set("builtin:cube");
+			crate.AddComponent<SoftBody>().kind = .Shell;
+			scene.StartPlay();
+			// Thrown in along the water, as it would be: dropped straight down, a rope balances on end like a stick.
+			Frames(scene, 1);
+			rope.LayAlong(scope Vector3[](.(5, 0.6f, 0), .(7.9f, 0.4f, 0)));
+			Frames(scene, 600);
+			let jellyMiddle = Average(jelly.GetComponent<SoftBody>().Positions);
+			ok &= Check(jellyMiddle.y < 0.25f && jellyMiddle.y > -0.4f && water.IsFloating(jelly.GetComponent<SoftBody>()), scope $"a jelly floats on the water (its middle at {jellyMiddle.y:0.00} m)");
+			ok &= Check(Average(heavy.GetComponent<SoftBody>().Positions).y < -9, "and one with a Floater of buoyancy 0.5 sinks");
+			let clothMiddle = Average(clothBody.Positions);
+			ok &= Check(Math.Abs(clothMiddle.y) < 0.15f && clothBody.GameObject.GetComponent<Floater>() == null && water.IsFloating(clothBody), scope $"cloth lies on the surface ({clothMiddle.y:0.000} m)");
+			let ropeMiddle = Average(rope.Points);
+			ok &= Check(Math.Abs(ropeMiddle.y) < 0.2f && water.IsFloating(rope), scope $"a rope floats ({ropeMiddle.y:0.000} m, lowest point {Lowest(rope.Points):0.00} m)");
+			ok &= Check(crate.Transform.Position.y > -1 && crate.Transform.Position.y < 0.5f, scope $"a shell floats on its Rigidbody ({crate.Transform.Position.y:0.00} m)");
+
+			// The current carries them.
+			water.flow = .(1.5f, 0);
+			let clothBefore = Average(clothBody.Positions);
+			let jellyBefore = Average(jelly.GetComponent<SoftBody>().Positions);
+			Frames(scene, 180);
+			ok &= Check(Average(clothBody.Positions).x - clothBefore.x > 2 && Average(jelly.GetComponent<SoftBody>().Positions).x - jellyBefore.x > 1.5f, scope $"the current carries cloth and jelly ({Average(clothBody.Positions).x - clothBefore.x:0.0} m and {Average(jelly.GetComponent<SoftBody>().Positions).x - jellyBefore.x:0.0} m in 3 s)");
+			water.flow = .Zero;
+
+			// Waves lift it and keep it awake.
+			water.waveHeight = 0.6f;
+			float top = float.MinValue, bottom = float.MaxValue;
+			for (int i < 300)
+			{
+				Frames(scene, 1);
+				let y = Average(clothBody.Positions).y;
+				if (i > 60)
+				{
+					top = Math.Max(top, y);
+					bottom = Math.Min(bottom, y);
+				}
+			}
+			ok &= Check(top - bottom > 0.1f && top < 1, scope $"waves lift and drop the cloth ({bottom:0.00} to {top:0.00} m)");
+
+			// What floating costs: a 1089-point cloth as well as the rest, timed (with a step too short to move them).
+			// The water is calm for it: a cloth this fine at the default Mass and Iterations is unsteady when squeezed
+			// together, waves or not (docs/soft-bodies.md).
+			water.waveHeight = 0;
+			let big = Sheet(32, 4);
+			defer delete big;
+			let bigCloth = scene.CreateGameObject("Big Cloth");
+			bigCloth.Transform.Position = .(-12, 0.5f, -10);
+			bigCloth.AddComponent<MeshRenderer>().RuntimeMesh = big;
+			bigCloth.AddComponent<SoftBody>();
+			Frames(scene, 120);
+			water.waveHeight = 0.6f;
+			let watch = scope System.Diagnostics.Stopwatch()..Start();
+			for (int i < 200)
+				Water.Simulate(scene, 1.0e-6f);
+			let each = watch.Elapsed.TotalMilliseconds * 1000 / 200;
+			ok &= Check(water.IsFloating(bigCloth.GetComponent<SoftBody>()) && each < 1000, scope $"floating is cheap: {each:0} microseconds a step for every body in this scene (a Debug build)");
+
+			// Off: only things with a Floater float.
+			water.waveHeight = 0;
+			water.floatRigidbodies = false;
+			Frames(scene, 300);
+			ok &= Check(Average(clothBody.Positions).y < -9 && jelly.GetComponent<SoftBody>() != null && Average(jelly.GetComponent<SoftBody>().Positions).y < -9, "with Float Rigidbodies off, soft bodies without a Floater sink");
 		}
 
 		// ---- networked by default: a host, a client and a late joiner ----
