@@ -128,6 +128,54 @@ class Program
 		return point;
 	}
 
+	/// Rollback must apply the same environmental forces, at the replayed tick, as forward simulation.
+	static bool ReplayBuoyancy(float waves, bool predicted = false)
+	{
+		let savedTick = Time.Tick;
+		defer { Time.Tick = savedTick; }
+		let forward = scope Scene();
+		let replay = scope Scene();
+		MakeWater(forward, waves);
+		MakeWater(replay, waves);
+		let expected = Crate(forward, "Forward", .(0, -0.1f, 0));
+		let actual = Crate(replay, "Replay", .(0, -0.1f, 0));
+		let identity = actual.GameObject.AddComponent<NetworkIdentity>();
+		for (let scene in Scene[?](forward, replay))
+		{
+			Time.Tick = 0;
+			scene.StartPlay();
+			scene.FixedUpdate();
+		}
+		replay.Network = new NetworkManager(replay);
+		replay.Network.[Friend]mIdentities.Add(identity);
+		List<(NetworkIdentity identity, BodyState state)> owned = scope .();
+		if (predicted)
+		{
+			identity.ownerId = 1;
+			identity.Predicted = true;
+			identity.PredictedSince = 0;
+			replay.Network.PredictedBodies = 1;
+		}
+		else
+			owned.Add((identity, identity.CaptureState()));
+		const uint32 ack = 173;
+		const uint32 steps = 12;
+		for (uint32 tick = ack + 1; tick <= ack + steps; tick++)
+		{
+			Time.Tick = (int32)tick;
+			Water.Simulate(forward, Time.FixedDeltaTime);
+			forward.Physics.Step(Time.FixedDeltaTime);
+		}
+		// Current scene time deliberately differs from replay time: waves must use each historical tick.
+		Time.Tick = 5000;
+		replay.Network.[Friend]mTick = ack + steps;
+		replay.Network.[Friend]ReplayInputs(ack, owned);
+		let positionGap = (expected.Transform.Position - actual.Transform.Position).Length;
+		let velocityGap = (expected.Velocity - actual.Velocity).Length;
+		return Check(positionGap < 0.001f && velocityGap < 0.001f,
+			scope $"rollback reapplies buoyancy at historical ticks (predicted {predicted}, waves {waves}, position gap {positionGap}, velocity gap {velocityGap})");
+	}
+
 	public static int Main(String[] args)
 	{
 		bool ok = true;
@@ -479,6 +527,11 @@ scope $"a late joiner's water is the server's as it is now (waves {lateWater.wav
 			client.Network.Stop();
 			host.Network.Stop();
 		}
+
+		ok &= ReplayBuoyancy(0);
+		ok &= ReplayBuoyancy(0.8f);
+		ok &= ReplayBuoyancy(0, true);
+		ok &= ReplayBuoyancy(0.8f, true);
 
 		Console.WriteLine(ok ? "ALL PASS" : "SOME FAILED");
 		return ok ? 0 : 1;
