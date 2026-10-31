@@ -10,7 +10,7 @@ namespace Tessera.Launcher;
 /// The project hub: pick a recent project, add an existing one, or create a new one.
 /// Opening a project compiles its scripts and starts its editor.
 ///
-/// Command line: --create <folder> [--sample]   create a project without the window
+/// Command line: --create <folder> [--sample | --showcase]   create a project without the window
 ///               --open <folder>                build and open a project's editor directly
 ///               --build-project <folder>       compile without opening a window
 class LauncherApp : Application
@@ -21,7 +21,7 @@ class LauncherApp : Application
 	String mMessage = new .() ~ delete _;
 	String mPendingOpen = new .() ~ delete _;
 	String mEngineRoot = new .() ~ delete _;
-	bool mSample = true;
+	ProjectTemplate mTemplate = .Sample;
 	/// Tools Tessera needs that were not found, when the launcher started.
 	List<String> mMissingTools = new .() ~ DeleteContainerAndItems!(_);
 	bool mMessageIsError;
@@ -213,7 +213,13 @@ class LauncherApp : Application
 		ImGui.Text("Location");
 		ImGui.SetNextItemWidth(-1);
 		ImGui.InputText("##location", mLocation);
-		ImGui.Checkbox("Include sample (voxel world, networked player)", ref mSample);
+		ImGui.Text("Template");
+		if (ImGui.RadioButton("Empty", mTemplate == .Empty))
+			mTemplate = .Empty;
+		if (ImGui.RadioButton("Voxel sandbox", mTemplate == .Sample))
+			mTemplate = .Sample;
+		if (ImGui.RadioButton("Exhibition Campus (24 interactive exhibits)", mTemplate == .Showcase))
+			mTemplate = .Showcase;
 		ImGui.Spacing();
 		if (ImGui.Button("Create Project", .(-1, 32)))
 			CreateFromForm();
@@ -308,7 +314,7 @@ class LauncherApp : Application
 		let folder = scope $"{mLocation}/{mName}";
 		Directory.CreateDirectory(mLocation).IgnoreError();
 		let error = scope String();
-		if (!ProjectGenerator.Create(folder, mName, mEngineRoot, mSample, error))
+		if (!ProjectGenerator.Create(folder, mName, mEngineRoot, mTemplate, error))
 		{
 			SetMessage(error, true);
 			return;
@@ -370,11 +376,13 @@ class Program
 			folder.RemoveFromEnd(1);
 		let name = scope String();
 		Path.GetFileName(folder, name);
-		bool sample = false;
+		ProjectTemplate template = .Empty;
 		for (let arg in args)
 		{
 			if (arg == "--sample")
-				sample = true;
+				template = .Sample;
+			if (arg == "--showcase")
+				template = .Showcase;
 		}
 		let root = scope String();
 		// No window here, so locate the engine relative to this executable.
@@ -385,7 +393,7 @@ class Program
 			return 1;
 		}
 		let error = scope String();
-		if (!ProjectGenerator.Create(folder, name, root, sample, error))
+		if (!ProjectGenerator.Create(folder, name, root, template, error))
 		{
 			Console.WriteLine(error);
 			return 1;

@@ -120,6 +120,7 @@ jobs:
           export BEEFBUILD="$HOME/beef/IDE/dist/BeefBuild"
           cd tessera
           python3 tools/package_engine.py --platform linux --folder ../out/Tessera-Linux
+          python3 tools/test_showcase_template.py --package ../out/Tessera-Linux --work ../showcase-test
           cd ../out && zip -qr9 Tessera-Linux.zip Tessera-Linux
 
       - name: Keep the zip
@@ -216,6 +217,7 @@ jobs:
           cd tessera
           python tools/package_engine.py --platform windows --folder ../out/Tessera-Windows
           python tools/test_windows_project_open.py --package ../out/Tessera-Windows --beef "$BEEFBUILD" --work ../project-open-test
+          python tools/test_showcase_template.py --package ../out/Tessera-Windows --work ../showcase-test
           cd ../out && 7z a -tzip -mx=9 Tessera-Windows.zip Tessera-Windows > /dev/null
 
       - name: Keep the zip

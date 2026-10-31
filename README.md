@@ -318,3 +318,7 @@ Developed and tested on Linux x64 with Vulkan. Windows x64 builds (games and the
 - Only the ball joint is a component; hinges (with a motor) and spring suspensions are made from code through `Scene.Physics` (see `docs/joints.md`). A hard knock can push a limb a little past its swing limit.
 - Script completion works out a variable's type from its declaration or assignment on one line; it does not follow chains (`a.b.`) or infer from method return types.
 - Built games still link the editor code.
+
+### Exhibition Campus sample
+
+Choose **Exhibition Campus (24 interactive exhibits)** when creating a project, or use `Tessera --create /path/to/MyCampus --showcase`. The entire walkable scene is saved and editable before Play, including soft-body mesh assets, sculpted terrain and loaded ropes. It demonstrates the engine’s main runtime systems and supports a cooperative host/join tour with animated visitor models. See [the sample guide](Editor/templates/showcase/README.md) for controls and networking. The template is included in distributed engine packages, including Tessera Hub downloads.

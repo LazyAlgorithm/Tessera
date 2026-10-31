@@ -63,6 +63,10 @@ class Project
 	public bool AudioHrtf = false;
 	/// A built game starts fullscreen (File > Build...). Games can change GameWindow.Fullscreen at run time.
 	public bool Fullscreen = false;
+	/// Initial game window size; zero keeps the runtime default.
+	public int32 WindowWidth, WindowHeight;
+	/// Games with an Escape menu turn this off.
+	public bool EscapeQuits = true;
 	/// A built game's assets go into one pack file (game.tpak) rather than loose files.
 	/// The engine's anti-cheat watches network sessions (see AntiCheat). Games can also turn it on from code.
 	public bool AntiCheat = false;
@@ -121,6 +125,9 @@ class Project
 			case "steamAppId": SteamAppId = Math.Max(SceneSerializer.ParseInt(value), 0);
 			case "audioHrtf": AudioHrtf = value == "1";
 			case "fullscreen": Fullscreen = value == "1";
+			case "windowWidth": WindowWidth = (int32)Math.Max(SceneSerializer.ParseInt(value), 0);
+			case "windowHeight": WindowHeight = (int32)Math.Max(SceneSerializer.ParseInt(value), 0);
+			case "escapeQuits": EscapeQuits = value != "0";
 			case "antiCheat": AntiCheat = value == "1";
 			case "packAssets": PackAssets = value != "0";
 			case "packCompress": PackCompress = value != "0";
@@ -154,6 +161,12 @@ class Project
 			text.Append("audioHrtf = 1\n");
 		if (Fullscreen)
 			text.Append("fullscreen = 1\n");
+		if (WindowWidth > 0)
+			text.AppendF("windowWidth = {}\n", WindowWidth);
+		if (WindowHeight > 0)
+			text.AppendF("windowHeight = {}\n", WindowHeight);
+		if (!EscapeQuits)
+			text.Append("escapeQuits = 0\n");
 		if (AntiCheat)
 			text.Append("antiCheat = 1\n");
 		if (!PackAssets)

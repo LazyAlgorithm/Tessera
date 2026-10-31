@@ -1,3 +1,10 @@
+## Exhibition Campus sample
+
+- New-project template with 24 working exhibits, saved editable geometry, terrain, soft bodies, loaded ropes, water, navigation, animation, audio, UI and more.
+- Cooperative tour: animated visitor models, host-validated exhibit interactions, shared settings and late-join state.
+- Template assets and namespace-aware scene copying included in Linux and Windows engine packages; packaged creation and compilation checked in release CI.
+- Fixes buoyancy during rollback and editor shading of foliage proxy renderers.
+
 # Tessera v0.1.0-beta.1
 
 Early beta of the Tessera engine, project launcher, and editor for Linux x64 and Windows x64.

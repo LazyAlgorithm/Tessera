@@ -5,6 +5,11 @@ using Tessera;
 
 namespace Tessera.Editor;
 
+enum ProjectTemplate
+{
+	Empty, Sample, Showcase
+}
+
 /// Creates new projects from built-in templates.
 static class ProjectGenerator
 {
@@ -299,8 +304,54 @@ static class ProjectGenerator
 			""", name));
 	}
 
+	/// Copy saved assets recursively, including terrain sidecars; substitute only text assets.
+	static bool CopyShowcase(StringView source, StringView destination, StringView name, String error)
+	{
+		if (Directory.CreateDirectory(destination) case .Err)
+		{
+			if (!Directory.Exists(destination))
+			{
+				error.Set(scope $"Could not create {destination}");
+				return false;
+			}
+		}
+		for (let entry in Directory.EnumerateFiles(source))
+		{
+			let file = scope String();
+			entry.GetFileName(file);
+			let from = scope $"{source}/{file}";
+			let to = scope $"{destination}/{file}";
+			if (file.EndsWith(".bf") || file.EndsWith(".tscene") || file.EndsWith(".tprefab"))
+			{
+				let text = scope String();
+				if (File.ReadAllText(from, text) case .Err)
+				{
+					error.Set(scope $"Could not read {from}");
+					return false;
+				}
+				text.Replace("{NAMESPACE}", name);
+				if (File.WriteAllText(to, text) case .Ok) continue;
+			}
+			else if (File.Copy(from, to, true) case .Ok) continue;
+			error.Set(scope $"Could not copy {from} to {to}");
+			return false;
+		}
+		for (let entry in Directory.EnumerateDirectories(source))
+		{
+			let dir = scope String();
+			entry.GetFileName(dir);
+			if (!CopyShowcase(scope $"{source}/{dir}" , scope $"{destination}/{dir}" , name, error)) return false;
+		}
+		return true;
+	}
+
 	/// Creates the folder structure and source files. sample adds a voxel world with a networked player.
 	public static bool Create(StringView folder, StringView name, StringView engineRoot, bool sample, String error)
+	{
+		return Create(folder, name, engineRoot, sample ? .Sample : .Empty, error);
+	}
+
+	public static bool Create(StringView folder, StringView name, StringView engineRoot, ProjectTemplate template, String error)
 	{
 		if (!IsValidName(name))
 		{
@@ -312,6 +363,11 @@ static class ProjectGenerator
 			error.Set("A project already exists in that folder.");
 			return false;
 		}
+		if (template == .Showcase && !File.Exists(scope $"{engineRoot}/Editor/templates/showcase/src/Scenes/Campus.tscene"))
+		{
+			error.Set("The Exhibition Campus template is missing from this engine installation.");
+			return false;
+		}
 		if (!CreateFolders(folder, error))
 			return false;
 
@@ -319,11 +375,26 @@ static class ProjectGenerator
 		project.Name.Set(name);
 		project.Path.Set(folder);
 		project.EngineRoot.Set(engineRoot);
+		if (template == .Showcase)
+		{
+			project.StartScene.Set("Scenes/Campus.tscene");
+			project.WindowWidth = 1600;
+			project.WindowHeight = 900;
+			project.EscapeQuits = false;
+		}
 		project.Save();
 
 		project.WriteBuildFiles();
 
 		Write(scope $"{folder}/.gitignore" , "build/\nrecovery/\n.cache/\nBeefSpace.toml\nBeefProj.toml\n");
+
+		if (template == .Showcase)
+		{
+			if (!CopyShowcase(scope $"{engineRoot}/Editor/templates/showcase" , folder, name, error))
+				return false;
+			Write(scope $"{folder}/.template" , "showcase");
+			return true;
+		}
 
 		WriteStarterScripts(folder, name);
 
@@ -352,7 +423,7 @@ static class ProjectGenerator
 					File.Copy(scope $"{common}/{sub}/{fileName}" , scope $"{folder}/src/{sub}/{fileName}").IgnoreError();
 			}
 		}
-		Write(scope $"{folder}/.template" , sample ? "sample" : "empty");
+		Write(scope $"{folder}/.template" , template == .Sample ? "sample" : "empty");
 		return true;
 	}
 }
