@@ -226,6 +226,8 @@ def main():
                 if file.is_file():
                     shutil.copy2(file, staging / 'Engine' / 'assets' / file.name)
             # The libraries' licences ask to travel with what is built from them.
+            if (engine / 'LICENSE').exists():
+                shutil.copy2(engine / 'LICENSE', staging / 'LICENSE')
             if (engine / 'THIRD_PARTY_LICENSES.txt').exists():
                 shutil.copy2(engine / 'THIRD_PARTY_LICENSES.txt', staging / 'THIRD_PARTY_LICENSES.txt')
             for file in (project / 'src').rglob('*'):
