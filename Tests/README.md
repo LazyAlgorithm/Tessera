@@ -4,7 +4,7 @@ Build native dependencies first using the engine's normal build setup. These fix
 
 For Layers, AnimationLayers, AsyncLoading, IK, Foliage, VoxelObject, Viewmodel, PostProcessing, SkinnedMaterials, Http, Saving, Navigation, NavigationMesh, CharacterController, BehaviorTree, Network, Audio, Voice, Animator, Material, Terrain, SpawnPoints, Achievements, References, InspectorTypes, ScriptCatalog, CodeEditor, GraphApi, GraphVariables, ShapeQueries, Scenes, Joints, UIDocuments, InputActions, Retargeting, PhysicsPrediction, Decals, Dialogue, Sequencer, Culling, Quality, Modeling, GpuSkinning, Textures, Reflections, Lighting, Themes, Baking, ProbePlacement, Rigging, Profiler, SoftBodies and Water (Textures, Reflections, Lighting, Baking, ProbePlacement and GpuSkinning also `python3 run.py` there, with a graphics card):
 
-`python3 tools/run_tests.py` builds and runs all of them (or the ones named) and reports each; `--platform macos` on a Mac.
+`python3 tools/run_tests.py` builds and runs all of them (or the ones named) and reports each; `--platform macos` on a Mac. On Windows use `python tools/run_tests.py` after building the Windows native libraries. The runner launches each executable directly, which also supports source folders containing spaces where some BeefBuild `-run` versions fail. `BEEFBUILD` selects a compiler executable or wrapper.
 
 ```sh
 BeefBuild -workspace=Tests/Navigation -config=Debug -run

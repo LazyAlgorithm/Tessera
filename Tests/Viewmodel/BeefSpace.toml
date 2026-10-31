@@ -2,3 +2,9 @@ FileVersion = 1
 Projects = {ViewmodelTests = {Path = "."}, Tessera = {Path = "../../Engine"}, TesseraEditor = {Path = "../../Editor"}}
 [Workspace]
 StartupProject = "ViewmodelTests"
+
+[Configs.Debug.Win64]
+Toolset = "LLVM"
+
+[Configs.Release.Win64]
+Toolset = "LLVM"

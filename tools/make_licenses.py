@@ -9,12 +9,16 @@ from pathlib import Path
 
 root = Path(__file__).resolve().parent.parent
 tp = root / 'third_party'
+jolt_license = next((root / 'build' / native / '_deps/joltphysics-src/LICENSE'
+                     for native in ('native', 'native-win')
+                     if (root / 'build' / native / '_deps/joltphysics-src/LICENSE').is_file()),
+                    root / 'build/native/_deps/joltphysics-src/LICENSE')
 libraries = [
     ('bgfx', 'Rendering', tp / 'bgfx.cmake/bgfx/LICENSE'),
     ('bx', 'Base library used by bgfx', tp / 'bgfx.cmake/bx/LICENSE'),
     ('bimg', 'Image library used by bgfx', tp / 'bgfx.cmake/bimg/LICENSE'),
     ('SDL 3', 'Windows, input and gamepads', tp / 'SDL/LICENSE.txt'),
-    ('Jolt Physics', 'Physics', root / 'build/native/_deps/joltphysics-src/LICENSE'),
+    ('Jolt Physics', 'Physics', jolt_license),
     ('Recast Navigation', 'Polygon navigation baking and Detour path queries', tp / 'recastnavigation/License.txt'),
     ('JoltC', 'C interface to Jolt Physics', tp / 'joltc/LICENSE'),
     ('ENet', 'Network transport', tp / 'enet/LICENSE'),

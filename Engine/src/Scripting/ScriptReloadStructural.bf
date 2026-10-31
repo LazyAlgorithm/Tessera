@@ -7,7 +7,33 @@ namespace Tessera;
 
 extension ScriptReload
 {
-	static List<Type> sCanonicalTypes = new .() ~ delete _;
+	static List<Type> sCanonicalTypes = new .() ~ RetireTypeLookup(_);
+	[CLink] static extern int32 atexit(function void() callback);
+
+	static void RetireTypeLookup(List<Type> types)
+	{
+		// Runtime hooks remain installed during other types' static destructors. Keep a native copy
+		// until CRT exit, while releasing the tracked List before Beef's final leak check.
+		if (sTypeHooks)
+		{
+			let lookup = (Type*)Internal.StdMalloc(types.Count * sizeof(Type));
+			if (lookup == null) return;
+			for (int i < types.Count)
+				lookup[i] = types[i];
+			sLookup = lookup;
+			sLookupCount = types.Count;
+			atexit( => FreeExitTypeLookup);
+		}
+		delete types;
+	}
+
+	static void FreeExitTypeLookup()
+	{
+		Internal.StdFree(sLookup);
+		sLookup = null;
+		sLookupCount = 0;
+	}
+
 	static List<Component> sRetired = new .() ~ DeleteContainerAndItems!(_);
 	public static void Retire(Component component)
 	{

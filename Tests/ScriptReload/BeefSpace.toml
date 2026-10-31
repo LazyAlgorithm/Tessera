@@ -1,4 +1,10 @@
 FileVersion = 1
-Projects = {ReloadTests = {Path = "."}, Tessera = {Path = "/home/zerker24/BeefProjects/Tessera/Engine"}}
+Projects = {ReloadTests = {Path = "."}, Tessera = {Path = "../../Engine"}}
 [Workspace]
 StartupProject = "ReloadTests"
+
+[Configs.Debug.Win64]
+Toolset = "LLVM"
+
+[Configs.Release.Win64]
+Toolset = "LLVM"

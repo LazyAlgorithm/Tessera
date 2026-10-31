@@ -4,16 +4,25 @@
 
 A 3D game engine and editor written in [Beef](https://www.beeflang.org), aimed at low-poly games with voxel worlds and server-authoritative multiplayer.
 
-## Run it
+## Build and run
 
-```bash
-./build.sh     # native libraries, shaders, launcher (first time, or after changing native/ or shaders)
-./tessera      # project launcher: open a recent project, add one, or create one
+See [Building from source](docs/building-from-source.md) for prerequisites and complete Linux and native Windows instructions. Python 3.11+, CMake, Ninja, a C/C++ compiler and the Beef toolchain are required; Windows also needs the MSVC libraries/Windows SDK and clang-cl.
+
+Linux:
+
+```sh
+./build.sh --config Debug
+./tessera
 ```
 
-Opening a project compiles its scripts and starts its editor. `Samples/Sandbox` is a ready-made project with a voxel world, a destructible boulder, pushable crates and a networked player.
+Windows, from an x64 Visual Studio developer shell:
 
-Requirements on Linux: BeefBuild on `PATH` (or `BEEFBUILD` set), CMake, Ninja, a C++20 compiler, X11 development headers, and a Vulkan driver.
+```bat
+python tools/build.py --config Debug
+build\Debug_Win64\TesseraLauncher\TesseraLauncher.exe
+```
+
+Opening a project compiles its scripts and starts its editor. `Samples/Sandbox` is a ready-made voxel playground. Choose **Exhibition Campus** to create the complete editable showcase. The repository and generated projects support paths containing spaces.
 
 ## Portable editor packages (early beta)
 

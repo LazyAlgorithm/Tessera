@@ -2,3 +2,9 @@ FileVersion = 1
 Projects = {BehaviorTreeTests = {Path = "."}, Tessera = {Path = "../../Engine"}, TesseraEditor = {Path = "../../Editor"}}
 [Workspace]
 StartupProject = "BehaviorTreeTests"
+
+[Configs.Debug.Win64]
+Toolset = "LLVM"
+
+[Configs.Release.Win64]
+Toolset = "LLVM"

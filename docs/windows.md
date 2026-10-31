@@ -1,6 +1,13 @@
 # Building for Windows
 
-Tessera is developed on Linux, and builds Windows games, and a Windows copy of the editor, from there. No Windows machine is needed to build.
+Tessera can be built directly on Windows or cross-built from Linux. For a native Windows source build, install the prerequisites in [Building from source](building-from-source.md), open an x64 Visual Studio developer shell, then run:
+
+```bat
+python tools/build.py --config Debug
+build\Debug_Win64\TesseraLauncher\TesseraLauncher.exe
+```
+
+The sections below describe the optional Linux cross-build workflow.
 
 **How far it has been tested.** The Windows builds are made on Linux and run there under Wine: a packaged game starts, draws with Vulkan, plays a match and joins a server running the Linux build; the launcher and editor start, open a project, show its interface documents and play it. A built game has also been run on a Windows machine. The launcher and editor have not been run on one yet, so expect to find things on the first try there.
 
@@ -64,7 +71,7 @@ Differences from the Linux editor:
 ## Not done
 
 - **Direct3D.** Only Vulkan shaders are shipped. Direct3D bytecode needs Microsoft's shader compiler; compile with bgfx's `shaderc` on Windows into `Engine/assets/shaders/dx11` and remove the Vulkan default in `native/tessera_native.cpp` to use it.
-- **The test fixtures** have Linux link settings only.
+- **Test coverage.** Fixtures have relative Linux, macOS and Windows link settings. Graphics, device and service integrations still require platform-specific validation.
 - **A real Windows machine.** File dialogs, audio output and the microphone, gamepads, high-DPI scaling and Steam there are untried.
 
 ## Opening projects from a Hub installation

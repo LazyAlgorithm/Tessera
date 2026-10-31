@@ -24,6 +24,13 @@ class Project
 	/// sits inside, as the bundled samples do. The project file is updated so that builds use the right engine.
 	void RelocateEngine()
 	{
+		// A checked-in sample records its engine relative to the project, never to the caller's working folder.
+		if (!EngineRoot.IsEmpty && !Assets.IsAbsolute(EngineRoot))
+		{
+			let resolved = scope String();
+			ProjectGenerator.Normalize(scope $"{Path}/{EngineRoot}" , resolved);
+			EngineRoot.Set(resolved);
+		}
 		if (!EngineRoot.IsEmpty && Directory.Exists(scope $"{EngineRoot}/Engine/src"))
 			return;
 		let found = scope String();
@@ -296,7 +303,10 @@ class Project
 		File.WriteAllText(scope $"{Path}/BeefSpace.toml" , space).IgnoreError();
 
 		let native = scope $"{EngineRoot}/build/native";
-		let link = scope $"-Wl,--start-group {native}/libtessera_native.a {native}/bgfx/cmake/bgfx/libbgfx.a {native}/bgfx/cmake/bimg/libbimg.a {native}/bgfx/cmake/bimg/libbimg_decode.a {native}/bgfx/cmake/bx/libbx.a {native}/SDL/libSDL3.a {native}/joltc/libjoltc.a {native}/_deps/joltphysics-build/libJolt.a {native}/enet/libenet.a -Wl,--end-group -lstdc++ -lm -ldl -lpthread -lGL -lX11 {LinkFlags}";
+		let link = scope String("-Wl,--start-group ");
+		for (let archive in StringView[?]("libtessera_native.a", "bgfx/cmake/bgfx/libbgfx.a", "bgfx/cmake/bimg/libbimg.a", "bgfx/cmake/bimg/libbimg_decode.a", "bgfx/cmake/bx/libbx.a", "SDL/libSDL3.a", "joltc/libjoltc.a", "_deps/joltphysics-build/libJolt.a", "enet/libenet.a"))
+			link.AppendF("\\\"{}/{}\\\" ", native, archive);
+		link.AppendF("-Wl,--end-group -lstdc++ -lm -ldl -lpthread -lGL -lX11 {}", LinkFlags);
 		let proj = scope String();
 		proj.Append("FileVersion = 1\nDependencies = {corlib = \"*\", Tessera = \"*\", TesseraEditor = \"*\"");
 		for (let library in libraries)

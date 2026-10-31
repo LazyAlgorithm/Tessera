@@ -22,24 +22,21 @@ wine_environment = dict(os.environ, WINEPREFIX=str(toolchain / 'wine'), WINEDEBU
 platform = ['--platform', 'windows'] if windows else []
 
 
-def windows_project(project):
-    """Gives the copied project what a Windows build needs: the engine's Windows libraries, and a link map."""
+def relocate_project(project):
+    """A copied fixture resolves the engine from its original checkout, not from its temporary folder."""
     def place(path):
         return ('Z:' if wine else '') + str(path).replace('\\', '/')
-    launcher = (engine / 'Launcher/BeefProj.toml').read_text()
-    flags = re.search(r'\[Configs\.Debug\.Win64\][^\[]*?OtherLinkFlags = "([^"]*)"', launcher).group(1)
-    flags = flags.replace('$(WorkspaceDir)', place(engine))
-    with open(project / 'BeefProj.toml', 'a') as file:
-        file.write(f'\n[Configs.Debug.Win64]\nCLibType = "Static"\nOtherLinkFlags = "{flags} /MAP"\n')
-    (project / 'BeefSpace.toml').write_text('FileVersion = 1\nProjects = {ReloadTests = {Path = "."}, Tessera = {Path = "' + place(engine / 'Engine')
-                                           + '"}}\n[Workspace]\nStartupProject = "ReloadTests"\n\n[Configs.Debug.Win64]\nToolset = "LLVM"\n')
+    for name in ('BeefProj.toml', 'BeefSpace.toml'):
+        file = project / name
+        text = file.read_text().replace('$(WorkspaceDir)/../..', place(engine))
+        text = text.replace('../../Engine', place(engine / 'Engine'))
+        file.write_text(text)
 
 
 def compile_host(project):
     if not windows:
-        subprocess.run(['BeefBuild', f'-workspace={project}', '-config=Debug', '-verbosity=minimal'], check=True)
+        subprocess.run([os.environ.get('BEEFBUILD', 'BeefBuild'), f'-workspace={project}', '-config=Debug', '-verbosity=minimal'], check=True)
         return [str(project / 'build/Debug_Linux64/ReloadTests/ReloadTests'), str(project)], None
-    windows_project(project)
     if wine:
         subprocess.run(['wine', str(toolchain / 'beef/bin/BeefBuild.exe'), '-workspace=Z:' + str(project).replace('/', '\\'), '-config=Debug', '-platform=Win64', '-verbosity=minimal'],
                        check=True, env=wine_environment, stderr=subprocess.DEVNULL)
@@ -64,6 +61,7 @@ with (contextlib.nullcontext(tempfile.mkdtemp(prefix='tessera-live-reload-test-'
     shutil.copytree(root / 'src', project / 'src')
     for name in ('BeefProj.toml', 'BeefSpace.toml'):
         shutil.copy2(root / name, project / name)
+    relocate_project(project)
     command, environment = compile_host(project)
     baseline = project / 'baseline.json'
     subprocess.run([sys.executable, str(builder), str(project), *platform, '--snapshot', '--baseline', str(baseline)], check=True)
@@ -96,7 +94,12 @@ with (contextlib.nullcontext(tempfile.mkdtemp(prefix='tessera-live-reload-test-'
             subprocess.run([sys.executable, str(builder), str(project), *platform, '--baseline', str(baseline), '--manifest', str(manifest)], check=True)
             wait_for(project / f'applied-{generation}', host)
             subprocess.run([sys.executable, str(builder), str(project), *platform, '--commit', '--baseline', str(baseline), '--manifest', str(manifest)], check=True)
-        output, _ = host.communicate(timeout=20)
+        try:
+            output, _ = host.communicate(timeout=20)
+        except subprocess.TimeoutExpired as error:
+            output = error.stdout or b''
+            print(output.decode(errors='replace') if isinstance(output, bytes) else output, flush=True)
+            raise
         print(output, end='')
         assert host.returncode == 0
         print('PASS: adding script, adding/retyping/removing fields, and ShowInInspector reload without restarting host', flush=True)

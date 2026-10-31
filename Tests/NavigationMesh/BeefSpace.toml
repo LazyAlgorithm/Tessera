@@ -2,3 +2,9 @@ FileVersion = 1
 Projects = {NavigationMeshTests = {Path = "."}, Tessera = {Path = "../../Engine"}, TesseraEditor = {Path = "../../Editor"}}
 [Workspace]
 StartupProject = "NavigationMeshTests"
+
+[Configs.Debug.Win64]
+Toolset = "LLVM"
+
+[Configs.Release.Win64]
+Toolset = "LLVM"

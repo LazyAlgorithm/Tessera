@@ -2,3 +2,9 @@ FileVersion = 1
 Projects = {ScriptCatalogTests = {Path = "."}, Tessera = {Path = "../../Engine"}, TesseraEditor = {Path = "../../Editor"}}
 [Workspace]
 StartupProject = "ScriptCatalogTests"
+
+[Configs.Debug.Win64]
+Toolset = "LLVM"
+
+[Configs.Release.Win64]
+Toolset = "LLVM"

@@ -1,6 +1,6 @@
 # Optional snapshot bandwidth controls
 
-Baseline: GitHub main `3d0fcc7c075c2112946ec8d0299695a923d4ef83`, verified against local files before editing. Engine, editor, scripts and native sources matched; 46 third-party example/project files differed only in newline representation. There were no missing files. The original source is retained locally under `/home/zerker24/NetworkingReview/baseline`.
+Baseline: GitHub main `3d0fcc7c075c2112946ec8d0299695a923d4ef83`, verified against local files before editing. Engine, editor, scripts and native sources matched; 46 third-party example/project files differed only in newline representation. There were no missing files. The baseline source can be retrieved from the commit above.
 
 All new behavior is opt-in. Existing scenes keep their legacy snapshot format and rates. Owner prediction always receives the full exact BodyState. Inputs already use packed button bits and quantized controls.
 

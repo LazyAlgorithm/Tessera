@@ -15,6 +15,7 @@ import re
 import subprocess
 import sys
 import time
+import tomllib
 
 PLATFORMS = {'linux': 'Linux64', 'macos': 'macOS', 'windows': 'Win64'}
 
@@ -70,10 +71,19 @@ def main():
 def run_one(beef, folder, name, args):
     started = time.time()
     try:
-        run = subprocess.run([beef, '-config=Debug', f'-platform={PLATFORMS[args.platform]}', '-run'], cwd=folder,
-                             capture_output=True, text=True, errors='replace', timeout=args.timeout)
-        output = run.stdout + run.stderr
-        code = run.returncode
+        built = subprocess.run([beef, '-config=Debug', f'-platform={PLATFORMS[args.platform]}'], cwd=folder,
+                               capture_output=True, text=True, errors='replace', timeout=args.timeout)
+        output = built.stdout + built.stderr
+        code = built.returncode
+        if code == 0:
+            # BeefBuild -run cannot launch executables beneath paths containing spaces on some compiler versions.
+            # Spawn the compiled fixture directly, preserving the workspace working directory.
+            project = tomllib.loads((folder / 'BeefProj.toml').read_text())['Project']['Name']
+            executable = folder / f'build/Debug_{PLATFORMS[args.platform]}/{project}' / (project + ('.exe' if args.platform == 'windows' else ''))
+            run = subprocess.run([str(executable)], cwd=folder, capture_output=True, text=True,
+                                 errors='replace', timeout=args.timeout)
+            output += run.stdout + run.stderr
+            code = run.returncode
     except subprocess.TimeoutExpired as error:
         output = (error.stdout or b'').decode(errors='replace') if isinstance(error.stdout, bytes) else (error.stdout or '')
         code = 'timeout'

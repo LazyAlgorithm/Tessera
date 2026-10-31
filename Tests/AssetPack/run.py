@@ -2,6 +2,7 @@
 """Builds small asset packs with tools/pack_assets.py and has the engine read them back (Tests/AssetPack/src)."""
 from pathlib import Path
 import math
+import os
 import struct
 import subprocess
 import sys
@@ -56,6 +57,6 @@ with tempfile.TemporaryDirectory(prefix='tessera-pack-test-') as temporary:
     (work / 'loose' / 'Assets').mkdir(parents=True)
     (work / 'loose' / 'Assets' / 'notes.txt').write_text('loose notes\n')
 
-    subprocess.run(['BeefBuild', f'-workspace={root}', '-config=Debug', '-verbosity=minimal'], check=True, stdout=subprocess.DEVNULL)
+    subprocess.run([os.environ.get('BEEFBUILD', 'BeefBuild'), f'-workspace={root}', '-config=Debug', '-verbosity=minimal'], check=True, stdout=subprocess.DEVNULL)
     result = subprocess.run([str(root / 'build/Debug_Linux64/AssetPackTests/AssetPackTests'), str(pack), str(work / 'game'), str(work / 'damaged.tpak'), str(work / 'loose')])
     sys.exit(result.returncode)
