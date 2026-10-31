@@ -84,7 +84,7 @@ def main():
         ignore = shutil.ignore_patterns('build', '__pycache__', '*.pyc', 'recovery', '.reload', 'imgui.ini')
         for name in ('Engine', 'Editor', 'Launcher'):
             shutil.copytree(root / name, stage / name, ignore=ignore)
-        for name in ('BeefSpace.toml', 'icon.png', 'THIRD_PARTY_LICENSES.txt'):
+        for name in ('BeefSpace.toml', 'icon.png', 'LICENSE', 'THIRD_PARTY_LICENSES.txt'):
             shutil.copy2(root / name, stage / name)
         (stage / 'tools').mkdir()
         for name in ('build_player.py', 'pack_assets.py', 'compress_textures.py', 'convert_models.py', 'macos_link.py', 'reload_scripts.py', 'package_engine.py', 'toolchain.txt'):

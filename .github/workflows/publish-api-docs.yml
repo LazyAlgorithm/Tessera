@@ -1,0 +1,39 @@
+name: Publish Tessera API reference
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'Engine/**/*.bf'
+      - 'tools/generate_api_docs.py'
+      - '.github/workflows/publish-api-docs.yml'
+permissions:
+  contents: write
+concurrency:
+  group: api-docs-publish
+  cancel-in-progress: false
+jobs:
+  api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: engine
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: site
+          persist-credentials: true
+      - name: Generate static API index
+        run: python3 engine/tools/generate_api_docs.py --root engine --output site --commit "${{ github.sha }}"
+      - name: Publish only generated API files
+        working-directory: site
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add api.html api-index.json
+          if ! git diff --cached --quiet; then
+            git commit -m "docs: refresh generated API reference for ${{ github.sha }}"
+            git push origin HEAD:gh-pages
+          fi
